@@ -163,7 +163,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
               <button onClick={() => { navigator.clipboard?.writeText(comment.text); showToast?.(t("pd.textCopied")); }} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
                 <Share2 size={11} /><span>{t("pd.copy")}</span>
               </button>
-              <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/post/${commentPostId || comment.postId}#comment-${comment.id}`); showToast?.(t("pd.linkCopied")); }} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+              <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/app?view=post&postId=${commentPostId || comment.postId}`); showToast?.(t("pd.linkCopied")); }} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
                 <Link2 size={11} /><span>{t("pd.link")}</span>
               </button>
               <button onClick={() => setSaved(!saved)} className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full transition-colors", saved ? "text-nf-accent" : "text-nf-muted hover:bg-nf-hover hover:text-white")}>
@@ -530,7 +530,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             </AnimatePresence>
           </div>
           <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /> {postSaved ? t("pd.saved") : t("pd.saveBtn")}</button>
-          <button onClick={() => { const embed = `<blockquote class="northfall-embed" data-post-id="${postId}"><a href="${window.location.origin}/post/${postId}">NorthFall Post</a></blockquote>`; navigator.clipboard?.writeText(embed); showToast(t("pd.embedCopied")); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Code2 size={14} /> Embed</button>
+          <button onClick={() => { const embed = `<blockquote class="northfall-embed" data-post-id="${postId}"><a href="${window.location.origin}/app?view=post&postId=${postId}">NorthFall Post</a></blockquote>`; navigator.clipboard?.writeText(embed); showToast(t("pd.embedCopied")); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Code2 size={14} /> Embed</button>
           {user && post?.authorUid === user.uid && onEditClick && (
             <button onClick={() => onEditClick(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Pencil size={14} /> تعديل</button>
           )}

@@ -174,7 +174,7 @@ export default function PostCard({
   };
 
   const handleShare = () => {
-    navigator.clipboard?.writeText(`${window.location.origin}/post/${postId}`);
+    navigator.clipboard?.writeText(`${window.location.origin}/app?view=post&postId=${postId}`);
     setShowShare(true);
     setTimeout(() => setShowShare(false), 2000);
   };
@@ -396,7 +396,7 @@ export default function PostCard({
                     <Trash2 size={12} /> حذف المنشور
                   </button>
                 )}
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); navigator.clipboard?.writeText(`${window.location.origin}/post/${postId}`); toast("تم نسخ الرابط", "success"); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); navigator.clipboard?.writeText(`${window.location.origin}/app?view=post&postId=${postId}`); toast("تم نسخ الرابط", "success"); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
                   <Link2 size={12} /> نسخ الرابط
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); setShowReport(true); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">

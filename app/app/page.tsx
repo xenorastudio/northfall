@@ -71,6 +71,9 @@ function AppContent() {
       const p = params.get("postId"); if (p) setSelectedPostId(p);
       const u = params.get("uid"); if (u) setViewingUid(u);
       const e = params.get("editPostId"); if (e) { setEditPostId(e); setView("edit"); }
+      // Set tab title on direct URL load
+      const titles: Record<string, string> = { feed: "Northfall", community: c ? `n/${c}` : "مجتمع", profile: "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف" };
+      document.title = (titles[v] || "Northfall") + " — Northfall";
     }
   }, []);
   const [selectedCommunity, setSelectedCommunity] = useState("");

@@ -87,7 +87,7 @@ export default function EmbedPage() {
   }
 
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const postUrl = `${siteUrl}?post=${postId}`;
+  const postUrl = `${siteUrl}/app?view=post&postId=${postId}`;
   const commImg = communityImages[post.community] || "";
 
   return (
