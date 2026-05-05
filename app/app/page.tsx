@@ -67,12 +67,42 @@ function AppContent() {
     const v = params.get("view");
     if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin"].includes(v)) {
       setView(v as View);
-      window.history.replaceState({}, "", "/app");
+      const c = params.get("community"); if (c) setSelectedCommunity(c);
+      const p = params.get("postId"); if (p) setSelectedPostId(p);
+      const u = params.get("uid"); if (u) setViewingUid(u);
+      const e = params.get("editPostId"); if (e) { setEditPostId(e); setView("edit"); }
     }
   }, []);
   const [selectedCommunity, setSelectedCommunity] = useState("");
   const [selectedPostId, setSelectedPostId] = useState("");
   const [editPostId, setEditPostId] = useState("");
+
+  // URL-based navigation helper
+  const navigateTo = (newView: View, extra: Record<string, string> = {}) => {
+    setView(newView);
+    const params = new URLSearchParams({ view: newView, ...extra });
+    const url = `/app?${params.toString()}`;
+    window.history.pushState({ view: newView, ...extra }, "", url);
+  };
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const onPopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const v = params.get("view") as View | null;
+      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin"].includes(v)) {
+        setView(v);
+        const c = params.get("community"); if (c) setSelectedCommunity(c);
+        const p = params.get("postId"); if (p) setSelectedPostId(p);
+        const u = params.get("uid"); if (u) setViewingUid(u);
+        const e = params.get("editPostId"); if (e) setEditPostId(e);
+      } else {
+        setView("feed");
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   const [showLogin, setShowLogin] = useState(false);
   const [showAnnouncement, setShowAnnouncement] = useState(true);
   const [showBackTop, setShowBackTop] = useState(false);
@@ -187,15 +217,15 @@ function AppContent() {
   // Re-fetch when feed mode changes
   useEffect(() => { fetchPosts(); }, [feedMode]);
 
-  const openCommunity = (name: string) => { setSelectedCommunity(name); setView("community"); };
   const [viewingUid, setViewingUid] = useState<string | null>(null);
-  const openProfile = (uid?: string) => { if (uid) { setViewingUid(uid); setView("profile"); } else if (user) { setViewingUid(user.uid); setView("profile"); } else { setShowLogin(true); } };
-  const openPost = (id: string) => { setSelectedPostId(id); setView("post"); };
-  const openCreate = () => { if (user) { setEditPostId(""); setView("create"); } else setShowLogin(true); };
-  const openEdit = (id: string) => { setEditPostId(id); setView("edit"); };
+  const openCommunity = (name: string) => { setSelectedCommunity(name); navigateTo("community", { community: name }); };
+  const openProfile = (uid?: string) => { if (uid) { setViewingUid(uid); navigateTo("profile", { uid }); } else if (user) { setViewingUid(user.uid); navigateTo("profile", { uid: user.uid }); } else { setShowLogin(true); } };
+  const openPost = (id: string) => { setSelectedPostId(id); navigateTo("post", { postId: id }); };
+  const openCreate = () => { if (user) { setEditPostId(""); navigateTo("create"); } else setShowLogin(true); };
+  const openEdit = (id: string) => { setEditPostId(id); navigateTo("edit", { editPostId: id }); };
   const scrollRef = useRef(0);
   const backToFeed = () => {
-    setView("feed");
+    navigateTo("feed");
     // Restore scroll position after view change
     requestAnimationFrame(() => { window.scrollTo({ top: scrollRef.current, behavior: "instant" as ScrollBehavior }); });
   };
@@ -243,15 +273,15 @@ function AppContent() {
 
   return (
     <>
-      <Navbar onProfileClick={openProfile} onLoginClick={() => setShowLogin(true)} onCommunityClick={openCommunity} onPostClick={openPost} onNotifsClick={() => setView("notifs")} onSettingsClick={() => setView("settings")} onCreateClick={openCreate} onAdminClick={() => setView("admin")} />
+      <Navbar onProfileClick={openProfile} onLoginClick={() => setShowLogin(true)} onCommunityClick={openCommunity} onPostClick={openPost} onNotifsClick={() => navigateTo("notifs")} onSettingsClick={() => navigateTo("settings")} onCreateClick={openCreate} onAdminClick={() => navigateTo("admin")} />
       <SidebarLeft
         key={sidebarKey}
         onNavClick={(id) => {
-          if (id === "profile" || id === "saved") requireAuth(() => { setViewingUid(user?.uid || null); setView("profile"); });
-          else if (id === "notifs") setView("notifs");
-          else if (id === "settings") setView("settings");
+          if (id === "profile" || id === "saved") requireAuth(() => { setViewingUid(user?.uid || null); navigateTo("profile", { uid: user?.uid || "" }); });
+          else if (id === "notifs") navigateTo("notifs");
+          else if (id === "settings") navigateTo("settings");
           else if (id === "forums") window.open("/NewPage", "_blank");
-          else if (id === "hot" || id === "new" || id === "top") { setSortMode(id); setView("feed"); }
+          else if (id === "hot" || id === "new" || id === "top") { setSortMode(id); navigateTo("feed"); }
           else backToFeed();
         }}
         onCommunityClick={openCommunity}
