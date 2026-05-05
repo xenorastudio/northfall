@@ -83,6 +83,9 @@ function AppContent() {
     const params = new URLSearchParams({ view: newView, ...extra });
     const url = `/app?${params.toString()}`;
     window.history.pushState({ view: newView, ...extra }, "", url);
+    // Update browser tab title
+    const titles: Record<string, string> = { feed: "Northfall", community: extra.community ? `n/${extra.community}` : "مجتمع", profile: extra.uid ? "بروفايل" : "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف" };
+    document.title = (titles[newView] || "Northfall") + " — Northfall";
   };
 
   // Handle browser back/forward

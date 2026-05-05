@@ -42,9 +42,10 @@ export default function ReportModal({
   const handleSubmit = async () => {
     try {
       await addDoc(collection(db, "reports"), {
-        reason: selected,
+        reason: categories.find(c => c.id === selected)?.title || selected,
+        category: selected,
         details: reportText,
-        target: type,
+        type: type,
         targetId,
         reporterUid: user?.uid || "anon",
         reporterName: user?.displayName || "مجهول",

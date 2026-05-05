@@ -240,11 +240,11 @@ export default function PostCard({
   const postHref = postId ? `/app?view=post&postId=${postId}` : undefined;
 
   return (
+    <a href={postHref || "#"} onClick={e => { if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) { e.preventDefault(); onPostClick?.(postId || ""); } }} className="block">
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      onClick={e => { if (!e.ctrlKey && !e.metaKey && !e.shiftKey) { e.preventDefault(); onPostClick?.(postId || ""); } }}
       className={cn("bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-colors duration-150 relative",
         voteCount >= 10 ? "border-orange-400/20 hover:bg-nf-accent/5 hover:border-orange-400/40" : "border-nf-border-2 hover:bg-nf-accent/5 hover:border-nf-accent/15")}
     >
@@ -452,5 +452,6 @@ export default function PostCard({
       {showAward && <AwardModal open={showAward} onClose={() => setShowAward(false)} postId={postId || ""} />}
       {showShareModal && <ShareModal open={showShareModal} onClose={() => setShowShareModal(false)} postId={postId || ""} postTitle={title} />}
     </motion.article>
+    </a>
   );
 }

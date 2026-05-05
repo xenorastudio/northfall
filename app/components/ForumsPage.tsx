@@ -635,6 +635,9 @@ export default function ForumsPage() {
     setViewMode(newView);
     const url = getForumUrl(newView, extra);
     window.history.pushState({ view: newView, ...extra }, "", url);
+    // Update browser tab title
+    const titles: Record<string, string> = { list: extra.community ? `n/${extra.community}` : "المنتدى", thread: "موضوع", new: "موضوع جديد", profile: "بروفايل", community: extra.community ? `n/${extra.community}` : "مجتمع", ai: "ذكاء اصطناعي" };
+    document.title = (titles[newView] || "المنتدى") + " — Northfall Forum";
   };
 
   // Read URL params on mount
