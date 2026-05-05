@@ -62,7 +62,7 @@ function timeAgoShort(ts: any): string {
 }
 
 export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick, onPostClick, onNotifsClick, onSettingsClick, onCreateClick, onAdminClick }: {
-  onProfileClick: () => void;
+  onProfileClick: (uid?: string) => void;
   onLoginClick: () => void;
   onCommunityClick?: (name: string) => void;
   onPostClick?: (id: string) => void;
@@ -293,7 +293,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
 
   const handleResultClick = (r: any) => {
     if (r._type === "community") onCommunityClick?.(r.name);
-    else if (r._type === "user") onProfileClick();
+    else if (r._type === "user") onProfileClick(r.uid);
     else if (r._type === "post") onPostClick?.(r.id);
     else if (r._type === "history") { setSearchQuery(r.text); return; }
     addHistory(searchQuery);
