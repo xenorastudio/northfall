@@ -1872,47 +1872,8 @@ export default function ForumsPage() {
         </div>
       </header>
 
-      {/* Tab Bar */}
-      {viewMode !== "list" && (
-        <div className="bg-nf-primary/80 border-b border-nf-border/50 px-4 flex items-center gap-1 h-[38px] overflow-x-auto" style={{ direction: "rtl" }}>
-          <button onClick={backToList} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all whitespace-nowrap text-nf-dim hover:text-nf-text hover:bg-nf-secondary/40">
-            <Home size={11} /> الرئيسية
-          </button>
-          {viewMode === "thread" && activeThread && (
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap max-w-[200px]">
-              <MessageCircle size={11} className="shrink-0" /> <span className="truncate">{activeThread.title}</span>
-              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
-            </button>
-          )}
-          {viewMode === "profile" && profileData && (
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap">
-              <User size={11} className="shrink-0" /> <span className="truncate max-w-[120px]">{profileData.name}</span>
-              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
-            </button>
-          )}
-          {viewMode === "community" && communityViewData && (
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap">
-              <MessageSquare size={11} className="shrink-0" /> <span className="truncate max-w-[120px]">{communityViewData.name}</span>
-              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
-            </button>
-          )}
-          {viewMode === "new" && (
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap">
-              <Plus size={11} className="shrink-0" /> موضوع جديد
-              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
-            </button>
-          )}
-          {viewMode === "ai" && (
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap">
-              <Sparkles size={11} className="shrink-0" /> ذكاء اصطناعي
-              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
-            </button>
-          )}
-        </div>
-      )}
-
       <div className="flex flex-1">
-        <aside className={cn("w-[240px] bg-nf-body border-r border-nf-border overflow-y-auto flex-shrink-0 sticky top-[56px] h-[calc(100vh-56px)] py-3 flex flex-col", viewMode === "ai" ? "hidden" : sidebarOpen ? "block" : "hidden lg:block")} style={{ top: viewMode !== "list" ? 94 : 56, height: viewMode !== "list" ? "calc(100vh - 94px)" : "calc(100vh - 56px)" }}>
+        <aside className={cn("w-[240px] bg-nf-body border-r border-nf-border overflow-y-auto flex-shrink-0 sticky top-[56px] h-[calc(100vh-56px)] py-3 flex flex-col", viewMode === "ai" ? "hidden" : sidebarOpen ? "block" : "hidden lg:block")}>
           {/* Community Search */}
           <div className="px-3 mb-3">
             <div className="relative">
