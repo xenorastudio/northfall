@@ -627,10 +627,13 @@ export default function ForumsPage() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 
   // URL-based navigation for forum
+  const getForumUrl = (newView: ViewMode, extra: Record<string, string> = {}) => {
+    const params = new URLSearchParams({ view: newView, ...extra });
+    return `${window.location.pathname}?${params.toString()}`;
+  };
   const navigateForum = (newView: ViewMode, extra: Record<string, string> = {}) => {
     setViewMode(newView);
-    const params = new URLSearchParams({ view: newView, ...extra });
-    const url = `${window.location.pathname}?${params.toString()}`;
+    const url = getForumUrl(newView, extra);
     window.history.pushState({ view: newView, ...extra }, "", url);
   };
 
@@ -1776,7 +1779,7 @@ export default function ForumsPage() {
   const filteredThreads = threads.filter(th => { if (typeFilter !== "all" && th.type !== typeFilter) return false; if (searchQuery.trim()) { const q = searchQuery.toLowerCase(); if (!th.title.toLowerCase().includes(q) && !th.body?.toLowerCase().includes(q) && !th.tags?.some(t => t.toLowerCase().includes(q))) return false; } if (timeFilter !== "all") { const now = Date.now(); const cutoff = timeFilter === "today" ? now - 86400000 : timeFilter === "week" ? now - 86400000 * 7 : now - 86400000 * 30; if (new Date(th.createdAt).getTime() < cutoff) return false; } return true; });
   const sortedThreads = [...filteredThreads].sort((a, b) => { if (sortMode === "pinned") return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0); if (sortMode === "popular") return (b.replyCount || 0) - (a.replyCount || 0); if (sortMode === "unsolved") return (a.solved ? 0 : 1) - (b.solved ? 0 : 1); if (sortMode === "views") return (b.views || 0) - (a.views || 0); const timeDiff = (b.createdAt || "").localeCompare(a.createdAt || ""); return threadSort === "oldest" ? -timeDiff : timeDiff; });
   const pinnedThreads = sortedThreads.filter(t => t.pinned); const regularThreads = sortedThreads.filter(t => !t.pinned);
-  const activeThread = activeThreadId ? threads.find(t => t.id === activeThreadId) : null;
+  const activeThread = activeThreadId ? (threads.find(t => t.id === activeThreadId) || allThreads.find(t => t.id === activeThreadId)) : null;
   const activeReplies = activeThreadId ? (replies[activeThreadId] || []) : [];
   const sortedReplies = (() => { let f = [...activeReplies]; if (replyTimeFilter !== "all") { const now = Date.now(); const cutoff = replyTimeFilter === "today" ? now - 86400000 : replyTimeFilter === "week" ? now - 86400000 * 7 : now - 86400000 * 30; f = f.filter(r => new Date(r.createdAt).getTime() > cutoff); } if (replySort === "newest") f.reverse(); return f; })();
   const activeTypeInfo = activeThread ? getTypeInfo(activeThread.type) : threadTypes[0];
@@ -3731,7 +3734,7 @@ export default function ForumsPage() {
                         </div>
                         <div className="space-y-2.5">
                           {commThreads.map(t => (
-                            <button key={t.id} onClick={() => { setSelectedCommunity(t.community); openThread(t.id); }} className="w-full bg-nf-card rounded-xl p-4 text-right hover:bg-[#2e2e30] transition-all group border border-nf-border/20">
+                            <a key={t.id} href={getForumUrl("thread", { threadId: t.id, community: t.community })} onClick={e => { if (!e.ctrlKey && !e.metaKey && !e.shiftKey) { e.preventDefault(); setSelectedCommunity(t.community); openThread(t.id); } }} className="block w-full bg-nf-card rounded-xl p-4 text-right hover:bg-[#2e2e30] transition-all group border border-nf-border/20">
                               <div className="flex items-start gap-3">
                                 {/* Author photo */}
                                 <div className="shrink-0 pt-0.5">
@@ -3752,7 +3755,7 @@ export default function ForumsPage() {
                                   </div>
                                 </div>
                               </div>
-                            </button>
+                            </a>
                           ))}
                         </div>
                       </div>
@@ -4002,7 +4005,7 @@ export default function ForumsPage() {
                   ) : regularThreads.length === 0 && pinnedThreads.length === 0 ? (
                     <div className="text-center py-20"><MessageCirclePlus size={28} className="mx-auto text-nf-border mb-3" /><p className="text-[15px] font-bold text-nf-dim mb-1">لا توجد مواضيع بعد</p><p className="text-[13px] text-nf-dim">ابدأ نقاشاً في {selectedCommunity}</p></div>
                   ) : (
-                    (sortMode === "pinned" ? sortedThreads : regularThreads).map(thread => <ThreadRow key={thread.id} thread={thread} onOpen={() => openThread(thread.id)} saved={savedThreads.has(thread.id)} onSave={() => { const n = new Set(savedThreads); if (n.has(thread.id)) { n.delete(thread.id); showToast("تم إزالة الحفظ"); } else { n.add(thread.id); showToast("تم الحفظ ✓"); } setSavedThreads(n); }} userVotes={userVotes} onVote={handleVote} openProfile={openProfile} onShare={() => openShare(thread.id, thread.title)} isVisited={!!lastReadHistory[thread.id]} />)
+                    (sortMode === "pinned" ? sortedThreads : regularThreads).map(thread => <ThreadRow key={thread.id} thread={thread} onOpen={() => openThread(thread.id)} href={getForumUrl("thread", { threadId: thread.id, community: thread.community })} saved={savedThreads.has(thread.id)} onSave={() => { const n = new Set(savedThreads); if (n.has(thread.id)) { n.delete(thread.id); showToast("تم إزالة الحفظ"); } else { n.add(thread.id); showToast("تم الحفظ ✓"); } setSavedThreads(n); }} userVotes={userVotes} onVote={handleVote} openProfile={openProfile} onShare={() => openShare(thread.id, thread.title)} isVisited={!!lastReadHistory[thread.id]} />)
                   )}
                 </motion.div>
               )}
@@ -4341,10 +4344,10 @@ export default function ForumsPage() {
   );
 }
 
-function ThreadRow({ thread, onOpen, saved, onSave, userVotes, onVote, openProfile, onShare, isVisited }: {
+function ThreadRow({ thread, onOpen, saved, onSave, userVotes, onVote, openProfile, onShare, isVisited, href }: {
   thread: ForumThread; onOpen: () => void; saved: boolean; onSave: () => void;
   userVotes: Record<string, "up" | "down">; onVote: (id: string, dir: "up" | "down") => void;
-  openProfile: (uid: string, name: string, photo?: string) => void; onShare: () => void; isVisited?: boolean;
+  openProfile: (uid: string, name: string, photo?: string) => void; onShare: () => void; isVisited?: boolean; href?: string;
 }) {
   const typeInfo = getTypeInfo(thread.type); const TypeIcon = typeInfo.icon;
   const excerpt = thread.body ? thread.body.replace(/[#*_`\[\]\(\)]/g, "").slice(0, 120) + (thread.body.length > 120 ? "…" : "") : "";
@@ -4352,7 +4355,7 @@ function ThreadRow({ thread, onOpen, saved, onSave, userVotes, onVote, openProfi
   const userVote = userVotes[thread.id];
   const isNew = thread.createdAt && (Date.now() - new Date(thread.createdAt).getTime()) < 86400000 * 2;
   return (
-    <div className={cn("bg-nf-card rounded-xl mb-2.5 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md border border-nf-border/20 hover:border-nf-accent/20", isVisited ? "opacity-80 hover:opacity-100" : "")} onClick={onOpen}>
+    <a href={href || "#"} onClick={e => { if (!e.ctrlKey && !e.metaKey && !e.shiftKey) { e.preventDefault(); onOpen(); } }} className={cn("block bg-nf-card rounded-xl mb-2.5 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md border border-nf-border/20 hover:border-nf-accent/20", isVisited ? "opacity-80 hover:opacity-100" : "")}>
       <div className="flex p-4 gap-4">
         {/* Left: avatar + vote */}
         <div className="flex flex-col items-center gap-2 shrink-0 w-[48px]" onClick={e => e.stopPropagation()}>
@@ -4404,6 +4407,6 @@ function ThreadRow({ thread, onOpen, saved, onSave, userVotes, onVote, openProfi
           </div>
         </div>
       </div>
-    </div>
+    </a>
   );
 }
