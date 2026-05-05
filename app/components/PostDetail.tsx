@@ -30,6 +30,7 @@ interface Comment {
   authorUid?: string;
   parentId?: string;
   createdAt?: string;
+  votes?: number;
   replies?: Comment[];
 }
 
@@ -55,7 +56,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(false);
   const effectiveCollapsed = forceCollapse ?? collapsed;
-  const [voteCount, setVoteCount] = useState(1);
+  const [voteCount, setVoteCount] = useState(comment.votes || 0);
   const [myVote, setMyVote] = useState(0);
   const [saved, setSaved] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -65,11 +66,34 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
   const isOwn = user?.uid === comment.authorUid;
   const hasReplies = comment.replies && comment.replies.length > 0;
 
-  const handleVote = (dir: 1 | -1) => {
+  // Load user's existing vote on this comment
+  useEffect(() => {
+    if (!user || !commentPostId) return;
+    getDoc(doc(db, "posts", commentPostId, "comments", comment.id, "votes", user.uid)).then(s => {
+      if (s.exists()) {
+        const v = s.data().dir || 0;
+        setMyVote(v);
+        setVoteCount((comment.votes || 0) + v);
+      }
+    }).catch(() => {});
+  }, [user, commentPostId, comment.id]);
+
+  const handleVote = async (dir: 1 | -1) => {
+    if (!user) return;
     const newVote = myVote === dir ? 0 : dir;
     const diff = newVote - myVote;
     setMyVote(newVote);
     setVoteCount(voteCount + diff);
+    try {
+      await updateDoc(doc(db, "posts", commentPostId || "", "comments", comment.id), { votes: increment(diff) });
+      if (newVote === 0) {
+        await deleteDoc(doc(db, "posts", commentPostId || "", "comments", comment.id, "votes", user.uid));
+      } else {
+        await setDoc(doc(db, "posts", commentPostId || "", "comments", comment.id, "votes", user.uid), { dir: newVote, votedAt: new Date().toISOString() });
+      }
+    } catch (e) {
+      console.error("[CommentNode] Vote error:", e);
+    }
   };
 
   return (
@@ -281,7 +305,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   };
   const [showPostReport, setShowPostReport] = useState(false);
 
-  const setPostVote = (dir: 1 | -1) => {
+  const setPostVote = async (dir: 1 | -1) => {
+    if (!user) return;
     const newVote = postMyVote === dir ? 0 : dir;
     const diff = newVote - postMyVote;
     setPostMyVote(newVote);
@@ -289,6 +314,16 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     if (newVote === 1) { setVoteAnim("up"); setTimeout(() => setVoteAnim(null), 800); }
     else if (newVote === -1) { setVoteAnim("down"); setTimeout(() => setVoteAnim(null), 800); }
     else setVoteAnim(null);
+    try {
+      await updateDoc(doc(db, "posts", postId), { votes: increment(diff) });
+      if (newVote === 0) {
+        await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
+      } else {
+        await setDoc(doc(db, "posts", postId, "votes", user.uid), { dir: newVote, votedAt: new Date().toISOString() });
+      }
+    } catch (e) {
+      console.error("[PostDetail] Vote error:", e);
+    }
   };
 
   useEffect(() => {
@@ -299,6 +334,16 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           const data: any = { id: postSnap.id, ...postSnap.data() };
           setPost(data);
           setPostVoteCount(data.votes || 0);
+        }
+        // Load user's existing vote
+        if (user) {
+          const voteSnap = await getDoc(doc(db, "posts", postId, "votes", user.uid));
+          if (voteSnap.exists()) {
+            const v = voteSnap.data().dir || 0;
+            setPostMyVote(v);
+            const postVotes = postSnap.exists() ? (postSnap.data()?.votes || 0) : 0;
+            setPostVoteCount(postVotes + v);
+          }
         }
         const cSnap = await getDocs(query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc")));
         setComments(cSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Comment)));
@@ -327,6 +372,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         authorUid: user.uid,
         parentId: replyTo?.id || "",
         createdAt: new Date().toISOString(),
+        votes: 0,
       });
       console.log("[PostDetail] Comment added, updating count...");
       await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
@@ -383,7 +429,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       )}
 
       {/* Post - flat, no border */}
-      <article className="mb-4 relative" onDoubleClick={() => { if (postMyVote !== 1) { setPostMyVote(1); setPostVoteCount(postVoteCount + (postMyVote === -1 ? 2 : 1)); setVoteAnim("up"); setTimeout(() => setVoteAnim(null), 1200); } }}>
+      <article className="mb-4 relative" onDoubleClick={() => { if (postMyVote !== 1) setPostVote(1); }}>
         {/* Vote Reaction Animation - Facebook style particles */}
         <AnimatePresence>
           {voteAnim && (

@@ -4,7 +4,7 @@ import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHo
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { doc, updateDoc, setDoc, deleteDoc, getDoc, collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { doc, updateDoc, setDoc, deleteDoc, getDoc, collection, addDoc, getDocs, query, where, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
@@ -70,10 +70,17 @@ export default function PostCard({
   const [myVote, setMyVote] = useState(0);
   const [saved, setSaved] = useState(false);
 
-  // Check if post is saved on mount
+  // Check if post is saved and load user's vote on mount
   useEffect(() => {
     if (!user || !postId) return;
     getDoc(doc(db, "users", user.uid, "saved", postId)).then(s => setSaved(s.exists())).catch(() => {});
+    getDoc(doc(db, "posts", postId, "votes", user.uid)).then(s => {
+      if (s.exists()) {
+        const v = s.data().dir || 0;
+        setMyVote(v);
+        setVoteCount((votes) + v); // local votes prop + user's existing vote
+      }
+    }).catch(() => {});
   }, [user, postId]);
 
   const toggleSave = async () => {
@@ -144,7 +151,14 @@ export default function PostCard({
     setTimeout(() => setVoteAnim(null), 600);
     setVoteCount(voteCount + diff);
     try {
-      await updateDoc(doc(db, "posts", postId), { votes: voteCount + diff });
+      // Use increment to avoid race conditions
+      await updateDoc(doc(db, "posts", postId), { votes: increment(diff) });
+      // Save user's vote in subcollection
+      if (newVote === 0) {
+        await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
+      } else {
+        await setDoc(doc(db, "posts", postId, "votes", user.uid), { dir: newVote, votedAt: new Date().toISOString() });
+      }
       // Batch notification: update existing or create new
       if (authorUid && authorUid !== user.uid && newVote !== 0) {
         try {
@@ -203,7 +217,7 @@ export default function PostCard({
         authorName: user.displayName || "User",
         authorPhoto: user.photoURL || "",
         createdAt: new Date().toISOString(),
-        votes: 1,
+        votes: 0,
       });
       setQuickReplyText("");
       setShowQuickReply(false);
