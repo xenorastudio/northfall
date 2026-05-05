@@ -210,14 +210,17 @@ export default function PostCard({
   const handleQuickReply = async () => {
     if (!user || !postId || !quickReplyText.trim()) return;
     try {
+      console.log("[PostCard] Quick reply...", { postId, uid: user.uid });
       await addDoc(collection(db, "posts", postId, "comments"), {
         text: quickReplyText.trim(),
         authorUid: user.uid,
         authorName: user.displayName || "User",
         authorPhoto: user.photoURL || "",
+        parentId: "",
         createdAt: new Date().toISOString(),
         votes: 0,
       });
+      await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
       setQuickReplyText("");
       setShowQuickReply(false);
       toast("تم إرسال التعليق", "success");
@@ -244,8 +247,9 @@ export default function PostCard({
           }
         } catch {}
       }
-    } catch {
-      toast("فشل حفظ التعليق", "error");
+    } catch (e: any) {
+      console.error("[PostCard] Quick reply error:", e?.message || e);
+      toast("فشل حفظ التعليق: " + (e?.message || "خطأ غير معروف"), "error");
     }
   };
 
