@@ -38,7 +38,7 @@ function timeAgo(ts: any, t: (k: string) => string): string {
   } catch { return t("gen.now"); }
 }
 
-export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSettingsClick, onAdminClick }: { uid?: string; onEditClick?: (id: string) => void; onDeleteClick?: (id: string) => void; onSettingsClick?: () => void; onAdminClick?: () => void }) {
+export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSettingsClick, onAdminClick, onPostClick }: { uid?: string; onEditClick?: (id: string) => void; onDeleteClick?: (id: string) => void; onSettingsClick?: () => void; onAdminClick?: () => void; onPostClick?: (id: string) => void }) {
   const { user } = useAuth();
   const { t } = useI18n();
   const targetUid = (typeof uid === "string" && uid) || user?.uid || "";
@@ -444,6 +444,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 comments={post.commentCount || 0}
                 awards={post.awards}
                 poll={post.poll}
+                onPostClick={onPostClick}
                 onEditClick={onEditClick}
                 onDeleteClick={onDeleteClick}
               />
@@ -500,6 +501,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 comments={post.commentCount || 0}
                 awards={post.awards}
                 poll={post.poll}
+                onPostClick={onPostClick}
                 onEditClick={onEditClick}
                 onDeleteClick={onDeleteClick}
               />

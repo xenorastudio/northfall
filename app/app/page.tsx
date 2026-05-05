@@ -364,8 +364,8 @@ function AppContent() {
                       </div>
                     ) : (
                       sortedPosts.map((post) => (
-                        <div key={post.id} onClick={() => openPost(post.id)}>
                           <PostCard
+                            key={post.id}
                             postId={post.id}
                             community={post.community ? `n/${post.community}` : `n/${t("gen.general")}`}
                             author={post.authorName || t("gen.user")}
@@ -383,12 +383,12 @@ function AppContent() {
                             comments={post.commentCount || 0}
                             awards={post.awards}
                             poll={post.poll}
+                            onPostClick={openPost}
                             onCommunityClick={openCommunity}
                             onProfileClick={openProfile}
                             onEditClick={openEdit}
                             onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }}
                           />
-                        </div>
                       ))
                     )}
                     {hasMore && posts.length > 0 && (
@@ -408,7 +408,7 @@ function AppContent() {
 
               {view === "profile" && (
                 <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                  <ProfilePage uid={viewingUid || undefined} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onSettingsClick={() => setView("settings")} onAdminClick={() => setView("admin")} />
+                  <ProfilePage uid={viewingUid || undefined} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onSettingsClick={() => navigateTo("settings")} onAdminClick={() => navigateTo("admin")} onPostClick={openPost} />
                 </motion.div>
               )}
 

@@ -35,6 +35,7 @@ interface PostCardProps {
   poll?: { options: string[]; votes: number[]; duration: string } | null;
   onCommunityClick?: (name: string) => void;
   onProfileClick?: (uid?: string) => void;
+  onPostClick?: (id: string) => void;
   onEditClick?: (id: string) => void;
   onDeleteClick?: (id: string) => void;
 }
@@ -59,6 +60,7 @@ export default function PostCard({
   poll,
   onCommunityClick,
   onProfileClick,
+  onPostClick,
   onEditClick,
   onDeleteClick,
 }: PostCardProps) {
@@ -239,6 +241,7 @@ export default function PostCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
+      onClick={() => onPostClick?.(postId || "")}
       className={cn("bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-colors duration-150 relative",
         voteCount >= 10 ? "border-orange-400/20 hover:bg-nf-accent/5 hover:border-orange-400/40" : "border-nf-border-2 hover:bg-nf-accent/5 hover:border-nf-accent/15")}
     >

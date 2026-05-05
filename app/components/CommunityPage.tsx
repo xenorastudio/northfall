@@ -243,9 +243,8 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
             if (sortMode === "comments") return (b.commentCount || 0) - (a.commentCount || 0);
             return 0;
           }).map((post) => (
-            <div key={post.id} onClick={() => onPostClick?.(post.id)}>
             <PostCard
-              key={post.id + "-card"}
+              key={post.id}
               postId={post.id}
               community={`n/${post.community || name}`}
               author={post.authorName || t("gen.user")}
@@ -263,10 +262,10 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
               comments={post.commentCount || 0}
               awards={post.awards}
               poll={post.poll}
+              onPostClick={onPostClick}
               onEditClick={onEditClick}
               onDeleteClick={onDeleteClick}
             />
-            </div>
           ))
         )}
       </div>
