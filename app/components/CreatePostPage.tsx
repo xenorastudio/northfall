@@ -4,7 +4,7 @@ import { ArrowRight, Image, Link2, X, ChevronDown, FileText, Eye, Bold, Heading2
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { useState, useEffect } from "react";
-import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -261,7 +261,7 @@ export default function CreatePostPage({ onBack, onPost, editPostId }: { onBack:
       if (editPostId) {
         await updateDoc(doc(db, "posts", editPostId), postData);
       } else {
-        await addDoc(collection(db, "posts"), {
+        const postRef = await addDoc(collection(db, "posts"), {
           ...postData,
           authorName: user.displayName || "مستخدم",
           authorPhoto: user.photoURL || "",
@@ -270,6 +270,8 @@ export default function CreatePostPage({ onBack, onPost, editPostId }: { onBack:
           commentCount: 0,
           createdAt: new Date().toISOString(),
         });
+        // Save author's auto-upvote
+        await setDoc(doc(db, "posts", postRef.id, "votes", user.uid), { dir: 1, votedAt: new Date().toISOString() });
       }
       // Clear draft after publish
       const drafts = getDrafts().filter((d: any) => d.id !== "current");

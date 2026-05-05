@@ -71,9 +71,8 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
     if (!user || !commentPostId) return;
     getDoc(doc(db, "posts", commentPostId, "comments", comment.id, "votes", user.uid)).then(s => {
       if (s.exists()) {
-        const v = s.data().dir || 0;
-        setMyVote(v);
-        setVoteCount((comment.votes || 0) + v);
+        setMyVote(s.data().dir || 0);
+        // Don't add vote to count - Firestore votes already includes it
       }
     }).catch(() => {});
   }, [user, commentPostId, comment.id]);
@@ -177,9 +176,9 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
             {/* Actions */}
             <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
               <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1 py-0.5">
-                <button onClick={() => handleVote(1)} className={cn("p-0.5 transition-colors", myVote === 1 ? "text-nf-accent" : "text-nf-muted hover:text-nf-accent")}><ArrowUp size={12} /></button>
-                <span className="text-nf-muted font-bold min-w-[14px] text-center">{voteCount}</span>
-                <button onClick={() => handleVote(-1)} className={cn("p-0.5 transition-colors", myVote === -1 ? "text-blue-400" : "text-nf-muted hover:text-blue-400")}><ArrowDown size={12} /></button>
+                <button onClick={() => handleVote(1)} className={cn("p-0.5 rounded transition-all duration-200", myVote === 1 ? "text-orange-500 bg-orange-500/10" : "text-nf-muted hover:text-orange-500")}><ArrowUp size={12} /></button>
+                <span className={cn("font-bold min-w-[14px] text-center text-[11px]", myVote === 1 ? "text-orange-500" : myVote === -1 ? "text-blue-400" : voteCount > 0 ? "text-orange-500" : voteCount < 0 ? "text-blue-400" : "text-nf-muted")}>{voteCount}</span>
+                <button onClick={() => handleVote(-1)} className={cn("p-0.5 rounded transition-all duration-200", myVote === -1 ? "text-blue-400 bg-blue-400/10" : "text-nf-muted hover:text-blue-400")}><ArrowDown size={12} /></button>
               </div>
               <button onClick={() => onReply(comment.id, comment.authorName || t("gen.user"))} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
                 <MessageSquare size={11} /><span>{t("pd.reply")}</span>
@@ -339,10 +338,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         if (user) {
           const voteSnap = await getDoc(doc(db, "posts", postId, "votes", user.uid));
           if (voteSnap.exists()) {
-            const v = voteSnap.data().dir || 0;
-            setPostMyVote(v);
-            const postVotes = postSnap.exists() ? (postSnap.data()?.votes || 0) : 0;
-            setPostVoteCount(postVotes + v);
+            setPostMyVote(voteSnap.data().dir || 0);
+            // Don't add vote to count - Firestore votes already includes it
           }
         }
         const cSnap = await getDocs(query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc")));
@@ -543,10 +540,10 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           })()}
         </div>
         <div className="flex items-center gap-2 px-4 py-2 text-nf-muted">
-          <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1 py-0.5">
-            <button onClick={() => setPostVote(1)} className={cn("p-0.5 rounded transition-colors", postMyVote === 1 ? "text-nf-accent" : "hover:text-nf-accent")}><ArrowUp size={16} /></button>
-            <span className="text-xs font-bold text-white min-w-[20px] text-center">{postVoteCount}</span>
-            <button onClick={() => setPostVote(-1)} className={cn("p-0.5 rounded transition-colors", postMyVote === -1 ? "text-blue-400" : "hover:text-blue-400")}><ArrowDown size={16} /></button>
+          <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1.5 py-0.5">
+            <button onClick={() => setPostVote(1)} className={cn("p-1 rounded-md transition-all duration-200", postMyVote === 1 ? "text-orange-500 bg-orange-500/10 scale-110" : "text-nf-muted hover:text-orange-500 hover:bg-orange-500/5")}><ArrowUp size={16} /></button>
+            <span className={cn("text-xs font-bold min-w-[20px] text-center transition-all duration-200", postMyVote === 1 ? "text-orange-500" : postMyVote === -1 ? "text-blue-400" : postVoteCount > 0 ? "text-orange-500" : postVoteCount < 0 ? "text-blue-400" : "text-nf-muted")}>{postVoteCount}</span>
+            <button onClick={() => setPostVote(-1)} className={cn("p-1 rounded-md transition-all duration-200", postMyVote === -1 ? "text-blue-400 bg-blue-400/10 scale-110" : "text-nf-muted hover:text-blue-400 hover:bg-blue-400/5")}><ArrowDown size={16} /></button>
           </div>
           <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0} {t("pd.comments")}</button>
           <div className="relative" onMouseLeave={() => setShowShareMenu(false)}>
