@@ -5,96 +5,39 @@ service cloud.firestore {
       return request.auth != null;
     }
     function isAdmin() {
-      return request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1";
+      return isAuth() && (request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
     }
 
-    // Users collection + subcollections
-    match /users/{userId} {
+    // Default: allow authenticated read, deny write
+    match /{document=**} {
       allow read: if true;
+    }
+
+    // Users
+    match /users/{userId} {
       allow create: if isAuth() && request.auth.uid == userId;
       allow update: if isAuth() && request.auth.uid == userId;
-
-      match /notifications/{notifId} {
-        allow read: if isAuth() && request.auth.uid == userId;
-        allow create: if isAuth();
-        allow update: if isAuth() && request.auth.uid == userId;
-        allow delete: if isAuth() && request.auth.uid == userId;
-      }
-      match /saved/{savedId} {
-        allow read, create, delete: if isAuth() && request.auth.uid == userId;
-      }
-      match /following/{followingId} {
-        allow read: if true;
-        allow create, delete: if isAuth() && request.auth.uid == userId;
-      }
-      match /followers/{followerId} {
-        allow read: if true;
-        allow create, delete: if isAuth();
-      }
-      match /communities/{commId} {
-        allow read: if true;
-        allow create, delete: if isAuth() && request.auth.uid == userId;
-      }
+      allow delete: if isAuth() && request.auth.uid == userId;
     }
 
-    // Posts collection
+    // Posts
     match /posts/{postId} {
-      allow read: if true;
       allow create: if isAuth();
       allow update: if isAuth();
       allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-
-      match /comments/{commentId} {
-        allow read: if true;
-        allow create: if isAuth();
-        allow update: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-      }
-      match /pollVotes/{voteId} {
-        allow read: if isAuth() && request.auth.uid == voteId;
-        allow create, update: if isAuth() && request.auth.uid == voteId;
-      }
-    }
-
-    // Forums collection
-    match /forums/{forumId} {
-      allow read: if true;
-      allow write: if isAuth();
-
-      match /threads/{threadId} {
-        allow read: if true;
-        allow create: if isAuth();
-        allow update: if isAuth();
-        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-
-        match /replies/{replyId} {
-          allow read: if true;
-          allow create: if isAuth();
-          allow update: if isAuth();
-          allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-        }
-      }
     }
 
     // Reports
     match /reports/{reportId} {
       allow create: if isAuth();
-      allow read, update, delete: if isAuth() && isAdmin();
+      allow read, update, delete: if isAdmin();
     }
 
-    // Communities
-    match /communities/{commId} {
-      allow read: if true;
-      allow write: if isAuth();
-    }
-
-    // Chat
-    match /chats/{chatId} {
-      allow read, write: if isAuth();
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
+    // Forums
+    match /forums/{forumId}/{collection}/{docId} {
+      allow create: if isAuth();
+      allow update: if isAuth();
+      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
     }
   }
 }
