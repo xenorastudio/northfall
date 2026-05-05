@@ -8,36 +8,33 @@ service cloud.firestore {
       return isAuth() && (request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
     }
 
-    // Default: allow authenticated read, deny write
+    // Allow all reads for everyone
     match /{document=**} {
       allow read: if true;
+      allow write: if isAuth();
     }
 
-    // Users
-    match /users/{userId} {
-      allow create: if isAuth() && request.auth.uid == userId;
-      allow update: if isAuth() && request.auth.uid == userId;
-      allow delete: if isAuth() && request.auth.uid == userId;
-    }
-
-    // Posts
+    // Only owner or admin can delete posts
     match /posts/{postId} {
-      allow create: if isAuth();
-      allow update: if isAuth();
       allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
     }
 
-    // Reports
+    // Only owner or admin can delete comments
+    match /posts/{postId}/comments/{commentId} {
+      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
+    }
+
+    // Only owner or admin can delete forum threads/replies
+    match /forums/{forumId}/threads/{threadId} {
+      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
+    }
+    match /forums/{forumId}/threads/{threadId}/replies/{replyId} {
+      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
+    }
+
+    // Reports: only admins can read/update/delete
     match /reports/{reportId} {
-      allow create: if isAuth();
       allow read, update, delete: if isAdmin();
-    }
-
-    // Forums
-    match /forums/{forumId}/{collection}/{docId} {
-      allow create: if isAuth();
-      allow update: if isAuth();
-      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
     }
   }
 }
