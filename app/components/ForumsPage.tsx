@@ -1406,14 +1406,24 @@ export default function ForumsPage() {
   const clearSearchHistory = () => { setSearchHistory([]); localStorage.removeItem("nf-forum-search-history"); };
 
   // Forum search logic
-  useEffect(() => { if (!searchQuery.trim()) { setSearchResults([]); return; } const timer = setTimeout(() => { setSearching(true); try { const qLower = searchQuery.toLowerCase(); let results: any[] = [];
+  useEffect(() => { if (!searchQuery.trim()) { setSearchResults([]); return; } const timer = setTimeout(async () => { setSearching(true); try { const qLower = searchQuery.toLowerCase(); let results: any[] = [];
   // Thread matches - search both current community and all threads
   const allSearchableThreads = [...threads, ...allThreads.filter(at => !threads.some(t => t.id === at.id))];
   const threadMatches = allSearchableThreads.filter(t => t.title.toLowerCase().includes(qLower) || t.body?.toLowerCase().includes(qLower) || t.tags?.some(tag => tag.toLowerCase().includes(qLower)) || t.authorName.toLowerCase().includes(qLower) || t.community.toLowerCase().includes(qLower)).map(t => ({ ...t, _type: "thread" as const }));
   // Community matches
   const commMatches = allCommunities.filter(c => c.name.toLowerCase().includes(qLower) || c.desc.toLowerCase().includes(qLower)).map(c => ({ ...c, _type: "community" as const }));
-  // User matches from all threads
+  // User matches from Firebase users collection
   const userMap = new Map<string, any>();
+  try {
+    const uSnap = await getDocs(query(collection(db, "users"), limit(20)));
+    uSnap.docs.forEach(d => {
+      const data = d.data();
+      if (data.displayName?.toLowerCase().includes(qLower) && !userMap.has(d.id)) {
+        userMap.set(d.id, { id: `user-${d.id}`, uid: d.id, name: data.displayName, photo: data.photoURL || undefined, _type: "user" as const });
+      }
+    });
+  } catch {}
+  // Also add thread authors not already in the map
   allSearchableThreads.forEach(t => { if (t.authorName.toLowerCase().includes(qLower) && !userMap.has(t.authorUid)) userMap.set(t.authorUid, { id: `user-${t.authorUid}`, uid: t.authorUid, name: t.authorName, photo: t.authorPhoto, _type: "user" as const }); });
   const userMatches = Array.from(userMap.values());
   // Reply matches
@@ -1435,7 +1445,7 @@ export default function ForumsPage() {
   // Keyboard navigation for search
   const handleSearchKeyDown = (e: React.KeyboardEvent) => { if (!showSearchDropdown) { if (e.key === "ArrowDown" && (searchHistory.length > 0 || searchResults.length > 0)) setShowSearchDropdown(true); return; } const total = searchResults.length || searchHistory.length; if (e.key === "ArrowDown") { e.preventDefault(); setSelectedSearchIdx(i => Math.min(i + 1, total - 1)); } else if (e.key === "ArrowUp") { e.preventDefault(); setSelectedSearchIdx(i => Math.max(i - 1, -1)); } else if (e.key === "Enter" && selectedSearchIdx >= 0) { e.preventDefault(); const item = searchResults[selectedSearchIdx]; if (item) handleSearchResultClick(item); } else if (e.key === "Escape") { setShowSearchDropdown(false); searchInputRef.current?.blur(); } };
 
-  const handleSearchResultClick = (r: any) => { addSearchHistory(searchQuery); if (r._type === "thread") openThread(r.id); else if (r._type === "community") { openCommunity(allCommunities.find(c => c.name === r.name) || { name: r.name, img: r.img || "", banner: "", desc: "", shortDesc: "", members: r.members || 0, threads: 0, replies: 0, founded: "", rules: [], mods: [], tags: [], bookmarks: [] }); } else if (r._type === "user") openProfile(r.uid, r.name, r.photo); else if (r._type === "reply") openThread(r.threadId || activeThreadId || ""); setShowSearchDropdown(false); };
+  const handleSearchResultClick = (r: any) => { addSearchHistory(searchQuery); if (r._type === "thread") { if (r.community && r.community !== selectedCommunity) setSelectedCommunity(r.community); openThread(r.id); } else if (r._type === "community") { openCommunity(allCommunities.find(c => c.name === r.name) || { name: r.name, img: r.img || "", banner: "", desc: "", shortDesc: "", members: r.members || 0, threads: 0, replies: 0, founded: "", rules: [], mods: [], tags: [], bookmarks: [] }); } else if (r._type === "user") openProfile(r.uid, r.name, r.photo); else if (r._type === "reply") openThread(r.threadId || activeThreadId || ""); setShowSearchDropdown(false); };
 
   // Cmd+K shortcut
   useEffect(() => { const handler = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); searchInputRef.current?.focus(); } }; window.addEventListener("keydown", handler); return () => window.removeEventListener("keydown", handler); }, []);
@@ -1821,8 +1831,47 @@ export default function ForumsPage() {
         </div>
       </header>
 
+      {/* Tab Bar */}
+      {viewMode !== "list" && (
+        <div className="bg-nf-primary/80 border-b border-nf-border/50 px-4 flex items-center gap-1 h-[38px] overflow-x-auto" style={{ direction: "rtl" }}>
+          <button onClick={backToList} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all whitespace-nowrap text-nf-dim hover:text-nf-text hover:bg-nf-secondary/40">
+            <Home size={11} /> الرئيسية
+          </button>
+          {viewMode === "thread" && activeThread && (
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap max-w-[200px]">
+              <MessageCircle size={11} className="shrink-0" /> <span className="truncate">{activeThread.title}</span>
+              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
+            </button>
+          )}
+          {viewMode === "profile" && profileData && (
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap">
+              <User size={11} className="shrink-0" /> <span className="truncate max-w-[120px]">{profileData.name}</span>
+              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
+            </button>
+          )}
+          {viewMode === "community" && communityViewData && (
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap">
+              <MessageSquare size={11} className="shrink-0" /> <span className="truncate max-w-[120px]">{communityViewData.name}</span>
+              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
+            </button>
+          )}
+          {viewMode === "new" && (
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap">
+              <Plus size={11} className="shrink-0" /> موضوع جديد
+              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
+            </button>
+          )}
+          {viewMode === "ai" && (
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-nf-accent/10 text-nf-accent whitespace-nowrap">
+              <Sparkles size={11} className="shrink-0" /> ذكاء اصطناعي
+              <button onClick={backToList} className="mr-1 text-nf-dim/40 hover:text-nf-text transition-colors"><X size={10} /></button>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-1">
-        <aside className={cn("w-[240px] bg-nf-body border-r border-nf-border overflow-y-auto flex-shrink-0 sticky top-[56px] h-[calc(100vh-56px)] py-3 flex flex-col", viewMode === "ai" ? "hidden" : sidebarOpen ? "block" : "hidden lg:block")}>
+        <aside className={cn("w-[240px] bg-nf-body border-r border-nf-border overflow-y-auto flex-shrink-0 sticky top-[56px] h-[calc(100vh-56px)] py-3 flex flex-col", viewMode === "ai" ? "hidden" : sidebarOpen ? "block" : "hidden lg:block")} style={{ top: viewMode !== "list" ? 94 : 56, height: viewMode !== "list" ? "calc(100vh - 94px)" : "calc(100vh - 56px)" }}>
           {/* Community Search */}
           <div className="px-3 mb-3">
             <div className="relative">
