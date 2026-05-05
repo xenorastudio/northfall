@@ -239,12 +239,19 @@ export default function PostCard({
   // Build URL for Ctrl+Click new tab support
   const postHref = postId ? `/app?view=post&postId=${postId}` : undefined;
 
+  // Handle click: normal click navigates, middle-click/ctrl-click opens new tab
+  const handleClick = (e: React.MouseEvent) => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return; // let browser handle
+    if (e.button === 1) return; // middle click, let browser handle
+    if (e.button === 0) { e.preventDefault(); onPostClick?.(postId || ""); }
+  };
+
   return (
-    <a href={postHref || "#"} onClick={e => { if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) { e.preventDefault(); onPostClick?.(postId || ""); } }} className="block">
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
+      onClick={handleClick}
       className={cn("bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-colors duration-150 relative",
         voteCount >= 10 ? "border-orange-400/20 hover:bg-nf-accent/5 hover:border-orange-400/40" : "border-nf-border-2 hover:bg-nf-accent/5 hover:border-nf-accent/15")}
     >
@@ -432,6 +439,5 @@ export default function PostCard({
       {showReport && <ReportModal open={showReport} onClose={() => setShowReport(false)} type="post" targetId={postId || ""} />}
       {showShareModal && <ShareModal open={showShareModal} onClose={() => setShowShareModal(false)} postId={postId || ""} postTitle={title} />}
     </motion.article>
-    </a>
   );
 }
