@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Bell, MessageSquare, ArrowUp, UserPlus, Award, Hash, CheckCheck, Trash2, ArrowLeft, Eye, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { Bell, MessageSquare, ArrowUp, UserPlus, Award, Hash, CheckCheck, Trash2, ArrowLeft, Eye, Sparkles } from "lucide-react";
 import { collection, query, orderBy, limit, onSnapshot, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
@@ -20,7 +20,6 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [filter, setFilter] = useState<"all" | "unread" | "mentions">("all");
   const [loading, setLoading] = useState(true);
-  const [muted, setMuted] = useState(false);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -29,27 +28,11 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
     const unsub = onSnapshot(q2, (snap) => {
       const newNotifs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setNotifications(newNotifs);
-      // Play sound on new notification
-      if (prevCount > 0 && newNotifs.length > prevCount && !muted) {
-        try {
-          const ctx = new AudioContext();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.frequency.value = 880;
-          osc.type = "sine";
-          gain.gain.value = 0.1;
-          osc.start();
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-          osc.stop(ctx.currentTime + 0.3);
-        } catch {}
-      }
       prevCount = newNotifs.length;
       setLoading(false);
     }, () => setLoading(false));
     return () => unsub();
-  }, [user, muted]);
+  }, [user]);
 
   const markAllRead = async () => {
     if (!user) return;
@@ -132,9 +115,6 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
               <CheckCheck size={13} /> قراءة الكل
             </button>
           )}
-          <button onClick={() => setMuted(!muted)} className={cn("p-2 rounded-lg transition-colors", muted ? "text-red-400 bg-red-400/10" : "text-nf-dim hover:text-white hover:bg-nf-hover")}>
-            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </button>
           {notifications.length > 0 && (
             <button onClick={clearAll} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-nf-dim hover:text-red-400 hover:bg-red-400/5 transition-colors">
               <Trash2 size={13} /> مسح الكل
@@ -178,7 +158,7 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
         <div className="flex flex-col">
           {grouped.map((group) => (
             <div key={group.label}>
-              <div className="px-4 py-2 text-[10px] font-bold text-nf-dim uppercase tracking-wider bg-nf-secondary/20 sticky top-0 z-10">{group.label}</div>
+              <div className="px-3 py-1.5 text-[10px] font-bold text-nf-dim uppercase tracking-wider border-b border-nf-border-2/30">{group.label}</div>
               {group.items.map((n: any) => {
                 const notifType = n.type || "general";
                 const meta = iconMap[notifType] || iconMap.general;
@@ -186,17 +166,17 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
                 return (
                   <div key={n.id}
                     onClick={() => markRead(n)}
-                    className={cn("group flex items-start gap-3 px-4 py-3 border-b border-nf-border-2/30 transition-colors cursor-pointer hover:bg-nf-hover",
-                      !n.read && "bg-nf-accent/5 border-r-2 border-r-nf-accent")}>
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", meta.bg)}>
-                      <Icon size={15} className={meta.cls} />
+                    className={cn("group flex items-start gap-3 px-3 py-2.5 transition-colors cursor-pointer hover:bg-nf-hover/50",
+                      !n.read && "bg-nf-accent/5")}>
+                    <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-nf-border-2", meta.bg)}>
+                      <Icon size={14} className={meta.cls} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] text-white leading-snug">{n.text || n.message || "إشعار جديد"}</p>
+                      <p className={cn("text-[13px] leading-snug", n.read ? "text-nf-muted" : "text-white")}>{n.text || n.message || "إشعار جديد"}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-nf-dim">{n.createdAt ? timeAgo(n.createdAt) : ""}</span>
                         {n.count > 1 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-nf-accent/15 text-nf-accent font-bold">+{n.count}</span>}
-                        {!n.read && <span className="text-[10px] text-nf-accent font-semibold">جديد</span>}
+                        {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-nf-accent inline-block" />}
                       </div>
                     </div>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
