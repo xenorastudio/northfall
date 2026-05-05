@@ -231,7 +231,9 @@ export default function PostCard({
           }
         } catch {}
       }
-    } catch {}
+    } catch {
+      toast("فشل حفظ التعليق", "error");
+    }
   };
 
   // Build URL for Ctrl+Click new tab support

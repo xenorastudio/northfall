@@ -333,6 +333,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       await refreshComments();
     } catch (e) {
       console.error(e);
+      showToast?.("فشل حفظ التعليق — تأكد من تسجيل الدخول");
     }
   };
 
