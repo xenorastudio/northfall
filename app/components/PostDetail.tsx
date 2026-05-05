@@ -362,7 +362,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     if (!user || !commentText.trim()) return;
     try {
       console.log("[PostDetail] Submitting comment...", { postId, uid: user.uid, text: commentText.trim().slice(0, 30) });
-      await addDoc(collection(db, "posts", postId, "comments"), {
+      const commentRef = await addDoc(collection(db, "posts", postId, "comments"), {
         text: commentText.trim(),
         authorName: user.displayName || t("gen.user"),
         authorPhoto: user.photoURL || "",
@@ -371,15 +371,17 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         createdAt: new Date().toISOString(),
         votes: 0,
       });
-      console.log("[PostDetail] Comment added, updating count...");
+      console.log("[PostDetail] Comment saved with ID:", commentRef.id);
       await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
+      console.log("[PostDetail] Comment count updated");
       setCommentText("");
       setReplyTo(null);
       await refreshComments();
       showToast(t("pd.commentSent"));
     } catch (e: any) {
-      console.error("[PostDetail] Comment error:", e?.message || e);
-      showToast("فشل حفظ التعليق: " + (e?.message || "خطأ غير معروف"));
+      console.error("[PostDetail] Comment error:", e?.code || e?.message || e);
+      const msg = e?.code === "PERMISSION_DENIED" ? "لا توجد صلاحية — انشر قواعد Firestore!" : "فشل حفظ التعليق: " + (e?.message || "خطأ غير معروف");
+      showToast(msg);
     }
   };
 
