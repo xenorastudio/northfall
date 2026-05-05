@@ -326,7 +326,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                   <Pencil size={12} />
                   <span>{t("pp.edit")}</span>
                 </button>
-                {user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" && onAdminClick && (
+                {(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && onAdminClick && (
                   <button onClick={onAdminClick} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-nf-border text-[10px] font-medium text-nf-dim hover:bg-nf-hover hover:text-nf-accent transition-colors" title="لوحة الإشراف">
                     <Shield size={11} />
                   </button>

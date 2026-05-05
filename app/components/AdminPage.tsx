@@ -35,7 +35,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
   const [toasts, setToasts] = useState<string[]>([]);
   const [deletingPost, setDeletingPost] = useState(false);
 
-  const isAdmin = user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2";
+  const isAdmin = user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1";
 
   const showToast = (msg: string) => {
     setToasts(prev => [...prev, msg]);

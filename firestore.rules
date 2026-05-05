@@ -26,14 +26,14 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuth();
       allow update: if isAuth();
-      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2");
+      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
 
       // Comments subcollection
       match /comments/{commentId} {
         allow read: if true;
         allow create: if isAuth();
-        allow update: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2");
-        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2");
+        allow update: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
+        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
       }
     }
 
@@ -46,13 +46,13 @@ service cloud.firestore {
         allow read: if true;
         allow create: if isAuth();
         allow update: if isAuth();
-        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2");
+        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
 
         match /replies/{replyId} {
           allow read: if true;
           allow create: if isAuth();
           allow update: if isAuth();
-          allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2");
+          allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
         }
       }
     }
@@ -60,7 +60,7 @@ service cloud.firestore {
     // Reports collection
     match /reports/{reportId} {
       allow create: if isAuth();
-      allow read, update, delete: if isAuth() && request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2";
+      allow read, update, delete: if isAuth() && (request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
     }
 
     // Communities
