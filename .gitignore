@@ -2,6 +2,8 @@ node_modules/
 .next/
 out/
 .netlify/
+app/.netlify/
 .DS_Store
 Thumbs.db
 *.log
+tsconfig.tsbuildinfo
