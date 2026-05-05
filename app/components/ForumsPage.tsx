@@ -635,9 +635,16 @@ export default function ForumsPage() {
     setViewMode(newView);
     const url = getForumUrl(newView, extra);
     window.history.pushState({ view: newView, ...extra }, "", url);
-    // Update browser tab title
-    const titles: Record<string, string> = { list: extra.community ? `n/${extra.community}` : "المنتدى", thread: "موضوع", new: "موضوع جديد", profile: "بروفايل", community: extra.community ? `n/${extra.community}` : "مجتمع", ai: "ذكاء اصطناعي" };
-    document.title = (titles[newView] || "المنتدى") + " — Northfall Forum";
+    // Update browser tab title (like Reddit)
+    const titleMap: Record<string, string> = {
+      list: extra.community ? `n/${extra.community}` : "المنتدى",
+      thread: extra.threadTitle || "موضوع",
+      new: "موضوع جديد",
+      profile: extra.profileName || "بروفايل",
+      community: extra.community ? `n/${extra.community}` : "مجتمع",
+      ai: "ذكاء اصطناعي",
+    };
+    document.title = (titleMap[newView] || "المنتدى") + " — Northfall Forum";
   };
 
   // Read URL params on mount
@@ -1580,9 +1587,8 @@ export default function ForumsPage() {
   const fetchReplies = async (threadId: string) => { try { const q = query(collection(db, "forums", selectedCommunity, "threads", threadId, "replies"), orderBy("createdAt", "asc"), limit(100)); const snap = await getDocs(q); setReplies(prev => ({ ...prev, [threadId]: snap.docs.map(d => ({ id: d.id, ...d.data() } as ReplyData)) })); } catch {} };
   const fetchRepliesForCommunity = async (threadId: string, community: string) => { try { const q = query(collection(db, "forums", community, "threads", threadId, "replies"), orderBy("createdAt", "asc"), limit(100)); const snap = await getDocs(q); setReplies(prev => ({ ...prev, [threadId]: snap.docs.map(d => ({ id: d.id, ...d.data() } as ReplyData)) })); } catch {} };
   const openThread = (threadId: string) => {
-    setActiveThreadId(threadId); navigateForum("thread", { threadId, community: (threads.find(t => t.id === threadId) || allThreads.find(t => t.id === threadId))?.community || selectedCommunity });
-    // Find the thread and its community
     const thread = threads.find(t => t.id === threadId) || allThreads.find(t => t.id === threadId);
+    setActiveThreadId(threadId); navigateForum("thread", { threadId, community: thread?.community || selectedCommunity, threadTitle: thread?.title || "" });
     const threadCommunity = thread?.community || selectedCommunity;
     fetchRepliesForCommunity(threadId, threadCommunity);
     // Save to read history

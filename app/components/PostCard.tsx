@@ -431,19 +431,10 @@ export default function PostCard({
         </div>
       )}
 
-      {/* Awards display */}
+      {/* Awards - Soon */}
       {awards && awards.length > 0 && (
         <div className="flex items-center gap-1.5 px-4 py-1 border-t border-nf-border-2">
-          {[...new Map(awards.map((a: any) => [a.type, a])).values()].slice(0, 5).map((a: any) => {
-            const awardIcon: Record<string, React.ReactNode> = { helpful: <Heart size={10} className="text-red-400" />, popular: <Star size={10} className="text-yellow-400" />, creative: <Sparkles size={10} className="text-green-400" />, active: <Zap size={10} className="text-blue-400" />, leader: <Trophy size={10} className="text-purple-400" /> };
-            const count = awards.filter((aw: any) => aw.type === a.type).length;
-            return (
-              <div key={a.type} className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-nf-secondary text-[10px] text-nf-muted">
-                {awardIcon[a.type] || <Star size={10} className="text-yellow-400" />}
-                {count > 1 && <span>{count}</span>}
-              </div>
-            );
-          })}
+          <span className="text-[10px] text-nf-dim font-bold bg-nf-secondary px-2 py-0.5 rounded-full">🏆 Soon</span>
         </div>
       )}
 

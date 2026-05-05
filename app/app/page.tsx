@@ -86,9 +86,19 @@ function AppContent() {
     const params = new URLSearchParams({ view: newView, ...extra });
     const url = `/app?${params.toString()}`;
     window.history.pushState({ view: newView, ...extra }, "", url);
-    // Update browser tab title
-    const titles: Record<string, string> = { feed: "Northfall", community: extra.community ? `n/${extra.community}` : "مجتمع", profile: extra.uid ? "بروفايل" : "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف" };
-    document.title = (titles[newView] || "Northfall") + " — Northfall";
+    // Update browser tab title (like Reddit)
+    const titleMap: Record<string, string> = {
+      feed: "Northfall",
+      community: extra.community ? `n/${extra.community}` : "مجتمع",
+      profile: extra.profileName || "بروفايل",
+      post: extra.postTitle || "منشور",
+      create: "منشور جديد",
+      settings: "إعدادات",
+      notifs: "إشعارات",
+      edit: "تعديل",
+      admin: "إشراف",
+    };
+    document.title = (titleMap[newView] || "Northfall") + " — Northfall";
   };
 
   // Handle browser back/forward
@@ -226,7 +236,7 @@ function AppContent() {
   const [viewingUid, setViewingUid] = useState<string | null>(null);
   const openCommunity = (name: string) => { setSelectedCommunity(name); navigateTo("community", { community: name }); };
   const openProfile = (uid?: string) => { if (uid) { setViewingUid(uid); navigateTo("profile", { uid }); } else if (user) { setViewingUid(user.uid); navigateTo("profile", { uid: user.uid }); } else { setShowLogin(true); } };
-  const openPost = (id: string) => { setSelectedPostId(id); navigateTo("post", { postId: id }); };
+  const openPost = (id: string) => { setSelectedPostId(id); const p = posts.find(p => p.id === id); navigateTo("post", { postId: id, postTitle: p?.title || "" }); };
   const openCreate = () => { if (user) { setEditPostId(""); navigateTo("create"); } else setShowLogin(true); };
   const openEdit = (id: string) => { setEditPostId(id); navigateTo("edit", { editPostId: id }); };
   const scrollRef = useRef(0);

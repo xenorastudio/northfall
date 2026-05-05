@@ -37,20 +37,10 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
 
   const isAdmin = user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2";
 
-  if (!isAdmin) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <Shield size={40} className="text-nf-dim mb-3" />
-      <p className="text-sm font-semibold text-nf-muted">غير مصرح بالدخول</p>
-      <button onClick={onBack} className="mt-3 px-4 py-1.5 rounded-lg border border-nf-border text-xs text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">العودة</button>
-    </div>
-  );
-
   const showToast = (msg: string) => {
     setToasts(prev => [...prev, msg]);
     setTimeout(() => setToasts(prev => prev.slice(1)), 2500);
   };
-
-  useEffect(() => { loadReports(); }, []);
 
   const loadReports = async () => {
     setLoading(true);
@@ -61,6 +51,16 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
     } catch { showToast("خطأ في التحميل"); }
     setLoading(false);
   };
+
+  useEffect(() => { if (isAdmin) loadReports(); }, [isAdmin]);
+
+  if (!isAdmin) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <Shield size={40} className="text-nf-dim mb-3" />
+      <p className="text-sm font-semibold text-nf-muted">غير مصرح بالدخول</p>
+      <button onClick={onBack} className="mt-3 px-4 py-1.5 rounded-lg border border-nf-border text-xs text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">العودة</button>
+    </div>
+  );
 
   const filtered = reports.filter(r => {
     if (filter !== "all" && r.status !== filter) return false;
