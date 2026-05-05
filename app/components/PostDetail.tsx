@@ -319,6 +319,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const submitComment = async () => {
     if (!user || !commentText.trim()) return;
     try {
+      console.log("[PostDetail] Submitting comment...", { postId, uid: user.uid, text: commentText.trim().slice(0, 30) });
       await addDoc(collection(db, "posts", postId, "comments"), {
         text: commentText.trim(),
         authorName: user.displayName || t("gen.user"),
@@ -327,13 +328,15 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         parentId: replyTo?.id || "",
         createdAt: new Date().toISOString(),
       });
+      console.log("[PostDetail] Comment added, updating count...");
       await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
       setCommentText("");
       setReplyTo(null);
       await refreshComments();
-    } catch (e) {
-      console.error(e);
-      showToast?.("فشل حفظ التعليق — تأكد من تسجيل الدخول");
+      showToast(t("pd.commentSent"));
+    } catch (e: any) {
+      console.error("[PostDetail] Comment error:", e?.message || e);
+      showToast("فشل حفظ التعليق: " + (e?.message || "خطأ غير معروف"));
     }
   };
 

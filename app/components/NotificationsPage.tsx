@@ -24,13 +24,32 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
+    let prevCount = 0;
     const q2 = query(collection(db, "users", user.uid, "notifications"), orderBy("createdAt", "desc"), limit(20));
     const unsub = onSnapshot(q2, (snap) => {
-      setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const newNotifs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setNotifications(newNotifs);
+      // Play sound on new notification
+      if (prevCount > 0 && newNotifs.length > prevCount && !muted) {
+        try {
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = 880;
+          osc.type = "sine";
+          gain.gain.value = 0.1;
+          osc.start();
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+          osc.stop(ctx.currentTime + 0.3);
+        } catch {}
+      }
+      prevCount = newNotifs.length;
       setLoading(false);
     }, () => setLoading(false));
     return () => unsub();
-  }, [user]);
+  }, [user, muted]);
 
   const markAllRead = async () => {
     if (!user) return;
