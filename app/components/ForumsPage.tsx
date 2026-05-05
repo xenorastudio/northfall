@@ -625,6 +625,44 @@ export default function ForumsPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+
+  // URL-based navigation for forum
+  const navigateForum = (newView: ViewMode, extra: Record<string, string> = {}) => {
+    setViewMode(newView);
+    const params = new URLSearchParams({ view: newView, ...extra });
+    const url = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ view: newView, ...extra }, "", url);
+  };
+
+  // Read URL params on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get("view") as ViewMode | null;
+    if (v && ["list", "thread", "new", "profile", "community", "ai"].includes(v)) {
+      setViewMode(v);
+      const c = params.get("community"); if (c) setSelectedCommunity(c);
+      const t = params.get("threadId"); if (t) { setActiveThreadId(t); openThread(t); }
+      const u = params.get("profileUid"); if (u) { setProfileUid(u); setViewMode("profile"); }
+    }
+  }, []);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const onPopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const v = params.get("view") as ViewMode | null;
+      if (v && ["list", "thread", "new", "profile", "community", "ai"].includes(v)) {
+        setViewMode(v);
+        const c = params.get("community"); if (c) setSelectedCommunity(c);
+        const t = params.get("threadId"); if (t) setActiveThreadId(t);
+        const u = params.get("profileUid"); if (u) setProfileUid(u);
+      } else {
+        setViewMode("list");
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   const [newTitle, setNewTitle] = useState(""); const [newBody, setNewBody] = useState(""); const [newTags, setNewTags] = useState("");
   const [newCommunity, setNewCommunity] = useState(selectedCommunity); const [newType, setNewType] = useState("discussion");
   const [creating, setCreating] = useState(false);
@@ -1504,7 +1542,7 @@ export default function ForumsPage() {
   };
 
   const openProfile = async (uid: string, name: string, photo?: string) => {
-    setProfileUid(uid); setViewMode("profile");
+    setProfileUid(uid); navigateForum("profile", { profileUid: uid });
     try {
       const snap = await getDoc(doc(db, "users", uid));
       let pd: any = { name, photo, role: "عضو" };
@@ -1536,7 +1574,7 @@ export default function ForumsPage() {
   const fetchReplies = async (threadId: string) => { try { const q = query(collection(db, "forums", selectedCommunity, "threads", threadId, "replies"), orderBy("createdAt", "asc"), limit(100)); const snap = await getDocs(q); setReplies(prev => ({ ...prev, [threadId]: snap.docs.map(d => ({ id: d.id, ...d.data() } as ReplyData)) })); } catch {} };
   const fetchRepliesForCommunity = async (threadId: string, community: string) => { try { const q = query(collection(db, "forums", community, "threads", threadId, "replies"), orderBy("createdAt", "asc"), limit(100)); const snap = await getDocs(q); setReplies(prev => ({ ...prev, [threadId]: snap.docs.map(d => ({ id: d.id, ...d.data() } as ReplyData)) })); } catch {} };
   const openThread = (threadId: string) => {
-    setActiveThreadId(threadId); setViewMode("thread");
+    setActiveThreadId(threadId); navigateForum("thread", { threadId, community: (threads.find(t => t.id === threadId) || allThreads.find(t => t.id === threadId))?.community || selectedCommunity });
     // Find the thread and its community
     const thread = threads.find(t => t.id === threadId) || allThreads.find(t => t.id === threadId);
     const threadCommunity = thread?.community || selectedCommunity;
@@ -1555,7 +1593,7 @@ export default function ForumsPage() {
       setThreads(prev => prev.map(th => th.id === threadId ? { ...th, views: (th.views || 0) + 1 } : th));
     }
   };
-  const backToList = () => { setViewMode("list"); setActiveThreadId(null); setMenuOpen(null); setEditingReply(null); setReplyingTo(null); setProfileUid(null); setProfileData(null); };
+  const backToList = () => { navigateForum("list", { community: selectedCommunity }); setActiveThreadId(null); setMenuOpen(null); setEditingReply(null); setReplyingTo(null); setProfileUid(null); setProfileData(null); };
 
   // Load read history on mount
   useEffect(() => { try { const saved = localStorage.getItem("forum_readHistory"); if (saved) setLastReadHistory(JSON.parse(saved)); } catch {} }, []);
@@ -1621,7 +1659,7 @@ export default function ForumsPage() {
       tSnap.docs.forEach(d => { totalReplies += (d.data().replyCount || 0); });
       setCommunityReplyCount(totalReplies);
     } catch {}
-    setViewMode("community");
+    navigateForum("community", { community: comm.name });
   };
 
   // Copy with toast
@@ -1782,7 +1820,7 @@ export default function ForumsPage() {
             {/* Nav Links */}
             <div className="hidden lg:flex items-center gap-1 px-3 border-l border-nf-border">
               <button onClick={backToList} className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:text-white hover:bg-nf-secondary/40 transition-colors">الرئيسية</button>
-              <button onClick={() => setViewMode("new")} className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-accent border border-nf-accent/30 hover:bg-nf-accent/10 transition-colors">+ موضوع</button>
+              <button onClick={() => navigateForum("new")} className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-accent border border-nf-accent/30 hover:bg-nf-accent/10 transition-colors">+ موضوع</button>
               <a href="/app" className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:text-white hover:bg-nf-secondary/40 transition-colors">التطبيق</a>
             </div>
             {/* Notifications */}
@@ -1814,7 +1852,7 @@ export default function ForumsPage() {
                         <button onClick={() => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><User size={14} className="shrink-0 text-nf-dim" /> البروفايل</button>
                         <button onClick={() => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setUserMenuOpen(false); setTimeout(() => setProfileTab("saved"), 100); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Bookmark size={14} className="shrink-0 text-nf-dim" /> المحفوظات</button>
                         <button onClick={() => { setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Bell size={14} className="shrink-0 text-nf-dim" /> الإشعارات</button>
-                        <button onClick={() => { setViewMode("new"); setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Plus size={14} className="shrink-0 text-nf-dim" /> موضوع جديد</button>
+                        <button onClick={() => { navigateForum("new"); setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Plus size={14} className="shrink-0 text-nf-dim" /> موضوع جديد</button>
                         <a href="/app" className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Settings size={14} className="shrink-0 text-nf-dim" /> الإعدادات</a>
                       </div>
                       <div className="border-t border-nf-border/50 py-0.5">
@@ -1895,7 +1933,7 @@ export default function ForumsPage() {
                   <item.icon size={16} className={cn("shrink-0", item.active ? "text-nf-accent" : "text-nf-dim")} /><span>{item.label}</span>
                 </button>
               ))}
-              <button onClick={() => setViewMode("ai")} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all", viewMode === "ai" ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-accent/5 hover:text-nf-accent")}>
+              <button onClick={() => navigateForum("ai")} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all", viewMode === "ai" ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-accent/5 hover:text-nf-accent")}>
                 <Sparkles size={16} className={cn("shrink-0", viewMode === "ai" ? "text-nf-accent" : "text-nf-accent/50")} /><span>ذكاء اصطناعي</span>
               </button>
             </div>
@@ -1910,7 +1948,7 @@ export default function ForumsPage() {
                   { icon: User, label: "البروفايل", id: "profile", onClick: () => openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined) },
                   { icon: Bookmark, label: "المحفوظات", id: "saved", onClick: () => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setTimeout(() => setProfileTab("saved"), 100); } },
                   { icon: Bell, label: "الإشعارات", id: "notifs", onClick: () => {} },
-                  { icon: Plus, label: "موضوع جديد", id: "newthread", onClick: () => setViewMode("new") },
+                  { icon: Plus, label: "موضوع جديد", id: "newthread", onClick: () => navigateForum("new") },
                 ].map(item => (
                   <button key={item.id} onClick={item.onClick} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-all", item.id === "newthread" && "text-nf-accent hover:bg-nf-accent/10")}>
                     <item.icon size={16} className={cn("shrink-0", item.id === "newthread" ? "text-nf-accent" : "text-nf-dim")} /><span>{item.label}</span>
@@ -1927,7 +1965,7 @@ export default function ForumsPage() {
               <div className="text-[10px] font-bold text-nf-accent uppercase tracking-wider px-2 mb-1.5">مجتمعاتي</div>
               <div className="space-y-0.5">
                 {joinedComms.map(comm => (
-                  <div key={comm.name} onClick={() => { setSelectedCommunity(comm.name); setViewMode("list"); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer", selectedCommunity === comm.name ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-white")}>
+                  <div key={comm.name} onClick={() => { setSelectedCommunity(comm.name); navigateForum("list", { community: comm.name }); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer", selectedCommunity === comm.name ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-white")}>
                     {comm.img ? <img src={comm.img} alt="" className="w-[18px] h-[18px] rounded-full opacity-80" /> : <div className="w-[18px] h-[18px] rounded-full bg-nf-accent/20 flex items-center justify-center text-[8px] text-nf-accent font-bold">n/</div>}
                     <span>n/{comm.name}</span>
                   </div>
@@ -1948,7 +1986,7 @@ export default function ForumsPage() {
             </div>
             <div className="space-y-0.5">
               {allCommunities.filter(c => !communitySearch || c.name.toLowerCase().includes(communitySearch.toLowerCase())).map(comm => (
-                <div key={comm.name} onClick={() => { setSelectedCommunity(comm.name); setViewMode("list"); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer", selectedCommunity === comm.name ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-white")}>
+                <div key={comm.name} onClick={() => { setSelectedCommunity(comm.name); navigateForum("list", { community: comm.name }); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer", selectedCommunity === comm.name ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-white")}>
                   {comm.img ? <img src={comm.img} alt="" className="w-[18px] h-[18px] rounded-full opacity-60" /> : <div className="w-[18px] h-[18px] rounded-full bg-nf-accent/20 flex items-center justify-center text-[8px] text-nf-accent font-bold">n/</div>}
                   <span>n/{comm.name}</span>
                 </div>
@@ -2319,7 +2357,7 @@ export default function ForumsPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <button onClick={() => setReplyingTo(activeThread.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-bold transition-colors"><Reply size={13} /> رد</button>
                             <button onClick={() => openShare(activeThread.id, activeThread.title)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors"><Share2 size={12} /> مشاركة</button>
-                            <button onClick={() => copyText(`${window.location.origin}/app?thread=${activeThread.id}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors"><Link2 size={12} /> نسخ الرابط</button>
+                            <button onClick={() => copyText(`${window.location.origin}/NewPage?view=thread&threadId=${activeThread.id}&community=${activeThread.community}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors"><Link2 size={12} /> نسخ الرابط</button>
                             <button onClick={() => { const n = new Set(savedThreads); if (n.has(activeThread.id)) { n.delete(activeThread.id); showToast("تم إزالة الحفظ"); } else { n.add(activeThread.id); showToast("تم الحفظ ✓"); } setSavedThreads(n); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors", savedThreads.has(activeThread.id) ? "text-nf-accent hover:bg-nf-secondary/40" : "text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40")}><Bookmark size={12} fill={savedThreads.has(activeThread.id) ? "currentColor" : "none"} /> حفظ</button>
                             {/* AI Summary button */}
                             <button onClick={async () => {
@@ -3280,7 +3318,7 @@ export default function ForumsPage() {
                                           aiTextareaRef.current?.focus();
                                         }} className="p-1.5 rounded-lg text-nf-dim/30 hover:text-blue-400 hover:bg-blue-400/10 transition-all"><Reply size={13} /></button>
                                         <button onClick={() => { setReplyText(prev => prev + msg.content); if (!replyingTo && activeThread) setReplyingTo(activeThread.id); showToast("تم الإدراج في الرد"); }} className="p-1.5 rounded-lg text-nf-dim/30 hover:text-nf-accent hover:bg-nf-accent/10 transition-all"><Send size={13} /></button>
-                                        <button onClick={() => { setNewBody(msg.content); setViewMode("new"); showToast("تم نقل المحتوى لموضوع جديد"); }} className="p-1.5 rounded-lg text-nf-dim/30 hover:text-green-400 hover:bg-green-400/10 transition-all"><Plus size={13} /></button>
+                                        <button onClick={() => { setNewBody(msg.content); navigateForum("new"); showToast("تم نقل المحتوى لموضوع جديد"); }} className="p-1.5 rounded-lg text-nf-dim/30 hover:text-green-400 hover:bg-green-400/10 transition-all"><Plus size={13} /></button>
                                         {msgIdx === aiMessages.length - 1 && (
                                           <button onClick={async () => {
                                             const lastUserMsg = [...aiMessages].reverse().find(m => m.role === "user");
@@ -3612,7 +3650,7 @@ export default function ForumsPage() {
                   {/* Action buttons */}
                   <div className="flex items-center gap-2 px-1 mb-4">
                     <button onClick={() => { setSelectedCommunity(communityViewData.name); backToList(); }} className="flex-1 bg-nf-accent/15 hover:bg-nf-accent/25 text-nf-accent text-[12px] font-bold py-2 rounded-lg flex items-center justify-center transition-colors">تصفح المواضيع</button>
-                    <button onClick={() => { setViewMode("new"); setNewCommunity(communityViewData.name); }} className="flex-1 bg-nf-accent/15 hover:bg-nf-accent/25 text-nf-accent text-[12px] font-bold py-2 rounded-lg flex items-center justify-center transition-colors">موضوع جديد</button>
+                    <button onClick={() => { navigateForum("new", { community: communityViewData.name }); setNewCommunity(communityViewData.name); }} className="flex-1 bg-nf-accent/15 hover:bg-nf-accent/25 text-nf-accent text-[12px] font-bold py-2 rounded-lg flex items-center justify-center transition-colors">موضوع جديد</button>
                     <button onClick={() => toggleFollow(communityViewData.name)} className={cn("px-3.5 py-2 rounded-lg text-[12px] font-bold transition-colors", followedCommunities.has(communityViewData.name) ? "bg-nf-accent/10 text-nf-accent" : "bg-nf-secondary text-nf-muted hover:bg-nf-accent/10 hover:text-nf-accent")}>{followedCommunities.has(communityViewData.name) ? "متابَع ✓" : "متابعة"}</button>
                     <button onClick={() => openShare(communityViewData.name, `n/${communityViewData.name}`)} className="px-3 py-2 rounded-lg bg-nf-secondary text-nf-muted hover:bg-nf-accent/10 hover:text-nf-accent text-[12px] font-bold transition-colors"><Share2 size={13} /></button>
                   </div>
@@ -3682,7 +3720,7 @@ export default function ForumsPage() {
                         <MessageCirclePlus size={32} className="mx-auto text-nf-border mb-3" />
                         <p className="text-[16px] font-bold text-nf-dim mb-1">لا توجد مواضيع بعد</p>
                         <p className="text-[13px] text-nf-dim mb-4">ابدأ أول نقاش في {communityViewData.name}</p>
-                        <button onClick={() => { setViewMode("new"); setNewCommunity(communityViewData.name); }} className="bg-nf-accent/15 hover:bg-nf-accent/25 text-nf-accent text-[13px] font-bold px-6 py-2.5 rounded-lg inline-flex items-center gap-2 transition-colors">أنشئ أول موضوع</button>
+                        <button onClick={() => { navigateForum("new", { community: communityViewData.name }); setNewCommunity(communityViewData.name); }} className="bg-nf-accent/15 hover:bg-nf-accent/25 text-nf-accent text-[13px] font-bold px-6 py-2.5 rounded-lg inline-flex items-center gap-2 transition-colors">أنشئ أول موضوع</button>
                       </div>
                     );
                     return (
@@ -3741,7 +3779,7 @@ export default function ForumsPage() {
                         <h1 className="text-[20px] font-bold text-nf-text cursor-pointer hover:text-nf-accent transition-colors" onClick={() => { const c = allCommunities.find(c => c.name === selectedCommunity); if (c) openCommunity(c); }}>{selectedCommunity}</h1>
                         <span className="text-[12px] text-nf-dim font-medium">{sortedThreads.length} موضوع · {new Set(allThreads.filter(t => t.community === selectedCommunity).map(t => t.authorUid)).size} عضو</span>
                       </div>
-                      <button onClick={() => setViewMode("new")} className="border border-nf-border hover:border-nf-accent hover:text-nf-accent text-nf-text text-[12px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors bg-transparent"><Plus size={14} /> موضوع جديد</button>
+                      <button onClick={() => navigateForum("new")} className="border border-nf-border hover:border-nf-accent hover:text-nf-accent text-nf-text text-[12px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors bg-transparent"><Plus size={14} /> موضوع جديد</button>
                     </div>
                     {/* Forum Search Bar - powerful with dropdown */}
                     <div className="relative mb-3" ref={searchRef}>

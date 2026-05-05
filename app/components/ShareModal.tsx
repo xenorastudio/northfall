@@ -77,7 +77,7 @@ export default function ShareModal({
 }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
-  const postUrl = typeof window !== "undefined" ? `${window.location.origin}?post=${postId}` : "";
+  const postUrl = typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?view=thread&threadId=${postId}` : "";
 
   const handleShare = (platformId: string) => {
     if (platformId === "copy") {
