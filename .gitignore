@@ -1,0 +1,7 @@
+node_modules/
+.next/
+out/
+.netlify/
+.DS_Store
+Thumbs.db
+*.log
