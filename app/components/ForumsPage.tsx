@@ -656,6 +656,17 @@ export default function ForumsPage() {
       const c = params.get("community"); if (c) setSelectedCommunity(c);
       const t = params.get("threadId"); if (t) { setActiveThreadId(t); openThread(t); }
       const u = params.get("profileUid"); if (u) { setProfileUid(u); setViewMode("profile"); }
+      // Set tab title on direct URL load (new tab)
+      const tt = params.get("threadTitle");
+      const titleMap: Record<string, string> = {
+        list: c ? `n/${c}` : "المنتدى",
+        thread: tt || "موضوع",
+        new: "موضوع جديد",
+        profile: "بروفايل",
+        community: c ? `n/${c}` : "مجتمع",
+        ai: "ذكاء اصطناعي",
+      };
+      document.title = (titleMap[v] || "المنتدى") + " — Northfall Forum";
     }
   }, []);
 
@@ -1790,6 +1801,13 @@ export default function ForumsPage() {
   const pinnedThreads = sortedThreads.filter(t => t.pinned); const regularThreads = sortedThreads.filter(t => !t.pinned);
   const activeThread = activeThreadId ? (threads.find(t => t.id === activeThreadId) || allThreads.find(t => t.id === activeThreadId)) : null;
   const activeReplies = activeThreadId ? (replies[activeThreadId] || []) : [];
+
+  // Update tab title when thread data loads (important for new tabs)
+  useEffect(() => {
+    if (viewMode === "thread" && activeThread?.title) {
+      document.title = `${activeThread.title} — Northfall Forum`;
+    }
+  }, [activeThread?.title, viewMode]);
   const sortedReplies = (() => { let f = [...activeReplies]; if (replyTimeFilter !== "all") { const now = Date.now(); const cutoff = replyTimeFilter === "today" ? now - 86400000 : replyTimeFilter === "week" ? now - 86400000 * 7 : now - 86400000 * 30; f = f.filter(r => new Date(r.createdAt).getTime() > cutoff); } if (replySort === "newest") f.reverse(); return f; })();
   const activeTypeInfo = activeThread ? getTypeInfo(activeThread.type) : threadTypes[0];
 

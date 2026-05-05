@@ -239,6 +239,14 @@ function AppContent() {
   const openPost = (id: string) => { setSelectedPostId(id); const p = posts.find(p => p.id === id); navigateTo("post", { postId: id, postTitle: p?.title || "" }); };
   const openCreate = () => { if (user) { setEditPostId(""); navigateTo("create"); } else setShowLogin(true); };
   const openEdit = (id: string) => { setEditPostId(id); navigateTo("edit", { editPostId: id }); };
+
+  // Update tab title when post data loads (important for new tabs)
+  useEffect(() => {
+    if (view === "post" && selectedPostId) {
+      const p = posts.find(p => p.id === selectedPostId);
+      if (p?.title) document.title = `${p.title} — Northfall`;
+    }
+  }, [view, selectedPostId, posts]);
   const scrollRef = useRef(0);
   const backToFeed = () => {
     navigateTo("feed");

@@ -8,7 +8,6 @@ import { doc, updateDoc, setDoc, deleteDoc, getDoc, collection, addDoc, getDocs,
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
-import AwardModal from "./AwardModal";
 import ShareModal from "./ShareModal";
 import ReportModal from "./ReportModal";
 import HoverCard from "./HoverCard";
@@ -94,7 +93,6 @@ export default function PostCard({
   const [showShare, setShowShare] = useState(false);
   const [showEmbed, setShowEmbed] = useState(false);
   const [showReport, setShowReport] = useState(false);
-  const [showAward, setShowAward] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
   const [views, setViews] = useState(0);
@@ -370,9 +368,6 @@ export default function PostCard({
         <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
           <Share2 size={14} /><span>{t("pc.share")}</span>
         </button>
-        <button onClick={(e) => { e.stopPropagation(); setShowAward(true); }} className="flex items-center gap-1 hover:text-yellow-400 text-xs transition-colors">
-          <Star size={14} /><span>{t("pc.awardBtn")}</span>
-        </button>
         <button onClick={(e) => { e.stopPropagation(); toggleSave(); }} className={cn("flex items-center gap-1 text-xs transition-all duration-200", saved ? "text-nf-accent" : "hover:text-nf-accent")}>
           <Bookmark size={14} fill={saved ? "currentColor" : "none"} /><span>{saved ? "محفوظ" : "حفظ"}</span>
         </button>
@@ -431,16 +426,8 @@ export default function PostCard({
         </div>
       )}
 
-      {/* Awards - Soon */}
-      {awards && awards.length > 0 && (
-        <div className="flex items-center gap-1.5 px-4 py-1 border-t border-nf-border-2">
-          <span className="text-[10px] text-nf-dim font-bold bg-nf-secondary px-2 py-0.5 rounded-full">🏆 Soon</span>
-        </div>
-      )}
-
 
       {showReport && <ReportModal open={showReport} onClose={() => setShowReport(false)} type="post" targetId={postId || ""} />}
-      {showAward && <AwardModal open={showAward} onClose={() => setShowAward(false)} postId={postId || ""} />}
       {showShareModal && <ShareModal open={showShareModal} onClose={() => setShowShareModal(false)} postId={postId || ""} postTitle={title} />}
     </motion.article>
     </a>
