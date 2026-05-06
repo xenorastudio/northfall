@@ -298,8 +298,8 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
             {game.genre.slice(0, 2).map(g => (<span key={g} className="text-[7px] px-1.5 py-0.5 rounded-md bg-nf-accent/8 text-nf-accent/70 font-semibold">{g}</span>))}
           </div>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-1.5 rounded-lg transition-all", isFav ? "text-red-400 bg-red-400/10 hover:bg-red-400/15" : "text-nf-dim/40 hover:text-red-400 hover:bg-red-400/5")}>
-          <Heart size={14} fill={isFav ? "currentColor" : "none"} />
+        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-1 rounded-md transition-all", isFav ? "text-red-400" : "text-nf-dim/30 hover:text-red-400")}>
+          <Heart size={13} fill={isFav ? "currentColor" : "none"} />
         </button>
         <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
       </div>
@@ -329,13 +329,13 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
         <button
           onClick={(e) => { e.stopPropagation(); onFav(); }}
           className={cn(
-            "absolute top-1.5 left-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg",
+            "absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200",
             isFav
-              ? "bg-red-500 text-white shadow-red-500/40"
-              : "bg-black/40 backdrop-blur-sm text-white/60 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/40"
+              ? "bg-red-500 text-white"
+              : "bg-black/40 backdrop-blur-sm text-white/50 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100"
           )}
         >
-          <Heart size={11} fill={isFav ? "white" : "none"} />
+          <Heart size={10} fill={isFav ? "currentColor" : "none"} />
         </button>
       </div>
       <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
@@ -442,7 +442,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
         <div className="flex items-center gap-2.5">
           <button onClick={onBack} className="p-2 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors border border-white/5 hover:border-white/10"><ArrowLeft size={16} /></button>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2"><Gamepad2 size={18} className="text-nf-accent/60" />مكتبة الألعاب</h1>
+            <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">مكتبة الألعاب</h1>
             <p className="text-[9px] text-nf-dim/50">اكتشف ألعابك المفضلة وتابعها</p>
           </div>
           <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold border border-nf-accent/20">{GAMES.length} لعبة</span>

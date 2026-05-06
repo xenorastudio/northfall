@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
 import { doc, updateDoc, getDoc, deleteDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Camera, AlertTriangle } from "lucide-react";
+import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Camera, AlertTriangle, Sparkles, Key } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useI18n } from "./I18nProvider";
@@ -236,11 +236,72 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
 
   const dir = lang === "ar" ? "rtl" : "ltr";
 
+  // AI settings state
+  const [aiApiKey, setAiApiKey] = useState("");
+  const [aiProvider, setAiProvider] = useState<string>("chatanywhere");
+  const [aiModel, setAiModel] = useState(0);
+  const [aiConnected, setAiConnected] = useState<"unknown" | "testing" | "ok" | "fail">("unknown");
+
+  const AI_MODELS = [
+    { name: "GPT-3.5 تجريبي", provider: "chatanywhere", model: "gpt-3.5-turbo", free: true, desc: "مجاني للتجربة — لا يحتاج مفتاح مدفوع" },
+    { name: "DeepSeek Chat", provider: "deepseek", model: "deepseek-chat", free: true, desc: "مجاني وسريع، مناسب لكل الاستخدامات" },
+    { name: "Gemini 2.0 Flash", provider: "gemini", model: "gemini-2.0-flash", free: true, desc: "سريع من جوجل، ممتاز للردود القصيرة" },
+    { name: "Groq Llama 3.3", provider: "groq", model: "llama-3.3-70b-versatile", free: true, desc: "أسرع نموذج، استجابة فورية" },
+    { name: "Groq Gemma 2", provider: "groq", model: "gemma2-9b-it", free: true, desc: "خفيف وسريع من Groq" },
+    { name: "Mistral Small", provider: "mistral", model: "mistral-small-latest", free: true, desc: "نموذج صغير من Mistral، مجاني" },
+    { name: "GPT-4o Mini", provider: "chatgpt", model: "gpt-4o-mini", free: false, desc: "نسخة مصغرة من GPT-4، رخيصة" },
+    { name: "GPT-4.1 Nano", provider: "chatgpt", model: "gpt-4.1-nano", free: false, desc: "أصغر نموذج OpenAI، سريع" },
+    { name: "Gemini 2.5 Flash", provider: "gemini", model: "gemini-2.5-flash-preview-05-20", free: false, desc: "أحدث Gemini، ذكاء عالي" },
+    { name: "Claude 3.5 Haiku", provider: "claude", model: "claude-3-5-haiku-20241022", free: false, desc: "سريع ورخيص من Anthropic" },
+    { name: "Mistral Medium", provider: "mistral", model: "mistral-medium-latest", free: false, desc: "نموذج متوسط، توازن بين السرعة والذكاء" },
+  ];
+
+  useEffect(() => {
+    const k = localStorage.getItem("nf-ai-key") || "";
+    const p = localStorage.getItem("nf-ai-provider") || "chatanywhere";
+    const m = parseInt(localStorage.getItem("nf-ai-model") || "0");
+    setAiApiKey(k); setAiProvider(p); setAiModel(m);
+  }, []);
+
+  const saveAiSettings = () => {
+    localStorage.setItem("nf-ai-key", aiApiKey);
+    localStorage.setItem("nf-ai-provider", aiProvider);
+    localStorage.setItem("nf-ai-model", String(aiModel));
+    toast(t("gen.saved"));
+  };
+
+  const testAiConnection = async () => {
+    setAiConnected("testing");
+    try {
+      const sel = AI_MODELS[aiModel];
+      if (sel.provider === "chatanywhere") {
+        const key = aiApiKey || "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7";
+        const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+          body: JSON.stringify({ model: "gpt-3.5-turbo", messages: [{ role: "user", content: "Hi" }], max_tokens: 5 }),
+        });
+        const data = await res.json();
+        setAiConnected(data?.choices?.[0]?.message ? "ok" : "fail");
+      } else {
+        const res = await fetch("/api/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ provider: sel.provider, model: sel.model, apiKey: aiApiKey, messages: [{ role: "user", content: "Hi" }], maxTokens: 5 }),
+        });
+        const data = await res.json();
+        const ok = data?.choices?.[0]?.message || data?.candidates?.[0]?.content || data?.content?.[0]?.text;
+        setAiConnected(ok ? "ok" : "fail");
+      }
+    } catch { setAiConnected("fail"); }
+  };
+
   const sections = [
     { id: "account", label: t("sp.account"), icon: User },
     { id: "appearance", label: t("sp.appearance"), icon: Palette },
     { id: "notifications", label: t("sp.notifications"), icon: Bell },
     { id: "privacy", label: t("sp.privacy"), icon: Shield },
+    { id: "ai", label: "الذكاء الاصطناعي", icon: Sparkles },
     { id: "language", label: t("sp.language"), icon: Globe },
   ];
 
@@ -427,6 +488,69 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                   <button onClick={handleDownloadData} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-nf-accent bg-nf-accent/5 border border-nf-accent/20 hover:bg-nf-accent/10 transition-colors">تحميل</button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeSection === "ai" && (
+            <div className="p-4 space-y-4">
+              <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">إعدادات الذكاء الاصطناعي</h3>
+              <p className="text-[9px] text-nf-dim/50 mb-4">اختر المزود والنموذج وأضف مفتاح API لاستخدام أدوات AI في المنشورات والمنتدى</p>
+              {/* Provider */}
+              <div>
+                <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">المزود</label>
+                <p className="text-[8px] text-nf-dim/40 mb-2">الشركة التي توفر خدمة الذكاء الاصطناعي</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(["chatanywhere", "deepseek", "groq", "mistral", "gemini", "chatgpt", "claude"] as const).map(p => (
+                    <button key={p} onClick={() => { setAiProvider(p); const idx = AI_MODELS.findIndex(m => m.provider === p); if (idx >= 0) setAiModel(idx); }} className={cn("py-2 rounded-lg text-[10px] font-bold transition-all border", aiProvider === p ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>{p === "chatgpt" ? "ChatGPT" : p === "chatanywhere" ? "تجريبي" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
+                  ))}
+                </div>
+              </div>
+              {/* Model */}
+              {AI_MODELS.filter(m => m.provider === aiProvider).length > 0 && (
+                <div>
+                  <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">النموذج</label>
+                  <p className="text-[8px] text-nf-dim/40 mb-2">النموذج المستخدم — المجانية أسرع، المدفوعة أذكى</p>
+                  <div className="flex flex-col gap-1">
+                    {AI_MODELS.filter(m => m.provider === aiProvider).map(m => {
+                      const gi = AI_MODELS.indexOf(m);
+                      return (
+                        <button key={gi} onClick={() => setAiModel(gi)} className={cn("flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-semibold transition-all border", aiModel === gi ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>
+                          <span>{m.name}</span>
+                          <span className={cn("text-[8px] px-1.5 py-0.5 rounded-full", m.free ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400")}>{m.free ? "مجاني" : "مدفوع"}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {/* Model desc */}
+              {AI_MODELS[aiModel] && (
+                <div className="bg-nf-secondary/20 rounded-lg p-3 border border-white/5">
+                  <p className="text-[10px] text-nf-dim font-bold">{AI_MODELS[aiModel].name}</p>
+                  <p className="text-[9px] text-nf-dim/50">{AI_MODELS[aiModel].desc}</p>
+                </div>
+              )}
+              {/* API Key */}
+              <div>
+                <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">مفتاح API</label>
+                <p className="text-[8px] text-nf-dim/40 mb-2">مفتاح الدخول — احصل عليه مجاناً من موقع المزود</p>
+                <div className="relative">
+                  <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder="sk-..." className="w-full bg-nf-secondary/30 rounded-lg px-4 py-2.5 text-[11px] text-white placeholder:text-nf-dim/30 outline-none focus:ring-1 focus:ring-nf-accent/20 font-mono border border-nf-border/10 focus:border-nf-accent/20 transition-all" dir="ltr" />
+                  <Key size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-nf-dim/25" />
+                </div>
+              </div>
+              {/* Test + Save */}
+              <div className="flex gap-2">
+                <button onClick={saveAiSettings} className="flex-1 bg-nf-accent hover:bg-nf-accent/80 text-white text-[11px] font-bold py-2.5 rounded-lg transition-all">حفظ الإعدادات</button>
+                {aiApiKey && (
+                  <button onClick={testAiConnection} disabled={aiConnected === "testing"} className={cn("px-4 py-2.5 rounded-lg text-[11px] font-bold transition-all border", aiConnected === "ok" ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/15" : aiConnected === "fail" ? "bg-red-400/10 text-red-400 border-red-400/15" : aiConnected === "testing" ? "bg-nf-accent/10 text-nf-accent border-nf-accent/15" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-accent/15")}>
+                    {aiConnected === "testing" ? "اختبار..." : aiConnected === "ok" ? "متصل" : aiConnected === "fail" ? "فشل" : "اختبار"}
+                  </button>
+                )}
+              </div>
+              {aiApiKey && (
+                <button onClick={() => { setAiApiKey(""); localStorage.removeItem("nf-ai-key"); setAiConnected("unknown"); }} className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors">حذف المفتاح</button>
+              )}
             </div>
           )}
 

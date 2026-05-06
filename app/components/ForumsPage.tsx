@@ -810,7 +810,7 @@ export default function ForumsPage() {
   const [tableData, setTableData] = useState<string[][]>([]);
   const [emojiMenuOpen, setEmojiMenuOpen] = useState<"new" | "reply" | null>(null);
   const [aiApiKey, setAiApiKey] = useState("");
-  const [aiProvider, setAiProvider] = useState<"chatgpt" | "gemini" | "claude" | "deepseek" | "groq" | "mistral">("deepseek");
+  const [aiProvider, setAiProvider] = useState<"chatgpt" | "gemini" | "claude" | "deepseek" | "groq" | "mistral" | "chatanywhere">("chatanywhere");
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiConnected, setAiConnected] = useState<"unknown" | "testing" | "ok" | "fail">("unknown");
@@ -843,6 +843,7 @@ export default function ForumsPage() {
   const [aiReplyResult, setAiReplyResult] = useState<Record<string, { label: string; text: string }>>({});
   const [aiReplyLoading, setAiReplyLoading] = useState<string | null>(null);
   const AI_MODELS = [
+    { name: "GPT-3.5 تجريبي", provider: "chatanywhere", model: "gpt-3.5-turbo", free: true },
     { name: "DeepSeek Chat", provider: "deepseek", model: "deepseek-chat", free: true },
     { name: "Gemini 2.0 Flash", provider: "gemini", model: "gemini-2.0-flash", free: true },
     { name: "Groq Llama 3.3", provider: "groq", model: "llama-3.3-70b-versatile", free: true },
@@ -959,7 +960,7 @@ export default function ForumsPage() {
   useEffect(() => { if (Object.keys(userVotes).length > 0) localStorage.setItem("nf-user-votes", JSON.stringify(userVotes)); }, [userVotes]);
 
   // Persist AI settings
-  useEffect(() => { try { const k = localStorage.getItem("nf-ai-key"); if (k) { setAiApiKey(k); setAiConnected("unknown"); } const p = localStorage.getItem("nf-ai-provider"); if (p) setAiProvider(p as any); } catch {} }, []);
+  useEffect(() => { try { const k = localStorage.getItem("nf-ai-key"); if (k) { setAiApiKey(k); setAiConnected("unknown"); } const p = localStorage.getItem("nf-ai-provider") || "chatanywhere"; if (p) setAiProvider(p as any); } catch {} }, []);
   useEffect(() => { if (aiApiKey) localStorage.setItem("nf-ai-key", aiApiKey); }, [aiApiKey]);
   useEffect(() => { localStorage.setItem("nf-ai-provider", aiProvider); }, [aiProvider]);
 
@@ -1114,6 +1115,17 @@ export default function ForumsPage() {
   // Helper: call AI via server proxy (no CORS)
   const callAI = async (provider: string, model: string, messages: { role: string; content: string }[], systemPrompt?: string): Promise<string> => {
     const contextMessages = messages.slice(-16);
+    if (provider === "chatanywhere") {
+      const key = aiApiKey || "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7";
+      const allMsgs = systemPrompt ? [{ role: "system", content: systemPrompt }, ...contextMessages] : contextMessages;
+      const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({ model, messages: allMsgs, max_tokens: 512, temperature: 0.7 }),
+      });
+      const data = await res.json();
+      return data?.choices?.[0]?.message?.content || "";
+    }
     const res = await fetch("/api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1121,7 +1133,6 @@ export default function ForumsPage() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-    // Extract response based on provider format
     if (provider === "gemini") return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     if (provider === "claude") return data.content?.[0]?.text || "";
     return data.choices?.[0]?.message?.content || "";
@@ -1129,12 +1140,23 @@ export default function ForumsPage() {
 
   // Test API connection
   const testAiConnection = async () => {
-    if (!aiApiKey) { setAiConnected("fail"); return; }
+    const key = aiApiKey || (aiProvider === "chatanywhere" ? "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7" : "");
+    if (!key) { setAiConnected("fail"); return; }
     setAiConnected("testing");
     try {
-      const res = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${encodeURIComponent(aiApiKey)}`);
-      const data = await res.json();
-      setAiConnected(data.ok ? "ok" : "fail");
+      if (aiProvider === "chatanywhere") {
+        const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+          body: JSON.stringify({ model: "gpt-3.5-turbo", messages: [{ role: "user", content: "Hi" }], max_tokens: 5 }),
+        });
+        const data = await res.json();
+        setAiConnected(data?.choices?.[0]?.message ? "ok" : "fail");
+      } else {
+        const res = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${encodeURIComponent(key)}`);
+        const data = await res.json();
+        setAiConnected(data.ok ? "ok" : "fail");
+      }
     } catch {
       setAiConnected("fail");
     }
@@ -4288,6 +4310,7 @@ export default function ForumsPage() {
                   <label className="text-[9px] text-nf-dim font-bold mb-2 block uppercase tracking-wider">المزود</label>
                   <div className="grid grid-cols-3 gap-1.5">
                     {([
+                      { id: "chatanywhere", label: "تجريبي" },
                       { id: "deepseek", label: "DeepSeek" },
                       { id: "groq", label: "Groq" },
                       { id: "mistral", label: "Mistral" },
