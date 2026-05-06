@@ -239,28 +239,10 @@ export default function PostCard({
   };
 
   // AI explain post
-  const [aiDisplayText, setAiDisplayText] = useState("");
 
-  // Typing animation effect
-  useEffect(() => {
-    if (aiResult && !aiLoading) {
-      let i = 0;
-      setAiDisplayText("");
-      const interval = setInterval(() => {
-        if (i < aiResult.length) {
-          setAiDisplayText(aiResult.slice(0, i + 1));
-          i++;
-        } else {
-          clearInterval(interval);
-        }
-      }, 12);
-      return () => clearInterval(interval);
-    } else {
-      setAiDisplayText("");
-    }
-  }, [aiResult, aiLoading]);
+  // AI result display
 
-  const handleAiExplain = async (mode: "explain" | "summarize" | "translate" | "expand" | "correct" | "tags" | "rephrase" | "question" | "keypoints" | "counter") => {
+  const handleAiExplain = async (mode: "explain" | "summarize" | "translate" | "expand" | "correct" | "tags" | "rephrase" | "question" | "keypoints" | "counter" | "improve" | "issues") => {
     const sel = AI_MODELS[aiModel];
     const key = aiApiKey || (sel.provider === "chatanywhere" ? "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7" : "");
     if (!key) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي ⚙"); return; }
@@ -282,6 +264,8 @@ export default function PostCard({
         question: `اكتب 3 أسئلة ممكنة تنطرح عن هاي المنشور، باللهجة الأردنية:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
         keypoints: `${uName}، استخرج أهم النقاط الرئيسية من هاي المنشور كقائمة مختصرة:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
         counter: `${uName}، اكتب رد أو حجة مضادة لهاد المنشور بشكل محترم ومبسط (3-4 أسطر)، باللهجة الأردنية:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        improve: `${uName}، حسّن هاي المنشور بأسلوب احترافي وجذاب مع الحفاظ على المعنى — أضف تنسيق وتنظيم أفضل، باللهجة الأردنية:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        issues: `${uName}، اذكر المشاكل أو الأخطاء المحتملة بهاد المنشور (معلومات خاطئة، منطق ضعيف، أخطاء تقنية) بشكل مبسط، باللهجة الأردنية:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
       };
       const systemPrompts: Record<string, string> = {
         explain: `أنت مساعد بتشرح المنشورات ببساطة ووضوح باللهجة الأردنية. خاطب المستخدم باسمه. احكي باختصار 3-4 أسطر بدون عناوين. بدون إيموجي. خليك عادي وودي.`,
@@ -294,6 +278,8 @@ export default function PostCard({
         question: `أنت مساعد بيكتب أسئلة ممكنة عن المنشور باللهجة الأردنية. خاطب المستخدم باسمه. اكتب 3 أسئلة بس. بدون إيموجي.`,
         keypoints: `أنت مساعد بيستخرج النقاط الرئيسية من المنشورات باللهجة الأردنية. خاطب المستخدم باسمه. اكتب قائمة مختصرة. بدون إيموجي.`,
         counter: `أنت مساعد بيكتب حجج مضادة محترمة باللهجة الأردنية. خاطب المستخدم باسمه. كن محترم وموضوعي. بدون إيموجي.`,
+        improve: `أنت محرر محترف بحسّن المنشورات بأسلوب احترافي وجذاب باللهجة الأردنية. خاطب المستخدم باسمه. حسّن التنسيق والأسلوب. بدون إيموجي.`,
+        issues: `أنت ناقد تقني بيكشف المشاكل والأخطاء المحتملة بالمنشورات باللهجة الأردنية. خاطب المستخدم باسمه. كن موضوعي وبناء. بدون إيموجي.`,
       };
       let text = "";
       if (sel.provider === "chatanywhere") {
@@ -580,6 +566,12 @@ export default function PostCard({
                 <button onClick={(e) => { e.stopPropagation(); handleAiExplain("counter"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
                   <Sparkles size={10} className="text-rose-400/40" /> <span className="flex-1 text-right">حجة مضادة</span>
                 </button>
+                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("improve"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                  <Sparkles size={10} className="text-emerald-400/40" /> <span className="flex-1 text-right">حسّن</span>
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("issues"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                  <FileText size={10} className="text-red-400/40" /> <span className="flex-1 text-right">مشاكل</span>
+                </button>
               </div>
             </div>
           )}
@@ -641,7 +633,7 @@ export default function PostCard({
           <div className="flex items-center gap-1.5 mb-1">
             <Sparkles size={10} className={cn("text-nf-accent/60", aiLoading && "animate-pulse")} />
             <span className="text-[9px] text-nf-accent/60 font-bold">{aiLoading ? "بكتبلك..." : "NorthFall AI"}</span>
-            {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={10} /></button>}
+            {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); }} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={10} /></button>}
           </div>
           {aiLoading && !aiResult && (
             <div className="flex items-center gap-1">
@@ -650,7 +642,7 @@ export default function PostCard({
               <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
           )}
-          {aiDisplayText && <p className="text-[11px] text-nf-muted leading-relaxed">{aiDisplayText}<span className="inline-block w-[2px] h-[11px] bg-nf-accent/60 ml-0.5 animate-pulse" /></p>}
+          {aiResult && <p className="text-[11px] text-nf-muted leading-relaxed">{aiResult}</p>}
         </div>
       )}
 
