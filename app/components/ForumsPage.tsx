@@ -857,8 +857,7 @@ export default function ForumsPage() {
   const [aiReplyResult, setAiReplyResult] = useState<Record<string, { label: string; text: string }>>({});
   const [aiReplyLoading, setAiReplyLoading] = useState<string | null>(null);
   const AI_MODELS = [
-    { name: "GPT-3.5 تجريبي", provider: "chatanywhere", model: "gpt-3.5-turbo", free: true },
-    { name: "DeepSeek Chat", provider: "deepseek", model: "deepseek-chat", free: true },
+    { name: "DeepSeek تجريبي ⚡", provider: "deepseek", model: "deepseek-chat", free: true },
     { name: "Gemini 2.0 Flash", provider: "gemini", model: "gemini-2.0-flash", free: true },
     { name: "Groq Llama 3.3", provider: "groq", model: "llama-3.3-70b-versatile", free: true },
     { name: "Groq Gemma 2", provider: "groq", model: "gemma2-9b-it", free: true },
@@ -1131,22 +1130,20 @@ export default function ForumsPage() {
     max_tokens: 4000,
   };
 
-  // Helper: call AI via server proxy (no CORS)
+  // Helper: call AI via server proxy
   const callAI = async (provider: string, model: string, messages: { role: string; content: string }[], systemPrompt?: string): Promise<string> => {
     const contextMessages = messages.slice(-16);
-    // Always use server proxy — it handles all providers including chatanywhere
-    const effectiveProvider = provider === "chatanywhere" ? "deepseek" : provider;
-    const effectiveModel = provider === "chatanywhere" ? "deepseek-chat" : model;
     const key = aiApiKey || "";
+    if (!key) throw new Error("أضف مفتاح API من الإعدادات (مجاني من platform.deepseek.com)");
     const res = await fetch("/api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: effectiveProvider, model: effectiveModel, messages: contextMessages, apiKey: key, systemPrompt, ...AI_CONFIG }),
+      body: JSON.stringify({ provider, model, messages: contextMessages, apiKey: key, systemPrompt, ...AI_CONFIG }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-    if (effectiveProvider === "gemini") return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    if (effectiveProvider === "claude") return data.content?.[0]?.text || "";
+    if (provider === "gemini") return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    if (provider === "claude") return data.content?.[0]?.text || "";
     return data.choices?.[0]?.message?.content || "";
   };
 
