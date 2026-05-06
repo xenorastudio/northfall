@@ -567,28 +567,33 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             {favoriteGameIds.length > 0 ? (
               <div>
                 <p className="text-xs text-nf-muted mb-3 font-bold flex items-center gap-1.5"><Gamepad2 size={12} className="text-nf-accent" /> ألعابي المفضلة</p>
-                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {GAMES.filter(g => favoriteGameIds.includes(g.id)).map(g => (
                     <div key={g.id} className="group relative">
-                      <div className="relative overflow-hidden rounded-lg ring-1 ring-nf-border group-hover:ring-nf-accent/40 transition-all">
-                        <img src={g.cover} alt={g.name} className="w-full aspect-[3/4] object-cover" />
-                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-1">
-                          <div className="flex items-center gap-0.5">
-                            <Star size={7} className="text-amber-400" fill="currentColor" />
-                            <span className="text-[8px] text-white font-bold">{g.rating}</span>
+                      <div className="relative overflow-hidden rounded-2xl ring-1 ring-nf-border/50 group-hover:ring-nf-accent/40 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-nf-accent/10 group-hover:scale-[1.03]">
+                        <img src={g.cover} alt={g.name} draggable={false} onContextMenu={e => e.preventDefault()} className="w-full aspect-[3/4] object-cover transition-transform duration-500 group-hover:scale-110 select-none pointer-events-none" />
+                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 pt-8">
+                          <p className="text-[10px] text-white font-bold truncate">{g.name}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Star size={8} className="text-amber-400" fill="currentColor" />
+                            <span className="text-[8px] text-amber-400 font-bold">{g.rating}</span>
+                            <span className="text-[7px] text-white/40">·</span>
+                            <span className="text-[7px] text-white/50">{g.releaseYear}</span>
                           </div>
                         </div>
+                        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-500/90 flex items-center justify-center shadow-sm shadow-red-500/30">
+                          <Heart size={9} className="text-white" fill="white" />
+                        </div>
                       </div>
-                      <p className="text-[9px] text-nf-muted mt-0.5 truncate text-center">{g.name}</p>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <Gamepad2 size={24} className="text-nf-dim/30 mx-auto mb-2" />
+              <div className="text-center py-12">
+                <Gamepad2 size={28} className="text-nf-dim/20 mx-auto mb-2" />
                 <p className="text-xs text-nf-dim mb-1">لا توجد ألعاب مفضلة بعد</p>
-                <p className="text-[10px] text-nf-dim/60">اختر حتى 7 ألعاب من مكتبة الألعاب</p>
+                <p className="text-[10px] text-nf-dim/50">اختر حتى 7 ألعاب من مكتبة الألعاب</p>
               </div>
             )}
           </div>
