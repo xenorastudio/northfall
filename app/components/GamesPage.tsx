@@ -1,13 +1,13 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { ArrowLeft, Star, Gamepad2, Heart, X, Search, ChevronLeft, Users, Calendar, Tag } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Filter, Grid3X3, LayoutList } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface Game {
+export interface Game {
   id: string;
   name: string;
   cover: string;
@@ -21,7 +21,7 @@ interface Game {
   players: string;
 }
 
-const GAMES: Game[] = [
+export const GAMES: Game[] = [
   { id: "among-us", name: "Among Us", cover: "/assets/GameCovor/Among Us.png", publisher: "InnerSloth", developer: "InnerSloth", genre: ["اجتماعي", "بقاء"], rating: 4.2, releaseYear: 2018, description: "لعبة اجتماعية حيث يحاول أفراد الطاقم إكمال المهام بينما يتسلل المنتحلون للقضاء عليهم. العب مع أصدقائك واكشف المنتحل!", platforms: ["PC", "Mobile", "Switch"], players: "4-15" },
   { id: "apex-legends", name: "Apex Legends", cover: "/assets/GameCovor/Apex Legends .png", publisher: "EA", developer: "Respawn Entertainment", genre: ["Battle Royale", "شوتر"], rating: 4.5, releaseYear: 2019, description: "لعبة Battle Royale مجانية مع شخصيات فريدة لكل واحدة قدرات خاصة. قاتل في فرق من 3 وكن آخر من يبقى!", platforms: ["PC", "PS", "Xbox", "Switch"], players: "60" },
   { id: "ac-mirage", name: "Assassin's Creed Mirage", cover: "/assets/GameCovor/Assassin's Creed Mirage.png", publisher: "Ubisoft", developer: "Ubisoft Bordeaux", genre: ["أكشن-مغامرة", "تسلل"], rating: 4.0, releaseYear: 2023, description: "عودة لأصول السلسلة مع بصرام في بغداد القديمة. تسلل، اغتال، واستكشف المدينة الأسطورية.", platforms: ["PC", "PS5", "Xbox Series"], players: "1" },
@@ -56,15 +56,127 @@ const GAMES: Game[] = [
   { id: "warzone", name: "Call of Duty: Warzone", cover: "/assets/GameCovor/Warzone.png", publisher: "Activision", developer: "Raven Software", genre: ["Battle Royale", "شوتر"], rating: 4.1, releaseYear: 2020, description: "Battle Royale من Call of Duty مع 150 لاعب! أسلحة حقيقية، خرائط ضخمة، وأوضاع لعب متعددة.", platforms: ["PC", "PS", "Xbox"], players: "150" },
 ];
 
+function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; onFav: () => void; layout: "grid" | "list" }) {
+  const [hovered, setHovered] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    timeoutRef.current = setTimeout(() => setHovered(true), 250);
+  };
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setHovered(false);
+  };
+
+  if (layout === "list") {
+    return (
+      <motion.div layout onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="group relative flex items-center gap-3 p-2 rounded-lg bg-nf-secondary/30 hover:bg-nf-secondary/60 transition-colors cursor-pointer">
+        <img src={game.cover} alt={game.name} className="w-10 h-14 rounded-md object-cover shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[12px] font-bold text-white truncate">{game.name}</p>
+          <p className="text-[10px] text-nf-dim">{game.publisher} · {game.releaseYear}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Star size={9} className="text-amber-400" fill="currentColor" />
+            <span className="text-[9px] text-amber-400 font-bold">{game.rating}</span>
+            {game.genre.slice(0, 2).map(g => (
+              <span key={g} className="text-[8px] px-1 py-0.5 rounded bg-nf-accent/10 text-nf-accent">{g}</span>
+            ))}
+          </div>
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-1.5 rounded-lg transition-colors", isFav ? "text-red-400 hover:bg-red-400/10" : "text-nf-dim hover:text-red-400 hover:bg-red-400/5")}>
+          <Heart size={14} fill={isFav ? "currentColor" : "none"} />
+        </button>
+        <AnimatePresence>
+          {hovered && (
+            <motion.div initial={{ opacity: 0, y: -8, scaleY: 0.8 }} animate={{ opacity: 1, y: 0, scaleY: 1 }} exit={{ opacity: 0, y: -8, scaleY: 0.8 }} transition={{ duration: 0.15, ease: "easeOut" }} className="absolute top-full right-0 left-0 z-40 mt-1 origin-top">
+              <div className="bg-nf-primary border border-nf-border rounded-lg p-3 shadow-xl shadow-black/40">
+                <p className="text-[11px] text-nf-muted leading-relaxed mb-2">{game.description}</p>
+                <div className="flex flex-wrap gap-1 mb-1.5">
+                  {game.platforms.map(p => (
+                    <span key={p} className="text-[8px] px-1.5 py-0.5 rounded bg-nf-secondary text-nf-dim font-semibold">{p}</span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 text-[9px] text-nf-dim">
+                  <span className="flex items-center gap-0.5"><Users size={8} /> {game.players}</span>
+                  <span className="flex items-center gap-0.5"><Calendar size={8} /> {game.releaseYear}</span>
+                  <span className="flex items-center gap-0.5"><Tag size={8} /> {game.developer}</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div layout onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="group relative text-right">
+      <div className="relative overflow-hidden rounded-xl ring-1 ring-nf-border group-hover:ring-nf-accent/40 transition-all duration-200 group-hover:shadow-lg group-hover:shadow-nf-accent/5">
+        <img src={game.cover} alt={game.name} className="w-full aspect-[3/4] object-cover transition-transform duration-300 group-hover:scale-105" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+        <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+          <div className="flex items-center gap-0.5">
+            <Star size={8} className="text-amber-400" fill="currentColor" />
+            <span className="text-[9px] text-white font-bold">{game.rating}</span>
+          </div>
+        </div>
+        {isFav && (
+          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-500/90 flex items-center justify-center shadow-sm">
+            <Heart size={10} className="text-white" fill="white" />
+          </div>
+        )}
+        <div className="absolute inset-0 flex flex-col justify-end p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <p className="text-[10px] text-white/80 leading-snug line-clamp-3 mb-1.5">{game.description}</p>
+          <div className="flex flex-wrap gap-0.5 mb-1">
+            {game.genre.map(g => (
+              <span key={g} className="text-[7px] px-1 py-0.5 rounded bg-nf-accent/20 text-nf-accent font-semibold">{g}</span>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 text-[8px] text-white/60">
+            <span>{game.releaseYear}</span>
+            <span>·</span>
+            <span>{game.players}</span>
+            <span>·</span>
+            <span>{game.platforms.slice(0, 2).join(", ")}</span>
+          </div>
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("absolute top-1.5 left-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200", isFav ? "bg-red-500/90 text-white" : "bg-black/40 text-white/60 hover:bg-red-500/80 hover:text-white opacity-0 group-hover:opacity-100")}>
+          <Heart size={11} fill={isFav ? "white" : "none"} />
+        </button>
+      </div>
+      <p className="text-[10px] text-nf-muted mt-1 truncate font-medium">{game.name}</p>
+      <AnimatePresence>
+        {hovered && (
+          <motion.div initial={{ opacity: 0, y: -6, scaleY: 0.9 }} animate={{ opacity: 1, y: 0, scaleY: 1 }} exit={{ opacity: 0, y: -6, scaleY: 0.9 }} transition={{ duration: 0.12, ease: "easeOut" }} className="absolute top-full right-0 left-0 z-40 mt-1 origin-top">
+            <div className="bg-nf-primary border border-nf-border rounded-lg p-2.5 shadow-xl shadow-black/50">
+              <p className="text-[10px] text-nf-muted leading-snug mb-1.5">{game.description}</p>
+              <div className="flex flex-wrap gap-0.5 mb-1">
+                {game.platforms.map(p => (
+                  <span key={p} className="text-[7px] px-1 py-0.5 rounded bg-nf-secondary text-nf-dim font-semibold">{p}</span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 text-[8px] text-nf-dim">
+                <span className="flex items-center gap-0.5"><Users size={7} /> {game.players}</span>
+                <span className="flex items-center gap-0.5"><Calendar size={7} /> {game.releaseYear}</span>
+                <span className="flex items-center gap-0.5"><Tag size={7} /> {game.developer}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 export default function GamesPage({ onBack }: { onBack: () => void }) {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [showFavModal, setShowFavModal] = useState(false);
   const [genreFilter, setGenreFilter] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"name" | "rating" | "year">("name");
+  const [layout, setLayout] = useState<"grid" | "list">("grid");
 
-  // Load favorites from Firestore
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid, "games", "favorites")).then(s => {
@@ -72,15 +184,10 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
     }).catch(() => {});
   }, [user]);
 
-  // Save favorites to Firestore
   const saveFavorites = async (ids: string[]) => {
     if (!user) return;
     setFavoriteIds(ids);
-    try {
-      await setDoc(doc(db, "users", user.uid, "games", "favorites"), { ids });
-    } catch (e) {
-      console.error("[GamesPage] Save favorites error:", e);
-    }
+    try { await setDoc(doc(db, "users", user.uid, "games", "favorites"), { ids }); } catch (e) { console.error("[GamesPage] Save error:", e); }
   };
 
   const toggleFavorite = (gameId: string) => {
@@ -88,30 +195,30 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
     if (favoriteIds.includes(gameId)) {
       saveFavorites(favoriteIds.filter(id => id !== gameId));
     } else {
-      if (favoriteIds.length >= 7) {
-        setShowFavModal(true);
-        return;
-      }
+      if (favoriteIds.length >= 7) { setShowFavModal(true); return; }
       saveFavorites([...favoriteIds, gameId]);
     }
   };
 
-  // All unique genres
   const allGenres = [...new Set(GAMES.flatMap(g => g.genre))].sort();
-
-  // Filtered games
   const filtered = GAMES.filter(g => {
-    const matchSearch = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()) || g.publisher.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchSearch = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()) || g.publisher.toLowerCase().includes(searchQuery.toLowerCase()) || g.genre.some(gen => gen.includes(searchQuery));
     const matchGenre = !genreFilter || g.genre.includes(genreFilter);
     return matchSearch && matchGenre;
+  }).sort((a, b) => {
+    if (sortBy === "rating") return b.rating - a.rating;
+    if (sortBy === "year") return b.releaseYear - a.releaseYear;
+    return a.name.localeCompare(b.name);
   });
 
   const favoriteGames = GAMES.filter(g => favoriteIds.includes(g.id));
+  const topRated = [...GAMES].sort((a, b) => b.rating - a.rating).slice(0, 3);
+  const newest = [...GAMES].sort((a, b) => b.releaseYear - a.releaseYear).slice(0, 3);
 
   return (
     <div className="w-full" style={{ direction: "rtl" }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <button onClick={onBack} className="p-1.5 rounded-lg text-nf-dim hover:text-white hover:bg-white/5 transition-colors">
             <ArrowLeft size={16} />
@@ -120,199 +227,134 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
             <Gamepad2 size={18} className="text-nf-accent" />
             مكتبة الألعاب
           </h1>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-nf-secondary text-nf-dim">{GAMES.length} لعبة</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {favoriteIds.length > 0 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold">
-              {favoriteIds.length}/7 مفضلة
-            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 font-bold">{favoriteIds.length}/7 ❤️</span>
           )}
+          <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className="p-1.5 rounded-lg text-nf-dim hover:text-white hover:bg-white/5 transition-colors">
+            {layout === "grid" ? <LayoutList size={14} /> : <Grid3X3 size={14} />}
+          </button>
         </div>
       </div>
 
       {/* My Favorites */}
       {favoriteGames.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-4 p-3 rounded-xl bg-nf-secondary/30 border border-nf-border/50">
           <div className="text-[11px] font-bold text-nf-dim mb-2 flex items-center gap-1.5">
             <Heart size={11} className="text-red-400" /> ألعابي المفضلة
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {favoriteGames.map(g => (
-              <button key={g.id} onClick={() => setSelectedGame(g)} className="shrink-0 group relative">
-                <img src={g.cover} alt={g.name} className="w-16 h-20 rounded-lg object-cover ring-1 ring-nf-border group-hover:ring-nf-accent transition-all" />
-                <button onClick={(e) => { e.stopPropagation(); toggleFavorite(g.id); }} className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <X size={8} />
+              <div key={g.id} className="shrink-0 group relative">
+                <img src={g.cover} alt={g.name} className="w-14 h-[70px] rounded-lg object-cover ring-1 ring-nf-border group-hover:ring-red-400/50 transition-all" />
+                <button onClick={() => toggleFavorite(g.id)} className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                  <X size={7} />
                 </button>
-                <p className="text-[9px] text-nf-muted mt-0.5 w-16 truncate text-center">{g.name}</p>
-              </button>
+                <p className="text-[8px] text-nf-muted mt-0.5 w-14 truncate text-center">{g.name}</p>
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Search + Genre Filter */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="relative flex-1">
-          <Search size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nf-dim" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="ابحث عن لعبة..."
-            className="w-full bg-nf-secondary/60 rounded-lg pr-8 pl-3 py-1.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-1 focus:ring-nf-accent/50 transition-all"
-          />
+      {/* Top Rated & Newest */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="p-2.5 rounded-xl bg-nf-secondary/20 border border-nf-border/30">
+          <div className="text-[10px] font-bold text-amber-400 mb-1.5 flex items-center gap-1"><Trophy size={10} /> الأعلى تقييماً</div>
+          <div className="space-y-1">
+            {topRated.map((g, i) => (
+              <div key={g.id} className="flex items-center gap-1.5">
+                <span className="text-[9px] text-nf-dim w-3">{i + 1}</span>
+                <img src={g.cover} alt="" className="w-5 h-7 rounded object-cover" />
+                <span className="text-[9px] text-nf-muted truncate flex-1">{g.name}</span>
+                <span className="text-[9px] text-amber-400 font-bold">{g.rating}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="p-2.5 rounded-xl bg-nf-secondary/20 border border-nf-border/30">
+          <div className="text-[10px] font-bold text-green-400 mb-1.5 flex items-center gap-1"><Clock size={10} /> الأحدث</div>
+          <div className="space-y-1">
+            {newest.map((g, i) => (
+              <div key={g.id} className="flex items-center gap-1.5">
+                <span className="text-[9px] text-nf-dim w-3">{i + 1}</span>
+                <img src={g.cover} alt="" className="w-5 h-7 rounded object-cover" />
+                <span className="text-[9px] text-nf-muted truncate flex-1">{g.name}</span>
+                <span className="text-[9px] text-green-400 font-bold">{g.releaseYear}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-      <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
-        <button onClick={() => setGenreFilter(null)} className={cn("shrink-0 px-2 py-0.5 rounded text-[10px] font-semibold transition-colors", !genreFilter ? "bg-nf-accent text-white" : "bg-nf-secondary/50 text-nf-dim hover:text-nf-muted")}>الكل</button>
-        {allGenres.map(g => (
-          <button key={g} onClick={() => setGenreFilter(genreFilter === g ? null : g)} className={cn("shrink-0 px-2 py-0.5 rounded text-[10px] font-semibold transition-colors", genreFilter === g ? "bg-nf-accent text-white" : "bg-nf-secondary/50 text-nf-dim hover:text-nf-muted")}>{g}</button>
-        ))}
+
+      {/* Search */}
+      <div className="relative mb-2">
+        <Search size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nf-dim" />
+        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، أو نوع..." className="w-full bg-nf-secondary/40 rounded-lg pr-8 pl-3 py-1.5 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-1 focus:ring-nf-accent/40 transition-all" />
       </div>
 
-      {/* Games Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-        {filtered.map(g => (
-          <motion.button
-            key={g.id}
-            layout
-            onClick={() => setSelectedGame(g)}
-            className="group relative text-right"
-          >
-            <div className="relative overflow-hidden rounded-lg ring-1 ring-nf-border group-hover:ring-nf-accent/50 transition-all">
-              <img src={g.cover} alt={g.name} className="w-full aspect-[3/4] object-cover" />
-              {/* Favorite indicator */}
-              {favoriteIds.includes(g.id) && (
-                <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500/90 flex items-center justify-center">
-                  <Heart size={8} className="text-white" fill="white" />
-                </div>
-              )}
-              {/* Rating overlay */}
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-4">
-                <div className="flex items-center gap-0.5">
-                  <Star size={8} className="text-amber-400" fill="currentColor" />
-                  <span className="text-[9px] text-white font-bold">{g.rating}</span>
-                </div>
-              </div>
+      {/* Genre filters */}
+      <div className="flex items-center gap-1 mb-2">
+        <button onClick={() => setGenreFilter(null)} className={cn("shrink-0 px-2 py-0.5 rounded text-[9px] font-semibold transition-colors", !genreFilter ? "bg-nf-accent text-white" : "bg-nf-secondary/40 text-nf-dim hover:text-nf-muted")}>الكل</button>
+        {allGenres.slice(0, 8).map(g => (
+          <button key={g} onClick={() => setGenreFilter(genreFilter === g ? null : g)} className={cn("shrink-0 px-2 py-0.5 rounded text-[9px] font-semibold transition-colors", genreFilter === g ? "bg-nf-accent text-white" : "bg-nf-secondary/40 text-nf-dim hover:text-nf-muted")}>{g}</button>
+        ))}
+        {allGenres.length > 8 && (
+          <div className="relative group">
+            <button className="shrink-0 px-2 py-0.5 rounded text-[9px] font-semibold bg-nf-secondary/40 text-nf-dim hover:text-nf-muted transition-colors flex items-center gap-0.5"><Filter size={8} /> المزيد</button>
+            <div className="absolute top-full right-0 mt-1 bg-nf-primary border border-nf-border rounded-lg p-2 shadow-xl z-30 hidden group-hover:grid grid-cols-2 gap-1 min-w-[200px]">
+              {allGenres.slice(8).map(g => (
+                <button key={g} onClick={() => setGenreFilter(genreFilter === g ? null : g)} className={cn("px-2 py-0.5 rounded text-[9px] font-semibold text-right transition-colors", genreFilter === g ? "bg-nf-accent text-white" : "text-nf-dim hover:text-nf-muted hover:bg-nf-secondary/40")}>{g}</button>
+              ))}
             </div>
-            <p className="text-[10px] text-nf-muted mt-0.5 truncate">{g.name}</p>
-          </motion.button>
-        ))}
+          </div>
+        )}
       </div>
 
-      {filtered.length === 0 && (
-        <div className="text-center py-12 text-nf-dim text-xs">لا توجد نتائج</div>
+      {/* Sort */}
+      <div className="flex items-center gap-1 mb-3">
+        <span className="text-[9px] text-nf-dim ml-1">ترتيب:</span>
+        {[
+          { id: "name" as const, label: "الاسم", icon: null },
+          { id: "rating" as const, label: "التقييم", icon: <Trophy size={9} /> },
+          { id: "year" as const, label: "الأحدث", icon: <Clock size={9} /> },
+        ].map(s => (
+          <button key={s.id} onClick={() => setSortBy(s.id)} className={cn("flex items-center gap-0.5 px-2 py-0.5 rounded text-[9px] font-semibold transition-colors", sortBy === s.id ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:text-nf-muted")}>
+            {s.icon}{s.label}
+          </button>
+        ))}
+        <span className="text-[9px] text-nf-dim mr-auto">{filtered.length} نتيجة</span>
+      </div>
+
+      {/* Games */}
+      {layout === "grid" ? (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+          {filtered.map(g => (
+            <GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {filtered.map(g => (
+            <GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="list" />
+          ))}
+        </div>
       )}
 
-      {/* Game Detail Modal */}
-      <AnimatePresence>
-        {selectedGame && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-            onClick={() => setSelectedGame(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="bg-nf-primary border border-nf-border rounded-xl max-w-lg w-full overflow-hidden"
-              onClick={e => e.stopPropagation()}
-            >
-              {/* Cover */}
-              <div className="relative h-48 overflow-hidden">
-                <img src={selectedGame.cover} alt={selectedGame.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-nf-primary via-transparent to-transparent" />
-                <button onClick={() => setSelectedGame(null)} className="absolute top-3 right-3 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-                  <X size={14} />
-                </button>
-                {/* Rating badge */}
-                <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm">
-                  <Star size={11} className="text-amber-400" fill="currentColor" />
-                  <span className="text-[11px] text-white font-bold">{selectedGame.rating}</span>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-4 -mt-8 relative">
-                <h2 className="text-lg font-bold text-white mb-1">{selectedGame.name}</h2>
-                <p className="text-[11px] text-nf-dim mb-3">{selectedGame.publisher} · {selectedGame.developer}</p>
-
-                {/* Info grid */}
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className="bg-nf-secondary/50 rounded-lg p-2 text-center">
-                    <Calendar size={12} className="text-nf-accent mx-auto mb-0.5" />
-                    <p className="text-[10px] text-nf-dim">الإصدار</p>
-                    <p className="text-[11px] text-white font-bold">{selectedGame.releaseYear}</p>
-                  </div>
-                  <div className="bg-nf-secondary/50 rounded-lg p-2 text-center">
-                    <Users size={12} className="text-nf-accent mx-auto mb-0.5" />
-                    <p className="text-[10px] text-nf-dim">اللاعبين</p>
-                    <p className="text-[11px] text-white font-bold">{selectedGame.players}</p>
-                  </div>
-                  <div className="bg-nf-secondary/50 rounded-lg p-2 text-center">
-                    <Tag size={12} className="text-nf-accent mx-auto mb-0.5" />
-                    <p className="text-[10px] text-nf-dim">النوع</p>
-                    <p className="text-[11px] text-white font-bold">{selectedGame.genre[0]}</p>
-                  </div>
-                </div>
-
-                {/* Genres */}
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {selectedGame.genre.map(g => (
-                    <span key={g} className="px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent text-[10px] font-semibold">{g}</span>
-                  ))}
-                </div>
-
-                {/* Platforms */}
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {selectedGame.platforms.map(p => (
-                    <span key={p} className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-nf-muted text-[9px] font-semibold">{p}</span>
-                  ))}
-                </div>
-
-                {/* Description */}
-                <p className="text-[12px] text-nf-muted leading-relaxed mb-4">{selectedGame.description}</p>
-
-                {/* Favorite button */}
-                <button
-                  onClick={() => toggleFavorite(selectedGame.id)}
-                  className={cn(
-                    "w-full py-2 rounded-lg text-[12px] font-bold transition-colors flex items-center justify-center gap-1.5",
-                    favoriteIds.includes(selectedGame.id)
-                      ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                      : "bg-nf-accent/10 text-nf-accent hover:bg-nf-accent/20"
-                  )}
-                >
-                  <Heart size={14} fill={favoriteIds.includes(selectedGame.id) ? "currentColor" : "none"} />
-                  {favoriteIds.includes(selectedGame.id) ? "إزالة من المفضلة" : "إضافة للمفضلة"}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {filtered.length === 0 && (
+        <div className="text-center py-12">
+          <Gamepad2 size={24} className="text-nf-dim/30 mx-auto mb-2" />
+          <p className="text-xs text-nf-dim">لا توجد نتائج</p>
+        </div>
+      )}
 
       {/* Max favorites modal */}
       <AnimatePresence>
         {showFavModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-            onClick={() => setShowFavModal(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-nf-primary border border-nf-border rounded-xl p-5 max-w-xs w-full text-center"
-              onClick={e => e.stopPropagation()}
-            >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowFavModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-nf-primary border border-nf-border rounded-xl p-5 max-w-xs w-full text-center" onClick={e => e.stopPropagation()}>
               <Heart size={28} className="text-red-400 mx-auto mb-2" />
               <h3 className="text-sm font-bold text-white mb-1">وصلت للحد الأقصى</h3>
               <p className="text-[11px] text-nf-muted mb-3">يمكنك اختيار 7 ألعاب فقط. أزل واحدة أولاً ثم أضف الجديدة.</p>

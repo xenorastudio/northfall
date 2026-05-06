@@ -1,19 +1,21 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield } from "lucide-react";
+import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield, Gamepad2 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import PostCard from "./PostCard";
+import { GAMES } from "./GamesPage";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { icon: FileText, labelKey: "pp.posts", id: "posts" },
   { icon: MessageSquare, labelKey: "pp.comments", id: "comments" },
   { icon: Bookmark, labelKey: "pp.saved", id: "saved" },
+  { icon: Gamepad2, labelKey: "ألعابي", id: "games" },
   { icon: Award, labelKey: "pp.awards", id: "awards" },
 ];
 
@@ -48,6 +50,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [savedPosts, setSavedPosts] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [commentCount, setCommentCount] = useState(0);
+  const [favoriteGameIds, setFavoriteGameIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [karma, setKarma] = useState(0);
 
@@ -215,6 +218,14 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       }
     }
     fetchCommentCount();
+  }, [targetUid]);
+
+  // Fetch favorite games
+  useEffect(() => {
+    if (!targetUid) return;
+    getDoc(doc(db, "users", targetUid!, "games", "favorites")).then(s => {
+      if (s.exists()) setFavoriteGameIds(s.data().ids || []);
+    }).catch(() => {});
   }, [targetUid]);
 
   // Fetch saved posts (parallel with Promise.all)
@@ -386,6 +397,9 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followerCount}</span> {t("gen.followers")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followingCount}</span> {t("gen.followingCount")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{commentCount}</span> تعليقات</span>
+        {favoriteGameIds.length > 0 && (
+          <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><Gamepad2 size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-white">{favoriteGameIds.length}</span> ألعاب</span>
+        )}
         <span className={cn("px-2 py-0.5 rounded-md flex items-center gap-1", isOnline ? "bg-green-400/10 text-green-400" : "bg-nf-secondary/40 text-nf-dim")}>
           <span className={cn("w-1.5 h-1.5 rounded-full inline-block", isOnline ? "bg-green-400" : "bg-nf-dim")} />
           {isOnline ? "متصل" : "غير متصل"}
@@ -545,6 +559,38 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === "games" && (
+          <div className="py-4">
+            {favoriteGameIds.length > 0 ? (
+              <div>
+                <p className="text-xs text-nf-muted mb-3 font-bold flex items-center gap-1.5"><Gamepad2 size={12} className="text-nf-accent" /> ألعابي المفضلة</p>
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
+                  {GAMES.filter(g => favoriteGameIds.includes(g.id)).map(g => (
+                    <div key={g.id} className="group relative">
+                      <div className="relative overflow-hidden rounded-lg ring-1 ring-nf-border group-hover:ring-nf-accent/40 transition-all">
+                        <img src={g.cover} alt={g.name} className="w-full aspect-[3/4] object-cover" />
+                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-1">
+                          <div className="flex items-center gap-0.5">
+                            <Star size={7} className="text-amber-400" fill="currentColor" />
+                            <span className="text-[8px] text-white font-bold">{g.rating}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[9px] text-nf-muted mt-0.5 truncate text-center">{g.name}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Gamepad2 size={24} className="text-nf-dim/30 mx-auto mb-2" />
+                <p className="text-xs text-nf-dim mb-1">لا توجد ألعاب مفضلة بعد</p>
+                <p className="text-[10px] text-nf-dim/60">اختر حتى 7 ألعاب من مكتبة الألعاب</p>
+              </div>
+            )}
           </div>
         )}
       </div>
