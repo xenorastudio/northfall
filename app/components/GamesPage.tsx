@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList, ExternalLink, Filter, Monitor } from "lucide-react";
+import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList, ExternalLink, Filter, Monitor, ChevronDown, Sparkles, TrendingUp, Flame, Crown, Zap } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
@@ -217,7 +217,7 @@ function extractDominantColor(src: string): Promise<string> {
 
 const imgProtect = { draggable: false, onContextMenu: (e: React.MouseEvent) => e.preventDefault() } as const;
 
-function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; onFav: () => void; layout: "grid" | "list" }) {
+function GameCard({ game, isFav, onFav, layout, onAiExplain, aiExplainGame, aiExplainText, aiExplainLoading }: { game: Game; isFav: boolean; onFav: () => void; layout: "grid" | "list"; onAiExplain: (g: Game) => void; aiExplainGame: string | null; aiExplainText: string; aiExplainLoading: boolean }) {
   const [hovered, setHovered] = useState(false);
   const [dominantColor, setDominantColor] = useState("rgb(30,30,40)");
   const tRef = useRef<NodeJS.Timeout | null>(null);
@@ -275,6 +275,16 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
             <ExternalLink size={8} /> صفحة Steam
           </a>
         )}
+        {/* AI Explain */}
+        <div className="mt-2.5 pt-2.5 border-t border-white/[0.06]">
+          <button onClick={(e) => { e.stopPropagation(); onAiExplain(game); }} className="flex items-center gap-1.5 text-[9px] text-nf-accent/70 hover:text-nf-accent transition-colors font-semibold" disabled={aiExplainLoading}>
+            <Sparkles size={9} className={aiExplainLoading && aiExplainGame === game.id ? "animate-spin" : ""} />
+            {aiExplainLoading && aiExplainGame === game.id ? "جاري الشرح..." : "شرح بالذكاء الاصطناعي"}
+          </button>
+          {aiExplainGame === game.id && aiExplainText && (
+            <p className="text-[10px] text-white/50 leading-relaxed mt-1.5">{aiExplainText}</p>
+          )}
+        </div>
       </div>
     </motion.div>
   );
@@ -300,6 +310,9 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
         </div>
         <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-2 rounded-xl transition-all", isFav ? "text-red-400 bg-red-400/10 hover:bg-red-400/20" : "text-nf-dim hover:text-red-400 hover:bg-red-400/5")}>
           <Heart size={16} fill={isFav ? "currentColor" : "none"} />
+        </button>
+        <button onClick={(e) => { e.stopPropagation(); onAiExplain(game); }} className={cn("shrink-0 p-2 rounded-xl transition-all", aiExplainLoading && aiExplainGame === game.id ? "text-nf-accent animate-pulse" : "text-nf-dim hover:text-nf-accent hover:bg-nf-accent/5")} title="شرح بالذكاء الاصطناعي">
+          <Sparkles size={14} />
         </button>
         <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
       </div>
@@ -354,13 +367,42 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   const [showFavOnly, setShowFavOnly] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "rating" | "year" | "oldest">("name");
   const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const [activeTab, setActiveTab] = useState<"all" | "followed" | "trending" | "new" | "best" | "hot">("all");
+  // Dropdown states
+  const [showGenreDrop, setShowGenreDrop] = useState(false);
+  const [showPlatformDrop, setShowPlatformDrop] = useState(false);
+  const [showSortDrop, setShowSortDrop] = useState(false);
+  // AI explain
+  const [aiExplainGame, setAiExplainGame] = useState<string | null>(null);
+  const [aiExplainText, setAiExplainText] = useState("");
+  const [aiExplainLoading, setAiExplainLoading] = useState(false);
+  const [aiApiKey, setAiApiKey] = useState("");
+  const genreDropRef = useRef<HTMLDivElement>(null);
+  const platformDropRef = useRef<HTMLDivElement>(null);
+  const sortDropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid, "games", "favorites")).then(s => {
       if (s.exists()) setFavoriteIds(s.data().ids || []);
     }).catch(() => {});
+    // Load AI key
+    const storedKey = localStorage.getItem("nf-ai-key");
+    const storedProvider = localStorage.getItem("nf-ai-provider");
+    const storedModel = localStorage.getItem("nf-ai-model");
+    if (storedKey) setAiApiKey(storedKey);
   }, [user]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (genreDropRef.current && !genreDropRef.current.contains(e.target as Node)) setShowGenreDrop(false);
+      if (platformDropRef.current && !platformDropRef.current.contains(e.target as Node)) setShowPlatformDrop(false);
+      if (sortDropRef.current && !sortDropRef.current.contains(e.target as Node)) setShowSortDrop(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const saveFavorites = async (ids: string[]) => {
     if (!user) return;
@@ -374,23 +416,83 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
     else { if (favoriteIds.length >= 20) { setShowFavModal(true); return; } saveFavorites([...favoriteIds, gameId]); }
   };
 
-  const allGenres = [...new Set(GAMES.flatMap(g => g.genre))].sort();
+  const allGenres = [...new Set(GAMES.flatMap(g => g.genre))].sort((a, b) => a.localeCompare(b, "ar"));
   const allPlatforms = [...new Set(GAMES.flatMap(g => g.platforms))].sort();
+
+  // AI explain game
+  const handleAiExplain = async (game: Game) => {
+    const key = aiApiKey || localStorage.getItem("nf-ai-key") || "";
+    if (!key) { setAiExplainGame(game.id); setAiExplainText("أضف مفتاح API من إعدادات الذكاء الاصطناعي أولاً"); return; }
+    setAiExplainGame(game.id);
+    setAiExplainLoading(true);
+    setAiExplainText("");
+    try {
+      const provider = localStorage.getItem("nf-ai-provider") || "deepseek";
+      const model = localStorage.getItem("nf-ai-model") || "deepseek-chat";
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider, model, apiKey: key,
+          messages: [{ role: "user", content: `اشرح لي لعبة "${game.name}" بشكل مبسط ومختصر (3-4 أسطر فقط). النوع: ${game.genre.join("، ")}. سنة الإصدار: ${game.releaseYear}. التقييم: ${game.rating}/5. المطور: ${game.developer}. اكتب الشرح بالعربية بشكل مبسط وواضح لشخص مش فاهم اللعبة.` }],
+          systemPrompt: "أنت مساعد يشرح الألعاب ببساطة ووضوح بالعربية. اكتب 3-4 أسطر فقط بدون عناوين أو تنسيق خاص.",
+          maxTokens: 300,
+        }),
+      });
+      const data = await res.json();
+      let text = "";
+      if (provider === "gemini") text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      else if (provider === "claude") text = data.content?.[0]?.text || "";
+      else text = data.choices?.[0]?.message?.content || "";
+      setAiExplainText(text || "لم أستطع توليد شرح");
+    } catch (err: any) {
+      setAiExplainText(`خطأ: ${(err?.message || "").slice(0, 60)}`);
+    } finally {
+      setAiExplainLoading(false);
+    }
+  };
+
   const filtered = GAMES.filter(g => {
     const ms = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()) || g.publisher.toLowerCase().includes(searchQuery.toLowerCase()) || g.developer.toLowerCase().includes(searchQuery.toLowerCase()) || g.genre.some(gen => gen.includes(searchQuery));
     const mg = !genreFilter || g.genre.includes(genreFilter);
     const mp = !platformFilter || g.platforms.includes(platformFilter);
     const mf = !showFavOnly || favoriteIds.includes(g.id);
-    return ms && mg && mp && mf;
+    // Tab filters
+    const mt = activeTab === "all" ? true
+      : activeTab === "followed" ? favoriteIds.includes(g.id)
+      : activeTab === "trending" ? g.rating >= 4.5
+      : activeTab === "new" ? g.releaseYear >= 2022
+      : activeTab === "best" ? g.rating >= 4.7
+      : activeTab === "hot" ? g.rating >= 4.3 && g.releaseYear >= 2020
+      : true;
+    return ms && mg && mp && mf && mt;
   }).sort((a, b) => {
     if (sortBy === "rating") return b.rating - a.rating;
     if (sortBy === "year") return b.releaseYear - a.releaseYear;
     if (sortBy === "oldest") return a.releaseYear - b.releaseYear;
-    return a.name.localeCompare(b.name);
+    return a.name.localeCompare(b.name, "ar");
   });
+
+  // Featured games for hero
+  const featured = GAMES.filter(g => g.rating >= 4.7).slice(0, 5);
+  const [heroIdx, setHeroIdx] = useState(0);
+  useEffect(() => {
+    if (featured.length === 0) return;
+    const t = setInterval(() => setHeroIdx(i => (i + 1) % featured.length), 5000);
+    return () => clearInterval(t);
+  }, [featured.length]);
+  const heroGame = featured[heroIdx];
+
+  const sortOptions = [
+    { id: "name" as const, label: "الاسم", icon: <Tag size={10} /> },
+    { id: "rating" as const, label: "التقييم", icon: <Trophy size={10} /> },
+    { id: "year" as const, label: "الأحدث", icon: <Clock size={10} /> },
+    { id: "oldest" as const, label: "الأقدم", icon: <Clock size={10} className="rotate-180" /> },
+  ];
 
   return (
     <div className="w-full" style={{ direction: "rtl" }}>
+      {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <button onClick={onBack} className="p-1.5 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors"><ArrowLeft size={16} /></button>
@@ -409,47 +511,135 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
+      {/* Hero Banner */}
+      {heroGame && !searchQuery && !genreFilter && !platformFilter && activeTab === "all" && (
+        <motion.div key={heroGame.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="relative h-[140px] sm:h-[200px] rounded-2xl overflow-hidden mb-4 group cursor-pointer" onClick={() => { const g = heroGame; if (g.steamUrl) window.open(g.steamUrl, "_blank"); }}>
+          <img src={heroGame.cover} alt={heroGame.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 select-none pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-l from-black/90 via-black/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute bottom-0 right-0 p-4 sm:p-6">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Flame size={12} className="text-orange-400" />
+              <span className="text-[9px] text-orange-400 font-bold uppercase tracking-wider">مميز</span>
+            </div>
+            <h2 className="text-lg sm:text-2xl font-black text-white mb-1">{heroGame.name}</h2>
+            <div className="flex items-center gap-2 text-[10px] text-white/60">
+              <span className="flex items-center gap-0.5"><Star size={9} className="text-amber-400" fill="currentColor" /> {heroGame.rating}</span>
+              <span>{heroGame.releaseYear}</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/10 text-white/70">{heroGame.genre[0]}</span>
+            </div>
+          </div>
+          {/* Hero dots */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+            {featured.map((_, i) => (
+              <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }} className={cn("w-1.5 h-1.5 rounded-full transition-all", i === heroIdx ? "bg-white w-4" : "bg-white/30 hover:bg-white/50")} />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Quick Tabs */}
+      <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
+        {[
+          { id: "all" as const, label: "الكل", icon: <Gamepad2 size={11} /> },
+          { id: "followed" as const, label: "المتابَعين", icon: <Heart size={11} /> },
+          { id: "trending" as const, label: "رائج", icon: <TrendingUp size={11} /> },
+          { id: "new" as const, label: "جديد", icon: <Zap size={11} /> },
+          { id: "best" as const, label: "الأفضل", icon: <Crown size={11} /> },
+          { id: "hot" as const, label: "شو رائج؟", icon: <Flame size={11} /> },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all", activeTab === tab.id ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/20 text-nf-dim hover:text-white border border-white/5")}>
+            {tab.icon} {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
       <div className="relative mb-3">
         <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim" />
         <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، مطور، أو نوع..." className="w-full bg-nf-secondary/20 rounded-xl pr-9 pl-4 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-2 focus:ring-nf-accent/25 transition-all border border-white/5 focus:border-nf-accent/30" />
       </div>
 
-      <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
-        <button onClick={() => setGenreFilter(null)} className={cn("shrink-0 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all", !genreFilter ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-muted border border-white/5")}>الكل</button>
-        {allGenres.map(g => (
-          <button key={g} onClick={() => setGenreFilter(genreFilter === g ? null : g)} className={cn("shrink-0 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all", genreFilter === g ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-muted border border-white/5")}>{g}</button>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
-        <Monitor size={10} className="text-nf-dim shrink-0" />
-        <button onClick={() => setPlatformFilter(null)} className={cn("shrink-0 px-2.5 py-0.5 rounded-lg text-[9px] font-semibold transition-all", !platformFilter ? "bg-nf-accent/15 text-nf-accent border border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-muted border border-white/5")}>الكل</button>
-        {allPlatforms.map(p => (
-          <button key={p} onClick={() => setPlatformFilter(platformFilter === p ? null : p)} className={cn("shrink-0 px-2.5 py-0.5 rounded-lg text-[9px] font-semibold transition-all", platformFilter === p ? "bg-nf-accent/15 text-nf-accent border border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-muted border border-white/5")}>{p}</button>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-1.5 mb-4">
-        {[
-          { id: "name" as const, label: "الاسم", icon: null },
-          { id: "rating" as const, label: "التقييم", icon: <Trophy size={10} /> },
-          { id: "year" as const, label: "الأحدث", icon: <Clock size={10} /> },
-          { id: "oldest" as const, label: "الأقدم", icon: <Clock size={10} className="rotate-180" /> },
-        ].map(s => (
-          <button key={s.id} onClick={() => setSortBy(s.id)} className={cn("flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all", sortBy === s.id ? "bg-nf-accent/15 text-nf-accent border border-nf-accent/30" : "text-nf-dim hover:text-nf-muted border border-transparent")}>
-            {s.icon}{s.label}
+      {/* Filter Row: Dropdowns */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {/* Genre Dropdown */}
+        <div ref={genreDropRef} className="relative">
+          <button onClick={() => { setShowGenreDrop(!showGenreDrop); setShowPlatformDrop(false); setShowSortDrop(false); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border", genreFilter ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-white border-white/5")}>
+            <Filter size={10} /> {genreFilter || "النوع"} <ChevronDown size={10} className={cn("transition-transform", showGenreDrop && "rotate-180")} />
           </button>
-        ))}
+          <AnimatePresence>
+            {showGenreDrop && (
+              <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.12 }} className="absolute top-full mt-1 right-0 bg-nf-primary border border-nf-border-2 rounded-xl p-1.5 shadow-xl z-50 max-h-[240px] overflow-y-auto min-w-[140px]">
+                <button onClick={() => { setGenreFilter(null); setShowGenreDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", !genreFilter ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>الكل</button>
+                {allGenres.map(g => (
+                  <button key={g} onClick={() => { setGenreFilter(genreFilter === g ? null : g); setShowGenreDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", genreFilter === g ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>{g}</button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Platform Dropdown */}
+        <div ref={platformDropRef} className="relative">
+          <button onClick={() => { setShowPlatformDrop(!showPlatformDrop); setShowGenreDrop(false); setShowSortDrop(false); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border", platformFilter ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-white border-white/5")}>
+            <Monitor size={10} /> {platformFilter || "المنصة"} <ChevronDown size={10} className={cn("transition-transform", showPlatformDrop && "rotate-180")} />
+          </button>
+          <AnimatePresence>
+            {showPlatformDrop && (
+              <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.12 }} className="absolute top-full mt-1 right-0 bg-nf-primary border border-nf-border-2 rounded-xl p-1.5 shadow-xl z-50 min-w-[120px]">
+                <button onClick={() => { setPlatformFilter(null); setShowPlatformDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", !platformFilter ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>الكل</button>
+                {allPlatforms.map(p => (
+                  <button key={p} onClick={() => { setPlatformFilter(platformFilter === p ? null : p); setShowPlatformDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", platformFilter === p ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>{p}</button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Sort Dropdown */}
+        <div ref={sortDropRef} className="relative">
+          <button onClick={() => { setShowSortDrop(!showSortDrop); setShowGenreDrop(false); setShowPlatformDrop(false); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border bg-nf-secondary/20 text-nf-dim hover:text-white border-white/5">
+            {sortOptions.find(s => s.id === sortBy)?.icon} {sortOptions.find(s => s.id === sortBy)?.label} <ChevronDown size={10} className={cn("transition-transform", showSortDrop && "rotate-180")} />
+          </button>
+          <AnimatePresence>
+            {showSortDrop && (
+              <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.12 }} className="absolute top-full mt-1 right-0 bg-nf-primary border border-nf-border-2 rounded-xl p-1.5 shadow-xl z-50 min-w-[120px]">
+                {sortOptions.map(s => (
+                  <button key={s.id} onClick={() => { setSortBy(s.id); setShowSortDrop(false); }} className={cn("w-full flex items-center gap-2 text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", sortBy === s.id ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>{s.icon} {s.label}</button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Active filters chips */}
+        {(genreFilter || platformFilter) && (
+          <div className="flex items-center gap-1.5">
+            {genreFilter && (
+              <button onClick={() => setGenreFilter(null)} className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-nf-accent/15 text-nf-accent border border-nf-accent/30 hover:bg-nf-accent/25 transition-colors">
+                {genreFilter} <X size={8} />
+              </button>
+            )}
+            {platformFilter && (
+              <button onClick={() => setPlatformFilter(null)} className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-nf-accent/15 text-nf-accent border border-nf-accent/30 hover:bg-nf-accent/25 transition-colors">
+                {platformFilter} <X size={8} />
+              </button>
+            )}
+            <button onClick={() => { setGenreFilter(null); setPlatformFilter(null); }} className="text-[9px] text-nf-dim hover:text-red-400 transition-colors">مسح الكل</button>
+          </div>
+        )}
+
         <span className="text-[10px] text-nf-dim mr-auto">{filtered.length} نتيجة</span>
       </div>
 
+      {/* Grid / List */}
       {layout === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" />))}
+          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" onAiExplain={handleAiExplain} aiExplainGame={aiExplainGame} aiExplainText={aiExplainText} aiExplainLoading={aiExplainLoading} />))}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="list" />))}
+          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="list" onAiExplain={handleAiExplain} aiExplainGame={aiExplainGame} aiExplainText={aiExplainText} aiExplainLoading={aiExplainLoading} />))}
         </div>
       )}
 
