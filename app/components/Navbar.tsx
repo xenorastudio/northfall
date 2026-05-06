@@ -306,7 +306,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   return (
     <nav className="fixed top-0 left-0 right-0 h-12 bg-nf-nav/80 backdrop-blur-xl border-b border-nf-border-subtle z-[1001] flex items-center px-4" style={{ direction: "rtl" }}>
       {/* Logo */}
-      <div className="w-[260px] flex items-center shrink-0 cursor-pointer" onClick={() => onCommunityClick?.("")}>
+      <div className="hidden md:flex w-[260px] items-center shrink-0 cursor-pointer" onClick={() => onCommunityClick?.("")}>
         <span className="font-inter text-[15px] font-bold text-white tracking-tight">NorthFall</span>
       </div>
 
@@ -514,12 +514,12 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
       </div>
 
       {/* Actions - icons then account on far right */}
-      <div className="w-[260px] flex items-center justify-end gap-1.5 shrink-0" style={{ direction: "ltr" }}>
+      <div className="md:w-[260px] flex items-center justify-end gap-1.5 shrink-0" style={{ direction: "ltr" }}>
         <button onClick={onNotifsClick} className="w-8 h-8 flex items-center justify-center rounded-lg text-nf-dim hover:bg-nf-hover hover:text-white transition-colors relative">
           <Bell size={15} />
           {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center px-0.5">{unreadCount > 9 ? "9+" : unreadCount}</span>}
         </button>
-        <button onClick={onCreateClick} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">
+        <button onClick={onCreateClick} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">
           <Plus size={12} /> {t("pc.createPlaceholder")}
         </button>
         {user ? (

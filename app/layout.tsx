@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: ['40
 export const metadata: Metadata = {
   title: 'NorthFall',
   description: 'منصة المجتمعات العربية',
+  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
 };
 
 export default function RootLayout({

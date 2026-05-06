@@ -128,7 +128,8 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
   ];
 
   return (
-    <aside className="fixed top-12 bottom-0 w-[260px] overflow-y-auto bg-nf-nav border-r border-nf-border-subtle py-2 flex flex-col z-100" style={{ left: 0 }}>
+    <>
+    <aside className="hidden md:flex fixed top-12 bottom-0 w-[260px] overflow-y-auto bg-nf-nav border-r border-nf-border-subtle py-2 flex-col z-100" style={{ left: 0 }}>
       <NavSection title={t("sb.browse")} items={browseItemsInner} active={activeNav} onSelect={onNavClick} />
 
       <div className="h-px bg-nf-border-subtle mx-3 my-1" />
@@ -218,5 +219,25 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
         <p className="text-[11px] text-nf-dim mt-1.5">© 2026 NorthFall. {t("gen.allRightsReserved")}</p>
       </div>
     </aside>
+
+    {/* Mobile Bottom Navigation */}
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[1001] bg-nf-nav/95 backdrop-blur-xl border-t border-nf-border-subtle safe-area-bottom">
+      <div className="flex items-center justify-around h-14">
+        {[
+          { icon: Home, id: "home" },
+          { icon: Flame, id: "hot" },
+          { icon: Gamepad2, id: "games" },
+          { icon: Bell, id: "notifs" },
+          { icon: User, id: "profile" },
+        ].map(item => (
+          <button key={item.id} onClick={() => onNavClick(item.id)} className={cn("flex flex-col items-center justify-center gap-0.5 flex-1 py-1", activeNav === item.id ? "text-nf-accent" : "text-nf-dim")}>
+            <item.icon size={18} />
+            <span className="text-[8px] font-semibold">{item.id === "home" ? t("sb.home") : item.id === "hot" ? t("sb.popular") : item.id === "games" ? "ألعاب" : item.id === "notifs" ? t("sb.notifs") : t("sb.profile")}</span>
+            {item.id === "notifs" && unreadCount > 0 && <span className="absolute top-0.5 right-1/2 translate-x-2 w-1.5 h-1.5 rounded-full bg-red-500" />}
+          </button>
+        ))}
+      </div>
+    </nav>
+    </>
   );
 }

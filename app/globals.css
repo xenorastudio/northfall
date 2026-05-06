@@ -33,12 +33,17 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     font-family: var(--font-cairo), system-ui, sans-serif;
     background-color: var(--bg-body);
     line-height: 1.7;
     letter-spacing: -0.01em;
+    overscroll-behavior-y: contain;
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   h1, h2, h3, h4, .font-inter {
     font-family: var(--font-inter), system-ui, sans-serif;

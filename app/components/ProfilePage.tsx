@@ -377,7 +377,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
       {/* Banner */}
-      <div className="relative h-[120px] rounded-lg overflow-hidden mb-3">
+      <div className="relative h-[80px] sm:h-[120px] rounded-lg overflow-hidden mb-3">
         <img src={profileData?.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-nf-primary/90 to-transparent" />
         {isOwn && (

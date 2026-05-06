@@ -316,9 +316,9 @@ function AppContent() {
         activeNav={view === "feed" ? (sortMode === "hot" ? "hot" : sortMode === "new" ? "new" : sortMode === "top" ? "top" : "home") : view === "profile" ? "profile" : view === "settings" ? "settings" : view === "notifs" ? "notifs" : view === "games" ? "games" : view === "community" ? selectedCommunity : ""}
       />
 
-      <div style={{ marginLeft: 260, paddingTop: 48 }} className="min-h-screen flex justify-center">
-        <div className="w-full max-w-[1280px] px-6 py-5 flex gap-8 justify-center items-start" style={{ direction: "rtl" }}>
-          <SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={view === "community" ? selectedCommunity : undefined} />
+      <div className="md:ml-[260px] pt-12 min-h-screen flex justify-center">
+        <div className="w-full max-w-[1280px] px-3 md:px-6 py-3 md:py-5 pb-20 md:pb-5 flex gap-8 justify-center items-start" style={{ direction: "rtl" }}>
+          <div className="hidden lg:block"><SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={view === "community" ? selectedCommunity : undefined} /></div>
 
           <div className={cn("flex-1", view === "feed" ? "max-w-[680px]" : "max-w-[920px]")} style={{ direction: "rtl" }}>
             <AnimatePresence mode="wait">
