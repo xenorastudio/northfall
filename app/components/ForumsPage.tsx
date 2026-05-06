@@ -1836,7 +1836,7 @@ export default function ForumsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-nf-body text-nf-text" dir="rtl">
-      <header className="bg-nf-primary sticky top-0 z-50 border-b border-nf-border">
+      <header className="sticky top-0 z-50 border-b border-nf-border" style={{ backgroundColor: "#222224" }}>
         <div className="flex items-center h-[56px] px-4">
           {/* Left - Logo */}
           <div className="flex items-center gap-3 shrink-0">

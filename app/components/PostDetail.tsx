@@ -256,7 +256,6 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const [aiProvider, setAiProvider] = useState<"chatgpt" | "gemini" | "claude" | "deepseek" | "groq" | "mistral" | "chatanywhere">("chatanywhere");
   const [aiModel, setAiModel] = useState(0);
   const [aiConnected, setAiConnected] = useState<"unknown" | "testing" | "ok" | "fail">("unknown");
-  const [aiTab, setAiTab] = useState<"tools" | "settings">("tools");
   const aiDropRef = useRef<HTMLDivElement>(null);
 
   const AI_MODELS = [
@@ -368,34 +367,41 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     }
   }, [aiResult, aiLoading]);
 
-  const handleAiExplain = async (mode: "explain" | "summarize" | "translate" | "expand" | "correct" | "tags" | "rephrase" | "question") => {
+  const handleAiExplain = async (mode: "explain" | "summarize" | "translate" | "expand" | "correct" | "tags" | "rephrase" | "question" | "keypoints" | "counter") => {
     const sel = AI_MODELS[aiModel];
     const key = aiApiKey || (sel.provider === "chatanywhere" ? "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7" : "");
-    if (!key) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي"); setAiTab("settings"); return; }
+    if (!key) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي ⚙"); return; }
     if (!post) return;
     setAiLoading(true);
     setAiResult(null);
     setAiDropOpen(false);
+    const uName = user?.displayName || "صديقي";
+    const tLang = localStorage.getItem("nf-ai-translate-lang") || "en";
+    const langNames: Record<string,string> = { en:"الإنجليزية", ar:"العربية", fr:"الفرنسية", de:"الألمانية", es:"الإسبانية", tr:"التركية", ja:"اليابانية", ko:"الكورية", zh:"الصينية", ru:"الروسية" };
     try {
       const prompts: Record<string, string> = {
-        explain: `اشرح لي هاي المنشور بشكل مبسط (3-4 أسطر) كأنك بتشرحه لشخص مو فاهمه، احكي باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
-        summarize: `لخص هاي المنشور بسطرين-تلاتة، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
-        translate: `ترجم هاي المنشور للإنجليزية بشكل طبيعي ومبسط:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
-        expand: `وسع هاي المنشور وضيف تفاصيل أكتر (5-6 أسطر) بنفس الأسلوب، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        explain: `يا ${uName}، اشرح لي هاي المنشور بشكل مبسط (3-4 أسطر) كأنك بتشرحه لشخص مو فاهمه، احكي باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        summarize: `${uName}، لخص هاي المنشور بسطرين-تلاتة، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        translate: `ترجم هاي المنشور ل${langNames[tLang] || "الإنجليزية"} بشكل طبيعي ومبسط — إذا المنشور أصلاً ب${langNames[tLang]} ترجمه للعربية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        expand: `${uName}، وسع هاي المنشور وضيف تفاصيل أكتر (5-6 أسطر) بنفس الأسلوب، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
         correct: `صحح الأخطاء الإملائية والنحوية بهاي المنشور واكتب النسخة المصححة:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
         tags: `اقترح 3-5 وسوم (tags) مناسبة لهاد المنشور ككلمات مفتاحية، اكتبها بس مفصولة بفواصل:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 300) || "لا يوجد محتوى"}`,
-        rephrase: `أعد صياغة هاي المنشور بأسلوب أجمل وأكثر جاذبية، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        rephrase: `${uName}، أعد صياغة هاي المنشور بأسلوب أجمل وأكثر جاذبية، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
         question: `اكتب 3 أسئلة ممكنة تنطرح عن هاي المنشور، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        keypoints: `${uName}، استخرج أهم النقاط الرئيسية من هاي المنشور كقائمة مختصرة:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        counter: `${uName}، اكتب رد أو حجة مضادة لهاد المنشور بشكل محترم ومبسط (3-4 أسطر)، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
       };
       const systemPrompts: Record<string, string> = {
-        explain: "أنت مساعد بتشرح المنشورات ببساطة ووضوح باللهجة الأردنية. احكي باختصار 3-4 أسطر بدون عناوين. بدون إيموجي. خليك عادي وودي.",
-        summarize: "أنت مساعد بلخص المنشورات باختصار باللهجة الأردنية. اكتب 2-3 أسطر بس. بدون إيموجي.",
-        translate: "أنت مساعد بترجم من العربية للإنجليزية بشكل طبيعي ومبسط. بدون إيموجي.",
-        expand: "أنت مساعد بتوسع المنشورات وبتضيف تفاصيل مفيدة باللهجة الأردنية. اكتب 5-6 أسطر. بدون إيموجي.",
-        correct: "أنت مدقق لغوي بتصحح الأخطاء الإملائية والنحوية بالعربية. اكتب النص المصحح بس. بدون إيموجي.",
-        tags: "أنت مساعد بيقترح وسوم مناسبة. اكتب الكلمات المفتاحية بس مفصولة بفواصل. بدون إيموجي.",
-        rephrase: "أنت مساعد بيعيد صياغة المنشورات بأسلوب أجمل وأكثر جاذبية باللهجة الأردنية. بدون إيموجي. خليك عادي وودي.",
-        question: "أنت مساعد بيكتب أسئلة ممكنة عن المنشور باللهجة الأردنية. اكتب 3 أسئلة بس. بدون إيموجي.",
+        explain: `أنت مساعد بتشرح المنشورات ببساطة ووضوح باللهجة الأردنية. خاطب المستخدم باسمه. احكي باختصار 3-4 أسطر بدون عناوين. بدون إيموجي. خليك عادي وودي.`,
+        summarize: `أنت مساعد بلخص المنشورات باختصار باللهجة الأردنية. خاطب المستخدم باسمه. اكتب 2-3 أسطر بس. بدون إيموجي.`,
+        translate: `أنت مترجم محترف. ترجم بشكل طبيعي ومبسط. بدون إيموجي. إذا النص بنفس لغة الهدف، ترجمه للعربية.`,
+        expand: `أنت مساعد بتوسع المنشورات وبتضيف تفاصيل مفيدة باللهجة الأردنية. خاطب المستخدم باسمه. اكتب 5-6 أسطر. بدون إيموجي.`,
+        correct: `أنت مدقق لغوي بتصحح الأخطاء الإملائية والنحوية بالعربية. اكتب النص المصحح بس. بدون إيموجي.`,
+        tags: `أنت مساعد بيقترح وسوم مناسبة. اكتب الكلمات المفتاحية بس مفصولة بفواصل. بدون إيموجي.`,
+        rephrase: `أنت مساعد بيعيد صياغة المنشورات بأسلوب أجمل وأكثر جاذبية باللهجة الأردنية. خاطب المستخدم باسمه. بدون إيموجي. خليك عادي وودي.`,
+        question: `أنت مساعد بيكتب أسئلة ممكنة عن المنشور باللهجة الأردنية. خاطب المستخدم باسمه. اكتب 3 أسئلة بس. بدون إيموجي.`,
+        keypoints: `أنت مساعد بيستخرج النقاط الرئيسية من المنشورات باللهجة الأردنية. خاطب المستخدم باسمه. اكتب قائمة مختصرة. بدون إيموجي.`,
+        counter: `أنت مساعد بيكتب حجج مضادة محترمة باللهجة الأردنية. خاطب المستخدم باسمه. كن محترم وموضوعي. بدون إيموجي.`,
       };
       let text = "";
       if (sel.provider === "chatanywhere") {
@@ -666,84 +672,47 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
           {/* AI Dropdown */}
           <div className="relative" ref={aiDropRef}>
-            <button onClick={() => { setAiDropOpen(!aiDropOpen); setAiTab("tools"); }} className={cn("flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all border", aiDropOpen ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "text-nf-dim/50 hover:text-nf-dim hover:bg-nf-secondary/30 border-nf-border/6 hover:border-nf-border/15")}>
-              <Sparkles size={10} className="text-nf-accent/50" />
+            <button onClick={() => setAiDropOpen(!aiDropOpen)} className={cn("flex items-center gap-1 text-[10px] font-semibold transition-all", aiDropOpen ? "text-nf-accent" : "text-nf-dim/40 hover:text-nf-accent")}>
+              <Sparkles size={10} className={cn("transition-colors", aiDropOpen ? "text-nf-accent" : "text-nf-accent/40")} />
               <span>AI</span>
               <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-40", aiDropOpen && "rotate-180")} />
             </button>
             {aiDropOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-nf-border-2 shadow-xl shadow-black/30 min-w-[200px] overflow-hidden" style={{ backgroundColor: "rgba(24,24,26,0.95)", backdropFilter: "blur(24px)" }}>
-                <div className="flex border-b border-nf-border-2">
-                  <button onClick={() => setAiTab("tools")} className={cn("flex-1 py-1.5 text-[9px] font-bold transition-colors", aiTab === "tools" ? "text-nf-accent border-b border-nf-accent" : "text-nf-dim/50 hover:text-nf-dim")}>أدوات</button>
-                  <button onClick={() => setAiTab("settings")} className={cn("flex-1 py-1.5 text-[9px] font-bold transition-colors", aiTab === "settings" ? "text-nf-accent border-b border-nf-accent" : "text-nf-dim/50 hover:text-nf-dim")}>إعدادات</button>
+              <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-white/10 shadow-xl shadow-black/40 min-w-[200px] overflow-hidden" style={{ backgroundColor: "rgba(18,18,20,0.85)", backdropFilter: "blur(20px) saturate(1.2)" }}>
+                <div className="py-0.5">
+                  <button onClick={() => handleAiExplain("explain")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <BookOpen size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">اشرح لي</span>
+                  </button>
+                  <button onClick={() => handleAiExplain("summarize")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <FileText size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">لخّص</span>
+                  </button>
+                  <button onClick={() => handleAiExplain("translate")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <Languages size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">ترجمة</span>
+                  </button>
+                  <div className="h-px bg-white/5 mx-1.5 my-0.5" />
+                  <button onClick={() => handleAiExplain("expand")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <Sparkles size={10} className="text-emerald-400/40" /> <span className="flex-1 text-right">وسّع</span>
+                  </button>
+                  <button onClick={() => handleAiExplain("correct")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <FileText size={10} className="text-amber-400/40" /> <span className="flex-1 text-right">تصحيح</span>
+                  </button>
+                  <button onClick={() => handleAiExplain("tags")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <BookOpen size={10} className="text-blue-400/40" /> <span className="flex-1 text-right">وسوم</span>
+                  </button>
+                  <button onClick={() => handleAiExplain("rephrase")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <Sparkles size={10} className="text-violet-400/40" /> <span className="flex-1 text-right">أعد الصياغة</span>
+                  </button>
+                  <button onClick={() => handleAiExplain("question")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <BookOpen size={10} className="text-cyan-400/40" /> <span className="flex-1 text-right">أسئلة</span>
+                  </button>
+                  <div className="h-px bg-white/5 mx-1.5 my-0.5" />
+                  <button onClick={() => handleAiExplain("keypoints")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <FileText size={10} className="text-orange-400/40" /> <span className="flex-1 text-right">نقاط رئيسية</span>
+                  </button>
+                  <button onClick={() => handleAiExplain("counter")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <Sparkles size={10} className="text-rose-400/40" /> <span className="flex-1 text-right">حجة مضادة</span>
+                  </button>
                 </div>
-                {aiTab === "tools" ? (
-                  <div className="py-0.5">
-                    <button onClick={() => handleAiExplain("explain")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                      <BookOpen size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">اشرح لي</span>
-                    </button>
-                    <button onClick={() => handleAiExplain("summarize")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                      <FileText size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">لخّص</span>
-                    </button>
-                    <button onClick={() => handleAiExplain("translate")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                      <Languages size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">ترجمة</span>
-                    </button>
-                    <div className="h-px bg-nf-border-2 mx-1.5 my-0.5" />
-                    <button onClick={() => handleAiExplain("expand")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                      <Sparkles size={10} className="text-emerald-400/40" /> <span className="flex-1 text-right">وسّع</span>
-                    </button>
-                    <button onClick={() => handleAiExplain("correct")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                      <FileText size={10} className="text-amber-400/40" /> <span className="flex-1 text-right">تصحيح</span>
-                    </button>
-                    <button onClick={() => handleAiExplain("tags")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                      <BookOpen size={10} className="text-blue-400/40" /> <span className="flex-1 text-right">وسوم</span>
-                    </button>
-                    <button onClick={() => handleAiExplain("rephrase")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                      <Sparkles size={10} className="text-violet-400/40" /> <span className="flex-1 text-right">أعد الصياغة</span>
-                    </button>
-                    <button onClick={() => handleAiExplain("question")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                      <BookOpen size={10} className="text-cyan-400/40" /> <span className="flex-1 text-right">أسئلة</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="px-3 py-2 space-y-2.5 max-h-[260px] overflow-y-auto">
-                    <div>
-                      <label className="text-[8px] text-nf-dim/60 font-bold mb-1 block uppercase tracking-wider">المزود</label>
-                      <div className="grid grid-cols-3 gap-1">
-                        {(["chatanywhere", "deepseek", "groq", "mistral", "gemini", "chatgpt", "claude"] as const).map(p => (
-                          <button key={p} onClick={() => { setAiProvider(p); const idx = AI_MODELS.findIndex(m => m.provider === p); if (idx >= 0) setAiModel(idx); }} className={cn("py-1 rounded-md text-[8px] font-bold transition-all border", aiProvider === p ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>{p === "chatgpt" ? "ChatGPT" : p === "chatanywhere" ? "تجريبي" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
-                        ))}
-                      </div>
-                    </div>
-                    {AI_MODELS.filter(m => m.provider === aiProvider).length > 0 && (
-                      <div>
-                        <label className="text-[8px] text-nf-dim/60 font-bold mb-1 block uppercase tracking-wider">النموذج</label>
-                        <div className="flex flex-col gap-0.5">
-                          {AI_MODELS.filter(m => m.provider === aiProvider).map(m => {
-                            const gi = AI_MODELS.indexOf(m);
-                            return (
-                              <button key={gi} onClick={() => setAiModel(gi)} className={cn("flex items-center justify-between px-2 py-1 rounded-md text-[8px] font-semibold transition-all border", aiModel === gi ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/20 text-nf-dim border-nf-border/8 hover:border-nf-border/20")}>
-                                <span>{m.name}</span>
-                                <span className={cn("text-[6px] px-1 py-0.5 rounded-full", m.free ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400")}>{m.free ? "مجاني" : "مدفوع"}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    <div>
-                      <label className="text-[8px] text-nf-dim/60 font-bold mb-0.5 block uppercase tracking-wider">مفتاح API</label>
-                      <div className="relative">
-                        <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder="sk-..." className="w-full bg-nf-secondary/30 rounded-md px-2.5 py-1.5 text-[9px] text-white placeholder:text-nf-dim/25 outline-none focus:ring-1 focus:ring-nf-accent/20 font-mono border border-nf-border/8 focus:border-nf-accent/20 transition-all" dir="ltr" />
-                        <Key size={8} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-nf-dim/20" />
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <button onClick={() => { saveAiSettings(); }} className="flex-1 bg-nf-accent hover:bg-nf-accent/80 text-white text-[8px] font-bold py-1.5 rounded-md transition-all">حفظ</button>
-                      {aiApiKey && <button onClick={testAiConnection} disabled={aiConnected === "testing"} className={cn("px-2 py-1.5 rounded-md text-[8px] font-bold transition-all border", aiConnected === "ok" ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/15" : aiConnected === "fail" ? "bg-red-400/10 text-red-400 border-red-400/15" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10")}>{aiConnected === "testing" ? "..." : aiConnected === "ok" ? "OK" : aiConnected === "fail" ? "X" : "اختبار"}</button>}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>

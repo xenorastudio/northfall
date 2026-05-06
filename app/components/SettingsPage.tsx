@@ -530,8 +530,36 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                   <p className="text-[9px] text-nf-dim/50">{AI_MODELS[aiModel].desc}</p>
                 </div>
               )}
+              {/* Translation */}
+              <div className="border-t border-nf-border/10 pt-4">
+                <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">لغة الترجمة</label>
+                <p className="text-[8px] text-nf-dim/40 mb-2">عند استخدام أداة الترجمة، يترجم لهذه اللغة — أو العكس إذا كانت اللغة نفسها</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: "en", label: "English", sub: "إنجليزي", flag: "🇺🇸" },
+                    { id: "ar", label: "العربية", sub: "Arabic", flag: "🇸🇦" },
+                    { id: "fr", label: "Français", sub: "فرنسي", flag: "🇫🇷" },
+                    { id: "de", label: "Deutsch", sub: "ألماني", flag: "🇩🇪" },
+                    { id: "es", label: "Español", sub: "إسباني", flag: "🇪🇸" },
+                    { id: "tr", label: "Türkçe", sub: "تركي", flag: "🇹🇷" },
+                    { id: "ja", label: "日本語", sub: "ياباني", flag: "🇯🇵" },
+                    { id: "ko", label: "한국어", sub: "كوري", flag: "🇰🇷" },
+                    { id: "zh", label: "中文", sub: "صيني", flag: "🇨🇳" },
+                    { id: "ru", label: "Русский", sub: "روسي", flag: "🇷🇺" },
+                  ].map(l => (
+                    <button key={l.id} onClick={() => { localStorage.setItem("nf-ai-translate-lang", l.id); }} className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg text-[10px] font-semibold transition-all border", (localStorage.getItem("nf-ai-translate-lang") || "en") === l.id ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>
+                      <span className="text-sm">{l.flag}</span>
+                      <div className="flex-1 text-right">
+                        <p className="text-[10px]">{l.label}</p>
+                        <p className="text-[8px] opacity-50">{l.sub}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[8px] text-nf-dim/30 mt-2">ذكي: إذا المنشور عربي يترجم للغة المختارة، وإذا المنشور بنفس اللغة يترجم للعربية</p>
+              </div>
               {/* API Key */}
-              <div>
+              <div className="border-t border-nf-border/10 pt-4">
                 <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">مفتاح API</label>
                 <p className="text-[8px] text-nf-dim/40 mb-2">مفتاح الدخول — احصل عليه مجاناً من موقع المزود</p>
                 <div className="relative">
