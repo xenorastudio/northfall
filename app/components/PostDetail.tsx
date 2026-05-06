@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowUp, ArrowDown, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, Flag, Code2, Trash2, Pencil, ExternalLink, ArrowUpCircle, Link2, BarChart3, Clock, Sparkles, BookOpen, Languages, FileText, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ArrowRight, ArrowUp, ArrowDown, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, Flag, Code2, Trash2, Pencil, ExternalLink, ArrowUpCircle, Link2, BarChart3, Clock, Sparkles, BookOpen, Languages, FileText, X, Settings, Key } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { doc, getDoc, getDocs, collection, query, orderBy, addDoc, updateDoc, increment, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
@@ -251,6 +251,45 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   // AI
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiDropOpen, setAiDropOpen] = useState(false);
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const [aiApiKey, setAiApiKey] = useState("");
+  const [aiProvider, setAiProvider] = useState<"chatgpt" | "gemini" | "claude" | "deepseek" | "groq" | "mistral">("deepseek");
+  const [aiModel, setAiModel] = useState(0);
+  const [aiConnected, setAiConnected] = useState<"unknown" | "testing" | "ok" | "fail">("unknown");
+  const aiDropRef = useRef<HTMLDivElement>(null);
+
+  const AI_MODELS = [
+    { name: "DeepSeek Chat", provider: "deepseek" as const, model: "deepseek-chat", free: true, desc: "مجاني وسريع، مناسب لكل الاستخدامات" },
+    { name: "Gemini 2.0 Flash", provider: "gemini" as const, model: "gemini-2.0-flash", free: true, desc: "سريع من جوجل، ممتاز للردود القصيرة" },
+    { name: "Groq Llama 3.3", provider: "groq" as const, model: "llama-3.3-70b-versatile", free: true, desc: "أسرع نموذج، استجابة فورية" },
+    { name: "Groq Gemma 2", provider: "groq" as const, model: "gemma2-9b-it", free: true, desc: "خفيف وسريع من Groq" },
+    { name: "Mistral Small", provider: "mistral" as const, model: "mistral-small-latest", free: true, desc: "نموذج صغير من Mistral، مجاني" },
+    { name: "GPT-4o Mini", provider: "chatgpt" as const, model: "gpt-4o-mini", free: false, desc: "نسخة مصغرة من GPT-4، رخيصة" },
+    { name: "GPT-4.1 Nano", provider: "chatgpt" as const, model: "gpt-4.1-nano", free: false, desc: "أصغر نموذج OpenAI، سريع" },
+    { name: "Gemini 2.5 Flash", provider: "gemini" as const, model: "gemini-2.5-flash-preview-05-20", free: false, desc: "أحدث Gemini، ذكاء عالي" },
+    { name: "Claude 3.5 Haiku", provider: "claude" as const, model: "claude-3-5-haiku-20241022", free: false, desc: "سريع ورخيص من Anthropic" },
+    { name: "Mistral Medium", provider: "mistral" as const, model: "mistral-medium-latest", free: false, desc: "نموذج متوسط، توازن بين السرعة والذكاء" },
+  ];
+
+  useEffect(() => {
+    const k = localStorage.getItem("nf-ai-key") || "";
+    const p = localStorage.getItem("nf-ai-provider") || "deepseek";
+    const m = parseInt(localStorage.getItem("nf-ai-model") || "0");
+    setAiApiKey(k); setAiProvider(p as any); setAiModel(m);
+  }, []);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (aiDropRef.current && !aiDropRef.current.contains(e.target as Node)) setAiDropOpen(false); };
+    document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const testAiConnection = async () => {
+    if (!aiApiKey) { setAiConnected("fail"); return; }
+    setAiConnected("testing");
+    try { const r = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${aiApiKey}`); const d = await r.json(); setAiConnected(d.ok ? "ok" : "fail"); } catch { setAiConnected("fail"); }
+  };
+  const saveAiSettings = () => { localStorage.setItem("nf-ai-key", aiApiKey); localStorage.setItem("nf-ai-provider", aiProvider); localStorage.setItem("nf-ai-model", String(aiModel)); if (aiApiKey) testAiConnection(); };
 
   // Scroll progress
   useEffect(() => {
@@ -308,33 +347,32 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
 
   // AI explain post
   const handleAiExplain = async (mode: "explain" | "summarize" | "translate") => {
-    const apiKey = localStorage.getItem("nf-ai-key") || "";
-    const provider = localStorage.getItem("nf-ai-provider") || "deepseek";
-    const model = localStorage.getItem("nf-ai-model") || "deepseek-chat";
-    if (!apiKey) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي ⚙️"); return; }
+    if (!aiApiKey) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي"); setAiSettingsOpen(true); return; }
     if (!post) return;
     setAiLoading(true);
     setAiResult(null);
+    setAiDropOpen(false);
     try {
+      const sel = AI_MODELS[aiModel];
       const prompts: Record<string, string> = {
         explain: `اشرح لي هذا المنشور بشكل مبسط ومختصر (3-4 أسطر) كأنك تشرحه لشخص مش فاهمه:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
         summarize: `لخّص هذا المنشور في 2-3 أسطر فقط:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
         translate: `ترجم هذا المنشور للإنجليزية بشكل مبسط:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
       };
       const systemPrompts: Record<string, string> = {
-        explain: "أنت مساعد يشرح المنشورات ببساطة ووضوح بالعربية. اكتب 3-4 أسطر فقط بدون عناوين.",
-        summarize: "أنت مساعد يلخّص المنشورات باختصار بالعربية. اكتب 2-3 أسطر فقط.",
-        translate: "أنت مساعد يترجم من العربية للإنجليزية بشكل طبيعي ومبسط.",
+        explain: "أنت مساعد يشرح المنشورات ببساطة ووضوح بالعربية. اكتب 3-4 أسطر فقط بدون عناوين. بدون إيموجي.",
+        summarize: "أنت مساعد يلخّص المنشورات باختصار بالعربية. اكتب 2-3 أسطر فقط. بدون إيموجي.",
+        translate: "أنت مساعد يترجم من العربية للإنجليزية بشكل طبيعي ومبسط. بدون إيموجي.",
       };
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, model, apiKey, messages: [{ role: "user", content: prompts[mode] }], systemPrompt: systemPrompts[mode], maxTokens: 400 }),
+        body: JSON.stringify({ provider: sel.provider, model: sel.model, apiKey: aiApiKey, messages: [{ role: "user", content: prompts[mode] }], systemPrompt: systemPrompts[mode], maxTokens: 400 }),
       });
       const data = await res.json();
       let text = "";
-      if (provider === "gemini") text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      else if (provider === "claude") text = data.content?.[0]?.text || "";
+      if (sel.provider === "gemini") text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      else if (sel.provider === "claude") text = data.content?.[0]?.text || "";
       else text = data.choices?.[0]?.message?.content || "";
       setAiResult(text || "لم أستطع توليد رد");
     } catch (err: any) {
@@ -583,11 +621,31 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           </div>
           <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /> {postSaved ? "محفوظ" : "حفظ"}</button>
           <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
-          {/* AI Tools */}
-          <div className="flex items-center gap-1 mr-auto">
-            <button onClick={() => handleAiExplain("explain")} disabled={aiLoading} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", aiLoading ? "opacity-40" : "hover:bg-nf-accent/10 text-nf-accent")}><BookOpen size={14} /> {aiLoading ? "جاري..." : "شرح"}</button>
-            <button onClick={() => handleAiExplain("summarize")} disabled={aiLoading} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", aiLoading ? "opacity-40" : "hover:bg-nf-accent/10 text-nf-accent")}><FileText size={14} /> تلخيص</button>
-            <button onClick={() => handleAiExplain("translate")} disabled={aiLoading} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", aiLoading ? "opacity-40" : "hover:bg-nf-accent/10 text-nf-accent")}><Languages size={14} /> ترجمة</button>
+          {/* AI Dropdown */}
+          <div className="relative" ref={aiDropRef}>
+            <button onClick={() => setAiDropOpen(!aiDropOpen)} className={cn("flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all border", aiDropOpen ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "text-nf-dim/50 hover:text-nf-dim hover:bg-nf-secondary/30 border-nf-border/6 hover:border-nf-border/15")}>
+              <Sparkles size={10} className="text-nf-accent/50" />
+              <span>AI</span>
+              <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-40", aiDropOpen && "rotate-180")} />
+            </button>
+            {aiDropOpen && (
+              <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border border-nf-border-2 shadow-xl shadow-black/30 min-w-[180px] overflow-hidden py-0.5" style={{ backgroundColor: "rgba(24,24,26,0.95)", backdropFilter: "blur(24px)" }}>
+                <div className="px-2.5 pt-1 pb-0.5 flex items-center gap-1"><Sparkles size={9} className="text-nf-accent/40" /><span className="text-[7px] font-bold text-nf-dim/50 uppercase tracking-wider">أدوات ذكية</span></div>
+                <button onClick={() => handleAiExplain("explain")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                  <BookOpen size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">اشرح لي</span>
+                </button>
+                <button onClick={() => handleAiExplain("summarize")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                  <FileText size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">لخّص</span>
+                </button>
+                <button onClick={() => handleAiExplain("translate")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                  <Languages size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">ترجمة</span>
+                </button>
+                <div className="h-px bg-nf-border-2 mx-1.5 my-0.5" />
+                <button onClick={() => { setAiDropOpen(false); setAiSettingsOpen(true); }} className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-nf-dim/60 hover:bg-white/5 transition-all">
+                  <Settings size={10} className="text-nf-dim/40" /> <span className="flex-1 text-right">إعدادات AI</span>
+                </button>
+              </div>
+            )}
           </div>
           {user && post?.authorUid === user.uid && onEditClick && (
             <button onClick={() => onEditClick(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Pencil size={14} /> تعديل</button>
@@ -604,11 +662,79 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       {(aiResult || aiLoading) && (
         <div className="mx-4 my-2 p-3 rounded-xl border border-nf-accent/20 bg-nf-accent/[0.03]">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <Sparkles size={11} className={aiLoading ? "animate-spin text-nf-accent" : "text-nf-accent/60"} />
+            <Sparkles size={11} className="text-nf-accent/60" />
             <span className="text-[10px] text-nf-accent/60 font-bold">{aiLoading ? "جاري التحليل..." : "نتيجة الذكاء الاصطناعي"}</span>
             {aiResult && <button onClick={() => setAiResult(null)} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={11} /></button>}
           </div>
           {aiResult && <p className="text-[12px] text-nf-muted leading-relaxed">{aiResult}</p>}
+        </div>
+      )}
+
+      {/* AI Settings Panel */}
+      {aiSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/40 backdrop-blur-sm" onClick={() => setAiSettingsOpen(false)}>
+          <div className="h-full w-[300px] max-w-[85vw] bg-nf-primary border-l border-nf-border-2 flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border-2">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-nf-accent/10 flex items-center justify-center"><Sparkles size={12} className="text-nf-accent" /></div>
+                <span className="text-[12px] font-bold text-white">إعدادات AI</span>
+              </div>
+              <button onClick={() => setAiSettingsOpen(false)} className="p-1 rounded-lg text-nf-dim hover:text-white hover:bg-nf-secondary/30 transition-colors"><X size={14} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+              {/* Provider */}
+              <div>
+                <label className="text-[9px] text-nf-dim font-bold mb-1 block uppercase tracking-wider">المزود</label>
+                <p className="text-[8px] text-nf-dim/40 mb-2">الشركة التي توفر خدمة الذكاء الاصطناعي</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(["deepseek", "groq", "mistral", "gemini", "chatgpt", "claude"] as const).map(p => (
+                    <button key={p} onClick={() => { setAiProvider(p); const idx = AI_MODELS.findIndex(m => m.provider === p); if (idx >= 0) setAiModel(idx); }} className={cn("py-1.5 rounded-lg text-[9px] font-bold transition-all border", aiProvider === p ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>{p === "chatgpt" ? "ChatGPT" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
+                  ))}
+                </div>
+              </div>
+              {/* Model */}
+              <div>
+                <label className="text-[9px] text-nf-dim font-bold mb-1 block uppercase tracking-wider">النموذج</label>
+                <p className="text-[8px] text-nf-dim/40 mb-2">النموذج المستخدم — المجانية أسرع، المدفوعة أذكى</p>
+                <div className="flex flex-col gap-1">
+                  {AI_MODELS.filter(m => m.provider === aiProvider).map(m => {
+                    const gi = AI_MODELS.indexOf(m);
+                    return (
+                      <button key={gi} onClick={() => setAiModel(gi)} className={cn("flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[9px] font-semibold transition-all border", aiModel === gi ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>
+                        <span>{m.name}</span>
+                        <span className={cn("text-[7px] px-1 py-0.5 rounded-full", m.free ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400")}>{m.free ? "مجاني" : "مدفوع"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Model desc */}
+              {AI_MODELS[aiModel] && (
+                <div className="bg-nf-secondary/20 rounded-lg p-2 border border-white/5">
+                  <p className="text-[9px] text-nf-dim font-bold">{AI_MODELS[aiModel].name}</p>
+                  <p className="text-[8px] text-nf-dim/50">{AI_MODELS[aiModel].desc}</p>
+                </div>
+              )}
+              {/* API Key */}
+              <div>
+                <label className="text-[9px] text-nf-dim font-bold mb-1 block uppercase tracking-wider">مفتاح API</label>
+                <p className="text-[8px] text-nf-dim/40 mb-1.5">مفتاح الدخول — احصل عليه مجاناً من موقع المزود</p>
+                <div className="relative">
+                  <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder="sk-..." className="w-full bg-nf-secondary/30 rounded-lg px-3 py-2 text-[10px] text-white placeholder:text-nf-dim/30 outline-none focus:ring-1 focus:ring-nf-accent/20 font-mono border border-nf-border/10 focus:border-nf-accent/20 transition-all" dir="ltr" />
+                  <Key size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-nf-dim/25" />
+                </div>
+                {aiApiKey && (
+                  <button onClick={testAiConnection} disabled={aiConnected === "testing"} className={cn("w-full flex items-center justify-center gap-1 py-1.5 rounded-md text-[9px] font-bold transition-all border mt-2", aiConnected === "ok" ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/15" : aiConnected === "fail" ? "bg-red-400/10 text-red-400 border-red-400/15" : aiConnected === "testing" ? "bg-nf-accent/10 text-nf-accent border-nf-accent/15" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-accent/15")}>
+                    {aiConnected === "testing" ? "اختبار..." : aiConnected === "ok" ? "متصل بنجاح" : aiConnected === "fail" ? "فشل الاتصال" : "اختبار الاتصال"}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="px-4 py-3 border-t border-nf-border-2 space-y-1.5">
+              <button onClick={() => { saveAiSettings(); setAiSettingsOpen(false); }} className="w-full bg-nf-accent hover:bg-nf-accent/80 text-white text-[10px] font-bold py-2 rounded-lg transition-all">حفظ</button>
+              {aiApiKey && <button onClick={() => { setAiApiKey(""); localStorage.removeItem("nf-ai-key"); setAiConnected("unknown"); }} className="w-full bg-nf-secondary/30 text-red-400 hover:bg-red-400/5 text-[10px] font-bold py-1.5 rounded-lg transition-colors border border-red-400/10">حذف المفتاح</button>}
+            </div>
+          </div>
         </div>
       )}
 

@@ -281,25 +281,25 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
 
   if (layout === "list") {
     return (
-      <div onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative flex items-center gap-3 p-3 rounded-2xl bg-nf-secondary/10 hover:bg-nf-secondary/30 transition-colors cursor-pointer border border-transparent hover:border-white/5">
-        <div className="relative overflow-hidden rounded-xl shrink-0">
-          <img src={game.cover} alt={game.name} {...imgProtect} className="w-12 h-16 object-cover select-none" />
+      <div onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative flex items-center gap-3 p-2.5 rounded-xl bg-nf-secondary/5 hover:bg-nf-secondary/20 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+        <div className="relative overflow-hidden rounded-lg shrink-0">
+          <img src={game.cover} alt={game.name} {...imgProtect} className="w-11 h-14 object-cover select-none" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold text-white truncate">{game.name}</p>
-          <p className="text-[10px] text-nf-dim mt-0.5">{game.publisher} · {game.developer}</p>
+          <p className="text-[12px] font-bold text-white truncate">{game.name}</p>
+          <p className="text-[9px] text-nf-dim/60 mt-0.5">{game.publisher} · {game.developer}</p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="flex items-center gap-0.5"><Star size={9} className="text-amber-400" fill="currentColor" /><span className="text-[9px] text-amber-400 font-bold">{game.rating}</span></span>
-            <span className="text-[9px] text-nf-dim">{game.releaseYear}</span>
-            <span className="text-[9px] text-nf-dim">·</span>
-            <span className="text-[9px] text-nf-dim">{game.players} لاعب</span>
+            <span className="flex items-center gap-0.5"><Star size={8} className="text-amber-400" fill="currentColor" /><span className="text-[8px] text-amber-400 font-bold">{game.rating}</span></span>
+            <span className="text-[8px] text-nf-dim/40">{game.releaseYear}</span>
+            <span className="text-[8px] text-nf-dim/30">·</span>
+            <span className="text-[8px] text-nf-dim/40">{game.players} لاعب</span>
           </div>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {game.genre.map(g => (<span key={g} className="text-[8px] px-1.5 py-0.5 rounded-lg bg-nf-accent/10 text-nf-accent font-semibold">{g}</span>))}
+          <div className="flex flex-wrap gap-0.5 mt-1">
+            {game.genre.slice(0, 2).map(g => (<span key={g} className="text-[7px] px-1.5 py-0.5 rounded-md bg-nf-accent/8 text-nf-accent/70 font-semibold">{g}</span>))}
           </div>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-2 rounded-xl transition-all", isFav ? "text-red-400 bg-red-400/10 hover:bg-red-400/20" : "text-nf-dim hover:text-red-400 hover:bg-red-400/5")}>
-          <Heart size={16} fill={isFav ? "currentColor" : "none"} />
+        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-1.5 rounded-lg transition-all", isFav ? "text-red-400 bg-red-400/10 hover:bg-red-400/15" : "text-nf-dim/40 hover:text-red-400 hover:bg-red-400/5")}>
+          <Heart size={14} fill={isFav ? "currentColor" : "none"} />
         </button>
         <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
       </div>
@@ -309,34 +309,33 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
   return (
     <div onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative text-right">
       {/* Glow behind card */}
-      <div className="absolute -inset-1 rounded-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-700 blur-xl pointer-events-none" style={{ background: dominantColor }} />
-      <div className="relative overflow-hidden rounded-2xl bg-black ring-1 ring-white/[0.06] group-hover:ring-white/[0.12] transition-all duration-300">
-        <img src={game.cover} alt={game.name} {...imgProtect} className="w-full aspect-[3/4] object-cover transition-transform duration-700 ease-out group-hover:scale-105 select-none pointer-events-none" />
+      <div className="absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-30 transition-opacity duration-500 blur-lg pointer-events-none" style={{ background: dominantColor }} />
+      <div className="relative overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.04] group-hover:ring-white/[0.1] transition-all duration-300">
+        <img src={game.cover} alt={game.name} {...imgProtect} className="w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] select-none pointer-events-none" />
         {/* Bottom gradient with name + rating */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/60 to-transparent p-3 pt-14">
-          <p className="text-[12px] text-white font-bold truncate drop-shadow-lg">{game.name}</p>
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/50 to-transparent p-2.5 pt-10">
+          <p className="text-[11px] text-white font-bold truncate drop-shadow-lg">{game.name}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <Star size={9} className="text-amber-400" fill="currentColor" />
-            <span className="text-[9px] text-amber-400 font-bold">{game.rating}</span>
-            <span className="text-[8px] text-white/25">·</span>
-            <span className="text-[8px] text-white/35">{game.releaseYear}</span>
+            <Star size={8} className="text-amber-400" fill="currentColor" />
+            <span className="text-[8px] text-amber-400 font-bold">{game.rating}</span>
+            <span className="text-[7px] text-white/20">|</span>
+            <span className="text-[7px] text-white/30">{game.releaseYear}</span>
           </div>
         </div>
-        {/* Single fav button */}
         {/* Genre badge */}
-        <div className="absolute top-2 right-2">
-          <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-black/40 backdrop-blur-md text-white/70 font-bold border border-white/[0.08]">{game.genre[0]}</span>
+        <div className="absolute top-1.5 right-1.5">
+          <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-md text-white/60 font-bold border border-white/[0.06]">{game.genre[0]}</span>
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onFav(); }}
           className={cn(
-            "absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg",
+            "absolute top-1.5 left-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg",
             isFav
-              ? "bg-red-500 text-white shadow-red-500/50"
-              : "bg-black/50 backdrop-blur-sm text-white/70 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/50"
+              ? "bg-red-500 text-white shadow-red-500/40"
+              : "bg-black/40 backdrop-blur-sm text-white/60 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/40"
           )}
         >
-          <Heart size={13} fill={isFav ? "white" : "none"} />
+          <Heart size={11} fill={isFav ? "white" : "none"} />
         </button>
       </div>
       <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
@@ -439,62 +438,67 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   return (
     <div className="w-full" style={{ direction: "rtl" }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <button onClick={onBack} className="p-1.5 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors"><ArrowLeft size={16} /></button>
-          <h1 className="text-base sm:text-xl font-black text-white tracking-tight">مكتبة الألعاب</h1>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-nf-secondary/50 text-nf-dim font-semibold">{GAMES.length} لعبة</span>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5">
+          <button onClick={onBack} className="p-2 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors border border-white/5 hover:border-white/10"><ArrowLeft size={16} /></button>
+          <div>
+            <h1 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2"><Gamepad2 size={18} className="text-nf-accent/60" />مكتبة الألعاب</h1>
+            <p className="text-[9px] text-nf-dim/50">اكتشف ألعابك المفضلة وتابعها</p>
+          </div>
+          <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold border border-nf-accent/20">{GAMES.length} لعبة</span>
         </div>
         <div className="flex items-center gap-2">
           {favoriteIds.length > 0 && (
-            <button onClick={() => setShowFavOnly(!showFavOnly)} className={cn("flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-bold transition-all", showFavOnly ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-red-500/10 text-red-400 hover:bg-red-500/15")}>
-              <Heart size={10} fill={showFavOnly ? "currentColor" : "none"} /> {favoriteIds.length}/20
+            <button onClick={() => setShowFavOnly(!showFavOnly)} className={cn("flex items-center gap-1 text-[9px] px-2.5 py-1 rounded-full font-bold transition-all border", showFavOnly ? "bg-red-500/15 text-red-400 border-red-500/25" : "bg-red-500/5 text-red-400/70 hover:bg-red-500/10 border-red-500/10 hover:border-red-500/20")}>
+              <Heart size={9} fill={showFavOnly ? "currentColor" : "none"} /> {favoriteIds.length}/20
             </button>
           )}
-          <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className="p-2 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors">
-            {layout === "grid" ? <LayoutList size={15} /> : <Grid3X3 size={15} />}
+          <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className={cn("p-1.5 rounded-lg text-nf-dim hover:text-white transition-colors border", layout === "grid" ? "bg-nf-secondary/20 border-white/5" : "bg-nf-accent/10 border-nf-accent/20 text-nf-accent")}>
+            {layout === "grid" ? <LayoutList size={14} /> : <Grid3X3 size={14} />}
           </button>
         </div>
       </div>
 
       {/* Hero Banner */}
       {heroGame && !searchQuery && !genreFilter && !platformFilter && activeTab === "all" && (
-        <motion.div key={heroGame.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="relative h-[140px] sm:h-[200px] rounded-2xl overflow-hidden mb-4 group cursor-pointer" onClick={() => { const g = heroGame; if (g.steamUrl) window.open(g.steamUrl, "_blank"); }}>
-          <img src={heroGame.cover} alt={heroGame.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 select-none pointer-events-none" />
+        <motion.div key={heroGame.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="relative h-[150px] sm:h-[220px] rounded-2xl overflow-hidden mb-4 group cursor-pointer border border-white/5 hover:border-white/10 transition-colors" onClick={() => { const g = heroGame; if (g.steamUrl) window.open(g.steamUrl, "_blank"); }}>
+          <img src={heroGame.cover} alt={heroGame.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03] select-none pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-l from-black/90 via-black/50 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="absolute bottom-0 right-0 p-4 sm:p-6">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Flame size={12} className="text-orange-400" />
-              <span className="text-[9px] text-orange-400 font-bold uppercase tracking-wider">مميز</span>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Flame size={11} className="text-orange-400" />
+              <span className="text-[8px] text-orange-400 font-bold uppercase tracking-wider">مميز اليوم</span>
             </div>
-            <h2 className="text-lg sm:text-2xl font-black text-white mb-1">{heroGame.name}</h2>
+            <h2 className="text-lg sm:text-2xl font-black text-white mb-1.5 drop-shadow-lg">{heroGame.name}</h2>
             <div className="flex items-center gap-2 text-[10px] text-white/60">
-              <span className="flex items-center gap-0.5"><Star size={9} className="text-amber-400" fill="currentColor" /> {heroGame.rating}</span>
+              <span className="flex items-center gap-0.5"><Star size={9} className="text-amber-400" fill="currentColor" /> <span className="text-amber-400 font-bold">{heroGame.rating}</span></span>
+              <span className="text-white/30">|</span>
               <span>{heroGame.releaseYear}</span>
-              <span className="px-1.5 py-0.5 rounded bg-white/10 text-white/70">{heroGame.genre[0]}</span>
+              <span className="text-white/30">|</span>
+              <span className="px-1.5 py-0.5 rounded-md bg-white/10 text-white/70 font-semibold">{heroGame.genre[0]}</span>
             </div>
           </div>
           {/* Hero dots */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
             {featured.map((_, i) => (
-              <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }} className={cn("w-1.5 h-1.5 rounded-full transition-all", i === heroIdx ? "bg-white w-4" : "bg-white/30 hover:bg-white/50")} />
+              <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }} className={cn("h-1 rounded-full transition-all", i === heroIdx ? "bg-white w-5" : "bg-white/30 w-1.5 hover:bg-white/50")} />
             ))}
           </div>
         </motion.div>
       )}
 
       {/* Quick Tabs */}
-      <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
+      <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1 scrollbar-none">
         {[
-          { id: "all" as const, label: "الكل", icon: <Gamepad2 size={11} /> },
-          { id: "followed" as const, label: "المتابَعين", icon: <Heart size={11} /> },
-          { id: "trending" as const, label: "رائج", icon: <TrendingUp size={11} /> },
-          { id: "new" as const, label: "جديد", icon: <Zap size={11} /> },
-          { id: "best" as const, label: "الأفضل", icon: <Crown size={11} /> },
-          { id: "hot" as const, label: "شو رائج؟", icon: <Flame size={11} /> },
+          { id: "all" as const, label: "الكل", icon: <Gamepad2 size={10} /> },
+          { id: "followed" as const, label: "المتابَعين", icon: <Heart size={10} /> },
+          { id: "trending" as const, label: "رائج", icon: <TrendingUp size={10} /> },
+          { id: "new" as const, label: "جديد", icon: <Zap size={10} /> },
+          { id: "best" as const, label: "الأفضل", icon: <Crown size={10} /> },
+          { id: "hot" as const, label: "شو رائج؟", icon: <Flame size={10} /> },
         ].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all", activeTab === tab.id ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/20 text-nf-dim hover:text-white border border-white/5")}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border", activeTab === tab.id ? "bg-nf-accent/15 text-nf-accent border-nf-accent/25" : "bg-nf-secondary/10 text-nf-dim hover:text-white border-white/5 hover:border-white/10")}>
             {tab.icon} {tab.label}
           </button>
         ))}
@@ -502,8 +506,8 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
       {/* Search */}
       <div className="relative mb-3">
-        <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim" />
-        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، مطور، أو نوع..." className="w-full bg-nf-secondary/20 rounded-xl pr-9 pl-4 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-2 focus:ring-nf-accent/25 transition-all border border-white/5 focus:border-nf-accent/30" />
+        <Search size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim/50" />
+        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، مطور، أو نوع..." className="w-full bg-nf-secondary/15 rounded-xl pr-9 pl-4 py-2 text-[11px] text-nf-text placeholder:text-nf-dim/40 outline-none focus:ring-1 focus:ring-nf-accent/20 transition-all border border-white/5 focus:border-nf-accent/25" />
       </div>
 
       {/* Filter Row: Dropdowns */}
@@ -580,17 +584,21 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
       {/* Grid / List */}
       {layout === "grid" ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
           {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" />))}
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="list" />))}
         </div>
       )}
 
       {filtered.length === 0 && (
-        <div className="text-center py-16"><Gamepad2 size={32} className="text-nf-dim/20 mx-auto mb-3" /><p className="text-sm text-nf-dim">لا توجد نتائج</p></div>
+        <div className="text-center py-16">
+          <div className="w-14 h-14 rounded-2xl bg-nf-secondary/20 flex items-center justify-center mx-auto mb-3 border border-white/5"><Gamepad2 size={24} className="text-nf-dim/30" /></div>
+          <p className="text-[12px] text-nf-dim font-semibold">لا توجد نتائج</p>
+          <p className="text-[10px] text-nf-dim/40 mt-1">جرّب تغيير الفلاتر أو البحث بكلمات أخرى</p>
+        </div>
       )}
 
       <AnimatePresence>
