@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BarChart3 } from "lucide-react";
+import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BarChart3, BookOpen, Languages, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -108,6 +108,9 @@ export default function PostCard({
   const [dblClickAnim, setDblClickAnim] = useState(false);
   const [pollVotes, setPollVotes] = useState<number[]>(poll?.votes || []);
   const [myPollVote, setMyPollVote] = useState<number | null>(null);
+  // AI
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Check if user already voted in poll
   useEffect(() => {
@@ -179,6 +182,44 @@ export default function PostCard({
         } catch {}
       }
     } catch {}
+  };
+
+  // AI explain post
+  const handleAiExplain = async (mode: "explain" | "summarize" | "translate") => {
+    const apiKey = localStorage.getItem("nf-ai-key") || "";
+    const provider = localStorage.getItem("nf-ai-provider") || "deepseek";
+    const model = localStorage.getItem("nf-ai-model") || "deepseek-chat";
+    if (!apiKey) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي ⚙️"); return; }
+    setAiLoading(true);
+    setAiResult(null);
+    setShowMenu(false);
+    try {
+      const prompts: Record<string, string> = {
+        explain: `اشرح لي هذا المنشور بشكل مبسط ومختصر (3-4 أسطر) كأنك تشرحه لشخص مش فاهمه:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        summarize: `لخّص هذا المنشور في 2-3 أسطر فقط:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        translate: `ترجم هذا المنشور للإنجليزية بشكل مبسط:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+      };
+      const systemPrompts: Record<string, string> = {
+        explain: "أنت مساعد يشرح المنشورات ببساطة ووضوح بالعربية. اكتب 3-4 أسطر فقط بدون عناوين.",
+        summarize: "أنت مساعد يلخّص المنشورات باختصار بالعربية. اكتب 2-3 أسطر فقط.",
+        translate: "أنت مساعد يترجم من العربية للإنجليزية بشكل طبيعي ومبسط.",
+      };
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, model, apiKey, messages: [{ role: "user", content: prompts[mode] }], systemPrompt: systemPrompts[mode], maxTokens: 400 }),
+      });
+      const data = await res.json();
+      let text = "";
+      if (provider === "gemini") text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      else if (provider === "claude") text = data.content?.[0]?.text || "";
+      else text = data.choices?.[0]?.message?.content || "";
+      setAiResult(text || "لم أستطع توليد رد");
+    } catch (err: any) {
+      setAiResult(`خطأ: ${(err?.message || "").slice(0, 60)}`);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleShare = () => {
@@ -402,6 +443,18 @@ export default function PostCard({
             <>
               <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
               <div className="absolute left-0 top-full mt-1 bg-nf-primary border border-nf-border-2 rounded-lg overflow-hidden z-50 min-w-[140px]">
+                {/* AI Tools */}
+                <div className="px-3 py-1.5 text-[9px] text-nf-accent/60 font-bold uppercase tracking-wider border-b border-nf-border-2">أدوات الذكاء الاصطناعي</div>
+                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("explain"); }} disabled={aiLoading} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-accent hover:bg-nf-accent/10 transition-colors disabled:opacity-40">
+                  <BookOpen size={12} /> {aiLoading ? "جاري الشرح..." : "شرح المنشور"}
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("summarize"); }} disabled={aiLoading} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-accent hover:bg-nf-accent/10 transition-colors disabled:opacity-40">
+                  <FileText size={12} /> تلخيص
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("translate"); }} disabled={aiLoading} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-accent hover:bg-nf-accent/10 transition-colors disabled:opacity-40">
+                  <Languages size={12} /> ترجمة
+                </button>
+                <div className="h-px bg-nf-border-2" />
                 {user && authorUid === user.uid && onEditClick && (
                   <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEditClick(postId || ""); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
                     <Pencil size={12} /> تعديل المنشور
@@ -444,6 +497,18 @@ export default function PostCard({
           <button onClick={(e) => { e.stopPropagation(); handleQuickReply(); }} disabled={!quickReplyText.trim()} className={cn("p-1.5 rounded-full transition-colors", quickReplyText.trim() ? "text-nf-accent hover:bg-nf-accent/10" : "text-nf-dim")}>
             <Send size={14} />
           </button>
+        </div>
+      )}
+
+      {/* AI Result */}
+      {(aiResult || aiLoading) && (
+        <div className="px-4 py-2.5 border-t border-nf-border-2/50 bg-nf-accent/[0.03]">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Sparkles size={10} className={aiLoading ? "animate-spin text-nf-accent" : "text-nf-accent/60"} />
+            <span className="text-[9px] text-nf-accent/60 font-bold">{aiLoading ? "جاري التحليل..." : "نتيجة الذكاء الاصطناعي"}</span>
+            {aiResult && <button onClick={() => setAiResult(null)} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={10} /></button>}
+          </div>
+          {aiResult && <p className="text-[11px] text-nf-muted leading-relaxed">{aiResult}</p>}
         </div>
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowUp, ArrowDown, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, Flag, Code2, Trash2, Pencil, ExternalLink, ArrowUpCircle, Link2, BarChart3, Clock } from "lucide-react";
+import { ArrowRight, ArrowUp, ArrowDown, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, Flag, Code2, Trash2, Pencil, ExternalLink, ArrowUpCircle, Link2, BarChart3, Clock, Sparkles, BookOpen, Languages, FileText, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { doc, getDoc, getDocs, collection, query, orderBy, addDoc, updateDoc, increment, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -248,6 +248,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const [views, setViews] = useState(0);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  // AI
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Scroll progress
   useEffect(() => {
@@ -302,6 +305,44 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     }
   };
   const [showPostReport, setShowPostReport] = useState(false);
+
+  // AI explain post
+  const handleAiExplain = async (mode: "explain" | "summarize" | "translate") => {
+    const apiKey = localStorage.getItem("nf-ai-key") || "";
+    const provider = localStorage.getItem("nf-ai-provider") || "deepseek";
+    const model = localStorage.getItem("nf-ai-model") || "deepseek-chat";
+    if (!apiKey) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي ⚙️"); return; }
+    if (!post) return;
+    setAiLoading(true);
+    setAiResult(null);
+    try {
+      const prompts: Record<string, string> = {
+        explain: `اشرح لي هذا المنشور بشكل مبسط ومختصر (3-4 أسطر) كأنك تشرحه لشخص مش فاهمه:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        summarize: `لخّص هذا المنشور في 2-3 أسطر فقط:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        translate: `ترجم هذا المنشور للإنجليزية بشكل مبسط:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+      };
+      const systemPrompts: Record<string, string> = {
+        explain: "أنت مساعد يشرح المنشورات ببساطة ووضوح بالعربية. اكتب 3-4 أسطر فقط بدون عناوين.",
+        summarize: "أنت مساعد يلخّص المنشورات باختصار بالعربية. اكتب 2-3 أسطر فقط.",
+        translate: "أنت مساعد يترجم من العربية للإنجليزية بشكل طبيعي ومبسط.",
+      };
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, model, apiKey, messages: [{ role: "user", content: prompts[mode] }], systemPrompt: systemPrompts[mode], maxTokens: 400 }),
+      });
+      const data = await res.json();
+      let text = "";
+      if (provider === "gemini") text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      else if (provider === "claude") text = data.content?.[0]?.text || "";
+      else text = data.choices?.[0]?.message?.content || "";
+      setAiResult(text || "لم أستطع توليد رد");
+    } catch (err: any) {
+      setAiResult(`خطأ: ${(err?.message || "").slice(0, 60)}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const setPostVote = async (dir: 1 | -1) => {
     if (!user) return;
@@ -542,6 +583,12 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           </div>
           <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /> {postSaved ? "محفوظ" : "حفظ"}</button>
           <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
+          {/* AI Tools */}
+          <div className="flex items-center gap-1 mr-auto">
+            <button onClick={() => handleAiExplain("explain")} disabled={aiLoading} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", aiLoading ? "opacity-40" : "hover:bg-nf-accent/10 text-nf-accent")}><BookOpen size={14} /> {aiLoading ? "جاري..." : "شرح"}</button>
+            <button onClick={() => handleAiExplain("summarize")} disabled={aiLoading} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", aiLoading ? "opacity-40" : "hover:bg-nf-accent/10 text-nf-accent")}><FileText size={14} /> تلخيص</button>
+            <button onClick={() => handleAiExplain("translate")} disabled={aiLoading} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", aiLoading ? "opacity-40" : "hover:bg-nf-accent/10 text-nf-accent")}><Languages size={14} /> ترجمة</button>
+          </div>
           {user && post?.authorUid === user.uid && onEditClick && (
             <button onClick={() => onEditClick(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Pencil size={14} /> تعديل</button>
           )}
@@ -552,6 +599,18 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         </div>
         <ReportModal open={showPostReport} onClose={() => setShowPostReport(false)} type="post" targetId={postId} />
       </article>
+
+      {/* AI Result */}
+      {(aiResult || aiLoading) && (
+        <div className="mx-4 my-2 p-3 rounded-xl border border-nf-accent/20 bg-nf-accent/[0.03]">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Sparkles size={11} className={aiLoading ? "animate-spin text-nf-accent" : "text-nf-accent/60"} />
+            <span className="text-[10px] text-nf-accent/60 font-bold">{aiLoading ? "جاري التحليل..." : "نتيجة الذكاء الاصطناعي"}</span>
+            {aiResult && <button onClick={() => setAiResult(null)} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={11} /></button>}
+          </div>
+          {aiResult && <p className="text-[12px] text-nf-muted leading-relaxed">{aiResult}</p>}
+        </div>
+      )}
 
       {/* Comment Input - pill shaped like original */}
       {user ? (
