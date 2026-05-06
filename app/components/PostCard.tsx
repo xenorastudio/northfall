@@ -105,7 +105,6 @@ export default function PostCard({
   const [showQuickReply, setShowQuickReply] = useState(false);
   const [quickReplyText, setQuickReplyText] = useState("");
   const [blurRevealed, setBlurRevealed] = useState(false);
-  const [voteAnim, setVoteAnim] = useState<"up" | "down" | null>(null);
   const [dblClickAnim, setDblClickAnim] = useState(false);
   const [pollVotes, setPollVotes] = useState<number[]>(poll?.votes || []);
   const [myPollVote, setMyPollVote] = useState<number | null>(null);
@@ -146,8 +145,6 @@ export default function PostCard({
     const newVote = myVote === dir ? 0 : dir;
     const diff = newVote - myVote;
     setMyVote(newVote);
-    setVoteAnim(dir === 1 ? "up" : "down");
-    setTimeout(() => setVoteAnim(null), 600);
     setVoteCount(voteCount + diff);
     try {
       // Use increment to avoid race conditions
@@ -382,10 +379,9 @@ export default function PostCard({
       {/* Footer - always visible */}
       <div className="flex items-center gap-3 px-4 py-1.5 text-nf-muted">
         <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1.5 py-0.5">
-          <button onClick={(e) => { e.stopPropagation(); handleVote(1); }} className={cn("p-1 rounded-md transition-all duration-200", myVote === 1 ? "text-orange-500 bg-orange-500/10 scale-110" : "text-nf-muted hover:text-orange-500 hover:bg-orange-500/5")}><ArrowUp size={16} /></button>
-          <span className={cn("text-xs font-bold min-w-[20px] text-center transition-all duration-200", myVote === 1 ? "text-orange-500" : myVote === -1 ? "text-blue-400" : voteCount > 0 ? "text-orange-500" : voteCount < 0 ? "text-blue-400" : "text-nf-muted")}>{voteCount}</span>
-          <button onClick={(e) => { e.stopPropagation(); handleVote(-1); }} className={cn("p-1 rounded-md transition-all duration-200", myVote === -1 ? "text-blue-400 bg-blue-400/10 scale-110" : "text-nf-muted hover:text-blue-400 hover:bg-blue-400/5")}><ArrowDown size={16} /></button>
-          {voteAnim && <motion.span initial={{ opacity: 1, y: 0, scale: 1 }} animate={{ opacity: 0, y: voteAnim === "up" ? -14 : 14, scale: 1.5 }} transition={{ duration: 0.5 }} className={cn("absolute text-[10px] font-bold pointer-events-none", voteAnim === "up" ? "text-[#ff4444]" : "text-nf-accent")}>{voteAnim === "up" ? "+1" : "-1"}</motion.span>}
+          <button onClick={(e) => { e.stopPropagation(); handleVote(1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === 1 ? "text-orange-500" : "text-nf-dim hover:text-nf-muted")}><ArrowUp size={16} /></button>
+          <span className={cn("text-xs font-bold min-w-[20px] text-center", myVote === 1 ? "text-orange-500" : myVote === -1 ? "text-blue-400" : voteCount > 0 ? "text-orange-500" : voteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{voteCount}</span>
+          <button onClick={(e) => { e.stopPropagation(); handleVote(-1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
         </div>
         <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
           <MessageSquare size={14} /><span>{comments} {t("pc.comments")}</span>

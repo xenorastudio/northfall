@@ -176,9 +176,9 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
             {/* Actions */}
             <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
               <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1 py-0.5">
-                <button onClick={() => handleVote(1)} className={cn("p-0.5 rounded transition-all duration-200", myVote === 1 ? "text-orange-500 bg-orange-500/10" : "text-nf-muted hover:text-orange-500")}><ArrowUp size={12} /></button>
-                <span className={cn("font-bold min-w-[14px] text-center text-[11px]", myVote === 1 ? "text-orange-500" : myVote === -1 ? "text-blue-400" : voteCount > 0 ? "text-orange-500" : voteCount < 0 ? "text-blue-400" : "text-nf-muted")}>{voteCount}</span>
-                <button onClick={() => handleVote(-1)} className={cn("p-0.5 rounded transition-all duration-200", myVote === -1 ? "text-blue-400 bg-blue-400/10" : "text-nf-muted hover:text-blue-400")}><ArrowDown size={12} /></button>
+                <button onClick={() => handleVote(1)} className={cn("p-0.5 rounded transition-colors duration-150", myVote === 1 ? "text-orange-500" : "text-nf-dim hover:text-nf-muted")}><ArrowUp size={12} /></button>
+                <span className={cn("font-bold min-w-[14px] text-center text-[11px]", myVote === 1 ? "text-orange-500" : myVote === -1 ? "text-blue-400" : voteCount > 0 ? "text-orange-500" : voteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{voteCount}</span>
+                <button onClick={() => handleVote(-1)} className={cn("p-0.5 rounded transition-colors duration-150", myVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={12} /></button>
               </div>
               <button onClick={() => onReply(comment.id, comment.authorName || t("gen.user"))} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
                 <MessageSquare size={11} /><span>{t("pd.reply")}</span>
@@ -246,7 +246,6 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [commentSearch, setCommentSearch] = useState("");
   const [views, setViews] = useState(0);
-  const [voteAnim, setVoteAnim] = useState<"up" | "down" | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -310,9 +309,6 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     const diff = newVote - postMyVote;
     setPostMyVote(newVote);
     setPostVoteCount(postVoteCount + diff);
-    if (newVote === 1) { setVoteAnim("up"); setTimeout(() => setVoteAnim(null), 800); }
-    else if (newVote === -1) { setVoteAnim("down"); setTimeout(() => setVoteAnim(null), 800); }
-    else setVoteAnim(null);
     try {
       await updateDoc(doc(db, "posts", postId), { votes: increment(diff) });
       if (newVote === 0) {
@@ -429,40 +425,6 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
 
       {/* Post - flat, no border */}
       <article className="mb-4 relative" onDoubleClick={() => { if (postMyVote !== 1) setPostVote(1); }}>
-        {/* Vote Reaction Animation - Facebook style particles */}
-        <AnimatePresence>
-          {voteAnim && (
-            <>
-              {voteAnim === "up" ? (
-                ["❤️","🔥","⭐","💯","✨"].map((emoji, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 1, scale: 0, x: 0, y: 0 }}
-                    animate={{ opacity: [1, 1, 0], scale: [0, 1.4, 0.8], x: (i - 2) * 35, y: [0, -40 - i * 15, -80 - i * 10] }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 1, ease: "easeOut", delay: i * 0.06 }}
-                    className="absolute top-1/3 left-1/2 -translate-x-1/2 z-20 pointer-events-none text-3xl select-none"
-                  >
-                    {emoji}
-                  </motion.div>
-                ))
-              ) : (
-                ["👎","😢","😤"].map((emoji, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 1, scale: 0, x: 0, y: 0 }}
-                    animate={{ opacity: [1, 1, 0], scale: [0, 1.2, 0.6], x: (i - 1) * 40, y: [0, -30 - i * 10, -60 - i * 8] }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.8, ease: "easeOut", delay: i * 0.08 }}
-                    className="absolute top-1/3 left-1/2 -translate-x-1/2 z-20 pointer-events-none text-3xl select-none"
-                  >
-                    {emoji}
-                  </motion.div>
-                ))
-              )}
-            </>
-          )}
-        </AnimatePresence>
         <div className="px-4 pt-3 pb-2">
           <div className="flex items-center gap-2 text-[13px] mb-1.5">
             <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
@@ -543,9 +505,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         </div>
         <div className="flex items-center gap-2 px-4 py-2 text-nf-muted">
           <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1.5 py-0.5">
-            <button onClick={() => setPostVote(1)} className={cn("p-1 rounded-md transition-all duration-200", postMyVote === 1 ? "text-orange-500 bg-orange-500/10 scale-110" : "text-nf-muted hover:text-orange-500 hover:bg-orange-500/5")}><ArrowUp size={16} /></button>
-            <span className={cn("text-xs font-bold min-w-[20px] text-center transition-all duration-200", postMyVote === 1 ? "text-orange-500" : postMyVote === -1 ? "text-blue-400" : postVoteCount > 0 ? "text-orange-500" : postVoteCount < 0 ? "text-blue-400" : "text-nf-muted")}>{postVoteCount}</span>
-            <button onClick={() => setPostVote(-1)} className={cn("p-1 rounded-md transition-all duration-200", postMyVote === -1 ? "text-blue-400 bg-blue-400/10 scale-110" : "text-nf-muted hover:text-blue-400 hover:bg-blue-400/5")}><ArrowDown size={16} /></button>
+            <button onClick={() => setPostVote(1)} className={cn("p-1 rounded-md transition-colors duration-150", postMyVote === 1 ? "text-orange-500" : "text-nf-dim hover:text-nf-muted")}><ArrowUp size={16} /></button>
+            <span className={cn("text-xs font-bold min-w-[20px] text-center", postMyVote === 1 ? "text-orange-500" : postMyVote === -1 ? "text-blue-400" : postVoteCount > 0 ? "text-orange-500" : postVoteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{postVoteCount}</span>
+            <button onClick={() => setPostVote(-1)} className={cn("p-1 rounded-md transition-colors duration-150", postMyVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
           </div>
           <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0} {t("pd.comments")}</button>
           <div className="relative" onMouseLeave={() => setShowShareMenu(false)}>
