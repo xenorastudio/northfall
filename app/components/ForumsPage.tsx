@@ -10,7 +10,7 @@ import {
   ArrowLeft, ArrowUp, ThumbsUp, ThumbsDown, Share2, Reply, Home, Star,
   HelpCircle, Lightbulb, Bug, Sparkles, BookOpen, Menu, Calendar, MessageCirclePlus,
   LogIn, Settings, Bell, TrendingUp, Shield, Award, BarChart3, Users, Activity, RotateCcw, ChevronDown, Check,
-  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download
+  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText
 } from "lucide-react";
 import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -1123,13 +1123,30 @@ export default function ForumsPage() {
     if (provider === "chatanywhere") {
       const key = aiApiKey || "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7";
       const allMsgs = systemPrompt ? [{ role: "system", content: systemPrompt }, ...contextMessages] : contextMessages;
-      const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model, messages: allMsgs, max_tokens: 512, temperature: 0.7 }),
-      });
-      const data = await res.json();
-      return data?.choices?.[0]?.message?.content || "";
+      try {
+        const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+          body: JSON.stringify({ model, messages: allMsgs, ...AI_CONFIG }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        return data?.choices?.[0]?.message?.content || "";
+      } catch (err: any) {
+        // If chatanywhere fails, try the server proxy as fallback
+        console.warn("ChatAnywhere direct failed, trying proxy:", err?.message);
+        const res = await fetch("/api/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ provider: "deepseek", model: "deepseek-chat", messages: contextMessages, apiKey: aiApiKey, systemPrompt, ...AI_CONFIG }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data.choices?.[0]?.message?.content || "";
+      }
     }
     const res = await fetch("/api/ai", {
       method: "POST",
@@ -2599,13 +2616,23 @@ export default function ForumsPage() {
                               <button onClick={async () => {
                                 if (!aiApiKey) { showToast("أضف API key"); return; }
                                 setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
-                                try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `ترجم هذا الرد للإنجليزية بشكل احترافي:\n\n${reply.text}` }], "أنت مترجم محترف. ترجم النص فقط بدون أي شرح."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "ترجمة", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
+                                try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `ترجم هذا الرد ل${({en:"الإنجليزية",ar:"العربية",fr:"الفرنسية",de:"الألمانية",es:"الإسبانية",tr:"التركية",ja:"اليابانية",ko:"الكورية",zh:"الصينية",ru:"الروسية"})[localStorage.getItem("nf-ai-translate-lang")||"en"]||"الإنجليزية"} بشكل احترافي:\n\n${reply.text}` }], "أنت مترجم محترف. ترجم النص فقط بدون أي شرح. إذا النص بنفس لغة الهدف، ترجمه للعربية."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "ترجمة", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
                               }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Globe size={11} /> ترجم</button>
                               <button onClick={async () => {
                                 if (!aiApiKey) { showToast("أضف API key"); return; }
                                 setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
                                 try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `صحح الأخطاء اللغوية والنحوية في هذا الرد:\n\n${reply.text}` }], "أنت مدقق لغوي. صحح الأخطاء فقط وأعد النص المصحح. بدون شرح."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "تصحيح", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
                               }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Edit3 size={11} /> صحح</button>
+                              <button onClick={async () => {
+                                if (!aiApiKey) { showToast("أضف API key"); return; }
+                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
+                                try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `استخرج أهم النقاط الرئيسية من هذا الرد كقائمة مختصرة:\n\n${reply.text}` }], "أنت مساعد بيستخرج النقاط الرئيسية. اكتب قائمة مختصرة بالعربية بدون إيموجي."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "نقاط", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
+                              }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><FileText size={11} /> نقاط</button>
+                              <button onClick={async () => {
+                                if (!aiApiKey) { showToast("أضف API key"); return; }
+                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
+                                try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `حسّن هذا الرد بأسلوب احترافي وجذاب مع الحفاظ على المعنى:\n\n${reply.text}` }], "أنت محرر محترف. حسّن النص بأسلوب احترافي. أجب بالنص المحسّن فقط بدون شرح."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "تحسين", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
+                              }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Sparkles size={11} /> حسّن</button>
                               <div className="relative ml-auto" ref={menuOpen === reply.id ? menuRef : undefined}>
                                 <button onClick={() => setMenuOpen(menuOpen === reply.id ? null : reply.id)} className="text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40"><MoreHorizontal size={14} /></button>
                                 {menuOpen === reply.id && (

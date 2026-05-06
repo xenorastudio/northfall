@@ -286,7 +286,7 @@ export default function PostCard({
         const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model: sel.model, messages: [{ role: "system", content: systemPrompts[mode] }, { role: "user", content: prompts[mode] }], max_tokens: 512, temperature: 0.7 }),
+          body: JSON.stringify({ model: sel.model, messages: [{ role: "system", content: systemPrompts[mode] }, { role: "user", content: prompts[mode] }], max_tokens: 2000, temperature: 0.5, top_p: 0.92 }),
         });
         const data = await res.json();
         text = data?.choices?.[0]?.message?.content || "";
@@ -294,7 +294,7 @@ export default function PostCard({
         const res = await fetch("/api/ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider: sel.provider, model: sel.model, apiKey: key, messages: [{ role: "user", content: prompts[mode] }], systemPrompt: systemPrompts[mode], maxTokens: 400 }),
+          body: JSON.stringify({ provider: sel.provider, model: sel.model, apiKey: key, messages: [{ role: "user", content: prompts[mode] }], systemPrompt: systemPrompts[mode], maxTokens: 2000, temperature: 0.5, top_p: 0.92 }),
         });
         const data = await res.json();
         if (sel.provider === "gemini") text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
