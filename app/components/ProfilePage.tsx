@@ -1,15 +1,78 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield, Gamepad2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield, Gamepad2, Calendar, Tag } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import PostCard from "./PostCard";
 import { GAMES } from "./GamesPage";
 import { cn } from "@/lib/utils";
+
+const profileColorCache: Record<string, string> = {};
+function extractProfileColor(src: string): Promise<string> {
+  if (profileColorCache[src]) return Promise.resolve(profileColorCache[src]);
+  return new Promise((resolve) => {
+    const img = new Image(); img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = 8; c.height = 8;
+      const ctx = c.getContext("2d")!; ctx.drawImage(img, 0, 0, 8, 8);
+      const d = ctx.getImageData(0, 0, 8, 8).data;
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let i = 0; i < d.length; i += 4) { if (d[i+3] < 128) continue; r += d[i]; g += d[i+1]; b += d[i+2]; count++; }
+      if (!count) { resolve("rgb(30,30,40)"); return; }
+      r = Math.round(r/count*0.35); g = Math.round(g/count*0.35); b = Math.round(b/count*0.35);
+      const color = `rgb(${r},${g},${b})`; profileColorCache[src] = color; resolve(color);
+    };
+    img.onerror = () => resolve("rgb(30,30,40)"); img.src = src;
+  });
+}
+
+function ProfileGameCard({ game }: { game: { id: string; name: string; cover: string; rating: number; releaseYear: number; genre: string[]; description: string; platforms: string[]; players: string; developer: string } }) {
+  const [dominantColor, setDominantColor] = useState("rgb(30,30,40)");
+  const [hovered, setHovered] = useState(false);
+  const loadedRef = useRef(false);
+  useEffect(() => { if (!loadedRef.current) { loadedRef.current = true; extractProfileColor(game.cover).then(c => setDominantColor(c)); } }, [game.cover]);
+  return (
+    <div className="group relative" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/5 group-hover:ring-white/10 transition-all duration-300">
+        <img src={game.cover} alt={game.name} draggable={false} onContextMenu={e => e.preventDefault()} className="w-full aspect-[3/4] object-cover transition-transform duration-700 ease-out group-hover:scale-105 select-none pointer-events-none" />
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-2.5 pt-10">
+          <p className="text-[10px] text-white font-bold truncate drop-shadow-md">{game.name}</p>
+          <div className="flex items-center gap-1 mt-0.5">
+            <Star size={8} className="text-amber-400" fill="currentColor" />
+            <span className="text-[8px] text-amber-400 font-bold">{game.rating}</span>
+            <span className="text-[7px] text-white/30">·</span>
+            <span className="text-[7px] text-white/40">{game.releaseYear}</span>
+          </div>
+        </div>
+        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-500/90 flex items-center justify-center shadow-sm shadow-red-500/40">
+          <Heart size={9} className="text-white" fill="white" />
+        </div>
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ boxShadow: `inset 0 0 50px 8px ${dominantColor}` }} />
+      </div>
+      <AnimatePresence>
+        {hovered && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }} className="absolute top-full right-0 left-0 z-40 mt-1.5">
+            <div className="rounded-2xl p-3 shadow-2xl shadow-black/70 border border-white/5" style={{ backgroundColor: dominantColor, backdropFilter: "blur(40px) saturate(1.5)" }}>
+              <p className="text-[10px] text-white/70 leading-relaxed mb-2">{game.description}</p>
+              <div className="flex flex-wrap gap-1 mb-2">
+                {game.genre.map(g => (<span key={g} className="text-[7px] px-1.5 py-0.5 rounded-md bg-white/10 text-white/80 font-semibold">{g}</span>))}
+              </div>
+              <div className="flex items-center gap-3 text-[8px] text-white/40">
+                <span className="flex items-center gap-0.5"><Users size={7} /> {game.players}</span>
+                <span className="flex items-center gap-0.5"><Calendar size={7} /> {game.releaseYear}</span>
+                <span className="flex items-center gap-0.5"><Tag size={7} /> {game.developer}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 const tabs = [
   { icon: FileText, labelKey: "pp.posts", id: "posts" },
@@ -569,23 +632,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 <p className="text-xs text-nf-muted mb-3 font-bold flex items-center gap-1.5"><Gamepad2 size={12} className="text-nf-accent" /> ألعابي المفضلة</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {GAMES.filter(g => favoriteGameIds.includes(g.id)).map(g => (
-                    <div key={g.id} className="group relative">
-                      <div className="relative overflow-hidden rounded-2xl ring-1 ring-nf-border/50 group-hover:ring-nf-accent/40 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-nf-accent/10 group-hover:scale-[1.03]">
-                        <img src={g.cover} alt={g.name} draggable={false} onContextMenu={e => e.preventDefault()} className="w-full aspect-[3/4] object-cover transition-transform duration-500 group-hover:scale-110 select-none pointer-events-none" />
-                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 pt-8">
-                          <p className="text-[10px] text-white font-bold truncate">{g.name}</p>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <Star size={8} className="text-amber-400" fill="currentColor" />
-                            <span className="text-[8px] text-amber-400 font-bold">{g.rating}</span>
-                            <span className="text-[7px] text-white/40">·</span>
-                            <span className="text-[7px] text-white/50">{g.releaseYear}</span>
-                          </div>
-                        </div>
-                        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-500/90 flex items-center justify-center shadow-sm shadow-red-500/30">
-                          <Heart size={9} className="text-white" fill="white" />
-                        </div>
-                      </div>
-                    </div>
+                    <ProfileGameCard key={g.id} game={g} />
                   ))}
                 </div>
               </div>

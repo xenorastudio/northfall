@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -48,38 +48,83 @@ export const GAMES: Game[] = [
   { id: "warzone", name: "Call of Duty: Warzone", cover: "/assets/GameCovor/Warzone.png", publisher: "Activision", developer: "Raven Software", genre: ["Battle Royale", "شوتر"], rating: 4.1, releaseYear: 2020, description: "Battle Royale من Call of Duty مع 150 لاعب! أسلحة حقيقية، خرائط ضخمة، وأوضاع لعب متعددة.", platforms: ["PC", "PS", "Xbox"], players: "150" },
 ];
 
+// Color cache to avoid re-extracting
+const colorCache: Record<string, string> = {};
+
+function extractDominantColor(src: string): Promise<string> {
+  if (colorCache[src]) return Promise.resolve(colorCache[src]);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = 8; c.height = 8;
+      const ctx = c.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, 8, 8);
+      const d = ctx.getImageData(0, 0, 8, 8).data;
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 128) continue;
+        r += d[i]; g += d[i + 1]; b += d[i + 2]; count++;
+      }
+      if (count === 0) { resolve("rgb(30,30,40)"); return; }
+      r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
+      // Darken for use as background tint
+      r = Math.round(r * 0.35); g = Math.round(g * 0.35); b = Math.round(b * 0.35);
+      const color = `rgb(${r},${g},${b})`;
+      colorCache[src] = color;
+      resolve(color);
+    };
+    img.onerror = () => resolve("rgb(30,30,40)");
+    img.src = src;
+  });
+}
+
 const imgProtect = { draggable: false, onContextMenu: (e: React.MouseEvent) => e.preventDefault() } as const;
 
 function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; onFav: () => void; layout: "grid" | "list" }) {
   const [hovered, setHovered] = useState(false);
+  const [dominantColor, setDominantColor] = useState("rgb(30,30,40)");
   const tRef = useRef<NodeJS.Timeout | null>(null);
-  const onEnter = () => { tRef.current = setTimeout(() => setHovered(true), 150); };
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    if (!loadedRef.current) {
+      loadedRef.current = true;
+      extractDominantColor(game.cover).then(c => setDominantColor(c));
+    }
+  }, [game.cover]);
+
+  const onEnter = () => { tRef.current = setTimeout(() => setHovered(true), 120); };
   const onLeave = () => { if (tRef.current) clearTimeout(tRef.current); setHovered(false); };
 
   const dropInfo = (
     <motion.div
-      initial={{ opacity: 0, y: -10, scaleY: 0.85 }}
-      animate={{ opacity: 1, y: 0, scaleY: 1 }}
-      exit={{ opacity: 0, y: -10, scaleY: 0.85 }}
-      transition={{ type: "spring", stiffness: 500, damping: 28 }}
-      className="absolute top-full right-0 left-0 z-40 mt-2 origin-top"
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="absolute top-full right-0 left-0 z-40 mt-1.5"
     >
-      <div className="bg-nf-primary/90 backdrop-blur-xl border border-nf-border/50 rounded-2xl p-4 shadow-2xl shadow-black/60">
-        <p className="text-[11px] text-nf-muted leading-relaxed mb-3">{game.description}</p>
+      <div
+        className="rounded-2xl p-4 shadow-2xl shadow-black/70 border border-white/5"
+        style={{ backgroundColor: dominantColor, backdropFilter: "blur(40px) saturate(1.5)" }}
+      >
+        <p className="text-[11px] text-white/70 leading-relaxed mb-3">{game.description}</p>
         <div className="flex flex-wrap gap-1.5 mb-2.5">
           {game.genre.map(g => (
-            <span key={g} className="text-[8px] px-2 py-0.5 rounded-lg bg-nf-accent/15 text-nf-accent font-semibold">{g}</span>
+            <span key={g} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/10 text-white/80 font-semibold">{g}</span>
           ))}
         </div>
         <div className="flex flex-wrap gap-1.5 mb-2.5">
           {game.platforms.map(p => (
-            <span key={p} className="text-[8px] px-2 py-0.5 rounded-lg bg-nf-secondary/50 text-nf-dim font-semibold border border-nf-border/20">{p}</span>
+            <span key={p} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/5 text-white/50 font-semibold border border-white/5">{p}</span>
           ))}
         </div>
-        <div className="flex items-center gap-4 text-[9px] text-nf-dim">
-          <span className="flex items-center gap-1"><Users size={9} className="text-nf-accent" /> {game.players}</span>
-          <span className="flex items-center gap-1"><Calendar size={9} className="text-nf-accent" /> {game.releaseYear}</span>
-          <span className="flex items-center gap-1"><Tag size={9} className="text-nf-accent" /> {game.developer}</span>
+        <div className="flex items-center gap-4 text-[9px] text-white/40">
+          <span className="flex items-center gap-1"><Users size={9} /> {game.players}</span>
+          <span className="flex items-center gap-1"><Calendar size={9} /> {game.releaseYear}</span>
+          <span className="flex items-center gap-1"><Tag size={9} /> {game.developer}</span>
         </div>
       </div>
     </motion.div>
@@ -87,8 +132,10 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
 
   if (layout === "list") {
     return (
-      <motion.div layout onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative flex items-center gap-3 p-3 rounded-2xl bg-nf-secondary/15 hover:bg-nf-secondary/40 transition-all cursor-pointer border border-transparent hover:border-nf-border/30">
-        <img src={game.cover} alt={game.name} {...imgProtect} className="w-12 h-16 rounded-xl object-cover shrink-0 shadow-lg select-none" />
+      <div onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative flex items-center gap-3 p-3 rounded-2xl bg-nf-secondary/10 hover:bg-nf-secondary/30 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+        <div className="relative overflow-hidden rounded-xl shrink-0">
+          <img src={game.cover} alt={game.name} {...imgProtect} className="w-12 h-16 object-cover select-none" />
+        </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-bold text-white truncate">{game.name}</p>
           <p className="text-[10px] text-nf-dim mt-0.5">{game.publisher} · {game.developer}</p>
@@ -106,34 +153,45 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
           <Heart size={16} fill={isFav ? "currentColor" : "none"} />
         </button>
         <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div layout onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative text-right">
-      <div className="relative overflow-hidden rounded-2xl ring-1 ring-nf-border/50 group-hover:ring-nf-accent/40 transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-nf-accent/10 group-hover:scale-[1.03]">
-        <img src={game.cover} alt={game.name} {...imgProtect} className="w-full aspect-[3/4] object-cover transition-transform duration-500 group-hover:scale-110 select-none pointer-events-none" />
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-10">
-          <p className="text-[12px] text-white font-bold truncate">{game.name}</p>
+    <div onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative text-right">
+      <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/5 group-hover:ring-white/10 transition-all duration-300">
+        <img src={game.cover} alt={game.name} {...imgProtect} className="w-full aspect-[3/4] object-cover transition-transform duration-700 ease-out group-hover:scale-105 select-none pointer-events-none" />
+        {/* Bottom gradient with name + rating */}
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-3 pt-12">
+          <p className="text-[12px] text-white font-bold truncate drop-shadow-md">{game.name}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Star size={9} className="text-amber-400" fill="currentColor" />
             <span className="text-[9px] text-amber-400 font-bold">{game.rating}</span>
-            <span className="text-[8px] text-white/40">·</span>
-            <span className="text-[8px] text-white/50">{game.releaseYear}</span>
+            <span className="text-[8px] text-white/30">·</span>
+            <span className="text-[8px] text-white/40">{game.releaseYear}</span>
           </div>
         </div>
+        {/* Fav badge */}
         {isFav && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 25 }} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/40">
+          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/50">
             <Heart size={12} className="text-white" fill="white" />
-          </motion.div>
+          </div>
         )}
-        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg", isFav ? "bg-red-500 text-white shadow-red-500/40" : "bg-black/40 backdrop-blur-sm text-white/70 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/40")}>
+        {/* Fav button on hover */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onFav(); }}
+          className={cn(
+            "absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg",
+            isFav ? "bg-red-500 text-white shadow-red-500/50" : "bg-black/40 backdrop-blur-sm text-white/70 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/50"
+          )}
+        >
           <Heart size={13} fill={isFav ? "white" : "none"} />
         </button>
+        {/* Colored glow on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ boxShadow: `inset 0 0 60px 10px ${dominantColor}` }} />
       </div>
       <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
@@ -194,13 +252,13 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
       <div className="relative mb-3">
         <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim" />
-        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، أو نوع..." className="w-full bg-nf-secondary/25 rounded-xl pr-9 pl-4 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-2 focus:ring-nf-accent/30 transition-all border border-nf-border/30 focus:border-nf-accent/40" />
+        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، أو نوع..." className="w-full bg-nf-secondary/20 rounded-xl pr-9 pl-4 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-2 focus:ring-nf-accent/25 transition-all border border-white/5 focus:border-nf-accent/30" />
       </div>
 
       <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
-        <button onClick={() => setGenreFilter(null)} className={cn("shrink-0 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all", !genreFilter ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/25 text-nf-dim hover:text-nf-muted border border-nf-border/30")}>الكل</button>
+        <button onClick={() => setGenreFilter(null)} className={cn("shrink-0 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all", !genreFilter ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-muted border border-white/5")}>الكل</button>
         {allGenres.map(g => (
-          <button key={g} onClick={() => setGenreFilter(genreFilter === g ? null : g)} className={cn("shrink-0 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all", genreFilter === g ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/25 text-nf-dim hover:text-nf-muted border border-nf-border/30")}>{g}</button>
+          <button key={g} onClick={() => setGenreFilter(genreFilter === g ? null : g)} className={cn("shrink-0 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all", genreFilter === g ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-muted border border-white/5")}>{g}</button>
         ))}
       </div>
 
@@ -234,11 +292,11 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
       <AnimatePresence>
         {showFavModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowFavModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.85, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.85, y: 10 }} transition={{ type: "spring", stiffness: 500, damping: 28 }} className="bg-nf-primary border border-nf-border rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }} className="bg-nf-primary border border-white/10 rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-3"><Heart size={24} className="text-red-400" /></div>
               <h3 className="text-sm font-bold text-white mb-1.5">وصلت للحد الأقصى</h3>
               <p className="text-[11px] text-nf-muted mb-4">يمكنك اختيار 7 ألعاب فقط. أزل واحدة أولاً ثم أضف الجديدة.</p>
-              <button onClick={() => setShowFavModal(false)} className="px-5 py-2 rounded-xl bg-nf-accent text-white text-[12px] font-bold hover:bg-nf-accent/80 transition-colors shadow-lg shadow-nf-accent/20">فهمت</button>
+              <button onClick={() => setShowFavModal(false)} className="px-5 py-2 rounded-xl bg-nf-accent text-white text-[12px] font-bold hover:bg-nf-accent/80 transition-colors">فهمت</button>
             </motion.div>
           </motion.div>
         )}
