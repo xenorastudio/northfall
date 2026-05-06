@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Filter, Grid3X3, LayoutList } from "lucide-react";
+import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
@@ -61,7 +61,7 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleMouseEnter = () => {
-    timeoutRef.current = setTimeout(() => setHovered(true), 250);
+    timeoutRef.current = setTimeout(() => setHovered(true), 180);
   };
   const handleMouseLeave = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -70,36 +70,47 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
 
   if (layout === "list") {
     return (
-      <motion.div layout onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="group relative flex items-center gap-3 p-2 rounded-lg bg-nf-secondary/30 hover:bg-nf-secondary/60 transition-colors cursor-pointer">
-        <img src={game.cover} alt={game.name} className="w-10 h-14 rounded-md object-cover shrink-0" />
+      <motion.div layout onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="group relative flex items-center gap-3 p-2.5 rounded-xl bg-nf-secondary/20 hover:bg-nf-secondary/50 transition-all cursor-pointer border border-transparent hover:border-nf-border/40">
+        <img src={game.cover} alt={game.name} className="w-12 h-16 rounded-lg object-cover shrink-0 shadow-md" />
         <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-bold text-white truncate">{game.name}</p>
-          <p className="text-[10px] text-nf-dim">{game.publisher} · {game.releaseYear}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Star size={9} className="text-amber-400" fill="currentColor" />
-            <span className="text-[9px] text-amber-400 font-bold">{game.rating}</span>
-            {game.genre.slice(0, 2).map(g => (
-              <span key={g} className="text-[8px] px-1 py-0.5 rounded bg-nf-accent/10 text-nf-accent">{g}</span>
+          <p className="text-[13px] font-bold text-white truncate">{game.name}</p>
+          <p className="text-[10px] text-nf-dim mt-0.5">{game.publisher} · {game.developer}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="flex items-center gap-0.5"><Star size={9} className="text-amber-400" fill="currentColor" /><span className="text-[9px] text-amber-400 font-bold">{game.rating}</span></span>
+            <span className="text-[9px] text-nf-dim">{game.releaseYear}</span>
+            <span className="text-[9px] text-nf-dim">·</span>
+            <span className="text-[9px] text-nf-dim">{game.players} لاعب</span>
+          </div>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {game.genre.map(g => (
+              <span key={g} className="text-[8px] px-1.5 py-0.5 rounded-md bg-nf-accent/10 text-nf-accent font-semibold">{g}</span>
             ))}
           </div>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-1.5 rounded-lg transition-colors", isFav ? "text-red-400 hover:bg-red-400/10" : "text-nf-dim hover:text-red-400 hover:bg-red-400/5")}>
-          <Heart size={14} fill={isFav ? "currentColor" : "none"} />
+        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-2 rounded-xl transition-all", isFav ? "text-red-400 bg-red-400/10 hover:bg-red-400/20" : "text-nf-dim hover:text-red-400 hover:bg-red-400/5")}>
+          <Heart size={16} fill={isFav ? "currentColor" : "none"} />
         </button>
+
         <AnimatePresence>
           {hovered && (
-            <motion.div initial={{ opacity: 0, y: -8, scaleY: 0.8 }} animate={{ opacity: 1, y: 0, scaleY: 1 }} exit={{ opacity: 0, y: -8, scaleY: 0.8 }} transition={{ duration: 0.15, ease: "easeOut" }} className="absolute top-full right-0 left-0 z-40 mt-1 origin-top">
-              <div className="bg-nf-primary border border-nf-border rounded-lg p-3 shadow-xl shadow-black/40">
-                <p className="text-[11px] text-nf-muted leading-relaxed mb-2">{game.description}</p>
-                <div className="flex flex-wrap gap-1 mb-1.5">
+            <motion.div
+              initial={{ opacity: 0, y: -10, scaleY: 0.85 }}
+              animate={{ opacity: 1, y: 0, scaleY: 1 }}
+              exit={{ opacity: 0, y: -10, scaleY: 0.85 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className="absolute top-full right-0 left-0 z-40 mt-1.5 origin-top"
+            >
+              <div className="bg-nf-primary/95 backdrop-blur-md border border-nf-border/60 rounded-xl p-4 shadow-2xl shadow-black/50">
+                <p className="text-[11px] text-nf-muted leading-relaxed mb-2.5">{game.description}</p>
+                <div className="flex flex-wrap gap-1.5 mb-2">
                   {game.platforms.map(p => (
-                    <span key={p} className="text-[8px] px-1.5 py-0.5 rounded bg-nf-secondary text-nf-dim font-semibold">{p}</span>
+                    <span key={p} className="text-[9px] px-2 py-0.5 rounded-md bg-nf-secondary/60 text-nf-muted font-semibold border border-nf-border/30">{p}</span>
                   ))}
                 </div>
-                <div className="flex items-center gap-3 text-[9px] text-nf-dim">
-                  <span className="flex items-center gap-0.5"><Users size={8} /> {game.players}</span>
-                  <span className="flex items-center gap-0.5"><Calendar size={8} /> {game.releaseYear}</span>
-                  <span className="flex items-center gap-0.5"><Tag size={8} /> {game.developer}</span>
+                <div className="flex items-center gap-4 text-[9px] text-nf-dim">
+                  <span className="flex items-center gap-1"><Users size={9} className="text-nf-accent" /> {game.players}</span>
+                  <span className="flex items-center gap-1"><Calendar size={9} className="text-nf-accent" /> {game.releaseYear}</span>
+                  <span className="flex items-center gap-1"><Tag size={9} className="text-nf-accent" /> {game.developer}</span>
                 </div>
               </div>
             </motion.div>
@@ -111,54 +122,62 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
 
   return (
     <motion.div layout onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="group relative text-right">
-      <div className="relative overflow-hidden rounded-xl ring-1 ring-nf-border group-hover:ring-nf-accent/40 transition-all duration-200 group-hover:shadow-lg group-hover:shadow-nf-accent/5">
-        <img src={game.cover} alt={game.name} className="w-full aspect-[3/4] object-cover transition-transform duration-300 group-hover:scale-105" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-        <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
-          <div className="flex items-center gap-0.5">
-            <Star size={8} className="text-amber-400" fill="currentColor" />
-            <span className="text-[9px] text-white font-bold">{game.rating}</span>
+      <div className="relative overflow-hidden rounded-2xl ring-1 ring-nf-border/60 group-hover:ring-nf-accent/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-nf-accent/10 group-hover:scale-[1.02]">
+        <img src={game.cover} alt={game.name} className="w-full aspect-[3/4] object-cover transition-transform duration-500 group-hover:scale-110" />
+        {/* Always-visible bottom gradient with name + rating */}
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-8">
+          <p className="text-[11px] text-white font-bold truncate">{game.name}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Star size={9} className="text-amber-400" fill="currentColor" />
+            <span className="text-[9px] text-amber-400 font-bold">{game.rating}</span>
+            <span className="text-[8px] text-white/50">·</span>
+            <span className="text-[8px] text-white/50">{game.releaseYear}</span>
           </div>
         </div>
+        {/* Favorite badge */}
         {isFav && (
-          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-500/90 flex items-center justify-center shadow-sm">
-            <Heart size={10} className="text-white" fill="white" />
-          </div>
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/30">
+            <Heart size={12} className="text-white" fill="white" />
+          </motion.div>
         )}
-        <div className="absolute inset-0 flex flex-col justify-end p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <p className="text-[10px] text-white/80 leading-snug line-clamp-3 mb-1.5">{game.description}</p>
-          <div className="flex flex-wrap gap-0.5 mb-1">
-            {game.genre.map(g => (
-              <span key={g} className="text-[7px] px-1 py-0.5 rounded bg-nf-accent/20 text-nf-accent font-semibold">{g}</span>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 text-[8px] text-white/60">
-            <span>{game.releaseYear}</span>
-            <span>·</span>
-            <span>{game.players}</span>
-            <span>·</span>
-            <span>{game.platforms.slice(0, 2).join(", ")}</span>
-          </div>
-        </div>
-        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("absolute top-1.5 left-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200", isFav ? "bg-red-500/90 text-white" : "bg-black/40 text-white/60 hover:bg-red-500/80 hover:text-white opacity-0 group-hover:opacity-100")}>
-          <Heart size={11} fill={isFav ? "white" : "none"} />
+        {/* Fav button on hover */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onFav(); }}
+          className={cn(
+            "absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 shadow-md",
+            isFav ? "bg-red-500 text-white shadow-red-500/30" : "bg-black/50 backdrop-blur-sm text-white/70 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/30"
+          )}
+        >
+          <Heart size={13} fill={isFav ? "white" : "none"} />
         </button>
       </div>
-      <p className="text-[10px] text-nf-muted mt-1 truncate font-medium">{game.name}</p>
+
+      {/* Hover dropdown - big info panel */}
       <AnimatePresence>
         {hovered && (
-          <motion.div initial={{ opacity: 0, y: -6, scaleY: 0.9 }} animate={{ opacity: 1, y: 0, scaleY: 1 }} exit={{ opacity: 0, y: -6, scaleY: 0.9 }} transition={{ duration: 0.12, ease: "easeOut" }} className="absolute top-full right-0 left-0 z-40 mt-1 origin-top">
-            <div className="bg-nf-primary border border-nf-border rounded-lg p-2.5 shadow-xl shadow-black/50">
-              <p className="text-[10px] text-nf-muted leading-snug mb-1.5">{game.description}</p>
-              <div className="flex flex-wrap gap-0.5 mb-1">
-                {game.platforms.map(p => (
-                  <span key={p} className="text-[7px] px-1 py-0.5 rounded bg-nf-secondary text-nf-dim font-semibold">{p}</span>
+          <motion.div
+            initial={{ opacity: 0, y: -12, scaleY: 0.85 }}
+            animate={{ opacity: 1, y: 0, scaleY: 1 }}
+            exit={{ opacity: 0, y: -12, scaleY: 0.85 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="absolute top-full right-0 left-0 z-40 mt-2 origin-top"
+          >
+            <div className="bg-nf-primary/95 backdrop-blur-md border border-nf-border/60 rounded-xl p-3.5 shadow-2xl shadow-black/60">
+              <p className="text-[11px] text-nf-muted leading-relaxed mb-2.5">{game.description}</p>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {game.genre.map(g => (
+                  <span key={g} className="text-[8px] px-1.5 py-0.5 rounded-md bg-nf-accent/15 text-nf-accent font-semibold">{g}</span>
                 ))}
               </div>
-              <div className="flex items-center gap-2 text-[8px] text-nf-dim">
-                <span className="flex items-center gap-0.5"><Users size={7} /> {game.players}</span>
-                <span className="flex items-center gap-0.5"><Calendar size={7} /> {game.releaseYear}</span>
-                <span className="flex items-center gap-0.5"><Tag size={7} /> {game.developer}</span>
+              <div className="flex flex-wrap gap-1 mb-2">
+                {game.platforms.map(p => (
+                  <span key={p} className="text-[8px] px-2 py-0.5 rounded-md bg-nf-secondary/60 text-nf-dim font-semibold border border-nf-border/30">{p}</span>
+                ))}
+              </div>
+              <div className="flex items-center gap-4 text-[9px] text-nf-dim">
+                <span className="flex items-center gap-1"><Users size={9} className="text-nf-accent" /> {game.players}</span>
+                <span className="flex items-center gap-1"><Calendar size={9} className="text-nf-accent" /> {game.releaseYear}</span>
+                <span className="flex items-center gap-1"><Tag size={9} className="text-nf-accent" /> {game.developer}</span>
               </div>
             </div>
           </motion.div>
@@ -211,132 +230,75 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
     return a.name.localeCompare(b.name);
   });
 
-  const favoriteGames = GAMES.filter(g => favoriteIds.includes(g.id));
-  const topRated = [...GAMES].sort((a, b) => b.rating - a.rating).slice(0, 3);
-  const newest = [...GAMES].sort((a, b) => b.releaseYear - a.releaseYear).slice(0, 3);
+  const favCount = favoriteIds.length;
 
   return (
     <div className="w-full" style={{ direction: "rtl" }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <button onClick={onBack} className="p-1.5 rounded-lg text-nf-dim hover:text-white hover:bg-white/5 transition-colors">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5">
+          <button onClick={onBack} className="p-2 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors">
             <ArrowLeft size={16} />
           </button>
-          <h1 className="text-base font-bold text-white flex items-center gap-1.5">
-            <Gamepad2 size={18} className="text-nf-accent" />
+          <h1 className="text-lg font-bold text-white flex items-center gap-2">
+            <Gamepad2 size={20} className="text-nf-accent" />
             مكتبة الألعاب
           </h1>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-nf-secondary text-nf-dim">{GAMES.length} لعبة</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-nf-secondary/50 text-nf-dim font-semibold">{GAMES.length} لعبة</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          {favoriteIds.length > 0 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 font-bold">{favoriteIds.length}/7 ❤️</span>
+        <div className="flex items-center gap-2">
+          {favCount > 0 && (
+            <span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 font-bold">{favCount}/7 ❤️</span>
           )}
-          <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className="p-1.5 rounded-lg text-nf-dim hover:text-white hover:bg-white/5 transition-colors">
-            {layout === "grid" ? <LayoutList size={14} /> : <Grid3X3 size={14} />}
+          <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className="p-2 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors">
+            {layout === "grid" ? <LayoutList size={15} /> : <Grid3X3 size={15} />}
           </button>
-        </div>
-      </div>
-
-      {/* My Favorites */}
-      {favoriteGames.length > 0 && (
-        <div className="mb-4 p-3 rounded-xl bg-nf-secondary/30 border border-nf-border/50">
-          <div className="text-[11px] font-bold text-nf-dim mb-2 flex items-center gap-1.5">
-            <Heart size={11} className="text-red-400" /> ألعابي المفضلة
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {favoriteGames.map(g => (
-              <div key={g.id} className="shrink-0 group relative">
-                <img src={g.cover} alt={g.name} className="w-14 h-[70px] rounded-lg object-cover ring-1 ring-nf-border group-hover:ring-red-400/50 transition-all" />
-                <button onClick={() => toggleFavorite(g.id)} className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                  <X size={7} />
-                </button>
-                <p className="text-[8px] text-nf-muted mt-0.5 w-14 truncate text-center">{g.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Top Rated & Newest */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <div className="p-2.5 rounded-xl bg-nf-secondary/20 border border-nf-border/30">
-          <div className="text-[10px] font-bold text-amber-400 mb-1.5 flex items-center gap-1"><Trophy size={10} /> الأعلى تقييماً</div>
-          <div className="space-y-1">
-            {topRated.map((g, i) => (
-              <div key={g.id} className="flex items-center gap-1.5">
-                <span className="text-[9px] text-nf-dim w-3">{i + 1}</span>
-                <img src={g.cover} alt="" className="w-5 h-7 rounded object-cover" />
-                <span className="text-[9px] text-nf-muted truncate flex-1">{g.name}</span>
-                <span className="text-[9px] text-amber-400 font-bold">{g.rating}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="p-2.5 rounded-xl bg-nf-secondary/20 border border-nf-border/30">
-          <div className="text-[10px] font-bold text-green-400 mb-1.5 flex items-center gap-1"><Clock size={10} /> الأحدث</div>
-          <div className="space-y-1">
-            {newest.map((g, i) => (
-              <div key={g.id} className="flex items-center gap-1.5">
-                <span className="text-[9px] text-nf-dim w-3">{i + 1}</span>
-                <img src={g.cover} alt="" className="w-5 h-7 rounded object-cover" />
-                <span className="text-[9px] text-nf-muted truncate flex-1">{g.name}</span>
-                <span className="text-[9px] text-green-400 font-bold">{g.releaseYear}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
       {/* Search */}
-      <div className="relative mb-2">
-        <Search size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nf-dim" />
-        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، أو نوع..." className="w-full bg-nf-secondary/40 rounded-lg pr-8 pl-3 py-1.5 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-1 focus:ring-nf-accent/40 transition-all" />
+      <div className="relative mb-3">
+        <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="ابحث عن لعبة، ناشر، أو نوع..."
+          className="w-full bg-nf-secondary/30 rounded-xl pr-9 pl-4 py-2 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-2 focus:ring-nf-accent/30 transition-all border border-nf-border/30 focus:border-nf-accent/40"
+        />
       </div>
 
       {/* Genre filters */}
-      <div className="flex items-center gap-1 mb-2">
-        <button onClick={() => setGenreFilter(null)} className={cn("shrink-0 px-2 py-0.5 rounded text-[9px] font-semibold transition-colors", !genreFilter ? "bg-nf-accent text-white" : "bg-nf-secondary/40 text-nf-dim hover:text-nf-muted")}>الكل</button>
-        {allGenres.slice(0, 8).map(g => (
-          <button key={g} onClick={() => setGenreFilter(genreFilter === g ? null : g)} className={cn("shrink-0 px-2 py-0.5 rounded text-[9px] font-semibold transition-colors", genreFilter === g ? "bg-nf-accent text-white" : "bg-nf-secondary/40 text-nf-dim hover:text-nf-muted")}>{g}</button>
+      <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
+        <button onClick={() => setGenreFilter(null)} className={cn("shrink-0 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all", !genreFilter ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim hover:text-nf-muted border border-nf-border/30")}>الكل</button>
+        {allGenres.map(g => (
+          <button key={g} onClick={() => setGenreFilter(genreFilter === g ? null : g)} className={cn("shrink-0 px-3 py-1 rounded-lg text-[10px] font-semibold transition-all", genreFilter === g ? "bg-nf-accent text-white shadow-sm shadow-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim hover:text-nf-muted border border-nf-border/30")}>{g}</button>
         ))}
-        {allGenres.length > 8 && (
-          <div className="relative group">
-            <button className="shrink-0 px-2 py-0.5 rounded text-[9px] font-semibold bg-nf-secondary/40 text-nf-dim hover:text-nf-muted transition-colors flex items-center gap-0.5"><Filter size={8} /> المزيد</button>
-            <div className="absolute top-full right-0 mt-1 bg-nf-primary border border-nf-border rounded-lg p-2 shadow-xl z-30 hidden group-hover:grid grid-cols-2 gap-1 min-w-[200px]">
-              {allGenres.slice(8).map(g => (
-                <button key={g} onClick={() => setGenreFilter(genreFilter === g ? null : g)} className={cn("px-2 py-0.5 rounded text-[9px] font-semibold text-right transition-colors", genreFilter === g ? "bg-nf-accent text-white" : "text-nf-dim hover:text-nf-muted hover:bg-nf-secondary/40")}>{g}</button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Sort */}
-      <div className="flex items-center gap-1 mb-3">
-        <span className="text-[9px] text-nf-dim ml-1">ترتيب:</span>
+      {/* Sort + count */}
+      <div className="flex items-center gap-1.5 mb-4">
         {[
-          { id: "name" as const, label: "الاسم", icon: null },
-          { id: "rating" as const, label: "التقييم", icon: <Trophy size={9} /> },
-          { id: "year" as const, label: "الأحدث", icon: <Clock size={9} /> },
+          { id: "name" as const, label: "الاسم" },
+          { id: "rating" as const, label: "⭐ التقييم" },
+          { id: "year" as const, label: "🆕 الأحدث" },
         ].map(s => (
-          <button key={s.id} onClick={() => setSortBy(s.id)} className={cn("flex items-center gap-0.5 px-2 py-0.5 rounded text-[9px] font-semibold transition-colors", sortBy === s.id ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:text-nf-muted")}>
-            {s.icon}{s.label}
+          <button key={s.id} onClick={() => setSortBy(s.id)} className={cn("px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all", sortBy === s.id ? "bg-nf-accent/15 text-nf-accent border border-nf-accent/30" : "text-nf-dim hover:text-nf-muted border border-transparent")}>
+            {s.label}
           </button>
         ))}
-        <span className="text-[9px] text-nf-dim mr-auto">{filtered.length} نتيجة</span>
+        <span className="text-[10px] text-nf-dim mr-auto">{filtered.length} نتيجة</span>
       </div>
 
-      {/* Games */}
+      {/* Games Grid/List */}
       {layout === "grid" ? (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {filtered.map(g => (
             <GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           {filtered.map(g => (
             <GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="list" />
           ))}
@@ -344,21 +306,24 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
       )}
 
       {filtered.length === 0 && (
-        <div className="text-center py-12">
-          <Gamepad2 size={24} className="text-nf-dim/30 mx-auto mb-2" />
-          <p className="text-xs text-nf-dim">لا توجد نتائج</p>
+        <div className="text-center py-16">
+          <Gamepad2 size={32} className="text-nf-dim/20 mx-auto mb-3" />
+          <p className="text-sm text-nf-dim">لا توجد نتائج</p>
+          <p className="text-[11px] text-nf-dim/50 mt-1">جرّب كلمة بحث أخرى</p>
         </div>
       )}
 
       {/* Max favorites modal */}
       <AnimatePresence>
         {showFavModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowFavModal(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-nf-primary border border-nf-border rounded-xl p-5 max-w-xs w-full text-center" onClick={e => e.stopPropagation()}>
-              <Heart size={28} className="text-red-400 mx-auto mb-2" />
-              <h3 className="text-sm font-bold text-white mb-1">وصلت للحد الأقصى</h3>
-              <p className="text-[11px] text-nf-muted mb-3">يمكنك اختيار 7 ألعاب فقط. أزل واحدة أولاً ثم أضف الجديدة.</p>
-              <button onClick={() => setShowFavModal(false)} className="px-4 py-1.5 rounded-lg bg-nf-accent text-white text-[11px] font-bold hover:bg-nf-accent/80 transition-colors">فهمت</button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowFavModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.85, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.85, y: 10 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} className="bg-nf-primary border border-nf-border rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-3">
+                <Heart size={24} className="text-red-400" />
+              </div>
+              <h3 className="text-sm font-bold text-white mb-1.5">وصلت للحد الأقصى</h3>
+              <p className="text-[11px] text-nf-muted mb-4">يمكنك اختيار 7 ألعاب فقط. أزل واحدة أولاً ثم أضف الجديدة.</p>
+              <button onClick={() => setShowFavModal(false)} className="px-5 py-2 rounded-xl bg-nf-accent text-white text-[12px] font-bold hover:bg-nf-accent/80 transition-colors shadow-lg shadow-nf-accent/20">فهمت</button>
             </motion.div>
           </motion.div>
         )}
