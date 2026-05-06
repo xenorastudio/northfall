@@ -50,25 +50,7 @@ export default function MaintenanceOverlay({ children }: { children: React.React
     return (
       <div className="fixed inset-0 z-[999] bg-[#0a0a0b] flex items-center justify-center" dir="rtl">
         <div className="text-center max-w-sm px-6">
-          <div className="w-14 h-14 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mx-auto mb-6">
-            <Wrench size={24} className="text-white/30" />
-          </div>
-
-          <h1 className="text-2xl font-black text-white mb-2">تحت الصيانة</h1>
-
-          <div className="w-10 h-px bg-white/10 mx-auto mb-4" />
-
-          <p className="text-[13px] text-white/40 leading-relaxed mb-1">
-            الموقع حاليا تحت الصيانة لتحديثات جديدة
-          </p>
-          <p className="text-[11px] text-white/25">
-            رجعولك شوي
-          </p>
-
-          <div className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.06]">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400/80" />
-            <span className="text-[10px] text-white/30 font-semibold">جاري العمل</span>
-          </div>
+          <h1 className="text-5xl font-black text-white mb-4">تحت الصيانة</h1>
         </div>
       </div>
     );
