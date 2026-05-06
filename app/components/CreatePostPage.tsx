@@ -289,23 +289,23 @@ export default function CreatePostPage({ onBack, onPost, editPostId }: { onBack:
       {/* Header */}
       <div className="flex items-center justify-between mb-4 gap-2">
         <button onClick={onBack} className="flex items-center gap-1.5 text-nf-dim hover:text-white text-[12px] transition-colors shrink-0">
-          <ArrowRight size={16} /> <span className="hidden sm:inline">{t("cp.backToFeed")}</span>
+          <ArrowRight size={16} /> {t("cp.backToFeed")}
         </button>
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
           <button onClick={() => setShowPreview(!showPreview)}
             className={cn("flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors border",
               showPreview ? "bg-nf-accent/10 text-nf-accent border-nf-accent/30" : "text-nf-dim border-nf-border-2 hover:bg-nf-hover hover:text-white")}>
-            <Eye size={12} /> <span className="hidden sm:inline">معاينة</span>
+            <Eye size={12} /> معاينة
           </button>
           {/* Draft indicator */}
           {draftSaved && !editPostId && (
             <span className="flex items-center gap-1 text-[9px] text-green-400"><Save size={9} /> تم الحفظ</span>
           )}
-          <button onClick={saveNamedDraft} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">
-            <Save size={12} />
+          <button onClick={saveNamedDraft} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">
+            <Save size={12} /> مسودة
           </button>
-          <button onClick={() => setShowDrafts(!showDrafts)} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">
-            <Clock size={12} />
+          <button onClick={() => setShowDrafts(!showDrafts)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">
+            <Clock size={12} /> المسودات
           </button>
           <button onClick={handleSubmit} disabled={!title.trim() || submitting}
             className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-nf-accent text-white hover:bg-nf-accent/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200">

@@ -410,9 +410,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       </div>
       <div className="flex items-center justify-between mb-4">
         <button onClick={onBack} className="flex items-center gap-1.5 text-nf-muted hover:text-white text-sm transition-colors">
-          <ArrowRight size={16} /> <span className="hidden sm:inline">{t("pd.backToFeed")}</span>
+          <ArrowRight size={16} /> {t("pd.backToFeed")}
         </button>
-        <button onClick={() => setShowShortcuts(!showShortcuts)} className="hidden sm:block text-nf-dim hover:text-white text-xs transition-colors">⌨ {t("pd.shortcuts")}</button>
+        <button onClick={() => setShowShortcuts(!showShortcuts)} className="text-nf-dim hover:text-white text-xs transition-colors">⌨ {t("pd.shortcuts")}</button>
       </div>
       {showShortcuts && (
         <div className="mb-4 bg-nf-secondary rounded-lg p-3 text-xs text-nf-muted grid grid-cols-2 gap-1.5">
@@ -509,9 +509,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             <span className={cn("text-xs font-bold min-w-[20px] text-center", postMyVote === 1 ? "text-orange-500" : postMyVote === -1 ? "text-blue-400" : postVoteCount > 0 ? "text-orange-500" : postVoteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{postVoteCount}</span>
             <button onClick={() => setPostVote(-1)} className={cn("p-1 rounded-md transition-colors duration-150", postMyVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
           </div>
-          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0}</button>
+          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0} {t("pc.comments")}</button>
           <div className="relative" onMouseLeave={() => setShowShareMenu(false)}>
-            <button onClick={() => setShowShareMenu(!showShareMenu)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Share2 size={14} /></button>
+            <button onClick={() => setShowShareMenu(!showShareMenu)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Share2 size={14} /> {t("pc.share")}</button>
             <AnimatePresence>
               {showShareMenu && (
                 <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.12 }} className="absolute top-full mt-1 right-0 bg-nf-primary border border-nf-border rounded-lg p-1.5 shadow-xl z-30 flex flex-col gap-0.5 min-w-[180px]">
@@ -540,13 +540,13 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
               )}
             </AnimatePresence>
           </div>
-          <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /></button>
-          <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /></button>
+          <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /> {postSaved ? "محفوظ" : "حفظ"}</button>
+          <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
           {user && post?.authorUid === user.uid && onEditClick && (
-            <button onClick={() => onEditClick(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Pencil size={14} /></button>
+            <button onClick={() => onEditClick(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Pencil size={14} /> تعديل</button>
           )}
           {user && post?.authorUid === user.uid && onDeleteClick && (
-            <button onClick={async () => { await deleteDoc(doc(db, "posts", postId)); onBack(); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-red-400/10 text-xs text-nf-muted hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+            <button onClick={async () => { await deleteDoc(doc(db, "posts", postId)); onBack(); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-red-400/10 text-xs text-nf-muted hover:text-red-400 transition-colors"><Trash2 size={14} /> حذف</button>
           )}
           <button onClick={() => { const embed = `<blockquote class="northfall-embed" data-post-id="${postId}"><a href="${window.location.origin}/app?view=post&postId=${postId}">NorthFall Post</a></blockquote>`; navigator.clipboard?.writeText(embed); showToast(t("pd.embedCopied")); }} className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Code2 size={14} /> Embed</button>
         </div>
@@ -600,8 +600,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         <span className="text-xs text-nf-muted">{t("pd.sortBy")}</span>
         <button onClick={() => setCommentSort("best")} className={cn("px-2 py-1 rounded-full text-xs font-medium transition-colors", commentSort === "best" ? "bg-nf-hover text-white" : "text-nf-muted hover:text-white")}>{t("pd.sortBest")}</button>
         <button onClick={() => setCommentSort("new")} className={cn("px-2 py-1 rounded-full text-xs font-medium transition-colors", commentSort === "new" ? "bg-nf-hover text-white" : "text-nf-muted hover:text-white")}>{t("pd.sortNew")}</button>
-        <button onClick={() => setAllCollapsed(!allCollapsed)} className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-nf-muted hover:text-white transition-colors">
+        <button onClick={() => setAllCollapsed(!allCollapsed)} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-nf-muted hover:text-white transition-colors">
           {allCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+          {allCollapsed ? t("pd.expandAll") : t("pd.collapseAll")}
         </button>
         <span className="text-xs text-nf-dim mr-auto">{comments.length} {t("pc.comments")}</span>
         <div className="relative w-full mt-1">

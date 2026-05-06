@@ -384,15 +384,15 @@ export default function PostCard({
           <button onClick={(e) => { e.stopPropagation(); handleVote(-1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
         </div>
         <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
-          <MessageSquare size={14} /><span>{comments}</span>
+          <MessageSquare size={14} /><span>{comments} {t("pc.comments")}</span>
         </button>
         <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
-          <Share2 size={14} />
+          <Share2 size={14} /><span>{t("pc.share")}</span>
         </button>
         <button onClick={(e) => { e.stopPropagation(); toggleSave(); }} className={cn("flex items-center gap-1 text-xs transition-all duration-200", saved ? "text-nf-accent" : "hover:text-nf-accent")}>
-          <Bookmark size={14} fill={saved ? "currentColor" : "none"} />
+          <Bookmark size={14} fill={saved ? "currentColor" : "none"} /><span>{saved ? "محفوظ" : "حفظ"}</span>
         </button>
-        <span className="hidden sm:flex items-center gap-0.5 text-xs text-nf-dim">
+        <span className="flex items-center gap-0.5 text-xs text-nf-dim">
           <Eye size={12} />{views > 0 ? views : "--"}
         </span>
         <div className="flex-1" />
