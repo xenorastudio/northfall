@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield, Gamepad2, Calendar, Tag } from "lucide-react";
+import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield, Gamepad2, Calendar, Tag, ExternalLink } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { useState, useEffect, useRef } from "react";
@@ -30,7 +30,7 @@ function extractProfileColor(src: string): Promise<string> {
   });
 }
 
-function ProfileGameCard({ game }: { game: { id: string; name: string; cover: string; rating: number; releaseYear: number; genre: string[]; description: string; platforms: string[]; players: string; developer: string; publisher: string } }) {
+function ProfileGameCard({ game }: { game: { id: string; name: string; cover: string; rating: number; releaseYear: number; genre: string[]; description: string; platforms: string[]; players: string; developer: string; publisher: string; steamUrl: string } }) {
   const [dominantColor, setDominantColor] = useState("rgb(30,30,40)");
   const [hovered, setHovered] = useState(false);
   const loadedRef = useRef(false);
@@ -70,6 +70,11 @@ function ProfileGameCard({ game }: { game: { id: string; name: string; cover: st
                 <span className="flex items-center gap-0.5"><Tag size={6} /> {game.developer}</span>
                 <span>· {game.publisher}</span>
               </div>
+              {game.steamUrl && (
+                <a href={game.steamUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1.5 text-[7px] text-white/40 hover:text-white/70 transition-colors bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.04]">
+                  <ExternalLink size={6} /> Steam
+                </a>
+              )}
             </div>
           </motion.div>
         )}
@@ -633,7 +638,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
           <div className="py-4">
             {favoriteGameIds.length > 0 ? (
               <div>
-                <p className="text-xs text-nf-muted mb-3 font-bold flex items-center gap-1.5"><Gamepad2 size={12} className="text-nf-accent" /> ألعابي المفضلة</p>
+                <p className="text-xs text-white/40 mb-3 font-black tracking-tight">ألعابي المفضلة</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {GAMES.filter(g => favoriteGameIds.includes(g.id)).map(g => (
                     <ProfileGameCard key={g.id} game={g} />
