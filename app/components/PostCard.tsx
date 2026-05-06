@@ -240,7 +240,28 @@ export default function PostCard({
   };
 
   // AI explain post
-  const handleAiExplain = async (mode: "explain" | "summarize" | "translate" | "expand" | "correct" | "tags" | "sentiment") => {
+  const [aiDisplayText, setAiDisplayText] = useState("");
+
+  // Typing animation effect
+  useEffect(() => {
+    if (aiResult && !aiLoading) {
+      let i = 0;
+      setAiDisplayText("");
+      const interval = setInterval(() => {
+        if (i < aiResult.length) {
+          setAiDisplayText(aiResult.slice(0, i + 1));
+          i++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 12);
+      return () => clearInterval(interval);
+    } else {
+      setAiDisplayText("");
+    }
+  }, [aiResult, aiLoading]);
+
+  const handleAiExplain = async (mode: "explain" | "summarize" | "translate" | "expand" | "correct" | "tags" | "rephrase" | "question") => {
     const sel = AI_MODELS[aiModel];
     const key = aiApiKey || (sel.provider === "chatanywhere" ? "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7" : "");
     if (!key) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي"); setAiTab("settings"); return; }
@@ -249,22 +270,24 @@ export default function PostCard({
     setAiDropOpen(false);
     try {
       const prompts: Record<string, string> = {
-        explain: `اشرح لي هذا المنشور بشكل مبسط ومختصر (3-4 أسطر) كأنك تشرحه لشخص مش فاهمه:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
-        summarize: `لخّص هذا المنشور في 2-3 أسطر فقط:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
-        translate: `ترجم هذا المنشور للإنجليزية بشكل مبسط:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
-        expand: `وسّع هذا المنشور وأضف تفاصيل أكثر (5-6 أسطر) مع الحفاظ على نفس الأسلوب:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
-        correct: `صحّح الأخطاء الإملائية والنحوية في هذا المنشور واكتب النسخة المصححة:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
-        tags: `اقترح 3-5 وسوم (tags) مناسبة لهذا المنشور ككلمات مفتاحية، اكتبها فقط مفصولة بفواصل:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 300) || "لا يوجد محتوى"}`,
-        sentiment: `حلّل المشاعر والنبرة في هذا المنشور (إيجابي/سلبي/محايد) مع شرح قصير سطر واحد:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        explain: `اشرح لي هاي المنشور بشكل مبسط (3-4 أسطر) كأنك بتشرحه لشخص مو فاهمه، احكي باللهجة الأردنية:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        summarize: `لخص هاي المنشور بسطرين-تلاتة، باللهجة الأردنية:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        translate: `ترجم هاي المنشور للإنجليزية بشكل طبيعي ومبسط:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        expand: `وسع هاي المنشور وضيف تفاصيل أكتر (5-6 أسطر) بنفس الأسلوب، باللهجة الأردنية:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        correct: `صحح الأخطاء الإملائية والنحوية بهاي المنشور واكتب النسخة المصححة:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        tags: `اقترح 3-5 وسوم (tags) مناسبة لهاد المنشور ككلمات مفتاحية، اكتبها بس مفصولة بفواصل:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 300) || "لا يوجد محتوى"}`,
+        rephrase: `أعد صياغة هاي المنشور بأسلوب أجمل وأكثر جاذبية، باللهجة الأردنية:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
+        question: `اكتب 3 أسئلة ممكنة تنطرح عن هاي المنشور، باللهجة الأردنية:\n\nالعنوان: ${title}\nالمحتوى: ${body?.slice(0, 500) || "لا يوجد محتوى"}`,
       };
       const systemPrompts: Record<string, string> = {
-        explain: "أنت مساعد يشرح المنشورات ببساطة ووضوح بالعربية. اكتب 3-4 أسطر فقط بدون عناوين. بدون إيموجي.",
-        summarize: "أنت مساعد يلخّص المنشورات باختصار بالعربية. اكتب 2-3 أسطر فقط. بدون إيموجي.",
-        translate: "أنت مساعد يترجم من العربية للإنجليزية بشكل طبيعي ومبسط. بدون إيموجي.",
-        expand: "أنت مساعد يوسّع المنشورات بإضافة تفاصيل مفيدة بالعربية. اكتب 5-6 أسطر. بدون إيموجي.",
-        correct: "أنت مدقق لغوي تصحح الأخطاء الإملائية والنحوية بالعربية. اكتب النص المصحح فقط. بدون إيموجي.",
-        tags: "أنت مساعد يقترح وسوم مناسبة. اكتب الكلمات المفتاحية فقط مفصولة بفواصل. بدون إيموجي.",
-        sentiment: "أنت محلل مشاعر. حدد الإيجابي/السلبي/المحايد مع شرح سطر واحد بالعربية. بدون إيموجي.",
+        explain: "أنت مساعد بتشرح المنشورات ببساطة ووضوح باللهجة الأردنية. احكي باختصار 3-4 أسطر بدون عناوين. بدون إيموجي. خليك عادي وودي.",
+        summarize: "أنت مساعد بلخص المنشورات باختصار باللهجة الأردنية. اكتب 2-3 أسطر بس. بدون إيموجي.",
+        translate: "أنت مساعد بترجم من العربية للإنجليزية بشكل طبيعي ومبسط. بدون إيموجي.",
+        expand: "أنت مساعد بتوسع المنشورات وبتضيف تفاصيل مفيدة باللهجة الأردنية. اكتب 5-6 أسطر. بدون إيموجي.",
+        correct: "أنت مدقق لغوي بتصحح الأخطاء الإملائية والنحوية بالعربية. اكتب النص المصحح بس. بدون إيموجي.",
+        tags: "أنت مساعد بيقترح وسوم مناسبة. اكتب الكلمات المفتاحية بس مفصولة بفواصل. بدون إيموجي.",
+        rephrase: "أنت مساعد بيعيد صياغة المنشورات بأسلوب أجمل وأكثر جاذبية باللهجة الأردنية. بدون إيموجي. خليك عادي وودي.",
+        question: "أنت مساعد بيكتب أسئلة ممكنة عن المنشور باللهجة الأردنية. اكتب 3 أسئلة بس. بدون إيموجي.",
       };
       let text = "";
       if (sel.provider === "chatanywhere") {
@@ -511,8 +534,8 @@ export default function PostCard({
         <div className="flex-1" />
         {/* AI Dropdown - right side */}
         <div className="relative" ref={aiDropRef}>
-          <button onClick={(e) => { e.stopPropagation(); setAiDropOpen(!aiDropOpen); setAiTab("tools"); }} className={cn("flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-all border", aiDropOpen ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "text-nf-dim/50 hover:text-nf-dim hover:bg-nf-secondary/30 border-nf-border/6 hover:border-nf-border/15")}>
-            <Sparkles size={10} className="text-nf-accent/50" />
+          <button onClick={(e) => { e.stopPropagation(); setAiDropOpen(!aiDropOpen); setAiTab("tools"); }} className={cn("flex items-center gap-1 text-[10px] font-semibold transition-all", aiDropOpen ? "text-nf-accent" : "text-nf-dim/40 hover:text-nf-accent")}>
+            <Sparkles size={10} className={cn("transition-colors", aiDropOpen ? "text-nf-accent" : "text-nf-accent/40")} />
             <span>AI</span>
             <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-40", aiDropOpen && "rotate-180")} />
           </button>
@@ -544,8 +567,11 @@ export default function PostCard({
                   <button onClick={(e) => { e.stopPropagation(); handleAiExplain("tags"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
                     <BookOpen size={10} className="text-blue-400/40" /> <span className="flex-1 text-right">وسوم</span>
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleAiExplain("sentiment"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                    <Sparkles size={10} className="text-purple-400/40" /> <span className="flex-1 text-right">تحليل مشاعر</span>
+                  <button onClick={(e) => { e.stopPropagation(); handleAiExplain("rephrase"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <Sparkles size={10} className="text-violet-400/40" /> <span className="flex-1 text-right">أعد الصياغة</span>
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); handleAiExplain("question"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <BookOpen size={10} className="text-cyan-400/40" /> <span className="flex-1 text-right">أسئلة</span>
                   </button>
                 </div>
               ) : (
@@ -645,15 +671,22 @@ export default function PostCard({
         </div>
       )}
 
-      {/* AI Result */}
+      {/* AI Result with typing animation */}
       {(aiResult || aiLoading) && (
-        <div className="px-4 py-2.5 border-t border-nf-border-2/50 bg-nf-accent/[0.03]">
+        <div className="px-4 py-2.5 border-t border-nf-border-2/50">
           <div className="flex items-center gap-1.5 mb-1">
-            <Sparkles size={10} className="text-nf-accent/60" />
-            <span className="text-[9px] text-nf-accent/60 font-bold">{aiLoading ? "جاري التحليل..." : "نتيجة الذكاء الاصطناعي"}</span>
-            {aiResult && <button onClick={() => setAiResult(null)} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={10} /></button>}
+            <Sparkles size={10} className={cn("text-nf-accent/60", aiLoading && "animate-pulse")} />
+            <span className="text-[9px] text-nf-accent/60 font-bold">{aiLoading ? "بكتبلك..." : "NorthFall AI"}</span>
+            {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={10} /></button>}
           </div>
-          {aiResult && <p className="text-[11px] text-nf-muted leading-relaxed">{aiResult}</p>}
+          {aiLoading && !aiResult && (
+            <div className="flex items-center gap-1">
+              <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+              <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+              <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+            </div>
+          )}
+          {aiDisplayText && <p className="text-[11px] text-nf-muted leading-relaxed">{aiDisplayText}<span className="inline-block w-[2px] h-[11px] bg-nf-accent/60 ml-0.5 animate-pulse" /></p>}
         </div>
       )}
 
