@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList, ExternalLink, Filter, Monitor, ChevronDown, Sparkles, TrendingUp, Flame, Crown, Zap } from "lucide-react";
+import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList, ExternalLink, Filter, Monitor, ChevronDown, Sparkles, TrendingUp, Flame, Crown, Zap, Send, Settings, MessageCircle, Key, Bot, Wand2, Lightbulb, Shuffle } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
@@ -217,7 +217,7 @@ function extractDominantColor(src: string): Promise<string> {
 
 const imgProtect = { draggable: false, onContextMenu: (e: React.MouseEvent) => e.preventDefault() } as const;
 
-function GameCard({ game, isFav, onFav, layout, onAiExplain, aiExplainGame, aiExplainText, aiExplainLoading }: { game: Game; isFav: boolean; onFav: () => void; layout: "grid" | "list"; onAiExplain: (g: Game) => void; aiExplainGame: string | null; aiExplainText: string; aiExplainLoading: boolean }) {
+function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; onFav: () => void; layout: "grid" | "list" }) {
   const [hovered, setHovered] = useState(false);
   const [dominantColor, setDominantColor] = useState("rgb(30,30,40)");
   const tRef = useRef<NodeJS.Timeout | null>(null);
@@ -275,16 +275,6 @@ function GameCard({ game, isFav, onFav, layout, onAiExplain, aiExplainGame, aiEx
             <ExternalLink size={8} /> صفحة Steam
           </a>
         )}
-        {/* AI Explain */}
-        <div className="mt-2.5 pt-2.5 border-t border-white/[0.06]">
-          <button onClick={(e) => { e.stopPropagation(); onAiExplain(game); }} className="flex items-center gap-1.5 text-[9px] text-nf-accent/70 hover:text-nf-accent transition-colors font-semibold" disabled={aiExplainLoading}>
-            <Sparkles size={9} className={aiExplainLoading && aiExplainGame === game.id ? "animate-spin" : ""} />
-            {aiExplainLoading && aiExplainGame === game.id ? "جاري الشرح..." : "شرح بالذكاء الاصطناعي"}
-          </button>
-          {aiExplainGame === game.id && aiExplainText && (
-            <p className="text-[10px] text-white/50 leading-relaxed mt-1.5">{aiExplainText}</p>
-          )}
-        </div>
       </div>
     </motion.div>
   );
@@ -310,9 +300,6 @@ function GameCard({ game, isFav, onFav, layout, onAiExplain, aiExplainGame, aiEx
         </div>
         <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-2 rounded-xl transition-all", isFav ? "text-red-400 bg-red-400/10 hover:bg-red-400/20" : "text-nf-dim hover:text-red-400 hover:bg-red-400/5")}>
           <Heart size={16} fill={isFav ? "currentColor" : "none"} />
-        </button>
-        <button onClick={(e) => { e.stopPropagation(); onAiExplain(game); }} className={cn("shrink-0 p-2 rounded-xl transition-all", aiExplainLoading && aiExplainGame === game.id ? "text-nf-accent animate-pulse" : "text-nf-dim hover:text-nf-accent hover:bg-nf-accent/5")} title="شرح بالذكاء الاصطناعي">
-          <Sparkles size={14} />
         </button>
         <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
       </div>
@@ -372,25 +359,39 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   const [showGenreDrop, setShowGenreDrop] = useState(false);
   const [showPlatformDrop, setShowPlatformDrop] = useState(false);
   const [showSortDrop, setShowSortDrop] = useState(false);
-  // AI explain
-  const [aiExplainGame, setAiExplainGame] = useState<string | null>(null);
-  const [aiExplainText, setAiExplainText] = useState("");
-  const [aiExplainLoading, setAiExplainLoading] = useState(false);
+  // AI System
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
   const [aiApiKey, setAiApiKey] = useState("");
+  const [aiProvider, setAiProvider] = useState<"chatgpt" | "gemini" | "claude" | "deepseek" | "groq" | "mistral">("deepseek");
+  const [aiModel, setAiModel] = useState(0);
+  const [aiConnected, setAiConnected] = useState<"unknown" | "testing" | "ok" | "fail">("unknown");
+  const [aiChatMsg, setAiChatMsg] = useState("");
+  const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const genreDropRef = useRef<HTMLDivElement>(null);
   const platformDropRef = useRef<HTMLDivElement>(null);
   const sortDropRef = useRef<HTMLDivElement>(null);
+
+  const AI_MODELS = [
+    { name: "DeepSeek Chat", provider: "deepseek" as const, model: "deepseek-chat", free: true, desc: "مجاني وسريع، مناسب لكل الاستخدامات" },
+    { name: "Gemini 2.0 Flash", provider: "gemini" as const, model: "gemini-2.0-flash", free: true, desc: "سريع من جوجل، ممتاز للردود القصيرة" },
+    { name: "Groq Llama 3.3", provider: "groq" as const, model: "llama-3.3-70b-versatile", free: true, desc: "أسرع نموذج، استجابة فورية" },
+    { name: "Groq Gemma 2", provider: "groq" as const, model: "gemma2-9b-it", free: true, desc: "خفيف وسريع من Groq" },
+    { name: "Mistral Small", provider: "mistral" as const, model: "mistral-small-latest", free: true, desc: "نموذج صغير من Mistral، مجاني" },
+    { name: "GPT-4o Mini", provider: "chatgpt" as const, model: "gpt-4o-mini", free: false, desc: "نسخة مصغرة من GPT-4، رخيصة" },
+    { name: "GPT-4.1 Nano", provider: "chatgpt" as const, model: "gpt-4.1-nano", free: false, desc: "أصغر نموذج OpenAI، سريع" },
+    { name: "Gemini 2.5 Flash", provider: "gemini" as const, model: "gemini-2.5-flash-preview-05-20", free: false, desc: "أحدث Gemini، ذكاء عالي" },
+    { name: "Claude 3.5 Haiku", provider: "claude" as const, model: "claude-3-5-haiku-20241022", free: false, desc: "سريع ورخيص من Anthropic" },
+    { name: "Mistral Medium", provider: "mistral" as const, model: "mistral-medium-latest", free: false, desc: "نموذج متوسط، توازن بين السرعة والذكاء" },
+  ];
 
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid, "games", "favorites")).then(s => {
       if (s.exists()) setFavoriteIds(s.data().ids || []);
     }).catch(() => {});
-    // Load AI key
-    const storedKey = localStorage.getItem("nf-ai-key");
-    const storedProvider = localStorage.getItem("nf-ai-provider");
-    const storedModel = localStorage.getItem("nf-ai-model");
-    if (storedKey) setAiApiKey(storedKey);
   }, [user]);
 
   // Close dropdowns on outside click
@@ -419,38 +420,96 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   const allGenres = [...new Set(GAMES.flatMap(g => g.genre))].sort((a, b) => a.localeCompare(b, "ar"));
   const allPlatforms = [...new Set(GAMES.flatMap(g => g.platforms))].sort();
 
-  // AI explain game
-  const handleAiExplain = async (game: Game) => {
-    const key = aiApiKey || localStorage.getItem("nf-ai-key") || "";
-    if (!key) { setAiExplainGame(game.id); setAiExplainText("أضف مفتاح API من إعدادات الذكاء الاصطناعي أولاً"); return; }
-    setAiExplainGame(game.id);
-    setAiExplainLoading(true);
-    setAiExplainText("");
+  // Load AI settings from localStorage
+  useEffect(() => {
+    const k = localStorage.getItem("nf-ai-key") || "";
+    const p = localStorage.getItem("nf-ai-provider") || "deepseek";
+    const m = parseInt(localStorage.getItem("nf-ai-model") || "0");
+    setAiApiKey(k);
+    setAiProvider(p as any);
+    setAiModel(m);
+  }, []);
+
+  // Save AI settings
+  const saveAiSettings = () => {
+    localStorage.setItem("nf-ai-key", aiApiKey);
+    localStorage.setItem("nf-ai-provider", aiProvider);
+    localStorage.setItem("nf-ai-model", String(aiModel));
+  };
+
+  // Test AI connection
+  const testAiConnection = async () => {
+    if (!aiApiKey) { setAiConnected("fail"); return; }
+    setAiConnected("testing");
     try {
-      const provider = localStorage.getItem("nf-ai-provider") || "deepseek";
-      const model = localStorage.getItem("nf-ai-model") || "deepseek-chat";
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider, model, apiKey: key,
-          messages: [{ role: "user", content: `اشرح لي لعبة "${game.name}" بشكل مبسط ومختصر (3-4 أسطر فقط). النوع: ${game.genre.join("، ")}. سنة الإصدار: ${game.releaseYear}. التقييم: ${game.rating}/5. المطور: ${game.developer}. اكتب الشرح بالعربية بشكل مبسط وواضح لشخص مش فاهم اللعبة.` }],
-          systemPrompt: "أنت مساعد يشرح الألعاب ببساطة ووضوح بالعربية. اكتب 3-4 أسطر فقط بدون عناوين أو تنسيق خاص.",
-          maxTokens: 300,
-        }),
-      });
+      const res = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${aiApiKey}`);
       const data = await res.json();
-      let text = "";
-      if (provider === "gemini") text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      else if (provider === "claude") text = data.content?.[0]?.text || "";
-      else text = data.choices?.[0]?.message?.content || "";
-      setAiExplainText(text || "لم أستطع توليد شرح");
+      setAiConnected(data.ok ? "ok" : "fail");
+    } catch { setAiConnected("fail"); }
+  };
+
+  // Call AI
+  const callAI = async (messages: { role: string; content: string }[], systemPrompt?: string): Promise<string> => {
+    const sel = AI_MODELS[aiModel];
+    const res = await fetch("/api/ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: sel.provider, model: sel.model, apiKey: aiApiKey, messages, systemPrompt, maxTokens: 800 }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    if (sel.provider === "gemini") return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    if (sel.provider === "claude") return data.content?.[0]?.text || "";
+    return data.choices?.[0]?.message?.content || "";
+  };
+
+  // AI Chat send
+  const sendAiChat = async () => {
+    if (!aiChatMsg.trim() || aiGenerating) return;
+    if (!aiApiKey) { setAiChatMessages(p => [...p, { role: "assistant", content: "أضف مفتاح API من إعدادات الذكاء الاصطناعي أولاً ⚙️" }]); return; }
+    const userMsg = aiChatMsg.trim();
+    setAiChatMsg("");
+    setAiChatMessages(p => [...p, { role: "user", content: userMsg }]);
+    setAiGenerating(true);
+    try {
+      const favGames = favoriteIds.map(id => GAMES.find(g => g.id === id)?.name).filter(Boolean).join("، ") || "لا توجد";
+      const systemPrompt = `أنت مساعد ذكي لمكتبة ألعاب NorthFall. تساعد المستخدم في اختيار الألعاب، تقارن بينها، وتقترح ألعاب مناسبة. الألعاب المفضلة للمستخدم: ${favGames}. أجب بالعربية بشكل مختصر ومفيد (3-6 أسطر). إذا سأل عن توصية، اقترح ألعاب من المكتبة مع ذكر السبب.`;
+      const prevMsgs = aiChatMessages.slice(-8).map(m => ({ role: m.role, content: m.content }));
+      const result = await callAI([...prevMsgs, { role: "user", content: userMsg }], systemPrompt);
+      setAiChatMessages(p => [...p, { role: "assistant", content: result || "لم أستطع توليد رد" }]);
     } catch (err: any) {
-      setAiExplainText(`خطأ: ${(err?.message || "").slice(0, 60)}`);
+      setAiChatMessages(p => [...p, { role: "assistant", content: `خطأ: ${(err?.message || "").slice(0, 80)}` }]);
     } finally {
-      setAiExplainLoading(false);
+      setAiGenerating(false);
     }
   };
+
+  // AI Quick actions
+  const aiRecommend = async (type: "similar" | "random" | "underrated" | "multiplayer") => {
+    if (!aiApiKey) { setAiChatMessages(p => [...p, { role: "assistant", content: "أضف مفتاح API من الإعدادات أولاً ⚙️" }]); setAiChatOpen(true); return; }
+    setAiChatOpen(true);
+    setAiGenerating(true);
+    const prompts: Record<string, string> = {
+      similar: `أنا أحب الألعاب التالية: ${favoriteIds.map(id => GAMES.find(g => g.id === id)?.name).filter(Boolean).join("، ")}. اقترح لي 5 ألعاب مشابهة من المكتبة مع سبب قصير لكل واحدة.`,
+      random: `اقترح لي 3 ألعاب عشوائية وممتعة من مكتبة NorthFall مع سبب قصير لماذا تستحق اللعب.`,
+      underrated: `اقترح لي 5 ألعاب مُقلّلة (تقييمها أقل من 4.3 لكنها ممتعة) من المكتبة مع سبب لماذا هي مخفية.`,
+      multiplayer: `اقترح لي 5 أفضل ألعاب تعاونية/متعددة اللاعبين من المكتبة مع عدد اللاعبين لكل واحدة.`,
+    };
+    setAiChatMessages(p => [...p, { role: "user", content: prompts[type] }]);
+    try {
+      const result = await callAI([{ role: "user", content: prompts[type] }], "أنت مساعد ألعاب ذكي. أجب بالعربية بشكل منظم مع أرقام. اقترح ألعاب حقيقية من مكتبة NorthFall فقط.");
+      setAiChatMessages(p => [...p, { role: "assistant", content: result || "لم أستطع توليد توصيات" }]);
+    } catch (err: any) {
+      setAiChatMessages(p => [...p, { role: "assistant", content: `خطأ: ${(err?.message || "").slice(0, 80)}` }]);
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  // Auto-scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [aiChatMessages]);
 
   const filtered = GAMES.filter(g => {
     const ms = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()) || g.publisher.toLowerCase().includes(searchQuery.toLowerCase()) || g.developer.toLowerCase().includes(searchQuery.toLowerCase()) || g.genre.some(gen => gen.includes(searchQuery));
@@ -507,6 +566,12 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
           )}
           <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className="p-2 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors">
             {layout === "grid" ? <LayoutList size={15} /> : <Grid3X3 size={15} />}
+          </button>
+          <button onClick={() => setAiSettingsOpen(true)} className={cn("p-2 rounded-xl transition-colors", aiApiKey ? "text-nf-accent hover:bg-nf-accent/10" : "text-nf-dim hover:text-white hover:bg-white/5")} title="إعدادات الذكاء الاصطناعي">
+            <Settings size={15} />
+          </button>
+          <button onClick={() => setAiChatOpen(!aiChatOpen)} className={cn("p-2 rounded-xl transition-colors", aiChatOpen ? "text-nf-accent bg-nf-accent/10" : "text-nf-dim hover:text-white hover:bg-white/5")} title="مساعد الألعاب الذكي">
+            <Bot size={15} />
           </button>
         </div>
       </div>
@@ -632,14 +697,31 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
         <span className="text-[10px] text-nf-dim mr-auto">{filtered.length} نتيجة</span>
       </div>
 
+      {/* AI Quick Actions */}
+      {aiApiKey && (
+        <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
+          <span className="text-[9px] text-nf-dim shrink-0 flex items-center gap-1"><Sparkles size={8} className="text-nf-accent/50" /> اقتراحات:</span>
+          {[
+            { id: "similar" as const, label: "مشابهة لمفضلتك", icon: <Wand2 size={9} /> },
+            { id: "random" as const, label: "عشوائية", icon: <Shuffle size={9} /> },
+            { id: "underrated" as const, label: "مخفية", icon: <Lightbulb size={9} /> },
+            { id: "multiplayer" as const, label: "تعاونية", icon: <Users size={9} /> },
+          ].map(a => (
+            <button key={a.id} onClick={() => aiRecommend(a.id)} disabled={aiGenerating} className={cn("shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-semibold transition-all border border-white/5", aiGenerating ? "opacity-40" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-accent hover:border-nf-accent/30")}>
+              {a.icon} {a.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Grid / List */}
       {layout === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" onAiExplain={handleAiExplain} aiExplainGame={aiExplainGame} aiExplainText={aiExplainText} aiExplainLoading={aiExplainLoading} />))}
+          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" />))}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="list" onAiExplain={handleAiExplain} aiExplainGame={aiExplainGame} aiExplainText={aiExplainText} aiExplainLoading={aiExplainLoading} />))}
+          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="list" />))}
         </div>
       )}
 
@@ -656,6 +738,147 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
               <p className="text-[11px] text-nf-muted mb-4">يمكنك اختيار 20 لعبة فقط. أزل واحدة أولاً ثم أضف الجديدة.</p>
               <button onClick={() => setShowFavModal(false)} className="px-5 py-2 rounded-xl bg-nf-accent text-white text-[12px] font-bold hover:bg-nf-accent/80 transition-colors">فهمت</button>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Settings Modal */}
+      <AnimatePresence>
+        {aiSettingsOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setAiSettingsOpen(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} transition={{ duration: 0.2 }} className="bg-nf-primary border border-nf-border-2 rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-nf-accent/10 flex items-center justify-center"><Sparkles size={16} className="text-nf-accent" /></div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">إعدادات الذكاء الاصطناعي</h3>
+                    <p className="text-[9px] text-nf-dim">اختر المزود والنموذج وأضف مفتاح API</p>
+                  </div>
+                </div>
+                <button onClick={() => setAiSettingsOpen(false)} className="text-nf-dim hover:text-white transition-colors"><X size={16} /></button>
+              </div>
+
+              {/* Provider */}
+              <div className="mb-3">
+                <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">مزود الخدمة</label>
+                <p className="text-[8px] text-nf-dim/50 mb-2">الشركة التي توفر خدمة الذكاء الاصطناعي</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    { id: "deepseek", label: "DeepSeek" },
+                    { id: "groq", label: "Groq" },
+                    { id: "mistral", label: "Mistral" },
+                    { id: "gemini", label: "Gemini" },
+                    { id: "chatgpt", label: "ChatGPT" },
+                    { id: "claude", label: "Claude" },
+                  ] as const).map(p => (
+                    <button key={p.id} onClick={() => { setAiProvider(p.id); const idx = AI_MODELS.findIndex(m => m.provider === p.id); if (idx >= 0) setAiModel(idx); }} className={cn("px-2 py-1.5 rounded-lg text-[10px] font-semibold transition-all border", aiProvider === p.id ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-white border-white/5")}>{p.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Model */}
+              <div className="mb-3">
+                <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">النموذج</label>
+                <p className="text-[8px] text-nf-dim/50 mb-2">النموذج المستخدم للردود — المجانية أسرع، المدفوعة أذكى</p>
+                <div className="flex flex-col gap-1">
+                  {AI_MODELS.filter(m => m.provider === aiProvider).map((m, i) => {
+                    const globalIdx = AI_MODELS.indexOf(m);
+                    return (
+                      <button key={globalIdx} onClick={() => setAiModel(globalIdx)} className={cn("flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-semibold transition-all border", aiModel === globalIdx ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-white border-white/5")}>
+                        <span>{m.name}</span>
+                        <span className={cn("text-[8px] px-1.5 py-0.5 rounded-full", m.free ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400")}>{m.free ? "مجاني" : "مدفوع"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* API Key */}
+              <div className="mb-3">
+                <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">مفتاح API</label>
+                <p className="text-[8px] text-nf-dim/50 mb-2">مفتاح الدخول للخدمة — احصل عليه مجاناً من موقع المزود</p>
+                <div className="relative">
+                  <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder="sk-..." className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 pr-9 text-[11px] text-white placeholder:text-nf-dim/30 outline-none focus:border-nf-accent/30 transition-colors" />
+                  <Key size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-nf-dim/25" />
+                </div>
+              </div>
+
+              {/* Connection Status */}
+              <div className="flex items-center gap-2 mb-4">
+                <button onClick={testAiConnection} disabled={aiConnected === "testing"} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-nf-secondary/20 text-nf-dim hover:text-white border border-white/5 transition-all disabled:opacity-40">
+                  {aiConnected === "testing" ? "جاري الاختبار..." : "اختبار الاتصال"}
+                </button>
+                {aiConnected === "ok" && <span className="text-[9px] text-emerald-400 font-semibold">✓ متصل</span>}
+                {aiConnected === "fail" && <span className="text-[9px] text-red-400 font-semibold">✗ فشل</span>}
+              </div>
+
+              {/* Model Description */}
+              {AI_MODELS[aiModel] && (
+                <div className="bg-nf-secondary/20 rounded-lg p-2.5 mb-4 border border-white/5">
+                  <p className="text-[9px] text-nf-dim font-bold mb-0.5">{AI_MODELS[aiModel].name}</p>
+                  <p className="text-[8px] text-nf-dim/60">{AI_MODELS[aiModel].desc}</p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button onClick={() => { saveAiSettings(); setAiSettingsOpen(false); }} className="flex-1 px-4 py-2 rounded-xl bg-nf-accent text-white text-[11px] font-bold hover:bg-nf-accent/80 transition-colors">حفظ</button>
+                <button onClick={() => setAiSettingsOpen(false)} className="px-4 py-2 rounded-xl bg-nf-secondary/20 text-nf-dim text-[11px] font-bold hover:text-white transition-colors border border-white/5">إلغاء</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Chat Panel */}
+      <AnimatePresence>
+        {aiChatOpen && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ duration: 0.2 }} className="fixed bottom-4 left-4 w-[320px] max-h-[450px] bg-nf-primary border border-nf-border-2 rounded-2xl shadow-2xl shadow-black/50 z-50 flex flex-col overflow-hidden">
+            {/* Chat Header */}
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-nf-border-2 bg-nf-secondary/10">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-nf-accent/10 flex items-center justify-center"><Bot size={12} className="text-nf-accent" /></div>
+                <div>
+                  <p className="text-[11px] font-bold text-white">مساعد الألعاب</p>
+                  <p className="text-[8px] text-nf-dim">{AI_MODELS[aiModel]?.name || "غير متصل"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setAiChatMessages([])} className="p-1 rounded-lg text-nf-dim hover:text-white transition-colors" title="مسح المحادثة"><X size={12} /></button>
+                <button onClick={() => setAiChatOpen(false)} className="p-1 rounded-lg text-nf-dim hover:text-white transition-colors"><ArrowLeft size={12} /></button>
+              </div>
+            </div>
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-[200px] max-h-[300px]">
+              {aiChatMessages.length === 0 && (
+                <div className="text-center py-6">
+                  <Bot size={24} className="text-nf-dim/20 mx-auto mb-2" />
+                  <p className="text-[10px] text-nf-dim">اسألني عن أي لعبة!</p>
+                  <p className="text-[8px] text-nf-dim/50 mt-1">مثل: "اقترح لي لعبة RPG" أو "قارن بين Elden Ring وDark Souls"</p>
+                </div>
+              )}
+              {aiChatMessages.map((m, i) => (
+                <div key={i} className={cn("flex", m.role === "user" ? "justify-start" : "justify-end")}>
+                  <div className={cn("max-w-[85%] px-3 py-2 rounded-2xl text-[11px] leading-relaxed", m.role === "user" ? "bg-nf-accent/10 text-nf-accent rounded-bl-sm" : "bg-nf-secondary/30 text-white/80 rounded-bl-sm")}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {aiGenerating && (
+                <div className="flex justify-end">
+                  <div className="bg-nf-secondary/30 text-white/50 px-3 py-2 rounded-2xl rounded-bl-sm text-[11px] flex items-center gap-1.5">
+                    <Sparkles size={10} className="animate-spin text-nf-accent" /> جاري التفكير...
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            {/* Chat Input */}
+            <div className="px-3 py-2 border-t border-nf-border-2">
+              <div className="flex items-center gap-2">
+                <input type="text" value={aiChatMsg} onChange={e => setAiChatMsg(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiChat(); } }} placeholder="اسأل عن الألعاب..." className="flex-1 bg-nf-input border border-nf-border-2 rounded-xl px-3 py-1.5 text-[11px] text-white placeholder:text-nf-dim/40 outline-none focus:border-nf-accent/30 transition-colors" disabled={aiGenerating} />
+                <button onClick={sendAiChat} disabled={aiGenerating || !aiChatMsg.trim()} className="p-1.5 rounded-xl bg-nf-accent text-white disabled:opacity-30 transition-all hover:bg-nf-accent/80"><Send size={12} /></button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
