@@ -10,7 +10,7 @@ import {
   ArrowLeft, ArrowUp, ThumbsUp, ThumbsDown, Share2, Reply, Home, Star,
   HelpCircle, Lightbulb, Bug, Sparkles, BookOpen, Menu, Calendar, MessageCirclePlus,
   LogIn, Settings, Bell, TrendingUp, Shield, Award, BarChart3, Users, Activity, RotateCcw, ChevronDown, Check,
-  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText
+  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft
 } from "lucide-react";
 import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -1120,65 +1120,31 @@ export default function ForumsPage() {
   // Helper: call AI via server proxy (no CORS)
   const callAI = async (provider: string, model: string, messages: { role: string; content: string }[], systemPrompt?: string): Promise<string> => {
     const contextMessages = messages.slice(-16);
-    if (provider === "chatanywhere") {
-      const key = aiApiKey || "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7";
-      const allMsgs = systemPrompt ? [{ role: "system", content: systemPrompt }, ...contextMessages] : contextMessages;
-      try {
-        const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model, messages: allMsgs, ...AI_CONFIG }),
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData?.error?.message || `HTTP ${res.status}`);
-        }
-        const data = await res.json();
-        return data?.choices?.[0]?.message?.content || "";
-      } catch (err: any) {
-        // If chatanywhere fails, try the server proxy as fallback
-        console.warn("ChatAnywhere direct failed, trying proxy:", err?.message);
-        const res = await fetch("/api/ai", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider: "deepseek", model: "deepseek-chat", messages: contextMessages, apiKey: aiApiKey, systemPrompt, ...AI_CONFIG }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        return data.choices?.[0]?.message?.content || "";
-      }
-    }
+    // Always use server proxy — it handles all providers including chatanywhere
+    const effectiveProvider = provider === "chatanywhere" ? "deepseek" : provider;
+    const effectiveModel = provider === "chatanywhere" ? "deepseek-chat" : model;
+    const key = aiApiKey || "";
     const res = await fetch("/api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider, model, messages: contextMessages, apiKey: aiApiKey, systemPrompt, ...AI_CONFIG }),
+      body: JSON.stringify({ provider: effectiveProvider, model: effectiveModel, messages: contextMessages, apiKey: key, systemPrompt, ...AI_CONFIG }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-    if (provider === "gemini") return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    if (provider === "claude") return data.content?.[0]?.text || "";
+    if (effectiveProvider === "gemini") return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    if (effectiveProvider === "claude") return data.content?.[0]?.text || "";
     return data.choices?.[0]?.message?.content || "";
   };
 
   // Test API connection
   const testAiConnection = async () => {
-    const key = aiApiKey || (aiProvider === "chatanywhere" ? "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7" : "");
+    const key = aiApiKey || "";
     if (!key) { setAiConnected("fail"); return; }
     setAiConnected("testing");
     try {
-      if (aiProvider === "chatanywhere") {
-        const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model: "gpt-3.5-turbo", messages: [{ role: "user", content: "Hi" }], max_tokens: 5 }),
-        });
-        const data = await res.json();
-        setAiConnected(data?.choices?.[0]?.message ? "ok" : "fail");
-      } else {
-        const res = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${encodeURIComponent(key)}`);
-        const data = await res.json();
-        setAiConnected(data.ok ? "ok" : "fail");
-      }
+      const res = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${encodeURIComponent(key)}`);
+      const data = await res.json();
+      setAiConnected(data.ok ? "ok" : "fail");
     } catch {
       setAiConnected("fail");
     }
@@ -3460,9 +3426,11 @@ export default function ForumsPage() {
                   {/* Input bar — ChatGPT/Claude style */}
                   <div className="flex-shrink-0 pt-2 pb-4 relative z-10">
                     <div className="max-w-[780px] mx-auto px-4">
-                    {/* Suggestion chips — horizontal scroll strip */}
-                    <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-none mb-1">
-                      {[
+                    {/* Suggestion chips — horizontal scroll strip with arrows */}
+                    <div className="relative flex items-center gap-1">
+                      <button onClick={() => { const el = document.getElementById('ai-chips-scroll'); if (el) el.scrollBy({ left: -120, behavior: 'smooth' }); }} className="shrink-0 w-5 h-5 rounded-full bg-nf-secondary/60 hover:bg-nf-accent/20 text-nf-dim/40 hover:text-nf-accent flex items-center justify-center transition-all"><ChevronRight size={10} /></button>
+                      <div id="ai-chips-scroll" className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-none flex-1">
+                        {[
                         { q: "حسّن نصي", icon: Sparkles },
                         { q: "موضوع مميز", icon: FileCode },
                         { q: "أسلوب أدبي", icon: BookOpen },
@@ -3528,6 +3496,8 @@ export default function ForumsPage() {
                           <span className="text-[9px] text-nf-dim/45 group-hover:text-nf-text font-semibold transition-colors whitespace-nowrap">{item.q}</span>
                         </button>
                       ); })}
+                      </div>
+                      <button onClick={() => { const el = document.getElementById('ai-chips-scroll'); if (el) el.scrollBy({ left: 120, behavior: 'smooth' }); }} className="shrink-0 w-5 h-5 rounded-full bg-nf-secondary/60 hover:bg-nf-accent/20 text-nf-dim/40 hover:text-nf-accent flex items-center justify-center transition-all"><ChevronLeft size={10} /></button>
                     </div>
                     <AnimatePresence>
                       {aiReplyContext && (

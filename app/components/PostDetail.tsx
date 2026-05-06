@@ -346,12 +346,33 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const [showPostReport, setShowPostReport] = useState(false);
 
   // AI explain post
+  const [aiDisplayText, setAiDisplayText] = useState("");
+
+  // Smooth typing animation effect
+  useEffect(() => {
+    if (aiResult && !aiLoading) {
+      let i = 0;
+      setAiDisplayText("");
+      const interval = setInterval(() => {
+        if (i < aiResult.length) {
+          setAiDisplayText(aiResult.slice(0, i + 2));
+          i += 2;
+        } else {
+          setAiDisplayText(aiResult);
+          clearInterval(interval);
+        }
+      }, 8);
+      return () => clearInterval(interval);
+    } else {
+      setAiDisplayText("");
+    }
+  }, [aiResult, aiLoading]);
 
   // AI result display
 
   const handleAiExplain = async (mode: "explain" | "summarize" | "translate" | "expand" | "correct" | "tags" | "rephrase" | "question" | "keypoints" | "counter" | "improve" | "issues") => {
     const sel = AI_MODELS[aiModel];
-    const key = aiApiKey || (sel.provider === "chatanywhere" ? "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7" : "");
+    const key = aiApiKey || "";
     if (!key) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي ⚙"); return; }
     if (!post) return;
     setAiLoading(true);
@@ -675,34 +696,11 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                   <button onClick={() => handleAiExplain("translate")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
                     <Languages size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">ترجمة</span>
                   </button>
-                  <div className="h-px bg-white/5 mx-1.5 my-0.5" />
-                  <button onClick={() => handleAiExplain("expand")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                    <Sparkles size={10} className="text-emerald-400/40" /> <span className="flex-1 text-right">وسّع</span>
-                  </button>
                   <button onClick={() => handleAiExplain("correct")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
                     <FileText size={10} className="text-amber-400/40" /> <span className="flex-1 text-right">تصحيح</span>
                   </button>
                   <button onClick={() => handleAiExplain("tags")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
                     <BookOpen size={10} className="text-blue-400/40" /> <span className="flex-1 text-right">وسوم</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("rephrase")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                    <Sparkles size={10} className="text-violet-400/40" /> <span className="flex-1 text-right">أعد الصياغة</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("question")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                    <BookOpen size={10} className="text-cyan-400/40" /> <span className="flex-1 text-right">أسئلة</span>
-                  </button>
-                  <div className="h-px bg-white/5 mx-1.5 my-0.5" />
-                  <button onClick={() => handleAiExplain("keypoints")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                    <FileText size={10} className="text-orange-400/40" /> <span className="flex-1 text-right">نقاط رئيسية</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("counter")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                    <Sparkles size={10} className="text-rose-400/40" /> <span className="flex-1 text-right">حجة مضادة</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("improve")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                    <Sparkles size={10} className="text-emerald-400/40" /> <span className="flex-1 text-right">حسّن</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("issues")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                    <FileText size={10} className="text-red-400/40" /> <span className="flex-1 text-right">مشاكل</span>
                   </button>
                 </div>
               </div>
@@ -725,7 +723,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           <div className="flex items-center gap-1.5 mb-1.5">
             <Sparkles size={11} className={cn("text-nf-accent/60", aiLoading && "animate-pulse")} />
             <span className="text-[10px] text-nf-accent/60 font-bold">{aiLoading ? "بكتبلك..." : "NorthFall AI"}</span>
-            {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); }} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={11} /></button>}
+            {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={11} /></button>}
           </div>
           {aiLoading && !aiResult && (
             <div className="flex items-center gap-1">
@@ -734,7 +732,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
               <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
           )}
-          {aiResult && <p className="text-[12px] text-nf-muted leading-relaxed">{aiResult}</p>}
+          {aiDisplayText && <p className="text-[12px] text-nf-muted leading-relaxed">{aiDisplayText}<span className="inline-block w-[2px] h-[12px] bg-nf-accent/60 ml-0.5 animate-pulse" /></p>}
         </div>
       )}
 

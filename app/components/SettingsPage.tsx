@@ -323,25 +323,16 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
     setAiConnected("testing");
     try {
       const sel = AI_MODELS[aiModel];
-      if (sel.provider === "chatanywhere") {
-        const key = aiApiKey || "sk-DSgwebAySqIJA6Bmywb4EcbPpPekYVA6AcGlMx6bA6lEHTO7";
-        const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model: "gpt-3.5-turbo", messages: [{ role: "user", content: "Hi" }], max_tokens: 5 }),
-        });
-        const data = await res.json();
-        setAiConnected(data?.choices?.[0]?.message ? "ok" : "fail");
-      } else {
-        const res = await fetch("/api/ai", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider: sel.provider, model: sel.model, apiKey: aiApiKey, messages: [{ role: "user", content: "Hi" }], maxTokens: 5 }),
-        });
-        const data = await res.json();
-        const ok = data?.choices?.[0]?.message || data?.candidates?.[0]?.content || data?.content?.[0]?.text;
-        setAiConnected(ok ? "ok" : "fail");
-      }
+      const effectiveProvider = sel.provider === "chatanywhere" ? "deepseek" : sel.provider;
+      const effectiveModel = sel.provider === "chatanywhere" ? "deepseek-chat" : sel.model;
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: effectiveProvider, model: effectiveModel, apiKey: aiApiKey, messages: [{ role: "user", content: "Hi" }], maxTokens: 5 }),
+      });
+      const data = await res.json();
+      const ok = data?.choices?.[0]?.message || data?.candidates?.[0]?.content || data?.content?.[0]?.text;
+      setAiConnected(ok ? "ok" : "fail");
     } catch { setAiConnected("fail"); }
   };
 
