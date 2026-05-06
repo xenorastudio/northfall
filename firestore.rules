@@ -1,40 +1,40 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isAuth() {
-      return request.auth != null;
-    }
-    function isAdmin() {
-      return isAuth() && (request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
-    }
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      function isAuth() {
+        return request.auth != null;
+      }
+      function isAdmin() {
+        return isAuth() && (request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
+      }
 
-    // Allow all reads for everyone
-    match /{document=**} {
-      allow read: if true;
-      allow write: if isAuth();
-    }
+      // Allow all reads for everyone
+      match /{document=**} {
+        allow read: if true;
+        allow write: if isAuth();
+      }
 
-    // Only owner or admin can delete posts
-    match /posts/{postId} {
-      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-    }
+      // Only owner or admin can delete posts
+      match /posts/{postId} {
+        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
+      }
 
-    // Only owner or admin can delete comments
-    match /posts/{postId}/comments/{commentId} {
-      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-    }
+      // Only owner or admin can delete comments
+      match /posts/{postId}/comments/{commentId} {
+        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
+      }
 
-    // Only owner or admin can delete forum threads/replies
-    match /forums/{forumId}/threads/{threadId} {
-      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-    }
-    match /forums/{forumId}/threads/{threadId}/replies/{replyId} {
-      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-    }
+      // Only owner or admin can delete forum threads/replies
+      match /forums/{forumId}/threads/{threadId} {
+        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
+      }
+      match /forums/{forumId}/threads/{threadId}/replies/{replyId} {
+        allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
+      }
 
-    // Reports: only admins can read/update/delete
-    match /reports/{reportId} {
-      allow read, update, delete: if isAdmin();
+      // Reports: only admins can read/update/delete
+      match /reports/{reportId} {
+        allow read, update, delete: if isAdmin();
+      }
     }
   }
-}

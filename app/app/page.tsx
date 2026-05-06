@@ -13,6 +13,7 @@ import CreatePostPage from "../components/CreatePostPage";
 import SettingsPage from "../components/SettingsPage";
 import NotificationsPage from "../components/NotificationsPage";
 import AdminPage from "../components/AdminPage";
+import GamesPage from "../components/GamesPage";
 import AuthProvider, { useAuth } from "../components/AuthProvider";
 import { I18nProvider, useI18n } from "../components/I18nProvider";
 import LoginModal from "../components/LoginModal";
@@ -24,7 +25,7 @@ import { db } from "@/lib/firebase";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin";
+type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games";
 
 interface Post {
   id: string;
@@ -65,14 +66,14 @@ function AppContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get("view");
-    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin"].includes(v)) {
+    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games"].includes(v)) {
       setView(v as View);
       const c = params.get("community"); if (c) setSelectedCommunity(c);
       const p = params.get("postId"); if (p) setSelectedPostId(p);
       const u = params.get("uid"); if (u) setViewingUid(u);
       const e = params.get("editPostId"); if (e) { setEditPostId(e); setView("edit"); }
       // Set tab title on direct URL load
-      const titles: Record<string, string> = { feed: "Northfall", community: c ? `n/${c}` : "مجتمع", profile: "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف" };
+      const titles: Record<string, string> = { feed: "Northfall", community: c ? `n/${c}` : "مجتمع", profile: "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف", games: "ألعاب" };
       document.title = (titles[v] || "Northfall") + " — Northfall";
     }
   }, []);
@@ -97,6 +98,7 @@ function AppContent() {
       notifs: "إشعارات",
       edit: "تعديل",
       admin: "إشراف",
+      games: "ألعاب",
     };
     document.title = (titleMap[newView] || "Northfall") + " — Northfall";
   };
@@ -106,7 +108,7 @@ function AppContent() {
     const onPopState = () => {
       const params = new URLSearchParams(window.location.search);
       const v = params.get("view") as View | null;
-      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin"].includes(v)) {
+      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games"].includes(v)) {
         setView(v);
         const c = params.get("community"); if (c) setSelectedCommunity(c);
         const p = params.get("postId"); if (p) setSelectedPostId(p);
@@ -305,11 +307,12 @@ function AppContent() {
           else if (id === "notifs") navigateTo("notifs");
           else if (id === "settings") navigateTo("settings");
           else if (id === "forums") window.open("/NewPage", "_blank");
+          else if (id === "games") navigateTo("games");
           else if (id === "hot" || id === "new" || id === "top") { setSortMode(id); navigateTo("feed"); }
           else backToFeed();
         }}
         onCommunityClick={openCommunity}
-        activeNav={view === "feed" ? (sortMode === "hot" ? "hot" : sortMode === "new" ? "new" : sortMode === "top" ? "top" : "home") : view === "profile" ? "profile" : view === "settings" ? "settings" : view === "notifs" ? "notifs" : view === "community" ? selectedCommunity : ""}
+        activeNav={view === "feed" ? (sortMode === "hot" ? "hot" : sortMode === "new" ? "new" : sortMode === "top" ? "top" : "home") : view === "profile" ? "profile" : view === "settings" ? "settings" : view === "notifs" ? "notifs" : view === "games" ? "games" : view === "community" ? selectedCommunity : ""}
       />
 
       <div style={{ marginLeft: 260, paddingTop: 48 }} className="min-h-screen flex justify-center">
@@ -451,6 +454,12 @@ function AppContent() {
               {view === "admin" && (
                 <motion.div key="admin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
                   <AdminPage onBack={backToFeed} onPostClick={openPost} />
+                </motion.div>
+              )}
+
+              {view === "games" && (
+                <motion.div key="games" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+                  <GamesPage onBack={backToFeed} />
                 </motion.div>
               )}
 

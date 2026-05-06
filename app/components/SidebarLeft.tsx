@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Flame, Sparkles, TrendingUp, User, Bookmark, Bell, Settings, HelpCircle, Shield, Plus, Search, MessageSquare } from "lucide-react";
+import { Home, Flame, Sparkles, TrendingUp, User, Bookmark, Bell, Settings, HelpCircle, Shield, Plus, Search, MessageSquare, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useI18n } from "./I18nProvider";
@@ -114,6 +114,7 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
     { icon: Sparkles, labelKey: "fs.new", id: "new" },
     { icon: TrendingUp, labelKey: "fs.top", id: "top" },
     { icon: MessageSquare, labelKey: "المنتدى", id: "forums" },
+    { icon: Gamepad2, labelKey: "ألعاب", id: "games" },
   ];
   const personalItemsInner = [
     { icon: User, labelKey: "sb.profile", id: "profile" },
