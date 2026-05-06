@@ -14,6 +14,7 @@ import SettingsPage from "../components/SettingsPage";
 import NotificationsPage from "../components/NotificationsPage";
 import AdminPage from "../components/AdminPage";
 import GamesPage from "../components/GamesPage";
+import MaintenanceOverlay from "../components/MaintenanceOverlay";
 import AuthProvider, { useAuth } from "../components/AuthProvider";
 import { I18nProvider, useI18n } from "../components/I18nProvider";
 import LoginModal from "../components/LoginModal";
@@ -515,7 +516,9 @@ export default function AppPage() {
     <AuthProvider>
       <I18nProvider>
         <ToastProvider>
-          <AppContent />
+          <MaintenanceOverlay>
+            <AppContent />
+          </MaintenanceOverlay>
         </ToastProvider>
       </I18nProvider>
     </AuthProvider>

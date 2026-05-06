@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ArrowRight, Search, RefreshCw, FileText, MessageSquare, User, Clock, Eye, CheckCircle, RotateCcw, Trash2, X, ExternalLink, Ban } from "lucide-react";
-import { doc, getDoc, getDocs, updateDoc, deleteDoc, collection, query, orderBy, limit, writeBatch } from "firebase/firestore";
+import { Shield, ArrowRight, Search, RefreshCw, FileText, MessageSquare, User, Clock, Eye, CheckCircle, RotateCcw, Trash2, X, ExternalLink, Ban, Wrench } from "lucide-react";
+import { doc, getDoc, getDocs, updateDoc, deleteDoc, setDoc, collection, query, orderBy, limit, writeBatch, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
@@ -34,6 +34,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
   const [detailId, setDetailId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<string[]>([]);
   const [deletingPost, setDeletingPost] = useState(false);
+  const [maintenanceOn, setMaintenanceOn] = useState(false);
 
   const isAdmin = user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1";
 
@@ -53,6 +54,19 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
   };
 
   useEffect(() => { if (isAdmin) loadReports(); }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsub = onSnapshot(doc(db, "system", "maintenance"), (snap) => {
+      if (snap.exists()) setMaintenanceOn(!!snap.data().active);
+    });
+    return () => unsub();
+  }, [isAdmin]);
+
+  const toggleMaintenance = async () => {
+    const newVal = !maintenanceOn;
+    try { await setDoc(doc(db, "system", "maintenance"), { active: newVal }); showToast(newVal ? "تم تفعيل وضع الصيانة" : "تم إطفاء وضع الصيانة"); } catch { showToast("خطأ"); }
+  };
 
   if (!isAdmin) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -129,10 +143,16 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
             <Shield size={18} className="text-nf-accent" />
             <h1 className="text-sm font-bold text-white">لوحة الإشراف</h1>
           </div>
-          <button onClick={onBack} className="flex items-center gap-1 px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
-            <ArrowRight size={12} />
-            العودة للموقع
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={toggleMaintenance} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all", maintenanceOn ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-white/5 text-nf-dim border border-white/10 hover:text-white")}>
+              <Wrench size={12} />
+              {maintenanceOn ? "الصيانة شغّالة" : "فعّل صيانة"}
+            </button>
+            <button onClick={onBack} className="flex items-center gap-1 px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+              <ArrowRight size={12} />
+              العودة للموقع
+            </button>
+          </div>
         </div>
       </div>
 
