@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
 import { doc, updateDoc, getDoc, deleteDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Camera, AlertTriangle, Sparkles, Key } from "lucide-react";
+import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Camera, AlertTriangle, Sparkles, Key, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useI18n } from "./I18nProvider";
@@ -16,6 +16,55 @@ function IconGitHub() { return <svg width="14" height="14" viewBox="0 0 24 24"><
 function IconSteam() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M11.502 18.003l-2.09-1.442a1.29 1.29 0 0 1-.398-1.666 1.28 1.28 0 0 1 1.532-.623l1.898.633.418-1.858a1.284 1.284 0 0 1 1.796-.856 1.29 1.29 0 0 1 .577 1.748l-1.012 2.024a1.29 1.29 0 0 1-1.878.478z" fill="#fff"/><path d="M22.5 12c0 5.799-4.701 10.5-10.5 10.5S1.5 17.799 1.5 12 6.201 1.5 12 1.5 22.5 6.201 22.5 12z" fill="none" stroke="#fff" strokeWidth="1.5"/></svg>; }
 function IconDiscord() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0c-.164-.393-.406-.874-.618-1.25a.077.077 0 0 0-.079-.036 19.74 19.74 0 0 0-4.885 1.515.07.07 0 0 0-.032.028C.533 9.046-.32 13.56.1 18.058a.082.082 0 0 0 .031.056c2.053 1.508 4.041 2.423 5.993 3.03a.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.926.077.077 0 0 1-.008-.126c.126-.094.252-.192.372-.301a.074.074 0 0 1 .078-.012c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .079.01c.12.1.246.204.373.302a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.926.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.028c1.96-.607 3.949-1.522 6.002-3.029a.077.077 0 0 0 .031-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029z" fill="#5865F2"/></svg>; }
 function IconWebsite() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#00e5ff"/></svg>; }
+
+const TRANSLATE_LANGS = [
+  { id: "en", label: "English", sub: "إنجليزي", flag: "🇺🇸" },
+  { id: "ar", label: "العربية", sub: "Arabic", flag: "🇸🇦" },
+  { id: "fr", label: "Français", sub: "فرنسي", flag: "🇫🇷" },
+  { id: "de", label: "Deutsch", sub: "ألماني", flag: "🇩🇪" },
+  { id: "es", label: "Español", sub: "إسباني", flag: "🇪🇸" },
+  { id: "tr", label: "Türkçe", sub: "تركي", flag: "🇹🇷" },
+  { id: "ja", label: "日本語", sub: "ياباني", flag: "🇯🇵" },
+  { id: "ko", label: "한국어", sub: "كوري", flag: "🇰🇷" },
+  { id: "zh", label: "中文", sub: "صيني", flag: "🇨🇳" },
+  { id: "ru", label: "Русский", sub: "روسي", flag: "🇷🇺" },
+];
+
+function TranslationLangSelector() {
+  const [open, setOpen] = useState(false);
+  const [lang, setLang] = useState(() => localStorage.getItem("nf-ai-translate-lang") || "en");
+  const ref = useRef<HTMLDivElement>(null);
+  const current = TRANSLATE_LANGS.find(l => l.id === lang) || TRANSLATE_LANGS[0];
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all border bg-nf-secondary/30 border-nf-border/10 hover:border-nf-border/25">
+        <span className="text-lg leading-none">{current.flag}</span>
+        <span className="flex-1 text-right text-nf-text">{current.label}</span>
+        <span className="text-[9px] text-nf-dim/40">{current.sub}</span>
+        <ChevronDown size={12} className={cn("shrink-0 transition-transform opacity-40", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-white/10 shadow-xl shadow-black/40 overflow-hidden" style={{ backgroundColor: "rgba(18,18,20,0.92)", backdropFilter: "blur(20px) saturate(1.2)" }}>
+          <div className="py-0.5 max-h-[240px] overflow-y-auto">
+            {TRANSLATE_LANGS.map(l => (
+              <button key={l.id} onClick={() => { setLang(l.id); localStorage.setItem("nf-ai-translate-lang", l.id); setOpen(false); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-semibold transition-all", lang === l.id ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-white/5")}>
+                <span className="text-lg leading-none">{l.flag}</span>
+                <span className="flex-1 text-right">{l.label}</span>
+                <span className="text-[9px] opacity-40">{l.sub}</span>
+                {lang === l.id && <Check size={10} className="text-nf-accent shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const socialFields = [
   { id: "twitter", label: "X (Twitter)", placeholder: "https://x.com/username", bg: "#000", icon: IconX },
@@ -534,28 +583,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
               <div className="border-t border-nf-border/10 pt-4">
                 <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">لغة الترجمة</label>
                 <p className="text-[8px] text-nf-dim/40 mb-2">عند استخدام أداة الترجمة، يترجم لهذه اللغة — أو العكس إذا كانت اللغة نفسها</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[
-                    { id: "en", label: "English", sub: "إنجليزي", flag: "🇺🇸" },
-                    { id: "ar", label: "العربية", sub: "Arabic", flag: "🇸🇦" },
-                    { id: "fr", label: "Français", sub: "فرنسي", flag: "🇫🇷" },
-                    { id: "de", label: "Deutsch", sub: "ألماني", flag: "🇩🇪" },
-                    { id: "es", label: "Español", sub: "إسباني", flag: "🇪🇸" },
-                    { id: "tr", label: "Türkçe", sub: "تركي", flag: "🇹🇷" },
-                    { id: "ja", label: "日本語", sub: "ياباني", flag: "🇯🇵" },
-                    { id: "ko", label: "한국어", sub: "كوري", flag: "🇰🇷" },
-                    { id: "zh", label: "中文", sub: "صيني", flag: "🇨🇳" },
-                    { id: "ru", label: "Русский", sub: "روسي", flag: "🇷🇺" },
-                  ].map(l => (
-                    <button key={l.id} onClick={() => { localStorage.setItem("nf-ai-translate-lang", l.id); }} className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg text-[10px] font-semibold transition-all border", (localStorage.getItem("nf-ai-translate-lang") || "en") === l.id ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>
-                      <span className="text-sm">{l.flag}</span>
-                      <div className="flex-1 text-right">
-                        <p className="text-[10px]">{l.label}</p>
-                        <p className="text-[8px] opacity-50">{l.sub}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                <TranslationLangSelector />
                 <p className="text-[8px] text-nf-dim/30 mt-2">ذكي: إذا المنشور عربي يترجم للغة المختارة، وإذا المنشور بنفس اللغة يترجم للعربية</p>
               </div>
               {/* API Key */}
