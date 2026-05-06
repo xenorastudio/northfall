@@ -99,7 +99,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
     <div
       className={cn(
         "relative",
-        depth > 0 && "mr-4 pr-8",
+        depth > 0 && "mr-2 sm:mr-4 pr-6 sm:pr-8",
       )}
     >
       {/* Connector line (Precise YouTube Style) */}
@@ -503,15 +503,15 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             ));
           })()}
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 text-nf-muted">
+        <div className="flex items-center gap-2 px-4 py-2 text-nf-muted flex-wrap">
           <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1.5 py-0.5">
             <button onClick={() => setPostVote(1)} className={cn("p-1 rounded-md transition-colors duration-150", postMyVote === 1 ? "text-orange-500" : "text-nf-dim hover:text-nf-muted")}><ArrowUp size={16} /></button>
             <span className={cn("text-xs font-bold min-w-[20px] text-center", postMyVote === 1 ? "text-orange-500" : postMyVote === -1 ? "text-blue-400" : postVoteCount > 0 ? "text-orange-500" : postVoteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{postVoteCount}</span>
             <button onClick={() => setPostVote(-1)} className={cn("p-1 rounded-md transition-colors duration-150", postMyVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
           </div>
-          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0} {t("pd.comments")}</button>
+          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0}</button>
           <div className="relative" onMouseLeave={() => setShowShareMenu(false)}>
-            <button onClick={() => setShowShareMenu(!showShareMenu)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Share2 size={14} /> {t("pd.share")}</button>
+            <button onClick={() => setShowShareMenu(!showShareMenu)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Share2 size={14} /></button>
             <AnimatePresence>
               {showShareMenu && (
                 <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.12 }} className="absolute top-full mt-1 right-0 bg-nf-primary border border-nf-border rounded-lg p-1.5 shadow-xl z-30 flex flex-col gap-0.5 min-w-[180px]">
@@ -540,15 +540,15 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
               )}
             </AnimatePresence>
           </div>
-          <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /> {postSaved ? t("pd.saved") : t("pd.saveBtn")}</button>
-          <button onClick={() => { const embed = `<blockquote class="northfall-embed" data-post-id="${postId}"><a href="${window.location.origin}/app?view=post&postId=${postId}">NorthFall Post</a></blockquote>`; navigator.clipboard?.writeText(embed); showToast(t("pd.embedCopied")); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Code2 size={14} /> Embed</button>
+          <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /></button>
+          <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /></button>
           {user && post?.authorUid === user.uid && onEditClick && (
-            <button onClick={() => onEditClick(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Pencil size={14} /> تعديل</button>
+            <button onClick={() => onEditClick(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Pencil size={14} /></button>
           )}
           {user && post?.authorUid === user.uid && onDeleteClick && (
-            <button onClick={async () => { await deleteDoc(doc(db, "posts", postId)); onBack(); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-red-400/10 text-xs text-nf-muted hover:text-red-400 transition-colors"><Trash2 size={14} /> حذف</button>
+            <button onClick={async () => { await deleteDoc(doc(db, "posts", postId)); onBack(); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-red-400/10 text-xs text-nf-muted hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
           )}
-          <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> {t("pd.report")}</button>
+          <button onClick={() => { const embed = `<blockquote class="northfall-embed" data-post-id="${postId}"><a href="${window.location.origin}/app?view=post&postId=${postId}">NorthFall Post</a></blockquote>`; navigator.clipboard?.writeText(embed); showToast(t("pd.embedCopied")); }} className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Code2 size={14} /> Embed</button>
         </div>
         <ReportModal open={showPostReport} onClose={() => setShowPostReport(false)} type="post" targetId={postId} />
       </article>
@@ -640,7 +640,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       )}
 
       {/* Scroll to top */}
-      <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="fixed bottom-6 right-6 z-50 w-10 h-10 rounded-full bg-nf-secondary border border-nf-border-2 flex items-center justify-center text-nf-muted hover:text-white hover:bg-nf-hover transition-colors shadow-lg">
+      <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="fixed bottom-20 sm:bottom-6 right-6 z-50 w-10 h-10 rounded-full bg-nf-secondary border border-nf-border-2 flex items-center justify-center text-nf-muted hover:text-white hover:bg-nf-hover transition-colors shadow-lg">
         <ArrowUpCircle size={20} />
       </button>
     </motion.div>

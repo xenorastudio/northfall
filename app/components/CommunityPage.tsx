@@ -140,7 +140,11 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
 
       {/* Header */}
       <div className="flex items-start gap-4 px-1 -mt-10 relative z-10 mb-4">
-        <img src={meta.img} alt="" className="w-16 h-16 rounded-full border-4 border-nf-primary bg-nf-primary shadow-lg" />
+        {meta.img ? (
+          <img src={meta.img} alt="" className="w-16 h-16 rounded-full border-4 border-nf-primary bg-nf-primary shadow-lg" />
+        ) : (
+          <div className="w-16 h-16 rounded-full border-4 border-nf-primary bg-nf-secondary shadow-lg flex items-center justify-center text-nf-accent font-bold text-lg">n/</div>
+        )}
         <div className="flex-1 pt-3">
           <h1 className="text-xl font-bold text-white">n/{name}</h1>
           <p className="text-xs text-nf-muted mt-1 leading-relaxed line-clamp-2">{meta.desc}</p>
