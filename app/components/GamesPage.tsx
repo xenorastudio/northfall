@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList, ExternalLink } from "lucide-react";
+import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList, ExternalLink, Filter, Monitor } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
@@ -18,10 +18,10 @@ export const GAMES: Game[] = [
   { id: "apex-legends", name: "Apex Legends", cover: "/assets/GameCovor/Apex Legends .png", publisher: "EA", developer: "Respawn Entertainment", genre: ["Battle Royale", "شوتر"], rating: 4.5, releaseYear: 2019, description: "لعبة Battle Royale مجانية مع شخصيات فريدة لكل واحدة قدرات خاصة. قاتل في فرق من 3 وكن آخر من يبقى!", platforms: ["PC", "PS", "Xbox", "Switch"], players: "60", steamUrl: "https://store.steampowered.com/app/1172470/Apex_Legends/" },
   { id: "ac-mirage", name: "Assassin's Creed Mirage", cover: "/assets/GameCovor/Assassin's Creed Mirage.png", publisher: "Ubisoft", developer: "Ubisoft Bordeaux", genre: ["أكشن-مغامرة", "تسلل"], rating: 4.0, releaseYear: 2023, description: "عودة لأصول السلسلة مع بصرام في بغداد القديمة. تسلل، اغتال، واستكشف المدينة الأسطورية.", platforms: ["PC", "PS5", "Xbox Series"], players: "1", steamUrl: "https://store.steampowered.com/app/2013130/Assassins_Creed_Mirage/" },
   { id: "ac-valhalla", name: "Assassin's Creed Valhalla", cover: "/assets/GameCovor/Assassin's Creed Valhalla.png", publisher: "Ubisoft", developer: "Ubisoft Montreal", genre: ["أكشن-مغامرة", "RPG"], rating: 4.3, releaseYear: 2020, description: "عش قصة إيفور الفايكنغ واكتشف إنجلترا في عصر الفايكنغ. ابنِ مستوطنتك وقاتل من أجل مجدك.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/2208920/Assassins_Creed_Valhalla/" },
-  { id: "civilization-vi", name: "Civilization VI", cover: "/assets/GameCovor/Civilization VI.png", publisher: "2K Games", developer: "Firaxis Games", genre: ["استراتيجية", "4X"], rating: 4.6, releaseYear: 2016, description: "ابنِ إمبراطورية تدوم عبر العصور. قُد حضارتك من العصر الحجري حتى عصر المعلومات وكن أعظم قائد في التاريخ.", platforms: ["PC", "PS", "Xbox", "Switch", "Mobile"], players: "1-12", steamUrl: "https://store.steampowered.com/app/289070/Sid_Meiers_Civilization_VI/" },
+  { id: "civilization-vi", name: "Civilization VI", cover: "/assets/GameCovor/Civilization VI.png", publisher: "2K Games", developer: "Firaxis Games", genre: ["استراتيجية", "4X"], rating: 4.6, releaseYear: 2016, description: "ابنِ إمبراطورية تدوم عبر العصور. قُد حضارتك من العصر الحجري حتى عصر المعلومات وكن أعظم قائد في التاريخ.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-12", steamUrl: "https://store.steampowered.com/app/289070/Sid_Meiers_Civilization_VI/" },
   { id: "cs2", name: "Counter-Strike 2", cover: "/assets/GameCovor/Counter-Strike 2.png", publisher: "Valve", developer: "Valve", genre: ["شوتر", "تنافسي"], rating: 4.7, releaseYear: 2023, description: "الإصدار الجديد من أشهر لعبة شوتر تكتيكية. رسومات جديدة، سموك جديد، ونظام تصنيف محدّث.", platforms: ["PC"], players: "5v5", steamUrl: "https://store.steampowered.com/app/730/CounterStrike_2/" },
   { id: "cyberpunk-2077", name: "Cyberpunk 2077", cover: "/assets/GameCovor/Cyberpunk 2077.png", publisher: "CD Projekt", developer: "CD Projekt Red", genre: ["RPG", "أكشن"], rating: 4.4, releaseYear: 2020, description: "مغامرة RPG في مدينة نايت سيتي المستقبلية. خصّص شخصيتك، اكتشف العالم المفتوح، واتبع قصة V.", platforms: ["PC", "PS5", "Xbox Series"], players: "1", steamUrl: "https://store.steampowered.com/app/1091500/Cyberpunk_2077/" },
-  { id: "dead-by-daylight", name: "Dead by Daylight", cover: "/assets/GameCovor/Dead by Daylight.png", publisher: "Behaviour Interactive", developer: "Behaviour Interactive", genre: ["رعب", "بقاء"], rating: 4.1, releaseYear: 2016, description: "لعبة رعب غير متماثلة. العب كقاتل أو كناجٍ وحاول الهروب. شخصيات من أشهر أفلام الرعب!", platforms: ["PC", "PS", "Xbox", "Switch", "Mobile"], players: "5", steamUrl: "https://store.steampowered.com/app/381210/Dead_by_Daylight/" },
+  { id: "dead-by-daylight", name: "Dead by Daylight", cover: "/assets/GameCovor/Dead by Daylight.png", publisher: "Behaviour Interactive", developer: "Behaviour Interactive", genre: ["رعب", "بقاء"], rating: 4.1, releaseYear: 2016, description: "لعبة رعب غير متماثلة. العب كقاتل أو كناجٍ وحاول الهروب. شخصيات من أشهر أفلام الرعب!", platforms: ["PC", "PS", "Xbox", "Switch"], players: "5", steamUrl: "https://store.steampowered.com/app/381210/Dead_by_Daylight/" },
   { id: "ea-fc-24", name: "EA Sports FC 24", cover: "/assets/GameCovor/EA Sports FC 24.png", publisher: "EA", developer: "EA Canada", genre: ["رياضة", "محاكاة"], rating: 3.8, releaseYear: 2023, description: "لعبة كرة القدم الجيل الجديد مع HyperMotion V وتقنيات PlayStyles. العب مع أفضل اللاعبين والفرق في العالم.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-22", steamUrl: "https://store.steampowered.com/app/2195250/EA_SPORTS_FC_24/" },
   { id: "elden-ring", name: "Elden Ring", cover: "/assets/GameCovor/Elden Ring.png", publisher: "Bandai Namco", developer: "FromSoftware", genre: ["RPG", "أكشن", "عالم مفتوح"], rating: 4.9, releaseYear: 2022, description: "تحفة FromSoftware مع عالم مفتوح ضخم صمّمه ميازاكي وجورج آر آر مارتن. استكشف الأراضي البينية وقاتل الرؤساء الأسطوريين.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/1245620/ELDEN_RING/" },
   { id: "f1-23", name: "F1 23", cover: "/assets/GameCovor/F1 23.png", publisher: "EA", developer: "Codemasters", genre: ["سباق", "رياضة"], rating: 4.0, releaseYear: 2023, description: "عش تجربة الفورمولا 1 الرسمية مع سيارات و حلقات موسم 2023. سباقات واقعية وأوضاع لعب متعددة.", platforms: ["PC", "PS", "Xbox"], players: "1-20", steamUrl: "https://store.steampowered.com/app/2108330/F1_23/" },
@@ -82,7 +82,7 @@ export const GAMES: Game[] = [
   { id: "assetto-corsa-comp", name: "Assetto Corsa Competizione", cover: "/assets/GameCovor/Assetto Corsa Competizione.png", publisher: "505 Games", developer: "Kunos Simulazioni", genre: ["سباق", "محاكاة"], rating: 4.2, releaseYear: 2019, description: "محاكاة GT الرسمية! رسومات مذهلة، فيزياء إطارات واقعية، وبطولات BLANCPAIN الحقيقية.", platforms: ["PC", "PS", "Xbox"], players: "1-16", steamUrl: "https://store.steampowered.com/app/805550/Assetto_Corsa_Competizione/" },
 
   // === Simulation / Building ===
-  { id: "house-flipper", name: "House Flipper", cover: "/assets/GameCovor/House Flipper.png", publisher: "PlayWay", developer: "Empyrean", genre: ["محاكاة", "إبداعي"], rating: 4.1, releaseYear: 2018, description: "اشتري بيوت خربانة وجددها! طلّع، دهن، رتّب، وبعها بربح. محاكاة ممتعة ومرضية.", platforms: ["PC", "PS", "Xbox", "Switch", "Mobile"], players: "1", steamUrl: "https://store.steampowered.com/app/613100/House_Flipper/" },
+  { id: "house-flipper", name: "House Flipper", cover: "/assets/GameCovor/House Flipper.png", publisher: "PlayWay", developer: "Empyrean", genre: ["محاكاة", "إبداعي"], rating: 4.1, releaseYear: 2018, description: "اشتري بيوت خربانة وجددها! طلّع، دهن، رتّب، وبعها بربح. محاكاة ممتعة ومرضية.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1", steamUrl: "https://store.steampowered.com/app/613100/House_Flipper/" },
   { id: "powerwash-simulator", name: "PowerWash Simulator", cover: "/assets/GameCovor/PowerWash Simulator.png", publisher: "Square Enix", developer: "FuturLab", genre: ["محاكاة", "استرخاء"], rating: 4.4, releaseYear: 2022, description: "اغسل الأوساخ بماء الضغط العالي! لعبة استرخاء بامتياز — مرضية ومدمنة.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-6", steamUrl: "https://store.steampowered.com/app/1290000/PowerWash_Simulator/" },
   { id: "euro-truck-sim-2", name: "Euro Truck Simulator 2", cover: "/assets/GameCovor/Euro Truck Simulator 2.png", publisher: "SCS Software", developer: "SCS Software", genre: ["محاكاة", "قيادة"], rating: 4.6, releaseYear: 2013, description: "سوّق شاحنات عبر أوروبا! ابنِ شركة نقلك، اشتغل، واستمتع بالمناظر الخلابة على الطريق.", platforms: ["PC"], players: "1-8", steamUrl: "https://store.steampowered.com/app/227300/Euro_Truck_Simulator_2/" },
   { id: "american-truck-sim", name: "American Truck Simulator", cover: "/assets/GameCovor/American Truck Simulator.png", publisher: "SCS Software", developer: "SCS Software", genre: ["محاكاة", "قيادة"], rating: 4.4, releaseYear: 2016, description: "سوّق شاحنات أمريكية ضخمة! اعبر الولايات، ابنِ شركتك، واستمتع بالطرق الأمريكية.", platforms: ["PC"], players: "1-8", steamUrl: "https://store.steampowered.com/app/270880/American_Truck_Simulator/" },
@@ -129,7 +129,7 @@ export const GAMES: Game[] = [
   { id: "metro-exodus", name: "Metro Exodus", cover: "/assets/GameCovor/Metro Exodus.png", publisher: "Deep Silver", developer: "4A Games", genre: ["شوتر", "بقاء"], rating: 4.2, releaseYear: 2019, description: "أرتيوم يغادر أنفاق موسكو! رحلة عبر روسيا ما بعد الحرب النووية. أجواء مرعبة.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/412020/Metro_Exodus/" },
 
   // === Survival / Open World ===
-  { id: "ark-survival", name: "ARK: Survival Evolved", cover: "/assets/GameCovor/ARK Survival Evolved.png", publisher: "Studio Wildcard", developer: "Studio Wildcard", genre: ["بقاء", "عالم مفتوح"], rating: 4.0, releaseYear: 2017, description: "ناجي على جزيرة ديناصورات! ركّب وابنِ وروّض الديناصورات. أكثر من 100 مخلوق.", platforms: ["PC", "PS", "Xbox", "Switch", "Mobile"], players: "1-70", steamUrl: "https://store.steampowered.com/app/346110/ARK_Survival_Evolved/" },
+  { id: "ark-survival", name: "ARK: Survival Evolved", cover: "/assets/GameCovor/ARK Survival Evolved.png", publisher: "Studio Wildcard", developer: "Studio Wildcard", genre: ["بقاء", "عالم مفتوح"], rating: 4.0, releaseYear: 2017, description: "ناجي على جزيرة ديناصورات! ركّب وابنِ وروّض الديناصورات. أكثر من 100 مخلوق.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-70", steamUrl: "https://store.steampowered.com/app/346110/ARK_Survival_Evolved/" },
   { id: "rust", name: "Rust", cover: "/assets/GameCovor/Rust.png", publisher: "Facepunch Studios", developer: "Facepunch Studios", genre: ["بقاء", "عالم مفتوح"], rating: 4.1, releaseYear: 2018, description: "بقاء قاسي! ابدأ عريان وابنِ قاعدتك وقاتل لاعبين آخرين. لا أصدقاء، فقط بقاء.", platforms: ["PC"], players: "1-100", steamUrl: "https://store.steampowered.com/app/252490/Rust/" },
   { id: "dying-light", name: "Dying Light", cover: "/assets/GameCovor/Dying Light.png", publisher: "Techland", developer: "Techland", genre: ["بقاء", "أكشن"], rating: 4.3, releaseYear: 2015, description: "باركور وزومبي! اركض فوق الأسطح بالنهار واختبئ بالليل لما يطلع الوحوش.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/239140/Dying_Light/" },
   { id: "dying-light-2", name: "Dying Light 2", cover: "/assets/GameCovor/Dying Light 2.png", publisher: "Techland", developer: "Techland", genre: ["بقاء", "أكشن", "عالم مفتوح"], rating: 4.0, releaseYear: 2022, description: "تكملة Dying Light! مدينة مفتوحة، باركور محسّن، وقراراتك تغير المدينة.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/534380/Dying_Light_2_Stay_Human/" },
@@ -282,6 +282,10 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
           </div>
         </div>
         {/* Single fav button */}
+        {/* Genre badge */}
+        <div className="absolute top-2 right-2">
+          <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-black/40 backdrop-blur-md text-white/70 font-bold border border-white/[0.08]">{game.genre[0]}</span>
+        </div>
         <button
           onClick={(e) => { e.stopPropagation(); onFav(); }}
           className={cn(
@@ -305,7 +309,9 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [showFavModal, setShowFavModal] = useState(false);
   const [genreFilter, setGenreFilter] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<"name" | "rating" | "year">("name");
+  const [platformFilter, setPlatformFilter] = useState<string | null>(null);
+  const [showFavOnly, setShowFavOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<"name" | "rating" | "year" | "oldest">("name");
   const [layout, setLayout] = useState<"grid" | "list">("grid");
 
   useEffect(() => {
@@ -328,13 +334,17 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   };
 
   const allGenres = [...new Set(GAMES.flatMap(g => g.genre))].sort();
+  const allPlatforms = [...new Set(GAMES.flatMap(g => g.platforms))].sort();
   const filtered = GAMES.filter(g => {
-    const ms = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()) || g.publisher.toLowerCase().includes(searchQuery.toLowerCase()) || g.genre.some(gen => gen.includes(searchQuery));
+    const ms = !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()) || g.publisher.toLowerCase().includes(searchQuery.toLowerCase()) || g.developer.toLowerCase().includes(searchQuery.toLowerCase()) || g.genre.some(gen => gen.includes(searchQuery));
     const mg = !genreFilter || g.genre.includes(genreFilter);
-    return ms && mg;
+    const mp = !platformFilter || g.platforms.includes(platformFilter);
+    const mf = !showFavOnly || favoriteIds.includes(g.id);
+    return ms && mg && mp && mf;
   }).sort((a, b) => {
     if (sortBy === "rating") return b.rating - a.rating;
     if (sortBy === "year") return b.releaseYear - a.releaseYear;
+    if (sortBy === "oldest") return a.releaseYear - b.releaseYear;
     return a.name.localeCompare(b.name);
   });
 
@@ -347,7 +357,11 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-nf-secondary/50 text-nf-dim font-semibold">{GAMES.length} لعبة</span>
         </div>
         <div className="flex items-center gap-2">
-          {favoriteIds.length > 0 && <span className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 font-bold">{favoriteIds.length}/7</span>}
+          {favoriteIds.length > 0 && (
+            <button onClick={() => setShowFavOnly(!showFavOnly)} className={cn("flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-bold transition-all", showFavOnly ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-red-500/10 text-red-400 hover:bg-red-500/15")}>
+              <Heart size={10} fill={showFavOnly ? "currentColor" : "none"} /> {favoriteIds.length}/20
+            </button>
+          )}
           <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className="p-2 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors">
             {layout === "grid" ? <LayoutList size={15} /> : <Grid3X3 size={15} />}
           </button>
@@ -356,7 +370,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
       <div className="relative mb-3">
         <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim" />
-        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، أو نوع..." className="w-full bg-nf-secondary/20 rounded-xl pr-9 pl-4 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-2 focus:ring-nf-accent/25 transition-all border border-white/5 focus:border-nf-accent/30" />
+        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، مطور، أو نوع..." className="w-full bg-nf-secondary/20 rounded-xl pr-9 pl-4 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-2 focus:ring-nf-accent/25 transition-all border border-white/5 focus:border-nf-accent/30" />
       </div>
 
       <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
@@ -366,11 +380,20 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
         ))}
       </div>
 
+      <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
+        <Monitor size={10} className="text-nf-dim shrink-0" />
+        <button onClick={() => setPlatformFilter(null)} className={cn("shrink-0 px-2.5 py-0.5 rounded-lg text-[9px] font-semibold transition-all", !platformFilter ? "bg-nf-accent/15 text-nf-accent border border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-muted border border-white/5")}>الكل</button>
+        {allPlatforms.map(p => (
+          <button key={p} onClick={() => setPlatformFilter(platformFilter === p ? null : p)} className={cn("shrink-0 px-2.5 py-0.5 rounded-lg text-[9px] font-semibold transition-all", platformFilter === p ? "bg-nf-accent/15 text-nf-accent border border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-muted border border-white/5")}>{p}</button>
+        ))}
+      </div>
+
       <div className="flex items-center gap-1.5 mb-4">
         {[
           { id: "name" as const, label: "الاسم", icon: null },
           { id: "rating" as const, label: "التقييم", icon: <Trophy size={10} /> },
           { id: "year" as const, label: "الأحدث", icon: <Clock size={10} /> },
+          { id: "oldest" as const, label: "الأقدم", icon: <Clock size={10} className="rotate-180" /> },
         ].map(s => (
           <button key={s.id} onClick={() => setSortBy(s.id)} className={cn("flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all", sortBy === s.id ? "bg-nf-accent/15 text-nf-accent border border-nf-accent/30" : "text-nf-dim hover:text-nf-muted border border-transparent")}>
             {s.icon}{s.label}

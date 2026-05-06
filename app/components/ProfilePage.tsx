@@ -652,7 +652,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
               <div className="text-center py-12">
                 <Gamepad2 size={28} className="text-nf-dim/20 mx-auto mb-2" />
                 <p className="text-xs text-nf-dim mb-1">لا توجد ألعاب مفضلة بعد</p>
-                <p className="text-[10px] text-nf-dim/50">اختر حتى 7 ألعاب من مكتبة الألعاب</p>
+                <p className="text-[10px] text-nf-dim/50">اختر حتى 20 لعبة من مكتبة الألعاب</p>
               </div>
             )}
           </div>
