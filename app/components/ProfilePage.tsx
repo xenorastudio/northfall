@@ -52,6 +52,9 @@ function ProfileGameCard({ game }: { game: { id: string; name: string; cover: st
         <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shadow-sm shadow-red-500/40">
           <Heart size={9} className="text-white" fill="white" />
         </div>
+        <div className="absolute top-1.5 right-1.5">
+          <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-black/40 backdrop-blur-md text-white/70 font-bold border border-white/[0.08]">{game.genre[0]}</span>
+        </div>
       </div>
       <AnimatePresence>
         {hovered && (

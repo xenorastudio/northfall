@@ -324,7 +324,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   const toggleFavorite = (gameId: string) => {
     if (!user) return;
     if (favoriteIds.includes(gameId)) { saveFavorites(favoriteIds.filter(id => id !== gameId)); }
-    else { if (favoriteIds.length >= 7) { setShowFavModal(true); return; } saveFavorites([...favoriteIds, gameId]); }
+    else { if (favoriteIds.length >= 20) { setShowFavModal(true); return; } saveFavorites([...favoriteIds, gameId]); }
   };
 
   const allGenres = [...new Set(GAMES.flatMap(g => g.genre))].sort();
@@ -399,7 +399,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
             <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }} className="bg-nf-primary border border-white/10 rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-3"><Heart size={24} className="text-red-400" /></div>
               <h3 className="text-sm font-bold text-white mb-1.5">وصلت للحد الأقصى</h3>
-              <p className="text-[11px] text-nf-muted mb-4">يمكنك اختيار 7 ألعاب فقط. أزل واحدة أولاً ثم أضف الجديدة.</p>
+              <p className="text-[11px] text-nf-muted mb-4">يمكنك اختيار 20 لعبة فقط. أزل واحدة أولاً ثم أضف الجديدة.</p>
               <button onClick={() => setShowFavModal(false)} className="px-5 py-2 rounded-xl bg-nf-accent text-white text-[12px] font-bold hover:bg-nf-accent/80 transition-colors">فهمت</button>
             </motion.div>
           </motion.div>
