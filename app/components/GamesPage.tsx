@@ -110,6 +110,11 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
         className="rounded-2xl p-4 shadow-2xl shadow-black/80 border border-white/[0.06] bg-black/80 backdrop-blur-2xl"
       >
         <p className="text-[11px] text-white/60 leading-relaxed mb-3">{game.description}</p>
+        <div className="flex items-center gap-3 mb-3 text-[9px]">
+          <span className="flex items-center gap-1 text-amber-400"><Star size={9} fill="currentColor" /> {game.rating}</span>
+          <span className="flex items-center gap-1 text-white/40"><Calendar size={9} /> {game.releaseYear}</span>
+          <span className="flex items-center gap-1 text-white/40"><Users size={9} /> {game.players}</span>
+        </div>
         <div className="flex flex-wrap gap-1.5 mb-2.5">
           {game.genre.map(g => (
             <span key={g} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/[0.06] text-white/70 font-semibold">{g}</span>
@@ -121,9 +126,8 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
           ))}
         </div>
         <div className="flex items-center gap-4 text-[9px] text-white/30">
-          <span className="flex items-center gap-1"><Users size={9} /> {game.players}</span>
-          <span className="flex items-center gap-1"><Calendar size={9} /> {game.releaseYear}</span>
           <span className="flex items-center gap-1"><Tag size={9} /> {game.developer}</span>
+          <span className="flex items-center gap-1">· {game.publisher}</span>
         </div>
       </div>
     </motion.div>
@@ -172,18 +176,14 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
             <span className="text-[8px] text-white/35">{game.releaseYear}</span>
           </div>
         </div>
-        {/* Fav badge */}
-        {isFav && (
-          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/50">
-            <Heart size={12} className="text-white" fill="white" />
-          </div>
-        )}
-        {/* Fav button on hover */}
+        {/* Single fav button */}
         <button
           onClick={(e) => { e.stopPropagation(); onFav(); }}
           className={cn(
             "absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg",
-            isFav ? "bg-red-500 text-white shadow-red-500/50" : "bg-black/50 backdrop-blur-sm text-white/70 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/50"
+            isFav
+              ? "bg-red-500 text-white shadow-red-500/50"
+              : "bg-black/50 backdrop-blur-sm text-white/70 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/50"
           )}
         >
           <Heart size={13} fill={isFav ? "white" : "none"} />

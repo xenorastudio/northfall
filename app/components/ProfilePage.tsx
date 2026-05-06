@@ -30,7 +30,7 @@ function extractProfileColor(src: string): Promise<string> {
   });
 }
 
-function ProfileGameCard({ game }: { game: { id: string; name: string; cover: string; rating: number; releaseYear: number; genre: string[]; description: string; platforms: string[]; players: string; developer: string } }) {
+function ProfileGameCard({ game }: { game: { id: string; name: string; cover: string; rating: number; releaseYear: number; genre: string[]; description: string; platforms: string[]; players: string; developer: string; publisher: string } }) {
   const [dominantColor, setDominantColor] = useState("rgb(30,30,40)");
   const [hovered, setHovered] = useState(false);
   const loadedRef = useRef(false);
@@ -49,7 +49,7 @@ function ProfileGameCard({ game }: { game: { id: string; name: string; cover: st
             <span className="text-[7px] text-white/35">{game.releaseYear}</span>
           </div>
         </div>
-        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-500/90 flex items-center justify-center shadow-sm shadow-red-500/40">
+        <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shadow-sm shadow-red-500/40">
           <Heart size={9} className="text-white" fill="white" />
         </div>
       </div>
@@ -58,13 +58,17 @@ function ProfileGameCard({ game }: { game: { id: string; name: string; cover: st
           <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }} className="absolute top-full right-0 left-0 z-40 mt-1.5">
             <div className="rounded-2xl p-3 shadow-2xl shadow-black/80 border border-white/[0.06] bg-black/80 backdrop-blur-2xl">
               <p className="text-[10px] text-white/60 leading-relaxed mb-2">{game.description}</p>
+              <div className="flex items-center gap-2 mb-2 text-[8px]">
+                <span className="flex items-center gap-0.5 text-amber-400"><Star size={7} fill="currentColor" /> {game.rating}</span>
+                <span className="flex items-center gap-0.5 text-white/40"><Calendar size={7} /> {game.releaseYear}</span>
+                <span className="flex items-center gap-0.5 text-white/40"><Users size={7} /> {game.players}</span>
+              </div>
               <div className="flex flex-wrap gap-1 mb-2">
                 {game.genre.map(g => (<span key={g} className="text-[7px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/70 font-semibold">{g}</span>))}
               </div>
-              <div className="flex items-center gap-3 text-[8px] text-white/30">
-                <span className="flex items-center gap-0.5"><Users size={7} /> {game.players}</span>
-                <span className="flex items-center gap-0.5"><Calendar size={7} /> {game.releaseYear}</span>
-                <span className="flex items-center gap-0.5"><Tag size={7} /> {game.developer}</span>
+              <div className="flex items-center gap-2 text-[7px] text-white/30">
+                <span className="flex items-center gap-0.5"><Tag size={6} /> {game.developer}</span>
+                <span>· {game.publisher}</span>
               </div>
             </div>
           </motion.div>
