@@ -17,18 +17,14 @@ export default function MaintenanceOverlay({ children }: { children: React.React
     const unsub = onSnapshot(doc(db, "system", "maintenance"), (snap) => {
       if (snap.exists()) {
         setActive(!!snap.data().active);
+      } else {
+        // Create doc only once if missing
+        setDoc(doc(db, "system", "maintenance"), { active: false }).catch(() => {});
       }
       setLoading(false);
     }, () => setLoading(false));
     return () => unsub();
   }, []);
-
-  // Auto-create doc if missing so admin toggle works
-  useEffect(() => {
-    if (!loading) {
-      setDoc(doc(db, "system", "maintenance"), { active: false }, { merge: true }).catch(() => {});
-    }
-  }, [loading]);
 
   const isOwner = OWNER_UIDS.includes(user?.uid || "");
 
