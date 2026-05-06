@@ -129,7 +129,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
       {/* Banner */}
-      <div className="relative h-[180px] rounded-xl overflow-hidden mb-3">
+      <div className="relative h-[100px] sm:h-[180px] rounded-xl overflow-hidden mb-3">
         {meta.banner ? (
           <img src={meta.banner} alt="" className="w-full h-full object-cover" />
         ) : (
@@ -139,19 +139,19 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
       </div>
 
       {/* Header */}
-      <div className="flex items-start gap-4 px-1 -mt-10 relative z-10 mb-4">
+      <div className="flex items-start gap-3 sm:gap-4 px-1 -mt-6 sm:-mt-10 relative z-10 mb-4">
         {meta.img ? (
-          <img src={meta.img} alt="" className="w-16 h-16 rounded-full border-4 border-nf-primary bg-nf-primary shadow-lg" />
+          <img src={meta.img} alt="" className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-nf-primary bg-nf-primary shadow-lg shrink-0" />
         ) : (
-          <div className="w-16 h-16 rounded-full border-4 border-nf-primary bg-nf-secondary shadow-lg flex items-center justify-center text-nf-accent font-bold text-lg">n/</div>
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-nf-primary bg-nf-secondary shadow-lg flex items-center justify-center text-nf-accent font-bold text-base sm:text-lg shrink-0">n/</div>
         )}
-        <div className="flex-1 pt-3">
-          <h1 className="text-xl font-bold text-white">n/{name}</h1>
+        <div className="flex-1 min-w-0 pt-1 sm:pt-3">
+          <h1 className="text-lg sm:text-xl font-bold text-white">n/{name}</h1>
           <p className="text-xs text-nf-muted mt-1 leading-relaxed line-clamp-2">{meta.desc}</p>
         </div>
         <button
           onClick={() => user ? toggleJoin() : undefined}
-          className={`mt-3 px-5 py-1.5 rounded-full text-sm font-bold border transition-colors ${
+          className={`mt-1 sm:mt-3 px-3 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-bold border transition-colors shrink-0 ${
             joined ? "bg-nf-secondary text-nf-muted border-nf-border" : "bg-white text-black border-white hover:bg-gray-200"
           }`}
         >
@@ -160,7 +160,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
       </div>
 
       {/* Stats bar */}
-      <div className="flex items-center gap-5 px-1 mb-4 text-sm">
+      <div className="flex items-center gap-4 sm:gap-5 px-1 mb-4 text-xs sm:text-sm">
         <div className="flex items-center gap-1.5 text-nf-muted">
           <Users size={14} />
           <span className="font-bold text-white">{memberCount > 0 ? memberCount.toLocaleString() : "—"}</span> {t("cp.members")}

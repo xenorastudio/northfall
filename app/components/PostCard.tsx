@@ -377,22 +377,22 @@ export default function PostCard({
       </div>
 
       {/* Footer - always visible */}
-      <div className="flex items-center gap-3 px-4 py-1.5 text-nf-muted">
+      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 text-nf-muted flex-wrap">
         <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1.5 py-0.5">
           <button onClick={(e) => { e.stopPropagation(); handleVote(1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === 1 ? "text-orange-500" : "text-nf-dim hover:text-nf-muted")}><ArrowUp size={16} /></button>
           <span className={cn("text-xs font-bold min-w-[20px] text-center", myVote === 1 ? "text-orange-500" : myVote === -1 ? "text-blue-400" : voteCount > 0 ? "text-orange-500" : voteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{voteCount}</span>
           <button onClick={(e) => { e.stopPropagation(); handleVote(-1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
         </div>
         <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
-          <MessageSquare size={14} /><span>{comments} {t("pc.comments")}</span>
+          <MessageSquare size={14} /><span>{comments}</span>
         </button>
         <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
-          <Share2 size={14} /><span>{t("pc.share")}</span>
+          <Share2 size={14} />
         </button>
         <button onClick={(e) => { e.stopPropagation(); toggleSave(); }} className={cn("flex items-center gap-1 text-xs transition-all duration-200", saved ? "text-nf-accent" : "hover:text-nf-accent")}>
-          <Bookmark size={14} fill={saved ? "currentColor" : "none"} /><span>{saved ? "محفوظ" : "حفظ"}</span>
+          <Bookmark size={14} fill={saved ? "currentColor" : "none"} />
         </button>
-        <span className="flex items-center gap-0.5 text-xs text-nf-dim">
+        <span className="hidden sm:flex items-center gap-0.5 text-xs text-nf-dim">
           <Eye size={12} />{views > 0 ? views : "--"}
         </span>
         <div className="flex-1" />

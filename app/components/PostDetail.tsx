@@ -410,9 +410,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       </div>
       <div className="flex items-center justify-between mb-4">
         <button onClick={onBack} className="flex items-center gap-1.5 text-nf-muted hover:text-white text-sm transition-colors">
-          <ArrowRight size={16} /> {t("pd.backToFeed")}
+          <ArrowRight size={16} /> <span className="hidden sm:inline">{t("pd.backToFeed")}</span>
         </button>
-        <button onClick={() => setShowShortcuts(!showShortcuts)} className="text-nf-dim hover:text-white text-xs transition-colors">⌨ {t("pd.shortcuts")}</button>
+        <button onClick={() => setShowShortcuts(!showShortcuts)} className="hidden sm:block text-nf-dim hover:text-white text-xs transition-colors">⌨ {t("pd.shortcuts")}</button>
       </div>
       {showShortcuts && (
         <div className="mb-4 bg-nf-secondary rounded-lg p-3 text-xs text-nf-muted grid grid-cols-2 gap-1.5">
@@ -425,8 +425,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
 
       {/* Post - flat, no border */}
       <article className="mb-4 relative" onDoubleClick={() => { if (postMyVote !== 1) setPostVote(1); }}>
-        <div className="px-4 pt-3 pb-2">
-          <div className="flex items-center gap-2 text-[13px] mb-1.5">
+        <div className="px-3 sm:px-4 pt-3 pb-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-[12px] sm:text-[13px] mb-1.5 flex-wrap">
             <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
               {post.authorPhoto ? (
                 <img src={post.authorPhoto} alt="" className="w-full h-full object-cover" />
@@ -443,7 +443,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             <span className="text-nf-dim">·</span>
             <span className="text-nf-muted">{views || post.views || 0} {t("pd.views")}</span>
           </div>
-          <h2 className="text-[18px] font-bold text-white leading-snug mb-2">{post.title}</h2>
+          <h2 className="text-[16px] sm:text-[18px] font-bold text-white leading-snug mb-2">{post.title}</h2>
           {post.body && (
             <div className="text-sm text-nf-text-2 leading-relaxed relative group/body">
               {renderFormattedBody(post.body)}
@@ -492,7 +492,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             const isBlurred = (post.isNsfw || post.isSpoiler) && !detailBlurRevealed;
             return urls.map((url: string, i: number) => (
               <div key={i} className="relative mt-3 rounded-lg overflow-hidden">
-                <img src={url} alt="" className={cn("rounded-lg max-h-[600px] w-auto transition-all duration-300", isBlurred ? "blur-2xl scale-105" : "cursor-pointer hover:opacity-90")} onClick={() => !isBlurred && setLightboxImg(url)} />
+                <img src={url} alt="" className={cn("rounded-lg max-h-[400px] sm:max-h-[600px] w-full sm:w-auto transition-all duration-300", isBlurred ? "blur-2xl scale-105" : "cursor-pointer hover:opacity-90")} onClick={() => !isBlurred && setLightboxImg(url)} />
                 {isBlurred && (
                   <div onClick={() => setDetailBlurRevealed(true)} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 cursor-pointer hover:bg-black/40 transition-colors z-10">
                     <span className="text-white text-[13px] font-bold mb-1">{post.isNsfw ? "محتوى حساس" : "Spoiler - اضغط للعرض"}</span>
@@ -598,11 +598,10 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       {/* Comments Sort & Search */}
       <div className="flex items-center gap-2 mb-2 px-1 flex-wrap">
         <span className="text-xs text-nf-muted">{t("pd.sortBy")}</span>
-        <button onClick={() => setCommentSort("best")} className={cn("px-2.5 py-1 rounded-full text-xs font-medium transition-colors", commentSort === "best" ? "bg-nf-hover text-white" : "text-nf-muted hover:text-white")}>{t("pd.sortBest")}</button>
-        <button onClick={() => setCommentSort("new")} className={cn("px-2.5 py-1 rounded-full text-xs font-medium transition-colors", commentSort === "new" ? "bg-nf-hover text-white" : "text-nf-muted hover:text-white")}>{t("pd.sortNew")}</button>
-        <button onClick={() => setAllCollapsed(!allCollapsed)} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-nf-muted hover:text-white transition-colors">
+        <button onClick={() => setCommentSort("best")} className={cn("px-2 py-1 rounded-full text-xs font-medium transition-colors", commentSort === "best" ? "bg-nf-hover text-white" : "text-nf-muted hover:text-white")}>{t("pd.sortBest")}</button>
+        <button onClick={() => setCommentSort("new")} className={cn("px-2 py-1 rounded-full text-xs font-medium transition-colors", commentSort === "new" ? "bg-nf-hover text-white" : "text-nf-muted hover:text-white")}>{t("pd.sortNew")}</button>
+        <button onClick={() => setAllCollapsed(!allCollapsed)} className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-nf-muted hover:text-white transition-colors">
           {allCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-          {allCollapsed ? t("pd.expandAll") : t("pd.collapseAll")}
         </button>
         <span className="text-xs text-nf-dim mr-auto">{comments.length} {t("pc.comments")}</span>
         <div className="relative w-full mt-1">

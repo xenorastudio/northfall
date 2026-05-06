@@ -260,14 +260,14 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
         </button>
       </div>
 
-      <div className="flex gap-6">
-        {/* Sidebar */}
-        <div className="w-[160px] shrink-0 flex flex-col gap-0.5 border-r border-nf-border-2/50 pr-3">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+        {/* Sidebar - horizontal on mobile, vertical on desktop */}
+        <div className="sm:w-[160px] shrink-0 flex sm:flex-col gap-0.5 sm:border-r border-nf-border-2/50 sm:pr-3 overflow-x-auto pb-2 sm:pb-0">
           {sections.map((s) => {
             const Icon = s.icon;
             return (
               <button key={s.id} onClick={() => setActiveSection(s.id)}
-                className={cn("flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-colors",
+                className={cn("flex items-center gap-2 sm:w-full px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-colors shrink-0",
                   activeSection === s.id ? "bg-nf-accent/10 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>
                 <Icon size={13} />
                 <span>{s.label}</span>
@@ -275,7 +275,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
             );
           })}
           {user && (
-            <button onClick={logout} className="flex items-center gap-2 w-full mt-3 px-2.5 py-2 rounded-lg text-[11px] font-semibold text-red-400 hover:bg-red-400/5 transition-colors">
+            <button onClick={logout} className="flex items-center gap-2 sm:w-full mt-0 sm:mt-3 px-2.5 py-2 rounded-lg text-[11px] font-semibold text-red-400 hover:bg-red-400/5 transition-colors shrink-0">
               <LogOut size={13} />
               <span>{t("gen.logOut")}</span>
             </button>

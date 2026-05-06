@@ -388,12 +388,12 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       </div>
 
       {/* Header */}
-      <div className="flex items-start gap-4 px-2 -mt-6 relative z-10 mb-4">
+      <div className="flex items-start gap-3 sm:gap-4 px-2 -mt-4 sm:-mt-6 relative z-10 mb-4">
         <div className="relative shrink-0">
           {displayPhoto ? (
-            <img src={displayPhoto} alt="" className="w-14 h-14 rounded-full border-3 border-nf-primary object-cover" />
+            <img src={displayPhoto} alt="" className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3 border-nf-primary object-cover" />
           ) : (
-            <div className="w-14 h-14 rounded-full border-3 border-nf-primary bg-nf-secondary flex items-center justify-center text-nf-muted text-lg font-bold">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3 border-nf-primary bg-nf-secondary flex items-center justify-center text-nf-muted text-base sm:text-lg font-bold">
               {displayName[0]}
             </div>
           )}
@@ -403,14 +403,14 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             </button>
           )}
         </div>
-        <div className="flex-1 pt-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white">{displayName}</h1>
+        <div className="flex-1 min-w-0 pt-1 sm:pt-2">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h1 className="text-lg sm:text-xl font-bold text-white truncate">{displayName}</h1>
             {isOwn ? (
               <div className="flex items-center gap-2">
-                <button onClick={onSettingsClick} className="flex items-center gap-1 px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+                <button onClick={onSettingsClick} className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
                   <Pencil size={12} />
-                  <span>{t("pp.edit")}</span>
+                  <span className="hidden sm:inline">{t("pp.edit")}</span>
                 </button>
                 {(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && onAdminClick && (
                   <button onClick={onAdminClick} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-nf-border text-[10px] font-medium text-nf-dim hover:bg-nf-hover hover:text-nf-accent transition-colors" title="لوحة الإشراف">
@@ -422,7 +422,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
               <button
                 onClick={toggleFollow}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold border transition-all",
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold border transition-all",
                   isFollowing
                     ? "bg-nf-secondary text-nf-muted border-nf-border hover:bg-nf-hover hover:text-white"
                     : "bg-nf-accent text-white border-nf-accent hover:bg-nf-accent/80"
@@ -483,20 +483,20 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center border-b border-nf-border-2 mb-4 px-2">
+      <div className="flex items-center border-b border-nf-border-2 mb-4 px-2 overflow-x-auto">
         {tabs.filter(t => isOwn || t.id !== "saved").map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+              "flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors shrink-0",
               activeTab === tab.id
                 ? "text-white border-nf-accent"
                 : "text-nf-muted border-transparent hover:text-white hover:border-nf-border"
             )}
           >
             <tab.icon size={15} />
-            <span>{t(tab.labelKey)}</span>
+            <span className="text-xs sm:text-sm">{t(tab.labelKey)}</span>
           </button>
         ))}
       </div>
@@ -603,7 +603,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             {earnedAwards.length > 0 && (
               <div className="mb-6">
                 <p className="text-xs text-nf-muted mb-3 font-bold">{t("pp.earnedAwards")}</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {earnedAwards.map((a) => (
                     <div key={a.id} className={cn("flex items-center gap-3 rounded-lg border border-nf-border-2 p-3", a.bg)}>
                       <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", a.bg)}>
@@ -620,7 +620,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             )}
             <div>
               <p className="text-xs text-nf-muted mb-3 font-bold">{t("pp.availableAwards")}</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {awardDefs.filter(a => !earnedAwards.find(e => e.id === a.id)).map((a) => (
                   <div key={a.id} className="flex items-center gap-3 rounded-lg border border-nf-border-2 p-3 opacity-40">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center bg-nf-secondary">

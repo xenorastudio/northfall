@@ -350,10 +350,10 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="w-full" style={{ direction: "rtl" }}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <button onClick={onBack} className="p-2 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors"><ArrowLeft size={16} /></button>
-          <h1 className="text-xl font-black text-white tracking-tight">مكتبة الألعاب</h1>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <button onClick={onBack} className="p-1.5 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors"><ArrowLeft size={16} /></button>
+          <h1 className="text-base sm:text-xl font-black text-white tracking-tight">مكتبة الألعاب</h1>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-nf-secondary/50 text-nf-dim font-semibold">{GAMES.length} لعبة</span>
         </div>
         <div className="flex items-center gap-2">
