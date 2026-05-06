@@ -107,21 +107,20 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
       className="absolute top-full right-0 left-0 z-40 mt-1.5"
     >
       <div
-        className="rounded-2xl p-4 shadow-2xl shadow-black/70 border border-white/5"
-        style={{ backgroundColor: dominantColor, backdropFilter: "blur(40px) saturate(1.5)" }}
+        className="rounded-2xl p-4 shadow-2xl shadow-black/80 border border-white/[0.06] bg-black/80 backdrop-blur-2xl"
       >
-        <p className="text-[11px] text-white/70 leading-relaxed mb-3">{game.description}</p>
+        <p className="text-[11px] text-white/60 leading-relaxed mb-3">{game.description}</p>
         <div className="flex flex-wrap gap-1.5 mb-2.5">
           {game.genre.map(g => (
-            <span key={g} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/10 text-white/80 font-semibold">{g}</span>
+            <span key={g} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/[0.06] text-white/70 font-semibold">{g}</span>
           ))}
         </div>
         <div className="flex flex-wrap gap-1.5 mb-2.5">
           {game.platforms.map(p => (
-            <span key={p} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/5 text-white/50 font-semibold border border-white/5">{p}</span>
+            <span key={p} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/[0.04] text-white/40 font-semibold border border-white/[0.04]">{p}</span>
           ))}
         </div>
-        <div className="flex items-center gap-4 text-[9px] text-white/40">
+        <div className="flex items-center gap-4 text-[9px] text-white/30">
           <span className="flex items-center gap-1"><Users size={9} /> {game.players}</span>
           <span className="flex items-center gap-1"><Calendar size={9} /> {game.releaseYear}</span>
           <span className="flex items-center gap-1"><Tag size={9} /> {game.developer}</span>
@@ -159,16 +158,18 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
 
   return (
     <div onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative text-right">
-      <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/5 group-hover:ring-white/10 transition-all duration-300">
+      {/* Glow behind card */}
+      <div className="absolute -inset-1 rounded-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-700 blur-xl pointer-events-none" style={{ background: dominantColor }} />
+      <div className="relative overflow-hidden rounded-2xl bg-black ring-1 ring-white/[0.06] group-hover:ring-white/[0.12] transition-all duration-300">
         <img src={game.cover} alt={game.name} {...imgProtect} className="w-full aspect-[3/4] object-cover transition-transform duration-700 ease-out group-hover:scale-105 select-none pointer-events-none" />
         {/* Bottom gradient with name + rating */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-3 pt-12">
-          <p className="text-[12px] text-white font-bold truncate drop-shadow-md">{game.name}</p>
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/60 to-transparent p-3 pt-14">
+          <p className="text-[12px] text-white font-bold truncate drop-shadow-lg">{game.name}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Star size={9} className="text-amber-400" fill="currentColor" />
             <span className="text-[9px] text-amber-400 font-bold">{game.rating}</span>
-            <span className="text-[8px] text-white/30">·</span>
-            <span className="text-[8px] text-white/40">{game.releaseYear}</span>
+            <span className="text-[8px] text-white/25">·</span>
+            <span className="text-[8px] text-white/35">{game.releaseYear}</span>
           </div>
         </div>
         {/* Fav badge */}
@@ -182,13 +183,11 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
           onClick={(e) => { e.stopPropagation(); onFav(); }}
           className={cn(
             "absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg",
-            isFav ? "bg-red-500 text-white shadow-red-500/50" : "bg-black/40 backdrop-blur-sm text-white/70 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/50"
+            isFav ? "bg-red-500 text-white shadow-red-500/50" : "bg-black/50 backdrop-blur-sm text-white/70 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 hover:shadow-red-500/50"
           )}
         >
           <Heart size={13} fill={isFav ? "white" : "none"} />
         </button>
-        {/* Colored glow on hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ boxShadow: `inset 0 0 60px 10px ${dominantColor}` }} />
       </div>
       <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
     </div>

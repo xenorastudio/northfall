@@ -37,31 +37,31 @@ function ProfileGameCard({ game }: { game: { id: string; name: string; cover: st
   useEffect(() => { if (!loadedRef.current) { loadedRef.current = true; extractProfileColor(game.cover).then(c => setDominantColor(c)); } }, [game.cover]);
   return (
     <div className="group relative" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-      <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/5 group-hover:ring-white/10 transition-all duration-300">
+      <div className="absolute -inset-1 rounded-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-700 blur-xl pointer-events-none" style={{ background: dominantColor }} />
+      <div className="relative overflow-hidden rounded-2xl bg-black ring-1 ring-white/[0.06] group-hover:ring-white/[0.12] transition-all duration-300">
         <img src={game.cover} alt={game.name} draggable={false} onContextMenu={e => e.preventDefault()} className="w-full aspect-[3/4] object-cover transition-transform duration-700 ease-out group-hover:scale-105 select-none pointer-events-none" />
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent p-2.5 pt-10">
-          <p className="text-[10px] text-white font-bold truncate drop-shadow-md">{game.name}</p>
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/60 to-transparent p-2.5 pt-10">
+          <p className="text-[10px] text-white font-bold truncate drop-shadow-lg">{game.name}</p>
           <div className="flex items-center gap-1 mt-0.5">
             <Star size={8} className="text-amber-400" fill="currentColor" />
             <span className="text-[8px] text-amber-400 font-bold">{game.rating}</span>
-            <span className="text-[7px] text-white/30">·</span>
-            <span className="text-[7px] text-white/40">{game.releaseYear}</span>
+            <span className="text-[7px] text-white/25">·</span>
+            <span className="text-[7px] text-white/35">{game.releaseYear}</span>
           </div>
         </div>
         <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-500/90 flex items-center justify-center shadow-sm shadow-red-500/40">
           <Heart size={9} className="text-white" fill="white" />
         </div>
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ boxShadow: `inset 0 0 50px 8px ${dominantColor}` }} />
       </div>
       <AnimatePresence>
         {hovered && (
           <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }} className="absolute top-full right-0 left-0 z-40 mt-1.5">
-            <div className="rounded-2xl p-3 shadow-2xl shadow-black/70 border border-white/5" style={{ backgroundColor: dominantColor, backdropFilter: "blur(40px) saturate(1.5)" }}>
-              <p className="text-[10px] text-white/70 leading-relaxed mb-2">{game.description}</p>
+            <div className="rounded-2xl p-3 shadow-2xl shadow-black/80 border border-white/[0.06] bg-black/80 backdrop-blur-2xl">
+              <p className="text-[10px] text-white/60 leading-relaxed mb-2">{game.description}</p>
               <div className="flex flex-wrap gap-1 mb-2">
-                {game.genre.map(g => (<span key={g} className="text-[7px] px-1.5 py-0.5 rounded-md bg-white/10 text-white/80 font-semibold">{g}</span>))}
+                {game.genre.map(g => (<span key={g} className="text-[7px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/70 font-semibold">{g}</span>))}
               </div>
-              <div className="flex items-center gap-3 text-[8px] text-white/40">
+              <div className="flex items-center gap-3 text-[8px] text-white/30">
                 <span className="flex items-center gap-0.5"><Users size={7} /> {game.players}</span>
                 <span className="flex items-center gap-0.5"><Calendar size={7} /> {game.releaseYear}</span>
                 <span className="flex items-center gap-0.5"><Tag size={7} /> {game.developer}</span>
