@@ -155,13 +155,13 @@ html, body, * { scrollbar-width: none; }
   100% { background-position: 0% 50%; }
 }
 
-/* Premium AI button — glassmorphism flat style with animated glow */
+/* Premium AI button — flat glassmorphism with animated glow */
 .ai-btn {
   --border-radius: 24px;
   --padding: 4px;
   --transition: 0.4s;
   --button-color: #101010;
-  --highlight-color-hue: 270deg;
+  --highlight-color-hue: 290deg;
 
   user-select: none;
   display: inline-flex;
@@ -176,11 +176,6 @@ html, body, * { scrollbar-width: none; }
   background-color: var(--button-color);
 
   box-shadow:
-    inset 0px 1px 1px rgba(255, 255, 255, 0.2),
-    inset 0px 2px 2px rgba(255, 255, 255, 0.15),
-    inset 0px 4px 4px rgba(255, 255, 255, 0.1),
-    inset 0px 8px 8px rgba(255, 255, 255, 0.05),
-    inset 0px 16px 16px rgba(255, 255, 255, 0.05),
     0px -1px 1px rgba(0, 0, 0, 0.02),
     0px -2px 2px rgba(0, 0, 0, 0.03),
     0px -4px 4px rgba(0, 0, 0, 0.05),
@@ -249,6 +244,8 @@ html, body, * { scrollbar-width: none; }
   display: inline-block;
   color: #fff5;
   text-decoration: none;
+  font-style: italic;
+  transform: skewX(-8deg);
   animation: ai-letter-anim 2s ease-in-out infinite;
   transition:
     color var(--transition),
@@ -306,15 +303,6 @@ html, body, * { scrollbar-width: none; }
   border: solid 1px hsla(var(--highlight-color-hue), 100%, 80%, 70%);
   background-color: hsla(var(--highlight-color-hue), 50%, 20%, 0.5);
 }
-.ai-btn:active::before {
-  box-shadow:
-    0 -8px 12px -6px #fffa inset,
-    0 -16px 16px -8px hsla(var(--highlight-color-hue), 100%, 70%, 80%) inset,
-    1px 1px 1px #fff4,
-    2px 2px 2px #fff2,
-    -1px -1px 1px #0002,
-    -2px -2px 2px #0001;
-}
 .ai-btn:active::after {
   opacity: 1;
   mask-image: linear-gradient(0deg, #fff, transparent);
@@ -329,15 +317,6 @@ html, body, * { scrollbar-width: none; }
 /* Active/selected state (AI view is open) */
 .ai-btn-active {
   border: solid 1px hsla(var(--highlight-color-hue), 100%, 80%, 40%);
-}
-.ai-btn-active::before {
-  box-shadow:
-    0 -8px 8px -6px #fffa inset,
-    0 -16px 16px -8px hsla(var(--highlight-color-hue), 100%, 70%, 30%) inset,
-    1px 1px 1px #fff2,
-    2px 2px 2px #fff1,
-    -1px -1px 1px #0002,
-    -2px -2px 2px #0001;
 }
 .ai-btn-active::after {
   opacity: 0.6;
