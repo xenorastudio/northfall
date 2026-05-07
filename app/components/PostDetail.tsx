@@ -393,7 +393,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         counter: `${uName}، اكتب رد أو حجة مضادة لهاد المنشور بشكل محترم ومبسط (3-4 أسطر)، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
         improve: `${uName}، حسّن هاي المنشور بأسلوب احترافي وجذاب مع الحفاظ على المعنى — أضف تنسيق وتنظيم أفضل، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
         issues: `${uName}، اذكر المشاكل أو الأخطاء المحتملة بهاد المنشور (معلومات خاطئة، منطق ضعيف، أخطاء تقنية) بشكل مبسط، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
-        morefeatures: `${uName}، اقترح تحسينات وميزات إضافية ممكن تنضاف لهاد المنشور — أفكار جديدة، أقسام ممكن تنضاف، روابط مفيدة، أمثلة عملية، أي شي يخلي المنشور أغنى وأفيد، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        morefeatures: `${uName}، أعد كتابة هاي المنشور بنسخة محسّنة وجاهزة للنشر — حسّن الأسلوب والتنسيق والعناوين، أضف أمثلة وتفاصيل، خليه احترافي وجذاب. اكتب النص المحسّن بس بدون شرح، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
       };
       const systemPrompts: Record<string, string> = {
         explain: `أنت مساعد بتشرح المنشورات ببساطة ووضوح باللهجة الأردنية. خاطب المستخدم باسمه. احكي باختصار 3-4 أسطر بدون عناوين. بدون إيموجي. خليك عادي وودي.`,
@@ -408,7 +408,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         counter: `أنت مساعد بيكتب حجج مضادة محترمة باللهجة الأردنية. خاطب المستخدم باسمه. كن محترم وموضوعي. بدون إيموجي.`,
         improve: `أنت محرر محترف بحسّن المنشورات بأسلوب احترافي وجذاب باللهجة الأردنية. خاطب المستخدم باسمه. حسّن التنسيق والأسلوب. بدون إيموجي.`,
         issues: `أنت ناقد تقني بيكشف المشاكل والأخطاء المحتملة بالمنشورات باللهجة الأردنية. خاطب المستخدم باسمه. كن موضوعي وبناء. بدون إيموجي.`,
-        morefeatures: `أنت مساعد مبدع بيقترح تحسينات وميزات إضافية للمنشورات باللهجة الأردنية. خاطب المستخدم باسمه. اقترح أفكار عملية ومفيدة. بدون إيموجي.`,
+        morefeatures: `أنت محرر محترف بيعيد كتابة المنشورات بنسخة محسّنة وجاهزة للنشر باللهجة الأردنية. خاطب المستخدم باسمه. اكتب النص المحسّن فقط بدون أي شرح أو مقدمات. حسّن الأسلوب والتنسيق والعناوين. بدون إيموجي.`,
       };
       let text = "";
       const res = await fetch("/api/ai", {
@@ -693,7 +693,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                     <BookOpen size={10} className="text-blue-400/40" /> <span className="flex-1 text-right">وسوم</span>
                   </button>
                   <button onClick={() => handleAiExplain("morefeatures")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                    <Sparkles size={10} className="text-purple-400/40" /> <span className="flex-1 text-right">تحسينات وميزات</span>
+                    <Sparkles size={10} className="text-purple-400/40" /> <span className="flex-1 text-right">نص محسّن</span>
                   </button>
                 </div>
               </div>

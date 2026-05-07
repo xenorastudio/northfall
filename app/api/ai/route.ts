@@ -36,13 +36,19 @@ export async function POST(req: NextRequest) {
 
     switch (provider) {
       case "chatanywhere": {
-        const msgs = systemPrompt
-          ? [{ role: "system", content: systemPrompt }, ...mergedMessages]
-          : mergedMessages;
+        // Free ChatAnywhere has 4096 input token limit — truncate aggressively
+        const caMaxTokens = Math.min(tokens, 1000);
+        const caMsgs = mergedMessages.map((m: { role: string; content: string }) => ({
+          role: m.role,
+          content: m.content.slice(0, 2000),
+        }));
+        if (systemPrompt) {
+          caMsgs.unshift({ role: "system", content: systemPrompt.slice(0, 500) });
+        }
         response = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
           method: "POST", signal,
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveKey}` },
-          body: JSON.stringify({ model: model || "gpt-3.5-turbo", messages: msgs, max_tokens: tokens, temperature: temp, top_p: topP }),
+          body: JSON.stringify({ model: model || "gpt-3.5-turbo", messages: caMsgs, max_tokens: caMaxTokens, temperature: temp, top_p: topP }),
         });
         break;
       }
