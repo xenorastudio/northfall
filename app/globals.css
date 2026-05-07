@@ -164,13 +164,14 @@ html, body, * { scrollbar-width: none; }
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 500;
-  color: #fff5;
+  color: #fff8;
   background-color: #101010;
   border: solid 1px #fff2;
   border-radius: 24px;
   cursor: pointer;
   user-select: none;
   overflow: hidden;
+  text-decoration: none;
   transition: border 0.4s, background-color 0.4s;
 }
 .ai-btn::before {
@@ -215,23 +216,14 @@ html, body, * { scrollbar-width: none; }
 .ai-btn-letter {
   position: relative;
   display: inline-block;
-  color: #fff5;
+  color: #fff8;
+  text-decoration: none;
   animation: aiLetterAnim 2s ease-in-out infinite;
   transition: color 0.4s, text-shadow 0.4s;
 }
 @keyframes aiLetterAnim {
   50% { text-shadow: 0 0 3px #fff8; color: #fff; }
 }
-.ai-btn-letter:nth-child(1) { animation-delay: 0s; }
-.ai-btn-letter:nth-child(2) { animation-delay: 0.08s; }
-.ai-btn-letter:nth-child(3) { animation-delay: 0.16s; }
-.ai-btn-letter:nth-child(4) { animation-delay: 0.24s; }
-.ai-btn-letter:nth-child(5) { animation-delay: 0.32s; }
-.ai-btn-letter:nth-child(6) { animation-delay: 0.4s; }
-.ai-btn-letter:nth-child(7) { animation-delay: 0.48s; }
-.ai-btn-letter:nth-child(8) { animation-delay: 0.56s; }
-.ai-btn-letter:nth-child(9) { animation-delay: 0.64s; }
-.ai-btn-letter:nth-child(10) { animation-delay: 0.72s; }
 
 /* Hover */
 .ai-btn:hover {
@@ -249,6 +241,10 @@ html, body, * { scrollbar-width: none; }
   fill: #fff;
   filter: drop-shadow(0 0 3px hsl(210, 100%, 70%));
   animation: none;
+}
+.ai-btn:hover .ai-btn-letter {
+  color: #fff;
+  text-shadow: 0 0 4px hsla(210, 100%, 70%, 60%);
 }
 
 /* Active */
@@ -278,6 +274,10 @@ html, body, * { scrollbar-width: none; }
 .ai-btn-active::before {
   opacity: 0.6;
   filter: blur(10px);
+}
+.ai-btn-active .ai-btn-letter {
+  color: #fff;
+  text-shadow: 0 0 4px hsla(210, 100%, 70%, 60%);
 }
 .ai-glow {
   animation: glowPulse 2s ease-in-out infinite;

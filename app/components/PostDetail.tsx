@@ -671,10 +671,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           <div className="relative" ref={aiDropRef}>
             <button onClick={() => setAiDropOpen(!aiDropOpen)} className={cn("ai-btn", aiDropOpen && "ai-btn-active")} style={{ fontSize: 10, padding: "2px 8px", gap: 3 }}>
               <Sparkles size={10} className="ai-btn-icon" />
-              <span className="flex">
-                <span className="ai-btn-letter">A</span>
-                <span className="ai-btn-letter">I</span>
-              </span>
+              <span className="ai-btn-letter">AI</span>
               <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-60", aiDropOpen && "rotate-180")} />
             </button>
             {aiDropOpen && (

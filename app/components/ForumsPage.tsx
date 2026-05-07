@@ -2005,20 +2005,7 @@ export default function ForumsPage() {
               ))}
               <button onClick={() => navigateForum("ai")} className={cn("ai-btn w-full", viewMode === "ai" && "ai-btn-active")}>
                 <Sparkles size={16} className="ai-btn-icon" />
-                <span className="flex">
-                  <span className="ai-btn-letter">ذ</span>
-                  <span className="ai-btn-letter">ك</span>
-                  <span className="ai-btn-letter">ا</span>
-                  <span className="ai-btn-letter">ء</span>
-                  <span className="ai-btn-letter">&nbsp;</span>
-                  <span className="ai-btn-letter">ا</span>
-                  <span className="ai-btn-letter">ص</span>
-                  <span className="ai-btn-letter">ط</span>
-                  <span className="ai-btn-letter">ن</span>
-                  <span className="ai-btn-letter">ا</span>
-                  <span className="ai-btn-letter">ع</span>
-                  <span className="ai-btn-letter">ي</span>
-                </span>
+                <span className="ai-btn-letter" style={{ animationDelay: "0s" }}>ذكاء اصطناعي</span>
               </button>
             </div>
           </div>
