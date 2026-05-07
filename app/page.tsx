@@ -14,9 +14,15 @@ export default function LandingPage() {
       <main className="min-h-screen bg-[#1e1e20] text-[#e0e0e0]" style={{ direction: "ltr" }}>
         <Navigation />
         <Hero />
-        <Features />
-        <Communities />
-        <Discussions />
+        <section id="features" aria-label="Features">
+          <Features />
+        </section>
+        <section id="communities" aria-label="Communities">
+          <Communities />
+        </section>
+        <section id="discussions" aria-label="Discussions">
+          <Discussions />
+        </section>
         <Testimonials />
         <CTA />
         <Footer />

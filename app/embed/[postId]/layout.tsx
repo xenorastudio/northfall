@@ -1,3 +1,10 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'منشور — NorthFall',
+  description: 'منشور على منصة NorthFall - منصة المجتمعات العربية للألعاب والتقنية',
+};
+
 export default function EmbedLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl">

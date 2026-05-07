@@ -537,8 +537,39 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     return built.sort((a, b) => (b.replies?.length || 0) - (a.replies?.length || 0));
   })();
 
+  // Article JSON-LD for Google rich results
+  const articleJsonLd = post?.title ? {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.body?.slice(0, 200) || post.title,
+    image: post.imageUrl || post.imageUrls?.[0] || 'https://northfall.blog/assets/images/og-image.png',
+    author: {
+      '@type': 'Person',
+      name: post.authorName || 'مستخدم NorthFall',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'NorthFall',
+      logo: { '@type': 'ImageObject', url: 'https://northfall.blog/assets/images/logo.png' },
+    },
+    datePublished: post.createdAt || new Date().toISOString(),
+    dateModified: post.createdAt || new Date().toISOString(),
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `https://northfall.blog/app?view=post&postId=${postId}`,
+    },
+    interactionStatistic: [
+      { '@type': 'InteractionCounter', interactionType: 'https://schema.org/LikeAction', userInteractionCount: post.votes || 0 },
+      { '@type': 'InteractionCounter', interactionType: 'https://schema.org/CommentAction', userInteractionCount: post.commentCount || 0 },
+    ],
+  } : null;
+
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
+      {articleJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+      )}
       {/* Scroll Progress Bar */}
       <div className="fixed top-0 left-0 right-0 h-[3px] z-[80] bg-transparent">
         <motion.div className="h-full bg-gradient-to-l from-nf-accent to-[#ff6b6b] rounded-l-full" style={{ width: `${scrollProgress}%` }} transition={{ duration: 0.1 }} />

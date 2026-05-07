@@ -130,6 +130,7 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
   return (
     <>
     <aside className="hidden md:flex fixed top-12 bottom-0 w-[260px] overflow-y-auto bg-nf-nav border-r border-nf-border-subtle py-2 flex-col z-100" style={{ left: 0 }}>
+      <nav aria-label="التنقل الرئيسي">
       <NavSection title={t("sb.browse")} items={browseItemsInner} active={activeNav} onSelect={onNavClick} />
 
       <div className="h-px bg-nf-border-subtle mx-3 my-1" />
@@ -204,9 +205,10 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
       </div>
 
       <NavSection title={t("sb.system")} items={systemItems} active={activeNav} onSelect={onNavClick} />
+      </nav>
 
       {/* Footer */}
-      <div className="mt-auto px-4 py-3 text-center">
+      <footer className="mt-auto px-4 py-3 text-center">
         <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-[10px] text-nf-dim mb-2">
           <span><kbd className="px-1.5 py-0.5 rounded bg-nf-secondary text-[9px] font-mono">⌘K</kbd> بحث</span>
           <span><kbd className="px-1.5 py-0.5 rounded bg-nf-secondary text-[9px] font-mono">⌘N</kbd> منشور جديد</span>
@@ -217,7 +219,7 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
           <a href="#" className="hover:text-white">{t("sr.terms")}</a>
         </div>
         <p className="text-[11px] text-nf-dim mt-1.5">© 2026 NorthFall. {t("gen.allRightsReserved")}</p>
-      </div>
+      </footer>
     </aside>
 
     {/* Mobile Bottom Navigation */}

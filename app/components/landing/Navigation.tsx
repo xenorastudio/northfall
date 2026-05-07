@@ -26,9 +26,11 @@ export function Navigation() {
             NorthFall
           </Link>
           <div className="hidden md:flex items-center gap-1">
-            <a href="#features" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">Features</a>
-            <a href="#communities" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">Communities</a>
-            <a href="#discussions" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">Discussions</a>
+            <a href="#features" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">المميزات</a>
+            <a href="#communities" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">المجتمعات</a>
+            <a href="#discussions" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">النقاشات</a>
+            <Link href="/app?view=games" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">الألعاب</Link>
+            <Link href="/NewPage" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">المنتدى</Link>
           </div>
         </div>
 
@@ -86,8 +88,8 @@ export function Navigation() {
             </div>
           ) : (
             <>
-              <Link href="/app" className="text-[14px] text-white/30 hover:text-white/60 transition-colors">Log in</Link>
-              <Link href="/app" className="inline-flex items-center justify-center px-5 py-2 text-[14px] font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors">Get Started</Link>
+              <Link href="/app" className="text-[14px] text-white/30 hover:text-white/60 transition-colors">تسجيل الدخول</Link>
+              <Link href="/app" className="inline-flex items-center justify-center px-5 py-2 text-[14px] font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors">ابدأ الآن</Link>
             </>
           )}
 
@@ -102,10 +104,11 @@ export function Navigation() {
       {mobileOpen && (
         <div className="md:hidden border-t border-white/[0.04] bg-black/80 backdrop-blur-xl">
           <div className="w-full px-6 py-4 space-y-1">
-            <a href="#features" onClick={() => setMobileOpen(false)} className="block py-2 text-[14px] text-white/30 hover:text-white transition-colors">Features</a>
-            <a href="#communities" onClick={() => setMobileOpen(false)} className="block py-2 text-[14px] text-white/30 hover:text-white transition-colors">Communities</a>
-            <a href="#discussions" onClick={() => setMobileOpen(false)} className="block py-2 text-[14px] text-white/30 hover:text-white transition-colors">Discussions</a>
-            {!user && <a href="/app" className="block py-2 text-[14px] text-white/30 hover:text-white transition-colors">Log in</a>}
+            <a href="#features" onClick={() => setMobileOpen(false)} className="block py-2 text-[14px] text-white/30 hover:text-white transition-colors">المميزات</a>
+            <a href="#communities" onClick={() => setMobileOpen(false)} className="block py-2 text-[14px] text-white/30 hover:text-white transition-colors">المجتمعات</a>
+            <a href="#discussions" onClick={() => setMobileOpen(false)} className="block py-2 text-[14px] text-white/30 hover:text-white transition-colors">النقاشات</a>
+            <Link href="/app?view=games" onClick={() => setMobileOpen(false)} className="block py-2 text-[14px] text-white/30 hover:text-white transition-colors">الألعاب</Link>
+            {!user && <Link href="/app" className="block py-2 text-[14px] text-white/30 hover:text-white transition-colors">تسجيل الدخول</Link>}
           </div>
         </div>
       )}

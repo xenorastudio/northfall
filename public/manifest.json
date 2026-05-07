@@ -1,0 +1,28 @@
+{
+  "name": "NorthFall — منصة المجتمعات العربية",
+  "short_name": "NorthFall",
+  "description": "منصة المجتمعات العربية الأولى للألعاب والتقنية",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#1e1e20",
+  "theme_color": "#1e1e20",
+  "dir": "rtl",
+  "lang": "ar",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/assets/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "entertainment", "games"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

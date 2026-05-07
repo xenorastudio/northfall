@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Search, Bell, User, ChevronDown, X, FileText, Users, Hash, TrendingUp, Clock, ArrowUp, MessageSquare, Sparkles, RotateCcw, Flame, Settings, LogOut, Bookmark, Shield, HelpCircle, Plus } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { useState, useEffect, useRef } from "react";
@@ -306,9 +307,9 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   return (
     <nav className="fixed top-0 left-0 right-0 h-12 bg-nf-nav/80 backdrop-blur-xl border-b border-nf-border-subtle z-[1001] flex items-center px-4" style={{ direction: "rtl" }}>
       {/* Logo */}
-      <div className="hidden md:flex w-[260px] items-center shrink-0 cursor-pointer" onClick={() => onCommunityClick?.("")}>
+      <Link href="/app" className="hidden md:flex w-[260px] items-center shrink-0 gap-2" aria-label="NorthFall - الصفحة الرئيسية">
         <span className="font-inter text-[15px] font-bold text-white tracking-tight">NorthFall</span>
-      </div>
+      </Link>
 
       {/* Search */}
       <div className="flex-1 max-w-[560px] mx-auto relative z-10" ref={searchRef} style={{ direction: "rtl" }}>
