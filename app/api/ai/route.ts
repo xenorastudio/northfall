@@ -11,8 +11,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { provider, model, messages, apiKey, maxTokens, systemPrompt, temperature, top_p, presence_penalty, frequency_penalty } = body;
 
-    if (!apiKey || !provider || !model) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    // Use user's API key, or fall back to server-side key from env
+    const effectiveKey = apiKey || process.env.AI_API_KEY || "";
+    if (!effectiveKey || !provider || !model) {
+      return NextResponse.json({ error: "أضف مفتاح API من الإعدادات — أو اضبط AI_API_KEY في .env.local" }, { status: 400 });
     }
 
     const tokens = maxTokens || MAX_TOKENS;
@@ -33,13 +35,25 @@ export async function POST(req: NextRequest) {
     let response: Response;
 
     switch (provider) {
+      case "chatanywhere": {
+        const msgs = systemPrompt
+          ? [{ role: "system", content: systemPrompt }, ...mergedMessages]
+          : mergedMessages;
+        response = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
+          method: "POST", signal,
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveKey}` },
+          body: JSON.stringify({ model: model || "gpt-3.5-turbo", messages: msgs, max_tokens: tokens, temperature: temp, top_p: topP }),
+        });
+        break;
+      }
+
       case "chatgpt": {
         const msgs = systemPrompt
           ? [{ role: "system", content: systemPrompt }, ...mergedMessages]
           : mergedMessages;
         response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST", signal,
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveKey}` },
           body: JSON.stringify({ model, messages: msgs, max_tokens: tokens, temperature: temp, top_p: topP, presence_penalty: presPen, frequency_penalty: freqPen }),
         });
         break;
@@ -51,7 +65,7 @@ export async function POST(req: NextRequest) {
           : mergedMessages;
         response = await fetch("https://api.deepseek.com/v1/chat/completions", {
           method: "POST", signal,
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveKey}` },
           body: JSON.stringify({ model, messages: msgs, max_tokens: tokens, temperature: temp, top_p: topP, presence_penalty: presPen, frequency_penalty: freqPen }),
         });
         break;
@@ -63,7 +77,7 @@ export async function POST(req: NextRequest) {
           : mergedMessages;
         response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST", signal,
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveKey}` },
           body: JSON.stringify({ model, messages: msgs, max_tokens: tokens, temperature: temp, top_p: topP, presence_penalty: presPen, frequency_penalty: freqPen }),
         });
         break;
@@ -75,7 +89,7 @@ export async function POST(req: NextRequest) {
           : mergedMessages;
         response = await fetch("https://api.mistral.ai/v1/chat/completions", {
           method: "POST", signal,
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveKey}` },
           body: JSON.stringify({ model, messages: msgs, max_tokens: tokens, temperature: temp, top_p: topP, presence_penalty: presPen, frequency_penalty: freqPen }),
         });
         break;
@@ -96,7 +110,7 @@ export async function POST(req: NextRequest) {
         // Try with systemInstruction first, fallback to inline if it fails
         try {
           response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`,
             { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify(bodyPayload) }
           );
           if (!response.ok && systemPrompt) {
@@ -107,7 +121,7 @@ export async function POST(req: NextRequest) {
             }));
             const fallbackPayload = { contents: fallbackContents, generationConfig: { maxOutputTokens: tokens, temperature: temp, topP: topP } };
             response = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`,
               { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify(fallbackPayload) }
             );
           }
@@ -121,7 +135,7 @@ export async function POST(req: NextRequest) {
         const msgs = mergedMessages.filter((m: { role: string }) => m.role !== "system");
         response = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST", signal,
-          headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+          headers: { "Content-Type": "application/json", "x-api-key": effectiveKey, "anthropic-version": "2023-06-01" },
           body: JSON.stringify({ model, max_tokens: tokens, temperature: temp, top_p: topP, system: systemPrompt || undefined, messages: msgs }),
         });
         break;
@@ -151,7 +165,7 @@ export async function POST(req: NextRequest) {
 // Lightweight connection test endpoint
 export async function GET(req: NextRequest) {
   const provider = req.nextUrl.searchParams.get("provider");
-  const apiKey = req.nextUrl.searchParams.get("apiKey");
+  const apiKey = req.nextUrl.searchParams.get("apiKey") || process.env.AI_API_KEY || "";
 
   if (!provider || !apiKey) {
     return NextResponse.json({ ok: false, error: "Missing provider or apiKey" });
@@ -163,6 +177,10 @@ export async function GET(req: NextRequest) {
     let testOpts: RequestInit;
 
     switch (provider) {
+      case "chatanywhere":
+        testUrl = "https://api.chatanywhere.tech/v1/models";
+        testOpts = { headers: { Authorization: `Bearer ${apiKey}` }, signal };
+        break;
       case "chatgpt":
         testUrl = "https://api.openai.com/v1/models";
         testOpts = { headers: { Authorization: `Bearer ${apiKey}` }, signal };

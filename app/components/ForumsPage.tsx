@@ -14,6 +14,14 @@ import {
 } from "lucide-react";
 import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import {
+  fetchCommunityThreads, fetchAllCommunityThreads, fetchUserThreads,
+  fetchReplies as fetchRepliesHelper, createThread, addReply,
+  updateReply, deleteReply as deleteReplyHelper, deleteThread as deleteThreadHelper,
+  voteThread, incrementViews, fetchUserProfile, saveUserProfile, searchUserByName,
+  fetchCommunityStats, clearProfileCache,
+  type ForumThread as ForumThreadType, type ReplyData as ReplyDataType, type UserProfile as UserProfileType
+} from "@/lib/firebase-forum";
 import { cn } from "@/lib/utils";
 import { useAuth } from "./AuthProvider";
 import ShareModal from "./ShareModal";
@@ -857,7 +865,8 @@ export default function ForumsPage() {
   const [aiReplyResult, setAiReplyResult] = useState<Record<string, { label: string; text: string }>>({});
   const [aiReplyLoading, setAiReplyLoading] = useState<string | null>(null);
   const AI_MODELS = [
-    { name: "DeepSeek تجريبي ⚡", provider: "deepseek", model: "deepseek-chat", free: true },
+    { name: "GPT-3.5 تجريبي", provider: "chatanywhere", model: "gpt-3.5-turbo", free: true },
+    { name: "DeepSeek Chat", provider: "deepseek", model: "deepseek-chat", free: true },
     { name: "Gemini 2.0 Flash", provider: "gemini", model: "gemini-2.0-flash", free: true },
     { name: "Groq Llama 3.3", provider: "groq", model: "llama-3.3-70b-versatile", free: true },
     { name: "Groq Gemma 2", provider: "groq", model: "gemma2-9b-it", free: true },
@@ -1134,7 +1143,6 @@ export default function ForumsPage() {
   const callAI = async (provider: string, model: string, messages: { role: string; content: string }[], systemPrompt?: string): Promise<string> => {
     const contextMessages = messages.slice(-16);
     const key = aiApiKey || "";
-    if (!key) throw new Error("أضف مفتاح API من الإعدادات (مجاني من platform.deepseek.com)");
     const res = await fetch("/api/ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1149,11 +1157,9 @@ export default function ForumsPage() {
 
   // Test API connection
   const testAiConnection = async () => {
-    const key = aiApiKey || "";
-    if (!key) { setAiConnected("fail"); return; }
     setAiConnected("testing");
     try {
-      const res = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${encodeURIComponent(key)}`);
+      const res = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${encodeURIComponent(aiApiKey || "")}`);
       const data = await res.json();
       setAiConnected(data.ok ? "ok" : "fail");
     } catch {
@@ -1262,8 +1268,6 @@ export default function ForumsPage() {
         } catch (err: any) {
           setAiMessages(p => p.map(m => m.id === aiTypingId ? { ...m, content: `خطأ: ${(err?.message || "").slice(0, 80)}`, isTyping: false } : m));
         } finally { setAiGenerating(false); }
-      } else if (!aiApiKey) {
-        setAiMessages(p => p.map(m => m.id === aiTypingId ? { ...m, content: "أضف API key من الإعدادات حتى أقدر أكتب لك وصف", isTyping: false } : m));
       }
       return;
     }
@@ -1273,22 +1277,16 @@ export default function ForumsPage() {
     if (mentionMatch && mentionMatch[1]) {
       const mentionedName = mentionMatch[1];
       try {
-        // Search Firestore for user with matching displayName
-        const usersSnap = await getDocs(collection(db, "users"));
-        const foundDoc = usersSnap.docs.find(d => {
-          const dn = d.data().displayName || "";
-          return dn.toLowerCase() === mentionedName.toLowerCase() || dn.toLowerCase().includes(mentionedName.toLowerCase());
-        });
-        if (foundDoc) {
-          const d = foundDoc.data();
-          const mUid = foundDoc.id;
-          const mName = d.displayName || mentionedName;
-          const mPhoto = d.photoURL || "";
-          const mRole = d.role || "عضو";
-          const mBio = d.bio || "";
-          const mBanner = d.bannerUrl || "";
-          const mPosts = d.postCount || 0;
-          const mSocialLinks = d.socialLinks || {};
+        const found = await searchUserByName(mentionedName);
+        if (found) {
+          const mUid = found.uid;
+          const mName = found.name || mentionedName;
+          const mPhoto = found.photo || "";
+          const mRole = found.role || "عضو";
+          const mBio = found.bio || "";
+          const mBanner = found.bannerUrl || "";
+          const mPosts = found.posts || 0;
+          const mSocialLinks = found.socialLinks || {};
           const userDisplay = { id: Math.random().toString(36).slice(2), role: "user" as const, content: inputText, isTyping: false, ts: Date.now() };
           const mentionCardId = `mention-${Date.now()}`;
           // Encode all data safely using JSON
@@ -1553,24 +1551,17 @@ export default function ForumsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => { async function fetchThreads() { setLoading(true); try { const q = query(collection(db, "forums", selectedCommunity, "threads"), orderBy("createdAt", "desc"), limit(50)); const snap = await getDocs(q); setThreads(snap.docs.map(d => ({ id: d.id, ...d.data() } as ForumThread))); } catch { setThreads([]); } finally { setLoading(false); } } fetchThreads(); }, [selectedCommunity]);
+  useEffect(() => { async function load() { setLoading(true); try { const data = await fetchCommunityThreads(selectedCommunity); setThreads(data); } catch { setThreads([]); } finally { setLoading(false); } } load(); }, [selectedCommunity]);
 
   // Fetch all threads from all communities for sidebar
-  useEffect(() => { async function fetchAllThreads() { try { const all: ForumThread[] = []; for (const comm of allCommunities) { try { const q2 = query(collection(db, "forums", comm.name, "threads"), orderBy("createdAt", "desc"), limit(5)); const snap = await getDocs(q2); snap.docs.forEach(d => all.push({ id: `${comm.name}-${d.id}`, ...d.data(), community: comm.name } as ForumThread)); } catch {} } all.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")); setAllThreads(all); } catch {} } fetchAllThreads(); }, []);
+  useEffect(() => { async function load() { try { const data = await fetchAllCommunityThreads(allCommunities, 5); setAllThreads(data); } catch {} } load(); }, []);
 
   // Lazy-load author data for hover cards
   const fetchAuthorCache = async (uid: string) => {
     if (authorCache[uid]) return;
     try {
-      const snap = await getDoc(doc(db, "users", uid));
-      let data: any = { role: "عضو" };
-      if (snap.exists()) {
-        const d = snap.data();
-        data = { bannerUrl: d.bannerUrl || "", bio: d.bio || "", role: d.role || "عضو", joinDate: d.createdAt || "", isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false, postCount: d.postCount || 0, socialLinks: d.socialLinks || {} };
-      }
-      // Fetch follower/following counts
-      try { const fSnap = await getDocs(collection(db, "users", uid, "followers")); data.followerCount = fSnap.size; const f2Snap = await getDocs(collection(db, "users", uid, "following")); data.followingCount = f2Snap.size; } catch {}
-      // Calculate karma
+      const profile = await fetchUserProfile(uid);
+      const data: any = { role: profile.role, bio: profile.bio || "", bannerUrl: profile.bannerUrl || "", joinDate: profile.joinDate || "", isOnline: profile.isOnline || false, postCount: profile.posts || 0, socialLinks: profile.socialLinks || {}, followerCount: profile.followerCount || 0, followingCount: profile.followingCount || 0 };
       const userThreads = allThreads.filter(t => t.authorUid === uid);
       data.karma = userThreads.reduce((s: number, t: any) => s + (t.votes || 0), 0);
       setAuthorCache(prev => ({ ...prev, [uid]: data }));
@@ -1580,7 +1571,7 @@ export default function ForumsPage() {
   const handleSaveProfile = async () => {
     if (!user) return;
     try {
-      await updateDoc(doc(db, "users", user.uid), { bio: editBio, bannerUrl: editBannerUrl, socialLinks: editSocialLinks });
+      await saveUserProfile(user.uid, { bio: editBio, bannerUrl: editBannerUrl, socialLinks: editSocialLinks });
       // Update local state
       if (profileData) setProfileData({ ...profileData, bio: editBio, bannerUrl: editBannerUrl, socialLinks: editSocialLinks });
       setAuthorCache(prev => ({ ...prev, [user.uid]: { ...prev[user.uid], bio: editBio, bannerUrl: editBannerUrl, socialLinks: editSocialLinks } }));
@@ -1593,35 +1584,26 @@ export default function ForumsPage() {
   const openProfile = async (uid: string, name: string, photo?: string) => {
     setProfileUid(uid); navigateForum("profile", { profileUid: uid });
     try {
-      const snap = await getDoc(doc(db, "users", uid));
-      let pd: any = { name, photo, role: "عضو" };
-      if (snap.exists()) { const d = snap.data(); pd = { name: d.displayName || name, photo: d.photoURL || photo, role: d.role || "عضو", bio: d.bio, posts: d.postCount || 0, joinDate: d.createdAt, bannerUrl: d.bannerUrl || "", socialLinks: d.socialLinks || {}, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false }; }
-      // Fetch follower/following counts
-      try { const fSnap = await getDocs(collection(db, "users", uid, "followers")); pd.followerCount = fSnap.size; const f2Snap = await getDocs(collection(db, "users", uid, "following")); pd.followingCount = f2Snap.size; } catch {}
-      // Fetch user threads from Firestore, fallback to allThreads
-      const userThreads: ForumThread[] = [];
-      try {
-        for (const comm of allCommunities) {
-          try { const tq = query(collection(db, "forums", comm.name, "threads"), where("authorUid", "==", uid), orderBy("createdAt", "desc"), limit(10)); const ts = await getDocs(tq); ts.docs.forEach(d => userThreads.push({ id: d.id, ...d.data() } as ForumThread)); } catch {}
-        }
-      } catch {}
+      const profile = await fetchUserProfile(uid, name, photo);
+      let pd: any = { ...profile };
+      // Fetch user threads from Firestore
+      const userThreads = await fetchUserThreads(uid, allCommunities, 10);
       // Fallback: use allThreads if Firestore returned nothing
       if (userThreads.length === 0) {
         const fromAll = allThreads.filter(t => t.authorUid === uid);
-        userThreads.push(...fromAll);
+        pd.threads = fromAll.slice(0, 15);
+      } else {
+        pd.threads = userThreads;
       }
-      userThreads.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-      pd.threads = userThreads.slice(0, 15);
       setProfileData(pd);
-    } catch { 
-      // Fallback using allThreads
+    } catch {
       const fromAll = allThreads.filter(t => t.authorUid === uid);
-      setProfileData({ name, photo, role: "عضو", threads: fromAll.slice(0, 15) }); 
+      setProfileData({ name, photo, role: "عضو", threads: fromAll.slice(0, 15) });
     }
   };
 
-  const fetchReplies = async (threadId: string) => { try { const q = query(collection(db, "forums", selectedCommunity, "threads", threadId, "replies"), orderBy("createdAt", "asc"), limit(100)); const snap = await getDocs(q); setReplies(prev => ({ ...prev, [threadId]: snap.docs.map(d => ({ id: d.id, ...d.data() } as ReplyData)) })); } catch {} };
-  const fetchRepliesForCommunity = async (threadId: string, community: string) => { try { const q = query(collection(db, "forums", community, "threads", threadId, "replies"), orderBy("createdAt", "asc"), limit(100)); const snap = await getDocs(q); setReplies(prev => ({ ...prev, [threadId]: snap.docs.map(d => ({ id: d.id, ...d.data() } as ReplyData)) })); } catch {} };
+  const fetchReplies = async (threadId: string) => { try { const data = await fetchRepliesHelper(selectedCommunity, threadId); setReplies(prev => ({ ...prev, [threadId]: data })); } catch {} };
+  const fetchRepliesForCommunity = async (threadId: string, community: string) => { try { const data = await fetchRepliesHelper(community, threadId); setReplies(prev => ({ ...prev, [threadId]: data })); } catch {} };
   const openThread = (threadId: string) => {
     const thread = threads.find(t => t.id === threadId) || allThreads.find(t => t.id === threadId);
     setActiveThreadId(threadId); navigateForum("thread", { threadId, community: thread?.community || selectedCommunity, threadTitle: thread?.title || "" });
@@ -1636,7 +1618,7 @@ export default function ForumsPage() {
     if (!viewedThreads.has(threadId)) {
       setViewedThreads(prev => new Set(prev).add(threadId));
       if (threadId && !threadId.includes("-")) {
-        try { updateDoc(doc(db, "forums", threadCommunity, "threads", threadId), { views: increment(1) }); } catch {}
+        try { incrementViews(threadCommunity, threadId); } catch {}
       }
       setThreads(prev => prev.map(th => th.id === threadId ? { ...th, views: (th.views || 0) + 1 } : th));
     }
@@ -1660,7 +1642,7 @@ export default function ForumsPage() {
       if (isRealDoc) {
         try {
           const delta = prev === "up" ? -1 : 1;
-          updateDoc(doc(db, "forums", threadCommunity, "threads", threadId), { votes: increment(delta) });
+          voteThread(threadCommunity, threadId, delta);
         } catch {}
       }
       setThreads(p => p.map(th => th.id === threadId ? { ...th, votes: (th.votes || 0) + (prev === "up" ? -1 : 1) } : th));
@@ -1671,22 +1653,18 @@ export default function ForumsPage() {
     let delta = dir === "up" ? 1 : -1;
     if (prev) delta = prev === "up" ? -2 : 2;
     if (isRealDoc) {
-      try { updateDoc(doc(db, "forums", threadCommunity, "threads", threadId), { votes: increment(delta) }); } catch {}
+      try { voteThread(threadCommunity, threadId, delta); } catch {}
     }
     setThreads(p => p.map(th => th.id === threadId ? { ...th, votes: (th.votes || 0) + delta } : th));
   };
-  const handleCreateThread = async () => { if (!newTitle.trim()) return; setCreating(true); setCreateBlur(true); try { const tagsArr = newTags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 5); const threadData = { title: newTitle.trim(), body: newBody.trim(), authorName, authorUid, authorPhoto, community: newCommunity, pinned: false, locked: false, solved: false, replyCount: 0, views: 0, votes: 0, createdAt: new Date().toISOString(), tags: tagsArr, type: newType }; const docRef = await addDoc(collection(db, "forums", newCommunity, "threads"), threadData); if (newCommunity === selectedCommunity) setThreads(prev => [{ id: docRef.id, ...threadData }, ...prev]); setNewTitle(""); setNewBody(""); setNewTags(""); setNewType("discussion"); setCreating(false); setTimeout(() => { setViewMode("list"); setTimeout(() => setCreateBlur(false), 100); }, 500); } catch { setCreateBlur(false); setCreating(false); } };
-  const handleReply = async (threadId: string) => { if (!replyText.trim()) return; try { const rd = { id: "temp-" + Date.now(), text: replyText.trim(), authorName, authorUid, authorPhoto, createdAt: new Date().toISOString(), votes: 0 }; await addDoc(collection(db, "forums", selectedCommunity, "threads", threadId, "replies"), { text: rd.text, authorName: rd.authorName, authorUid: rd.authorUid, authorPhoto: rd.authorPhoto, createdAt: rd.createdAt, votes: 0 }); await updateDoc(doc(db, "forums", selectedCommunity, "threads", threadId), { replyCount: increment(1), lastReplyAt: new Date().toISOString(), lastReplyBy: authorName }); setReplies(prev => ({ ...prev, [threadId]: [...(prev[threadId] || []), rd] })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: th.replyCount + 1, lastReplyAt: new Date().toISOString(), lastReplyBy: authorName } : th)); setReplyText(""); setReplyingTo(null); setTimeout(() => replyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {} };
-  const handleDeleteReply = async (threadId: string, replyId: string) => { try { await deleteDoc(doc(db, "forums", selectedCommunity, "threads", threadId, "replies", replyId)); await updateDoc(doc(db, "forums", selectedCommunity, "threads", threadId), { replyCount: increment(-1) }); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).filter(r => r.id !== replyId) })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: Math.max(0, th.replyCount - 1) } : th)); setMenuOpen(null); } catch {} };
-  const handleEditReply = async (threadId: string, replyId: string) => { if (!editText.trim()) return; try { await updateDoc(doc(db, "forums", selectedCommunity, "threads", threadId, "replies", replyId), { text: editText.trim(), edited: true }); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).map(r => r.id === replyId ? { ...r, text: editText.trim(), edited: true } : r) })); setEditingReply(null); setEditText(""); setMenuOpen(null); } catch {} };
+  const handleCreateThread = async () => { if (!newTitle.trim()) return; setCreating(true); setCreateBlur(true); try { const tagsArr = newTags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 5); const threadData = { title: newTitle.trim(), body: newBody.trim(), authorName, authorUid, authorPhoto, community: newCommunity, pinned: false, locked: false, solved: false, replyCount: 0, views: 0, votes: 0, createdAt: new Date().toISOString(), tags: tagsArr, type: newType }; const docId = await createThread(newCommunity, threadData); if (newCommunity === selectedCommunity) setThreads(prev => [{ id: docId, ...threadData }, ...prev]); setNewTitle(""); setNewBody(""); setNewTags(""); setNewType("discussion"); setCreating(false); setTimeout(() => { setViewMode("list"); setTimeout(() => setCreateBlur(false), 100); }, 500); } catch { setCreateBlur(false); setCreating(false); } };
+  const handleReply = async (threadId: string) => { if (!replyText.trim()) return; try { const rd = { text: replyText.trim(), authorName, authorUid, authorPhoto, createdAt: new Date().toISOString(), votes: 0 }; await addReply(selectedCommunity, threadId, rd); setReplies(prev => ({ ...prev, [threadId]: [...(prev[threadId] || []), { id: "temp-" + Date.now(), ...rd }] })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: th.replyCount + 1, lastReplyAt: new Date().toISOString(), lastReplyBy: authorName } : th)); setReplyText(""); setReplyingTo(null); setTimeout(() => replyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {} };
+  const handleDeleteReply = async (threadId: string, replyId: string) => { try { await deleteReplyHelper(selectedCommunity, threadId, replyId); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).filter(r => r.id !== replyId) })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: Math.max(0, th.replyCount - 1) } : th)); setMenuOpen(null); } catch {} };
+  const handleEditReply = async (threadId: string, replyId: string) => { if (!editText.trim()) return; try { await updateReply(selectedCommunity, threadId, replyId, editText.trim()); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).map(r => r.id === replyId ? { ...r, text: editText.trim(), edited: true } : r) })); setEditingReply(null); setEditText(""); setMenuOpen(null); } catch {} };
 
   const handleDeleteThread = async (threadId: string, community: string) => {
     try {
-      // Delete all replies first
-      const repliesSnap = await getDocs(collection(db, "forums", community, "threads", threadId, "replies"));
-      for (const r of repliesSnap.docs) { await deleteDoc(r.ref); }
-      // Delete the thread
-      await deleteDoc(doc(db, "forums", community, "threads", threadId));
+      await deleteThreadHelper(community, threadId);
       setThreads(p => p.filter(t => t.id !== threadId));
       setAllThreads(p => p.filter(t => t.id !== threadId));
       setMenuOpen(null);
@@ -1701,11 +1679,9 @@ export default function ForumsPage() {
     setCommunityThreadCount(0);
     setCommunityReplyCount(0);
     try {
-      const tSnap = await getDocs(collection(db, "forums", comm.name, "threads"));
-      setCommunityThreadCount(tSnap.size);
-      let totalReplies = 0;
-      tSnap.docs.forEach(d => { totalReplies += (d.data().replyCount || 0); });
-      setCommunityReplyCount(totalReplies);
+      const stats = await fetchCommunityStats(comm.name);
+      setCommunityThreadCount(stats.threadCount);
+      setCommunityReplyCount(stats.replyCount);
     } catch {}
     navigateForum("community", { community: comm.name });
   };
@@ -2377,7 +2353,6 @@ export default function ForumsPage() {
                             <button onClick={() => { const n = new Set(savedThreads); if (n.has(activeThread.id)) { n.delete(activeThread.id); showToast("تم إزالة الحفظ"); } else { n.add(activeThread.id); showToast("تم الحفظ ✓"); } setSavedThreads(n); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors", savedThreads.has(activeThread.id) ? "text-nf-accent hover:bg-nf-secondary/40" : "text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40")}><Bookmark size={12} fill={savedThreads.has(activeThread.id) ? "currentColor" : "none"} /> حفظ</button>
                             {/* AI Summary button */}
                             <button onClick={async () => {
-                              if (!aiApiKey) { showToast("أضف API key من الذكاء الاصطناعي"); return; }
                               if (aiThreadSummary) { setAiThreadSummary(null); return; }
                               setAiSummaryLoading(true);
                               try {
@@ -2389,7 +2364,6 @@ export default function ForumsPage() {
                             }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all", aiThreadSummary ? "text-nf-accent bg-nf-accent/10" : "text-nf-dim hover:text-nf-accent hover:bg-nf-accent/5")}><Sparkles size={12} className={aiSummaryLoading ? "animate-spin" : ""} /> {aiThreadSummary ? "إخفاء الملخص" : "ملخص"}</button>
                             {/* AI Smart Reply */}
                             <button onClick={async () => {
-                              if (!aiApiKey) { showToast("أضف API key من الذكاء الاصطناعي"); return; }
                               const allRepliesText = activeReplies.slice(-5).map(r => `${r.authorName}: ${r.text}`).join("\n");
                               try {
                                 const result = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `اقترح رد مناسب على هذا الموضوع بناءً على المحتوى والردود السابقة. اكتب رداً مفيداً يضيف للنقاش:\n\nالموضوع: ${activeThread.title}\n${activeThread.body || ""}\n\nآخر الردود:\n${allRepliesText || "لا توجد ردود"}` }], "أنت عضو في منتدى. اقترح رد مفيد ومناسب يضيف للنقاش. أجب بالرد المقترح فقط بدون شرح. بدون إيموجي.");
@@ -2416,15 +2390,15 @@ export default function ForumsPage() {
                                   <motion.div initial={{ opacity: 0, y: 4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.97 }} transition={{ duration: 0.1 }} className="absolute right-0 top-full mt-1 z-[9999] rounded-xl border border-nf-border/15 shadow-xl shadow-black/30 min-w-[180px] overflow-y-auto py-0.5" style={{ backgroundColor: "rgba(24,24,26,0.95)", backdropFilter: "blur(24px) saturate(1.2)", WebkitBackdropFilter: "blur(24px) saturate(1.2)" }}>
                                     <div className="px-2.5 pt-1 pb-0.5 flex items-center gap-1"><Sparkles size={9} className="text-nf-accent/40" /><span className="text-[7px] font-bold text-nf-dim/50 uppercase tracking-wider">أدوات ذكية</span></div>
                                     {[
-                                      { icon: Globe, label: "ترجم للإنجليزية", action: async () => { if (!aiApiKey) { showToast("أضف API key"); return; } setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `ترجم هذا النص للإنجليزية بشكل احترافي:\n\n${(activeThread.body || "").slice(0, 2000)}` }], "أنت مترجم محترف. ترجم النص فقط بدون أي شرح."); if (r?.trim()) setAiToolResult({ label: "الترجمة", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
-                                      { icon: BookOpen, label: "اشرح لي", action: async () => { if (!aiApiKey) { showToast("أضف API key"); return; } setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `اشرح هذا الموضوع بطريقة مبسطة للمبتدئين:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 1500)}` }], "أنت معلم صبور. اشرح الموضوع ببساطة مع أمثلة. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "الشرح", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
-                                      { icon: Maximize2, label: "وسّع الموضوع", action: async () => { if (!aiApiKey) { showToast("أضف API key"); return; } setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `وسّع هذا الموضوع وأضف تفاصيل أكثر وأمثلة عملية:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 1500)}` }], "أنت كاتب محترف. وسّع الموضوع بأفكار جديدة وأمثلة. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "التوسيع", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
-                                      { icon: Edit3, label: "صحح الأخطاء", action: async () => { if (!aiApiKey) { showToast("أضف API key"); return; } setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `صحح الأخطاء اللغوية والنحوية في هذا النص:\n\n${(activeThread.body || "").slice(0, 2000)}` }], "أنت مدقق لغوي. صحح الأخطاء فقط وأعد النص المصحح. بدون شرح."); if (r?.trim()) setAiToolResult({ label: "التصحيح", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
-                                      { icon: List, label: "لخّص النقاط", action: async () => { if (!aiApiKey) { showToast("أضف API key"); return; } setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `لخّص هذا الموضوع في نقاط مختصرة:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 2000)}` }], "أنت ملخص محترف. لخّص بالنقاط فقط. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "التلخيص", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
-                                      { icon: MessageCircle, label: "حلل الردود", action: async () => { if (!aiApiKey) { showToast("أضف API key"); return; } setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const repliesText = activeReplies.slice(0, 10).map(r => `${r.authorName}: ${r.text}`).join("\n"); const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `حلل الردود على هذا الموضوع. ما هي الآراء الرئيسية؟ هل هناك اتفاق أو خلاف؟:\n\nالموضوع: ${activeThread.title}\n\nالردود:\n${repliesText || "لا توجد ردود"}` }], "أنت محلل. حلل الآراء والنقاط الرئيسية. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "تحليل الردود", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
-                                      { icon: Lightbulb, label: "أفكار مرتبطة", action: async () => { if (!aiApiKey) { showToast("أضف API key"); return; } setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `اقترح 5 أفكار مرتبطة بهذا الموضوع يمكن كتابة مواضيع عنها:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 1000)}` }], "أنت مبدع. اقترح أفكار مرتبطة فقط. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "أفكار مرتبطة", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
-                                      { icon: Heading2, label: "اقترح عنوان", action: async () => { if (!aiApiKey) { showToast("أضف API key"); return; } setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `اقترح 3 عناوين أفضل لهذا الموضوع:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 500)}` }], "أنت محرر. اقترح عناوين جذابة ومختصرة فقط. كل عنوان في سطر منفصل. بدون إيموجي."); if (r?.trim()) setAiToolResult({ label: "عناوين مقترحة", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
-                                      { icon: Filter, label: "أنشئ وسوم", action: async () => { if (!aiApiKey) { showToast("أضف API key"); return; } setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `أنشئ 5 وسوم (hashtags) مناسبة لهذا الموضوع:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 500)}` }], "أنت خبير وسوم. أنشئ وسوم قصيرة ومناسبة فقط. كل وسم في سطر. بدون إيموجي. بدون #."); if (r?.trim()) setAiToolResult({ label: "وسوم مقترحة", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
+                                      { icon: Globe, label: "ترجم للإنجليزية", action: async () => {  setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `ترجم هذا النص للإنجليزية بشكل احترافي:\n\n${(activeThread.body || "").slice(0, 2000)}` }], "أنت مترجم محترف. ترجم النص فقط بدون أي شرح."); if (r?.trim()) setAiToolResult({ label: "الترجمة", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
+                                      { icon: BookOpen, label: "اشرح لي", action: async () => {  setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `اشرح هذا الموضوع بطريقة مبسطة للمبتدئين:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 1500)}` }], "أنت معلم صبور. اشرح الموضوع ببساطة مع أمثلة. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "الشرح", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
+                                      { icon: Maximize2, label: "وسّع الموضوع", action: async () => {  setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `وسّع هذا الموضوع وأضف تفاصيل أكثر وأمثلة عملية:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 1500)}` }], "أنت كاتب محترف. وسّع الموضوع بأفكار جديدة وأمثلة. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "التوسيع", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
+                                      { icon: Edit3, label: "صحح الأخطاء", action: async () => {  setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `صحح الأخطاء اللغوية والنحوية في هذا النص:\n\n${(activeThread.body || "").slice(0, 2000)}` }], "أنت مدقق لغوي. صحح الأخطاء فقط وأعد النص المصحح. بدون شرح."); if (r?.trim()) setAiToolResult({ label: "التصحيح", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
+                                      { icon: List, label: "لخّص النقاط", action: async () => {  setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `لخّص هذا الموضوع في نقاط مختصرة:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 2000)}` }], "أنت ملخص محترف. لخّص بالنقاط فقط. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "التلخيص", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
+                                      { icon: MessageCircle, label: "حلل الردود", action: async () => {  setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const repliesText = activeReplies.slice(0, 10).map(r => `${r.authorName}: ${r.text}`).join("\n"); const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `حلل الردود على هذا الموضوع. ما هي الآراء الرئيسية؟ هل هناك اتفاق أو خلاف؟:\n\nالموضوع: ${activeThread.title}\n\nالردود:\n${repliesText || "لا توجد ردود"}` }], "أنت محلل. حلل الآراء والنقاط الرئيسية. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "تحليل الردود", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
+                                      { icon: Lightbulb, label: "أفكار مرتبطة", action: async () => {  setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `اقترح 5 أفكار مرتبطة بهذا الموضوع يمكن كتابة مواضيع عنها:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 1000)}` }], "أنت مبدع. اقترح أفكار مرتبطة فقط. بدون إيموجي. استخدم ### للعناوين."); if (r?.trim()) setAiToolResult({ label: "أفكار مرتبطة", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
+                                      { icon: Heading2, label: "اقترح عنوان", action: async () => {  setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `اقترح 3 عناوين أفضل لهذا الموضوع:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 500)}` }], "أنت محرر. اقترح عناوين جذابة ومختصرة فقط. كل عنوان في سطر منفصل. بدون إيموجي."); if (r?.trim()) setAiToolResult({ label: "عناوين مقترحة", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
+                                      { icon: Filter, label: "أنشئ وسوم", action: async () => {  setAiToolLoading(true); setAiToolResult(null); setAiModelDropdown(false); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `أنشئ 5 وسوم (hashtags) مناسبة لهذا الموضوع:\n\n${activeThread.title}\n${(activeThread.body || "").slice(0, 500)}` }], "أنت خبير وسوم. أنشئ وسوم قصيرة ومناسبة فقط. كل وسم في سطر. بدون إيموجي. بدون #."); if (r?.trim()) setAiToolResult({ label: "وسوم مقترحة", text: r.trim() }); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiToolLoading(false); } } },
                                     ].map((tool) => { const TI = tool.icon; return <button key={tool.label} onClick={tool.action} disabled={aiToolLoading} className={cn("w-[calc(100%-4px)] flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all rounded-lg mx-0.5", aiToolLoading ? "opacity-30" : "text-nf-text/80 hover:bg-white/4")}><TI size={10} className="text-nf-accent/40" /><span className="flex-1 text-right">{tool.label}</span></button>; })}
                                   </motion.div>
                                 )}
@@ -2586,28 +2560,23 @@ export default function ForumsPage() {
                               <button onClick={() => openShare(activeThread.id, activeThread.title)} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Share2 size={11} /> مشاركة</button>
                               {/* AI tools for reply - per-reply state */}
                               <button onClick={async () => {
-                                if (!aiApiKey) { showToast("أضف API key"); return; }
-                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
+                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
                                 try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `لخّص ما قاله هذا الشخص في رده بشكل مختصر (3-4 أسطر). اشرح الفكرة الرئيسية ببساطة:\n\n${reply.text}` }], "أنت مساعد في منتدى. لخّص رد الشخص بشكل مختصر ومفيد. أجب بالعربية فقط بدون إيموجي."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "شرح", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
                               }} className={cn("flex items-center gap-1.5 text-[12px] font-medium transition-all", aiReplyLoading === reply.id ? "text-nf-accent/40" : "text-nf-dim hover:text-nf-accent")}><Sparkles size={11} className={aiReplyLoading === reply.id ? "animate-spin" : ""} /> شرح</button>
                               <button onClick={async () => {
-                                if (!aiApiKey) { showToast("أضف API key"); return; }
-                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
+                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
                                 try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `ترجم هذا الرد ل${({en:"الإنجليزية",ar:"العربية",fr:"الفرنسية",de:"الألمانية",es:"الإسبانية",tr:"التركية",ja:"اليابانية",ko:"الكورية",zh:"الصينية",ru:"الروسية"})[localStorage.getItem("nf-ai-translate-lang")||"en"]||"الإنجليزية"} بشكل احترافي:\n\n${reply.text}` }], "أنت مترجم محترف. ترجم النص فقط بدون أي شرح. إذا النص بنفس لغة الهدف، ترجمه للعربية."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "ترجمة", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
                               }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Globe size={11} /> ترجم</button>
                               <button onClick={async () => {
-                                if (!aiApiKey) { showToast("أضف API key"); return; }
-                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
+                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
                                 try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `صحح الأخطاء اللغوية والنحوية في هذا الرد:\n\n${reply.text}` }], "أنت مدقق لغوي. صحح الأخطاء فقط وأعد النص المصحح. بدون شرح."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "تصحيح", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
                               }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Edit3 size={11} /> صحح</button>
                               <button onClick={async () => {
-                                if (!aiApiKey) { showToast("أضف API key"); return; }
-                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
+                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
                                 try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `استخرج أهم النقاط الرئيسية من هذا الرد كقائمة مختصرة:\n\n${reply.text}` }], "أنت مساعد بيستخرج النقاط الرئيسية. اكتب قائمة مختصرة بالعربية بدون إيموجي."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "نقاط", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
                               }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><FileText size={11} /> نقاط</button>
                               <button onClick={async () => {
-                                if (!aiApiKey) { showToast("أضف API key"); return; }
-                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
+                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
                                 try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `حسّن هذا الرد بأسلوب احترافي وجذاب مع الحفاظ على المعنى:\n\n${reply.text}` }], "أنت محرر محترف. حسّن النص بأسلوب احترافي. أجب بالنص المحسّن فقط بدون شرح."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "تحسين", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
                               }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Sparkles size={11} /> حسّن</button>
                               <div className="relative ml-auto" ref={menuOpen === reply.id ? menuRef : undefined}>
@@ -2675,7 +2644,7 @@ export default function ForumsPage() {
                               <button onClick={() => clearFormatting(replyTextareaRef, setReplyText, replyText)} className="p-1.5 text-nf-muted hover:text-red-400 hover:bg-red-400/10 rounded transition-colors" title="مسح التنسيق"><RotateCcw size={13} /></button>
                               <div className="h-4 w-px bg-nf-border/50 mx-0.5" />
                               <button onClick={async () => {
-                                if (!replyText.trim() || !aiApiKey) { if (!aiApiKey) showToast("أضف API key من الذكاء الاصطناعي"); return; }
+                                if (!replyText.trim()) { return; }
                                 const original = replyText;
                                 setReplyText("⏳ يحسّن الذكاء الاصطناعي...");
                                 try {
@@ -2829,7 +2798,6 @@ export default function ForumsPage() {
                       <div className="relative">
                         <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="عنوان الموضوع" className="w-full bg-nf-secondary rounded-lg px-4 py-3 text-[17px] font-bold text-nf-text placeholder:text-nf-dim outline-none focus:ring-1 focus:ring-nf-accent pr-12" />
                         <button onClick={async () => {
-                          if (!aiApiKey) { showToast("أضف API key من الذكاء الاصطناعي"); return; }
                           if (!newBody.trim()) { showToast("اكتب المحتوى أولاً"); return; }
                           try {
                             const result = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `اقترح عنوان جذاب ومختصر (6 كلمات أو أقل) لموضوع بالعربية عن:\n\n${newBody.slice(0, 300)}` }], "اقترح عنوان واحد فقط. بدون إيموجي. بدون علامات تنصيص. أجب بالعنوان فقط.");
@@ -2897,7 +2865,6 @@ export default function ForumsPage() {
                         <button onClick={() => clearFormatting(newBodyRef, setNewBody, newBody)} className="p-2 text-nf-muted hover:text-red-400 hover:bg-red-400/10 rounded transition-colors" title="مسح التنسيق"><RotateCcw size={14} /></button>
                         <div className="h-4 w-px bg-nf-border/50 mx-0.5" />
                         <button onClick={async () => {
-                          if (!aiApiKey) { showToast("أضف API key من الذكاء الاصطناعي"); return; }
                           if (!newBody.trim()) { showToast("اكتب المحتوى أولاً"); return; }
                           showToast("جارٍ التحسين...");
                           try {

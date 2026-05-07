@@ -292,7 +292,8 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const [aiConnected, setAiConnected] = useState<"unknown" | "testing" | "ok" | "fail">("unknown");
 
   const AI_MODELS = [
-    { name: "DeepSeek تجريبي ⚡", provider: "deepseek", model: "deepseek-chat", free: true, desc: "مجاني وسريع — احصل على مفتاح من platform.deepseek.com" },
+    { name: "GPT-3.5 تجريبي", provider: "chatanywhere", model: "gpt-3.5-turbo", free: true, desc: "مجاني للتجربة — لا يحتاج مفتاح مدفوع" },
+    { name: "DeepSeek Chat", provider: "deepseek", model: "deepseek-chat", free: true, desc: "مجاني وسريع — احصل على مفتاح من platform.deepseek.com" },
     { name: "Gemini 2.0 Flash", provider: "gemini", model: "gemini-2.0-flash", free: true, desc: "سريع من جوجل، ممتاز للردود القصيرة" },
     { name: "Groq Llama 3.3", provider: "groq", model: "llama-3.3-70b-versatile", free: true, desc: "أسرع نموذج، استجابة فورية" },
     { name: "Groq Gemma 2", provider: "groq", model: "gemma2-9b-it", free: true, desc: "خفيف وسريع من Groq" },
@@ -539,8 +540,8 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                 <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">المزود</label>
                 <p className="text-[8px] text-nf-dim/40 mb-2">الشركة التي توفر خدمة الذكاء الاصطناعي</p>
                 <div className="grid grid-cols-3 gap-1.5">
-                  {(["deepseek", "groq", "mistral", "gemini", "chatgpt", "claude"] as const).map(p => (
-                    <button key={p} onClick={() => { setAiProvider(p); const idx = AI_MODELS.findIndex(m => m.provider === p); if (idx >= 0) setAiModel(idx); }} className={cn("py-2 rounded-lg text-[10px] font-bold transition-all border", aiProvider === p ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>{p === "chatgpt" ? "ChatGPT" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
+                  {(["chatanywhere", "deepseek", "groq", "mistral", "gemini", "chatgpt", "claude"] as const).map(p => (
+                    <button key={p} onClick={() => { setAiProvider(p); const idx = AI_MODELS.findIndex(m => m.provider === p); if (idx >= 0) setAiModel(idx); }} className={cn("py-2 rounded-lg text-[10px] font-bold transition-all border", aiProvider === p ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>{p === "chatgpt" ? "ChatGPT" : p === "chatanywhere" ? "تجريبي" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
                   ))}
                 </div>
               </div>

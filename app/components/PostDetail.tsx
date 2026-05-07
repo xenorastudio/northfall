@@ -285,9 +285,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   }, []);
 
   const testAiConnection = async () => {
-    if (!aiApiKey) { setAiConnected("fail"); return; }
     setAiConnected("testing");
-    try { const r = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${aiApiKey}`); const d = await r.json(); setAiConnected(d.ok ? "ok" : "fail"); } catch { setAiConnected("fail"); }
+    try { const r = await fetch(`/api/ai?provider=${aiProvider}&apiKey=${aiApiKey || ""}`); const d = await r.json(); setAiConnected(d.ok ? "ok" : "fail"); } catch { setAiConnected("fail"); }
   };
   const saveAiSettings = () => { localStorage.setItem("nf-ai-key", aiApiKey); localStorage.setItem("nf-ai-provider", aiProvider); localStorage.setItem("nf-ai-model", String(aiModel)); if (aiApiKey) testAiConnection(); };
 
@@ -370,10 +369,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
 
   // AI result display
 
-  const handleAiExplain = async (mode: "explain" | "summarize" | "translate" | "expand" | "correct" | "tags" | "rephrase" | "question" | "keypoints" | "counter" | "improve" | "issues") => {
+  const handleAiExplain = async (mode: "explain" | "summarize" | "translate" | "expand" | "correct" | "tags" | "rephrase" | "question" | "keypoints" | "counter" | "improve" | "issues" | "morefeatures") => {
     const sel = AI_MODELS[aiModel];
     const key = aiApiKey || "";
-    if (!key) { setAiResult("أضف مفتاح API من إعدادات الذكاء الاصطناعي ⚙"); return; }
     if (!post) return;
     setAiLoading(true);
     setAiResult(null);
@@ -395,6 +393,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         counter: `${uName}، اكتب رد أو حجة مضادة لهاد المنشور بشكل محترم ومبسط (3-4 أسطر)، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
         improve: `${uName}، حسّن هاي المنشور بأسلوب احترافي وجذاب مع الحفاظ على المعنى — أضف تنسيق وتنظيم أفضل، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
         issues: `${uName}، اذكر المشاكل أو الأخطاء المحتملة بهاد المنشور (معلومات خاطئة، منطق ضعيف، أخطاء تقنية) بشكل مبسط، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
+        morefeatures: `${uName}، اقترح تحسينات وميزات إضافية ممكن تنضاف لهاد المنشور — أفكار جديدة، أقسام ممكن تنضاف، روابط مفيدة، أمثلة عملية، أي شي يخلي المنشور أغنى وأفيد، باللهجة الأردنية:\n\nالعنوان: ${post.title}\nالمحتوى: ${(post.body || "").slice(0, 500) || "لا يوجد محتوى"}`,
       };
       const systemPrompts: Record<string, string> = {
         explain: `أنت مساعد بتشرح المنشورات ببساطة ووضوح باللهجة الأردنية. خاطب المستخدم باسمه. احكي باختصار 3-4 أسطر بدون عناوين. بدون إيموجي. خليك عادي وودي.`,
@@ -409,27 +408,18 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         counter: `أنت مساعد بيكتب حجج مضادة محترمة باللهجة الأردنية. خاطب المستخدم باسمه. كن محترم وموضوعي. بدون إيموجي.`,
         improve: `أنت محرر محترف بحسّن المنشورات بأسلوب احترافي وجذاب باللهجة الأردنية. خاطب المستخدم باسمه. حسّن التنسيق والأسلوب. بدون إيموجي.`,
         issues: `أنت ناقد تقني بيكشف المشاكل والأخطاء المحتملة بالمنشورات باللهجة الأردنية. خاطب المستخدم باسمه. كن موضوعي وبناء. بدون إيموجي.`,
+        morefeatures: `أنت مساعد مبدع بيقترح تحسينات وميزات إضافية للمنشورات باللهجة الأردنية. خاطب المستخدم باسمه. اقترح أفكار عملية ومفيدة. بدون إيموجي.`,
       };
       let text = "";
-      if (sel.provider === "chatanywhere") {
-        const res = await fetch("https://api.chatanywhere.tech/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-          body: JSON.stringify({ model: sel.model, messages: [{ role: "system", content: systemPrompts[mode] }, { role: "user", content: prompts[mode] }], max_tokens: 2000, temperature: 0.5, top_p: 0.92 }),
-        });
-        const data = await res.json();
-        text = data?.choices?.[0]?.message?.content || "";
-      } else {
-        const res = await fetch("/api/ai", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider: sel.provider, model: sel.model, apiKey: key, messages: [{ role: "user", content: prompts[mode] }], systemPrompt: systemPrompts[mode], maxTokens: 2000, temperature: 0.5, top_p: 0.92 }),
-        });
-        const data = await res.json();
-        if (sel.provider === "gemini") text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        else if (sel.provider === "claude") text = data.content?.[0]?.text || "";
-        else text = data.choices?.[0]?.message?.content || "";
-      }
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: sel.provider, model: sel.model, apiKey: key, messages: [{ role: "user", content: prompts[mode] }], systemPrompt: systemPrompts[mode], maxTokens: 2000, temperature: 0.5, top_p: 0.92 }),
+      });
+      const data = await res.json();
+      if (sel.provider === "gemini") text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      else if (sel.provider === "claude") text = data.content?.[0]?.text || "";
+      else text = data.choices?.[0]?.message?.content || "";
       setAiResult(text || "لم أستطع توليد رد");
     } catch (err: any) {
       setAiResult(`خطأ: ${(err?.message || "").slice(0, 60)}`);
@@ -701,6 +691,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                   </button>
                   <button onClick={() => handleAiExplain("tags")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
                     <BookOpen size={10} className="text-blue-400/40" /> <span className="flex-1 text-right">وسوم</span>
+                  </button>
+                  <button onClick={() => handleAiExplain("morefeatures")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
+                    <Sparkles size={10} className="text-purple-400/40" /> <span className="flex-1 text-right">تحسينات وميزات</span>
                   </button>
                 </div>
               </div>
