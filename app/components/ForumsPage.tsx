@@ -2266,7 +2266,7 @@ export default function ForumsPage() {
                   </div>
 
                   {/* Thread header with timeline sidebar */}
-                  <div className="flex gap-4 mb-5">
+                  <div className={cn("flex gap-4 mb-5 transition-all duration-300", replyingTo && "opacity-40 pointer-events-none blur-[1px]")}>
                     {/* Main content */}
                     <div className="flex-1 bg-nf-card rounded-xl p-6 shadow-sm">
                       <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -2521,7 +2521,7 @@ export default function ForumsPage() {
                   </div>
 
                   {/* Replies section - flat cards with timeline */}
-                  <div className="mb-5">
+                  <div className={cn("mb-5 transition-all duration-300", replyingTo && "opacity-40 pointer-events-none blur-[1px]")}>
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-[16px] font-bold text-nf-text flex items-center gap-2"><MessageCircle size={16} className="text-nf-accent" /> {activeReplies.length} ردود</h3>
                       <div className="flex items-center gap-1.5">
@@ -2622,7 +2622,7 @@ export default function ForumsPage() {
                                 </div>
                               </div>
                             </div>
-                            <span className="text-[11px] text-nf-dim font-medium mr-2">{formatDate(reply.createdAt)}</span>
+                            <span className="text-[ssddadsa11px] text-nf-dim font-medium mr-2">{formatDate(reply.createdAt)}</span>
                             {reply.edited && <span className="text-[10px] text-nf-dim px-1.5 py-0.5 rounded bg-nf-secondary font-bold mr-1">معدّل</span>}
                             {editingReply === reply.id ? (
                               <div className="space-y-3">
@@ -2705,6 +2705,14 @@ export default function ForumsPage() {
                             <span className="flex items-center gap-1.5 text-[12px] text-nf-accent font-bold"><Reply size={12} /> رد على {reply.authorName}</span>
                             <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40"><X size={14} /></button>
                           </div>
+                          {/* Quoted context */}
+                          <div className="mb-3 rounded-lg border border-nf-accent/10 bg-nf-accent/3 px-3 py-2">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              {reply.authorPhoto ? <img src={reply.authorPhoto} alt="" className="w-4 h-4 rounded-full object-cover" /> : <div className="w-4 h-4 rounded-full bg-nf-muted flex items-center justify-center text-white text-[7px] font-bold">{(reply.authorName || "م")[0]}</div>}
+                              <span className="text-[10px] text-nf-text font-bold">{reply.authorName}</span>
+                            </div>
+                            <p className="text-[11px] text-nf-dim leading-[1.6] line-clamp-2">{reply.text?.replace(/[#*`>\-\[\]()!]/g, "").slice(0, 150) || ""}</p>
+                          </div>
                           <div className="flex items-center gap-2.5 mb-3">
                             {user?.photoURL ? <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover" /> : <div className="w-7 h-7 rounded-full bg-nf-muted flex items-center justify-center text-white text-[11px] font-bold">م</div>}
                             <span className="text-[12px] text-nf-text font-medium">{authorName}</span>
@@ -2761,14 +2769,35 @@ export default function ForumsPage() {
 
                   {/* Reply box - show when not replying to a specific reply */}
                   {!activeThread.locked && !sortedReplies.some(r => r.id === replyingTo) && (
-                    <div className="bg-nf-card rounded-xl p-5 shadow-sm border border-nf-border/20"
+                    <div className="bg-nf-card rounded-xl p-5 shadow-sm border border-nf-border/20 relative"
                       onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
                       onDrop={e => { e.preventDefault(); e.stopPropagation(); const text = e.dataTransfer.getData('text/plain'); if (text) setReplyText(prev => prev + text); const files = e.dataTransfer.files; if (files.length > 0) { Array.from(files).forEach(f => { if (f.type.startsWith('image/')) { setReplyText(prev => `${prev}\n![${f.name}](اسحب الصورة هنا)\n`); showToast(`تم إضافة ${f.name} — ارفع الصورة أولاً ثم ضع الرابط`); } }); } }}>
-                      {/* Reply-to indicator */}
+                      {/* Reply-to context preview */}
                       {replyingTo && (
-                        <div className="flex items-center justify-between px-4 py-2 mb-4 bg-nf-accent/5 rounded-lg">
-                          <span className="flex items-center gap-1.5 text-[12px] text-nf-accent font-bold"><Reply size={12} /> رد على {activeReplies.find(r => r.id === replyingTo)?.authorName || "الموضوع"}</span>
-                          <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40"><X size={14} /></button>
+                        <div className="mb-4 rounded-xl border border-nf-accent/15 bg-nf-accent/3 overflow-hidden">
+                          <div className="flex items-center justify-between px-4 py-2 bg-nf-accent/5 border-b border-nf-accent/10">
+                            <span className="flex items-center gap-1.5 text-[11px] text-nf-accent font-bold"><Reply size={11} /> رد على {activeReplies.find(r => r.id === replyingTo)?.authorName || "الموضوع"}</span>
+                            <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40 transition-colors"><X size={13} /></button>
+                          </div>
+                          <div className="px-4 py-3">
+                            {replyingTo === activeThread.id ? (
+                              <>
+                                <p className="text-[13px] font-bold text-nf-text mb-1">{activeThread.title}</p>
+                                <p className="text-[12px] text-nf-dim leading-[1.7] line-clamp-3">{activeThread.body?.replace(/[#*`>\-\[\]()!]/g, "").slice(0, 200) || ""}</p>
+                              </>
+                            ) : (
+                              (() => { const targetReply = activeReplies.find(r => r.id === replyingTo); return targetReply ? (
+                                <>
+                                  <div className="flex items-center gap-2 mb-1.5">
+                                    {targetReply.authorPhoto ? <img src={targetReply.authorPhoto} alt="" className="w-5 h-5 rounded-full object-cover" /> : <div className="w-5 h-5 rounded-full bg-nf-muted flex items-center justify-center text-white text-[8px] font-bold">{(targetReply.authorName || "م")[0]}</div>}
+                                    <span className="text-[11px] text-nf-text font-bold">{targetReply.authorName}</span>
+                                    <span className="text-[9px] text-nf-dim">{timeAgo(targetReply.createdAt)}</span>
+                                  </div>
+                                  <p className="text-[12px] text-nf-dim leading-[1.7] line-clamp-3">{targetReply.text?.replace(/[#*`>\-\[\]()!]/g, "").slice(0, 200) || ""}</p>
+                                </>
+                              ) : null; })()
+                            )}
+                          </div>
                         </div>
                       )}
                       <div className="flex items-center gap-3 mb-4">
