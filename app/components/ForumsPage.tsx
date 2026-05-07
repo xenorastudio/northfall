@@ -2634,7 +2634,7 @@ export default function ForumsPage() {
                               </div>
                             ) : <div className="text-[16px] text-nf-text leading-[2.2]">{renderBody(reply.text, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); })}</div>}
                             <div className="flex items-center gap-4 mt-4">
-                              <button onClick={() => { setReplyingTo(reply.id); setReplyText(`@${reply.authorName} `); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-bold transition-colors"><Reply size={12} /> رد</button>
+                              <button onClick={() => { setReplyingTo(activeThread.id); setReplyText(prev => prev ? prev : `@${reply.authorName} `); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-bold transition-colors"><Reply size={12} /> رد</button>
                               <button onClick={() => { copyText(reply.text); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Copy size={11} /> نسخ</button>
                               <button onClick={() => openShare(activeThread.id, activeThread.title)} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Share2 size={11} /> مشاركة</button>
                               {/* AI tools for reply - per-reply state */}
@@ -2663,7 +2663,7 @@ export default function ForumsPage() {
                                 {menuOpen === reply.id && (
                                   <div className="absolute left-0 top-7 bg-nf-card rounded-lg py-1.5 z-20 min-w-[130px] shadow-lg border border-nf-border" ref={menuRef}>
                                     <button onClick={() => { copyText(reply.text); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text font-medium"><Copy size={11} /> نسخ</button>
-                                    <button onClick={() => { setReplyingTo(reply.id); setReplyText(`@${reply.authorName} `); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text font-medium"><Reply size={11} /> رد</button>
+                                    <button onClick={() => { setReplyingTo(activeThread.id); setReplyText(prev => prev ? prev : `@${reply.authorName} `); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text font-medium"><Reply size={11} /> رد</button>
                                     <button onClick={() => { setEditingReply(reply.id); setEditText(reply.text); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text font-medium"><Edit3 size={11} /> تعديل</button>
                                     <button onClick={() => handleDeleteReply(activeThreadId!, reply.id)} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-red-400 hover:bg-red-400/10 font-medium"><Trash2 size={11} /> حذف</button>
                                     <button onClick={() => { setReportTarget("reply"); setReportTargetId(reply.id); setReportModalOpen(true); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-red-400 hover:bg-red-400/10 font-medium"><Flag size={11} /> أبلغ</button>
@@ -2698,62 +2698,6 @@ export default function ForumsPage() {
                           </div>
                         </div>
                       </div>
-                      {/* Inline reply box for this specific reply */}
-                      {replyingTo === reply.id && !activeThread.locked && (
-                        <div className="bg-nf-card/80 rounded-xl p-4 mt-2 border border-nf-accent/20 shadow-sm">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="flex items-center gap-1.5 text-[12px] text-nf-accent font-bold"><Reply size={12} /> رد على {reply.authorName}</span>
-                            <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40"><X size={14} /></button>
-                          </div>
-                          {/* Quoted context */}
-                          <div className="mb-3 rounded-lg border border-nf-accent/10 bg-nf-accent/3 px-3 py-2">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              {reply.authorPhoto ? <img src={reply.authorPhoto} alt="" className="w-4 h-4 rounded-full object-cover" /> : <div className="w-4 h-4 rounded-full bg-nf-muted flex items-center justify-center text-white text-[7px] font-bold">{(reply.authorName || "م")[0]}</div>}
-                              <span className="text-[10px] text-nf-text font-bold">{reply.authorName}</span>
-                            </div>
-                            <p className="text-[11px] text-nf-dim leading-[1.6] line-clamp-2">{reply.text?.replace(/[#*`>\-\[\]()!]/g, "").slice(0, 150) || ""}</p>
-                          </div>
-                          <div className="flex items-center gap-2.5 mb-3">
-                            {user?.photoURL ? <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover" /> : <div className="w-7 h-7 rounded-full bg-nf-muted flex items-center justify-center text-white text-[11px] font-bold">م</div>}
-                            <span className="text-[12px] text-nf-text font-medium">{authorName}</span>
-                          </div>
-                          <textarea ref={replyTextareaRef} value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="اكتب ردك..." className="w-full bg-nf-secondary rounded-lg px-3.5 py-2.5 text-[14px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-1 focus:ring-nf-accent leading-[1.8] min-h-[80px]" autoFocus />
-                          <div className="flex items-center justify-between mt-2.5">
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => wrapSelection(replyTextareaRef, "**", "**", setReplyText, replyText)} className="p-1 text-nf-muted hover:text-nf-accent rounded transition-colors" title="عريض"><Bold size={12} /></button>
-                              <button onClick={() => wrapSelection(replyTextareaRef, "*", "*", setReplyText, replyText)} className="p-1 text-nf-muted hover:text-nf-accent rounded transition-colors" title="مائل"><Italic size={12} /></button>
-                              <button onClick={() => wrapSelection(replyTextareaRef, "`", "`", setReplyText, replyText)} className="p-1 text-nf-muted hover:text-nf-accent rounded transition-colors" title="كود"><Code size={12} /></button>
-                              <button onClick={() => { setLinkInputOpen(linkInputOpen === "reply-link" ? null : "reply-link"); setLinkUrl(""); setLinkText(""); }} className="p-1 text-nf-muted hover:text-nf-accent rounded transition-colors" title="رابط"><Link2 size={12} /></button>
-                              <button onClick={() => { setLinkInputOpen(linkInputOpen === "reply-image" ? null : "reply-image"); setLinkUrl(""); }} className="p-1 text-nf-muted hover:text-nf-accent rounded transition-colors" title="صورة"><Image size={12} /></button>
-                              <button onClick={() => wrapSelection(replyTextareaRef, "- ", "", setReplyText, replyText)} className="p-1 text-nf-muted hover:text-nf-accent rounded transition-colors" title="قائمة"><List size={12} /></button>
-                              <button onClick={() => wrapSelection(replyTextareaRef, "1. ", "", setReplyText, replyText)} className="p-1 text-nf-muted hover:text-nf-accent rounded transition-colors" title="قائمة مرقمة"><ListOrdered size={12} /></button>
-                              <button onClick={() => setReplyText(p => `${p}\n> اقتباس\n`)} className="p-1.5 text-nf-muted hover:text-nf-accent hover:bg-nf-accent/10 rounded transition-colors" title="اقتباس"><TextQuote size={13} /></button>
-                              <button onClick={() => clearFormatting(replyTextareaRef, setReplyText, replyText)} className="p-1.5 text-nf-muted hover:text-red-400 hover:bg-red-400/10 rounded transition-colors" title="مسح التنسيق"><RotateCcw size={13} /></button>
-                              <div className="h-4 w-px bg-nf-border/50 mx-0.5" />
-                              <button onClick={async () => {
-                                if (!replyText.trim()) { return; }
-                                const original = replyText;
-                                setReplyText("⏳ يحسّن الذكاء الاصطناعي...");
-                                try {
-                                  const result = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `حسّن هذا النص للمنتدى مع الحفاظ على المعنى والأسلوب. أعد الصياغة فقط بدون شرح:\n\n${original}` }], "أنت محرر محترف. حسّن النص مع الحفاظ على المعنى. أجب بالنص المحسّن فقط بدون أي شرح أو مقدمات.");
-                                  setReplyText(result || original);
-                                } catch { setReplyText(original); showToast("فشل التحسين"); }
-                              }} className="p-1 text-nf-accent/60 hover:text-nf-accent hover:bg-nf-accent/10 rounded transition-colors flex items-center gap-0.5" title="حسّن بالذكاء الاصطناعي"><Sparkles size={12} /><span className="text-[8px] font-bold">AI</span></button>
-                              <div className="relative" data-emoji-menu>
-                                <button onMouseDown={e => { e.preventDefault(); saveSelection(replyTextareaRef, setReplyText, replyText); setEmojiMenuOpen(emojiMenuOpen === "reply" ? null : "reply"); }} className={cn("p-1.5 rounded transition-colors", emojiMenuOpen === "reply" ? "text-nf-accent bg-nf-accent/10" : "text-nf-muted hover:text-nf-accent hover:bg-nf-accent/10")} title="رموز">😊</button>
-                                {emojiMenuOpen === "reply" && (
-                                  <div className="absolute top-full mt-1 right-0 bg-nf-card rounded-lg p-2 z-30 shadow-xl border border-nf-border/60 grid grid-cols-6 gap-1 min-w-[180px]">
-                                    {["😀", "😂", "😍", "👍", "👎", "❤️", "🔥", "⭐", "✨", "💡", "🎉", "🚀", "💯", "👀", "🤔", "😢", "😡", "👋", "🙏", "👏"].map(emoji => (
-                                      <button key={emoji} onClick={() => insertEmoji(replyTextareaRef, emoji, setReplyText, replyText)} className="p-1 hover:bg-nf-accent/10 rounded text-[18px] transition-colors">{emoji}</button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <button onClick={() => handleReply(activeThreadId!)} disabled={!replyText.trim()} className={cn("flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-bold transition-colors", replyText.trim() ? "bg-nf-accent hover:bg-nf-accent/80 text-white" : "bg-nf-secondary text-nf-dim cursor-not-allowed")}><Send size={12} /> نشر</button>
-                          </div>
-                        </div>
-                      )}
                       </Fragment>
                     ))}
                     {activeReplies.length === 0 && !loading && (
@@ -2767,8 +2711,8 @@ export default function ForumsPage() {
                     <div ref={replyEndRef} />
                   </div>
 
-                  {/* Reply box - show when not replying to a specific reply */}
-                  {!activeThread.locked && !sortedReplies.some(r => r.id === replyingTo) && (
+                  {/* Reply box */}
+                  {!activeThread.locked && (
                     <div className="bg-nf-card rounded-xl p-5 shadow-sm border border-nf-border/20 relative"
                       onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
                       onDrop={e => { e.preventDefault(); e.stopPropagation(); const text = e.dataTransfer.getData('text/plain'); if (text) setReplyText(prev => prev + text); const files = e.dataTransfer.files; if (files.length > 0) { Array.from(files).forEach(f => { if (f.type.startsWith('image/')) { setReplyText(prev => `${prev}\n![${f.name}](اسحب الصورة هنا)\n`); showToast(`تم إضافة ${f.name} — ارفع الصورة أولاً ثم ضع الرابط`); } }); } }}>
@@ -2776,27 +2720,12 @@ export default function ForumsPage() {
                       {replyingTo && (
                         <div className="mb-4 rounded-xl border border-nf-accent/15 bg-nf-accent/3 overflow-hidden">
                           <div className="flex items-center justify-between px-4 py-2 bg-nf-accent/5 border-b border-nf-accent/10">
-                            <span className="flex items-center gap-1.5 text-[11px] text-nf-accent font-bold"><Reply size={11} /> رد على {activeReplies.find(r => r.id === replyingTo)?.authorName || "الموضوع"}</span>
+                            <span className="flex items-center gap-1.5 text-[11px] text-nf-accent font-bold"><Reply size={11} /> رد على الموضوع</span>
                             <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40 transition-colors"><X size={13} /></button>
                           </div>
                           <div className="px-4 py-3">
-                            {replyingTo === activeThread.id ? (
-                              <>
-                                <p className="text-[13px] font-bold text-nf-text mb-1">{activeThread.title}</p>
-                                <p className="text-[12px] text-nf-dim leading-[1.7] line-clamp-3">{activeThread.body?.replace(/[#*`>\-\[\]()!]/g, "").slice(0, 200) || ""}</p>
-                              </>
-                            ) : (
-                              (() => { const targetReply = activeReplies.find(r => r.id === replyingTo); return targetReply ? (
-                                <>
-                                  <div className="flex items-center gap-2 mb-1.5">
-                                    {targetReply.authorPhoto ? <img src={targetReply.authorPhoto} alt="" className="w-5 h-5 rounded-full object-cover" /> : <div className="w-5 h-5 rounded-full bg-nf-muted flex items-center justify-center text-white text-[8px] font-bold">{(targetReply.authorName || "م")[0]}</div>}
-                                    <span className="text-[11px] text-nf-text font-bold">{targetReply.authorName}</span>
-                                    <span className="text-[9px] text-nf-dim">{timeAgo(targetReply.createdAt)}</span>
-                                  </div>
-                                  <p className="text-[12px] text-nf-dim leading-[1.7] line-clamp-3">{targetReply.text?.replace(/[#*`>\-\[\]()!]/g, "").slice(0, 200) || ""}</p>
-                                </>
-                              ) : null; })()
-                            )}
+                            <p className="text-[13px] font-bold text-nf-text mb-1">{activeThread.title}</p>
+                            <p className="text-[12px] text-nf-dim leading-[1.7] line-clamp-3">{activeThread.body?.replace(/[#*`>\-\[\]()!]/g, "").slice(0, 200) || ""}</p>
                           </div>
                         </div>
                       )}

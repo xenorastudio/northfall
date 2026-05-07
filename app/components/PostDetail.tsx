@@ -666,6 +666,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             </AnimatePresence>
           </div>
           <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /> {postSaved ? "محفوظ" : "حفظ"}</button>
+          <button onClick={() => { setReplyTo(null); setCommentText(""); document.querySelector<HTMLTextAreaElement>('.comment-input-area')?.focus(); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> رد</button>
           <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
           {/* AI Dropdown */}
           <div className="relative" ref={aiDropRef}>
@@ -745,7 +746,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
               placeholder={replyTo ? `${t("pd.writeReply")} ${replyTo.name}...` : `${t("pd.writeComment")}... (${t("pd.ctrlEnter")})`}
               rows={1}
               maxLength={10000}
-              className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-[#555] resize-none min-h-[36px] py-1.5 px-2 leading-snug"
+              className="comment-input-area flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-[#555] resize-none min-h-[36px] py-1.5 px-2 leading-snug"
             />
             <div className="flex items-center gap-2 shrink-0">
               {commentText.length > 0 && <span className={cn("text-[10px]", commentText.length > 9000 ? "text-[#ff4444]" : "text-nf-dim")}>{commentText.length > 9000 ? `${10000 - commentText.length}` : ""}</span>}
