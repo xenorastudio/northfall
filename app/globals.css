@@ -155,7 +155,7 @@ html, body, * { scrollbar-width: none; }
   100% { background-position: 0% 50%; }
 }
 
-/* Premium AI button — flat glassmorphism with animated glow */
+/* Premium AI button — flat glassmorphism with animated glow, skewed shape */
 .ai-btn {
   --border-radius: 24px;
   --padding: 4px;
@@ -172,6 +172,7 @@ html, body, * { scrollbar-width: none; }
   font-weight: 400;
   color: #fff5;
   text-decoration: none;
+  transform: skewX(-8deg);
 
   background-color: var(--button-color);
 
@@ -244,8 +245,7 @@ html, body, * { scrollbar-width: none; }
   display: inline-block;
   color: #fff5;
   text-decoration: none;
-  font-style: italic;
-  transform: skewX(-8deg);
+  transform: skewX(8deg);
   animation: ai-letter-anim 2s ease-in-out infinite;
   transition:
     color var(--transition),
@@ -262,6 +262,7 @@ html, body, * { scrollbar-width: none; }
 .ai-btn-icon {
   flex-shrink: 0;
   color: #e8e8e8;
+  transform: skewX(8deg);
   animation: ai-flicker 2s linear infinite;
   animation-delay: 0.5s;
   filter: drop-shadow(0 0 2px #fff9);
