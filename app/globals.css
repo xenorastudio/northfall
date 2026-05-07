@@ -154,6 +154,131 @@ html, body, * { scrollbar-width: none; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
+/* Flat AI button — dark glass with animated border glow */
+.ai-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff5;
+  background-color: #101010;
+  border: solid 1px #fff2;
+  border-radius: 24px;
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden;
+  transition: border 0.4s, background-color 0.4s;
+}
+.ai-btn::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 28px;
+  pointer-events: none;
+  z-index: -1;
+  background: conic-gradient(from 0deg, #5bfcc4, #f593e4, #71a4f0, #5bfcc4);
+  background-size: 200% 200%;
+  animation: aiBorderSpin 3s linear infinite;
+  opacity: 0.3;
+  filter: blur(6px);
+  transition: opacity 0.4s, filter 0.4s;
+}
+.ai-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(0deg, #fff, hsl(210, 100%, 70%), hsla(210, 100%, 70%, 50%), 8%, transparent);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+@keyframes aiBorderSpin {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 200%; }
+}
+.ai-btn-icon {
+  flex-shrink: 0;
+  fill: #e8e8e8;
+  filter: drop-shadow(0 0 2px #fff9);
+  animation: aiFlicker 2s linear infinite;
+  animation-delay: 0.5s;
+  transition: fill 0.4s, filter 0.4s;
+}
+@keyframes aiFlicker {
+  50% { opacity: 0.3; }
+}
+.ai-btn-letter {
+  position: relative;
+  display: inline-block;
+  color: #fff5;
+  animation: aiLetterAnim 2s ease-in-out infinite;
+  transition: color 0.4s, text-shadow 0.4s;
+}
+@keyframes aiLetterAnim {
+  50% { text-shadow: 0 0 3px #fff8; color: #fff; }
+}
+.ai-btn-letter:nth-child(1) { animation-delay: 0s; }
+.ai-btn-letter:nth-child(2) { animation-delay: 0.08s; }
+.ai-btn-letter:nth-child(3) { animation-delay: 0.16s; }
+.ai-btn-letter:nth-child(4) { animation-delay: 0.24s; }
+.ai-btn-letter:nth-child(5) { animation-delay: 0.32s; }
+.ai-btn-letter:nth-child(6) { animation-delay: 0.4s; }
+.ai-btn-letter:nth-child(7) { animation-delay: 0.48s; }
+.ai-btn-letter:nth-child(8) { animation-delay: 0.56s; }
+.ai-btn-letter:nth-child(9) { animation-delay: 0.64s; }
+.ai-btn-letter:nth-child(10) { animation-delay: 0.72s; }
+
+/* Hover */
+.ai-btn:hover {
+  border-color: hsla(210, 100%, 80%, 40%);
+}
+.ai-btn:hover::before {
+  opacity: 0.6;
+  filter: blur(10px);
+}
+.ai-btn:hover::after {
+  opacity: 1;
+  mask-image: linear-gradient(0deg, #fff, transparent);
+}
+.ai-btn:hover .ai-btn-icon {
+  fill: #fff;
+  filter: drop-shadow(0 0 3px hsl(210, 100%, 70%));
+  animation: none;
+}
+
+/* Active */
+.ai-btn:active {
+  border-color: hsla(210, 100%, 80%, 70%);
+  background-color: hsla(210, 50%, 20%, 0.5);
+}
+.ai-btn:active::before {
+  opacity: 0.8;
+  filter: blur(8px);
+}
+.ai-btn:active::after {
+  opacity: 1;
+  mask-image: linear-gradient(0deg, #fff, transparent);
+  filter: brightness(200%);
+}
+.ai-btn:active .ai-btn-letter {
+  text-shadow: 0 0 1px hsla(210, 100%, 90%, 90%);
+  animation: none;
+  color: #fff;
+}
+
+/* Active/selected state */
+.ai-btn-active {
+  border-color: hsla(210, 100%, 80%, 40%);
+}
+.ai-btn-active::before {
+  opacity: 0.6;
+  filter: blur(10px);
+}
 .ai-glow {
   animation: glowPulse 2s ease-in-out infinite;
 }

@@ -537,9 +537,12 @@ export default function PostCard({
         <div className="flex-1" />
         {/* AI Dropdown - right side */}
         <div className="relative" ref={aiDropRef}>
-          <button onClick={(e) => { e.stopPropagation(); setAiDropOpen(!aiDropOpen); }} className={cn("flex items-center gap-1 text-[10px] font-semibold transition-all rounded-md px-1.5 py-0.5 text-white overflow-hidden relative", aiDropOpen ? "ring-1 ring-white/20" : "hover:ring-1 hover:ring-white/10")} style={{ background: "linear-gradient(90deg, #5bfcc4, #f593e4, #71a4f0)", backgroundSize: "200% 100%", animation: "gradientShift 3s ease infinite", textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
-            <Sparkles size={10} className="shrink-0" />
-            <span>AI</span>
+          <button onClick={(e) => { e.stopPropagation(); setAiDropOpen(!aiDropOpen); }} className={cn("ai-btn", aiDropOpen && "ai-btn-active")} style={{ fontSize: 10, padding: "2px 8px", gap: 3 }}>
+            <Sparkles size={10} className="ai-btn-icon" />
+            <span className="flex">
+              <span className="ai-btn-letter">A</span>
+              <span className="ai-btn-letter">I</span>
+            </span>
             <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-60", aiDropOpen && "rotate-180")} />
           </button>
           {aiDropOpen && (

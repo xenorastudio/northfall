@@ -2003,8 +2003,22 @@ export default function ForumsPage() {
                   <item.icon size={16} className={cn("shrink-0", item.active ? "text-nf-accent" : "text-nf-dim")} /><span>{item.label}</span>
                 </button>
               ))}
-              <button onClick={() => navigateForum("ai")} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all relative overflow-hidden text-white", viewMode === "ai" ? "ring-1 ring-white/20" : "hover:ring-1 hover:ring-white/10")} style={{ background: "linear-gradient(90deg, #5bfcc4, #f593e4, #71a4f0)", backgroundSize: "200% 100%", animation: "gradientShift 3s ease infinite", textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
-                <Sparkles size={16} className="shrink-0" /><span>ذكاء اصطناعي</span>
+              <button onClick={() => navigateForum("ai")} className={cn("ai-btn w-full", viewMode === "ai" && "ai-btn-active")}>
+                <Sparkles size={16} className="ai-btn-icon" />
+                <span className="flex">
+                  <span className="ai-btn-letter">ذ</span>
+                  <span className="ai-btn-letter">ك</span>
+                  <span className="ai-btn-letter">ا</span>
+                  <span className="ai-btn-letter">ء</span>
+                  <span className="ai-btn-letter">&nbsp;</span>
+                  <span className="ai-btn-letter">ا</span>
+                  <span className="ai-btn-letter">ص</span>
+                  <span className="ai-btn-letter">ط</span>
+                  <span className="ai-btn-letter">ن</span>
+                  <span className="ai-btn-letter">ا</span>
+                  <span className="ai-btn-letter">ع</span>
+                  <span className="ai-btn-letter">ي</span>
+                </span>
               </button>
             </div>
           </div>
