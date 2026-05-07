@@ -405,6 +405,7 @@ export default function PostCard({
       transition={{ duration: 0.2 }}
       onClick={handleClick}
       className={cn("bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-colors duration-150 relative",
+        showQuickReply && "opacity-50 blur-[0.5px] scale-[0.995]",
         voteCount >= 10 ? "border-orange-400/20 hover:bg-nf-accent/5 hover:border-orange-400/40" : "border-nf-border-2 hover:bg-nf-accent/5 hover:border-nf-accent/15")}
     >
       <div className="px-4 pt-3 pb-2 relative" onDoubleClick={handleDblClickVote}>
@@ -563,26 +564,41 @@ export default function PostCard({
         </div>
       </div>
 
-      {/* Quick Reply */}
+      {/* Quick Reply - expanded with post context */}
       {showQuickReply && (
-        <div className="flex items-center gap-2 px-4 py-2 border-t border-nf-border-2/50">
-          {user?.photoURL ? (
-            <img src={user.photoURL} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
-          ) : (
-            <div className="w-6 h-6 rounded-full bg-nf-secondary flex items-center justify-center shrink-0"><span className="text-[9px] text-nf-muted font-bold">{(user?.displayName || "U")[0]}</span></div>
-          )}
-          <input
-            type="text"
-            value={quickReplyText}
-            onChange={(e) => setQuickReplyText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); handleQuickReply(); } }}
-            placeholder={t("pc.quickReply")}
-            className="flex-1 bg-nf-secondary rounded-full px-3 py-1.5 text-xs text-white placeholder:text-nf-dim border-none outline-none"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button onClick={(e) => { e.stopPropagation(); handleQuickReply(); }} disabled={!quickReplyText.trim()} className={cn("p-1.5 rounded-full transition-colors", quickReplyText.trim() ? "text-nf-accent hover:bg-nf-accent/10" : "text-nf-dim")}>
-            <Send size={14} />
-          </button>
+        <div className="px-4 py-3 border-t border-nf-accent/15 bg-nf-primary/60 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <MessageSquare size={12} className="text-nf-accent" />
+              <span className="text-[10px] font-bold text-nf-accent">رد على المنشور</span>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(false); setQuickReplyText(""); }} className="text-nf-dim hover:text-white p-0.5 rounded hover:bg-nf-hover transition-colors"><X size={12} /></button>
+          </div>
+          {/* Post context preview */}
+          <div className="bg-nf-secondary/40 rounded-lg p-2 mb-2 border border-nf-border-2/20">
+            <p className="text-[11px] font-bold text-white/70 line-clamp-1">{title}</p>
+            {body && <p className="text-[9px] text-nf-muted line-clamp-1">{body.slice(0, 100)}{body.length > 100 ? "..." : ""}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-nf-secondary flex items-center justify-center shrink-0"><span className="text-[8px] text-nf-muted font-bold">{(user?.displayName || "U")[0]}</span></div>
+            )}
+            <input
+              type="text"
+              value={quickReplyText}
+              onChange={(e) => setQuickReplyText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); handleQuickReply(); } }}
+              placeholder="اكتب ردك..."
+              className="flex-1 bg-nf-secondary rounded-full px-3 py-1.5 text-xs text-white placeholder:text-nf-dim border-none outline-none"
+              onClick={(e) => e.stopPropagation()}
+              autoFocus
+            />
+            <button onClick={(e) => { e.stopPropagation(); handleQuickReply(); }} disabled={!quickReplyText.trim()} className={cn("p-1.5 rounded-full transition-colors", quickReplyText.trim() ? "text-nf-accent hover:bg-nf-accent/10" : "text-nf-dim")}>
+              <Send size={14} />
+            </button>
+          </div>
         </div>
       )}
 

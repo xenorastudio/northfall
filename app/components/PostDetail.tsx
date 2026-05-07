@@ -245,6 +245,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const [allCollapsed, setAllCollapsed] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [commentSearch, setCommentSearch] = useState("");
+  const [replyingToPost, setReplyingToPost] = useState(false);
   const [views, setViews] = useState(0);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -549,7 +550,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       )}
 
       {/* Post - flat, no border */}
-      <article className="mb-4 relative" onDoubleClick={() => { if (postMyVote !== 1) setPostVote(1); }}>
+      <article className={cn("mb-4 relative transition-all duration-300", replyingToPost && "opacity-40 blur-[1px] scale-[0.99]")} onDoubleClick={() => { if (postMyVote !== 1) setPostVote(1); }}>
         <div className="px-3 sm:px-4 pt-3 pb-2">
           <div className="flex items-center gap-1.5 sm:gap-2 text-[12px] sm:text-[13px] mb-1.5 flex-wrap">
             <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
@@ -634,7 +635,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             <span className={cn("text-xs font-bold min-w-[20px] text-center", postMyVote === 1 ? "text-orange-500" : postMyVote === -1 ? "text-blue-400" : postVoteCount > 0 ? "text-orange-500" : postVoteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{postVoteCount}</span>
             <button onClick={() => setPostVote(-1)} className={cn("p-1 rounded-md transition-colors duration-150", postMyVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
           </div>
-          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0} {t("pc.comments")}</button>
+          <button onClick={() => { setReplyingToPost(true); setReplyTo(null); setCommentText(""); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0} {t("pc.comments")}</button>
           <div className="relative" onMouseLeave={() => setShowShareMenu(false)}>
             <button onClick={() => setShowShareMenu(!showShareMenu)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Share2 size={14} /> {t("pc.share")}</button>
             <AnimatePresence>
@@ -666,7 +667,6 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             </AnimatePresence>
           </div>
           <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /> {postSaved ? "محفوظ" : "حفظ"}</button>
-          <button onClick={() => { setReplyTo(null); setCommentText(""); document.querySelector<HTMLTextAreaElement>('.comment-input-area')?.focus(); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> رد</button>
           <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
           {/* AI Dropdown */}
           <div className="relative" ref={aiDropRef}>
@@ -730,6 +730,51 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         </div>
       )}
 
+      {/* Reply to Post - expanded mode */}
+      {replyingToPost && user && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="mb-4 bg-nf-primary/80 border border-nf-accent/20 rounded-xl p-4 shadow-lg shadow-black/20 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <MessageSquare size={14} className="text-nf-accent" />
+              <span className="text-xs font-bold text-nf-accent">رد على المنشور</span>
+            </div>
+            <button onClick={() => { setReplyingToPost(false); setCommentText(""); }} className="text-nf-dim hover:text-white p-1 rounded hover:bg-nf-hover transition-colors"><X size={14} /></button>
+          </div>
+          {/* Post context preview */}
+          <div className="bg-nf-secondary/50 rounded-lg p-3 mb-3 border border-nf-border-2/30">
+            <p className="text-sm font-bold text-white/80 mb-1 line-clamp-1">{post.title}</p>
+            {post.body && <p className="text-[11px] text-nf-muted line-clamp-2 leading-relaxed">{post.body.slice(0, 150)}{post.body.length > 150 ? "..." : ""}</p>}
+          </div>
+          <div className="flex items-center gap-2.5 mb-3">
+            {user.photoURL ? <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" /> : <div className="w-7 h-7 rounded-full bg-nf-secondary flex items-center justify-center shrink-0 text-[10px] text-nf-muted font-bold">{(user.displayName || "U")[0]}</div>}
+            <span className="text-xs font-medium text-white">{user.displayName || t("gen.user")}</span>
+          </div>
+          <textarea
+            value={commentText}
+            onChange={(e) => { setCommentText(e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitComment(); } }}
+            placeholder="اكتب ردك على المنشور..."
+            rows={3}
+            maxLength={10000}
+            autoFocus
+            className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-[#555] outline-none focus:border-nf-accent/30 resize-none leading-relaxed transition-colors"
+          />
+          <div className="flex items-center justify-between mt-2.5">
+            <span className={cn("text-[10px]", commentText.length > 9000 ? "text-[#ff4444]" : "text-nf-dim")}>{commentText.length > 9000 ? `${10000 - commentText.length} حرف متبقي` : `${commentText.length} حرف`}</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { setReplyingToPost(false); setCommentText(""); }} className="px-3 py-1.5 rounded-lg text-xs text-nf-muted hover:text-white hover:bg-nf-hover transition-colors">إلغاء</button>
+              <button
+                onClick={() => { submitComment(); setReplyingToPost(false); }}
+                disabled={!commentText.trim()}
+                className="px-4 py-1.5 rounded-lg bg-nf-accent text-white text-xs font-bold hover:bg-nf-accent/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                نشر الرد
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Comment Input - pill shaped like original */}
       {user ? (
         <div className="mt-3 mb-4">
@@ -746,7 +791,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
               placeholder={replyTo ? `${t("pd.writeReply")} ${replyTo.name}...` : `${t("pd.writeComment")}... (${t("pd.ctrlEnter")})`}
               rows={1}
               maxLength={10000}
-              className="comment-input-area flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-[#555] resize-none min-h-[36px] py-1.5 px-2 leading-snug"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-[#555] resize-none min-h-[36px] py-1.5 px-2 leading-snug"
             />
             <div className="flex items-center gap-2 shrink-0">
               {commentText.length > 0 && <span className={cn("text-[10px]", commentText.length > 9000 ? "text-[#ff4444]" : "text-nf-dim")}>{commentText.length > 9000 ? `${10000 - commentText.length}` : ""}</span>}
