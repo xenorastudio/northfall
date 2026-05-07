@@ -1520,38 +1520,50 @@ export default function ForumsPage() {
   // Search history
   useEffect(() => { try { const h = localStorage.getItem("nf-forum-search-history"); if (h) setSearchHistory(JSON.parse(h).slice(0, 5)); } catch {} }, []);
 
-  // Floating Selection Toolbar
+  // Floating Selection Toolbar — only show after mouseup to avoid breaking selection
   useEffect(() => {
-    const handleSelectionChange = () => {
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0 || selection.toString().trim() === "") {
-        setSelectionRect(null);
-        setSelectedText("");
-        return;
-      }
-      
-      let node = selection.anchorNode;
-      let isAiMsg = false;
-      while (node) {
-        if (node instanceof HTMLElement && node.classList.contains("ai-markdown")) {
-          isAiMsg = true;
-          break;
-        }
-        node = node.parentNode;
-      }
-      if (!isAiMsg) {
-        setSelectionRect(null);
-        setSelectedText("");
-        return;
-      }
-
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      setSelectionRect(rect);
-      setSelectedText(selection.toString().trim());
+    const handleMouseDown = () => {
+      // Hide popup when user starts a new selection
+      setSelectionRect(null);
+      setSelectedText("");
     };
-    document.addEventListener("selectionchange", handleSelectionChange);
-    return () => document.removeEventListener("selectionchange", handleSelectionChange);
+    const handleMouseUp = () => {
+      // Small delay to let the browser finalize selection
+      setTimeout(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.toString().trim() === "") {
+          setSelectionRect(null);
+          setSelectedText("");
+          return;
+        }
+        
+        let node = selection.anchorNode;
+        let isAiMsg = false;
+        while (node) {
+          if (node instanceof HTMLElement && node.classList.contains("ai-markdown")) {
+            isAiMsg = true;
+            break;
+          }
+          node = node.parentNode;
+        }
+        if (!isAiMsg) {
+          setSelectionRect(null);
+          setSelectedText("");
+          return;
+        }
+
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        setSelectionRect(rect);
+        setSelectedText(selection.toString().trim());
+      }, 10);
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
   }, []);
   const addSearchHistory = (q: string) => { if (!q.trim()) return; const updated = [q, ...searchHistory.filter(h => h !== q)].slice(0, 5); setSearchHistory(updated); localStorage.setItem("nf-forum-search-history", JSON.stringify(updated)); };
   const clearSearchHistory = () => { setSearchHistory([]); localStorage.removeItem("nf-forum-search-history"); };
@@ -3016,16 +3028,16 @@ export default function ForumsPage() {
                     {selectionRect && selectedText && (
                       <motion.div
                         initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                        className="fixed z-[9999] flex items-center gap-1 bg-nf-card border border-nf-border/20 shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-xl px-2 py-1.5"
+                        className="fixed z-[9999] flex items-center gap-1 bg-nf-card border border-nf-border/20 shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-xl px-2 py-1.5 pointer-events-none"
                         style={{ top: selectionRect.top - 50, left: selectionRect.left + selectionRect.width / 2, transform: "translateX(-50%)" }}
                       >
-                        <button onMouseDown={(e) => { e.preventDefault(); aiChatSend(`اشرح لي هذا النص بالتفصيل:\n\n"${selectedText}"`); setSelectionRect(null); }} className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-nf-accent/10 hover:text-nf-accent text-nf-text rounded-lg text-[11px] font-bold transition-all whitespace-nowrap">
+                        <button onMouseDown={(e) => { e.preventDefault(); aiChatSend(`اشرح لي هذا النص بالتفصيل:\n\n"${selectedText}"`); setSelectionRect(null); }} className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-nf-accent/10 hover:text-nf-accent text-nf-text rounded-lg text-[11px] font-bold transition-all whitespace-nowrap pointer-events-auto">
                           <Sparkles size={11} /> اشرح
                         </button>
-                        <button onMouseDown={(e) => { e.preventDefault(); setAiReplyContext(selectedText); document.querySelector<HTMLInputElement>(".ai-chat-input")?.focus(); setSelectionRect(null); }} className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-blue-400/10 hover:text-blue-400 text-nf-text rounded-lg text-[11px] font-bold transition-all whitespace-nowrap">
+                        <button onMouseDown={(e) => { e.preventDefault(); setAiReplyContext(selectedText); document.querySelector<HTMLInputElement>(".ai-chat-input")?.focus(); setSelectionRect(null); }} className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-blue-400/10 hover:text-blue-400 text-nf-text rounded-lg text-[11px] font-bold transition-all whitespace-nowrap pointer-events-auto">
                           <MessageCirclePlus size={11} /> تعقيب
                         </button>
-                        <button onMouseDown={(e) => { e.preventDefault(); aiChatSend(`قم بترجمة هذا النص إلى الإنجليزية (أو العربية إذا كان بالإنجليزية):\n\n"${selectedText}"`); setSelectionRect(null); }} className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-green-400/10 hover:text-green-400 text-nf-text rounded-lg text-[11px] font-bold transition-all whitespace-nowrap">
+                        <button onMouseDown={(e) => { e.preventDefault(); aiChatSend(`قم بترجمة هذا النص إلى الإنجليزية (أو العربية إذا كان بالإنجليزية):\n\n"${selectedText}"`); setSelectionRect(null); }} className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-green-400/10 hover:text-green-400 text-nf-text rounded-lg text-[11px] font-bold transition-all whitespace-nowrap pointer-events-auto">
                           <Globe size={11} /> ترجمة
                         </button>
                       </motion.div>
