@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowUp, ArrowDown, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, Flag, Code2, Trash2, Pencil, ExternalLink, ArrowUpCircle, Link2, BarChart3, Clock, Sparkles, BookOpen, Languages, FileText, X, Settings, Key } from "lucide-react";
+import { ArrowRight, ArrowUp, ArrowDown, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, Flag, Code2, Trash2, Pencil, ExternalLink, ArrowUpCircle, Link2, BarChart3, Clock, Sparkles, BookOpen, Languages, FileText, X, Settings, Key, Quote } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { doc, getDoc, getDocs, collection, query, orderBy, addDoc, updateDoc, increment, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -19,6 +19,7 @@ interface PostDetailProps {
   onProfileClick?: (uid: string) => void;
   onEditClick?: (id: string) => void;
   onDeleteClick?: (id: string) => void;
+  onQuoteClick?: (id: string) => void;
 }
 
 interface Comment {
@@ -227,7 +228,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
   );
 }
 
-export default function PostDetail({ postId, onBack, onCommunityClick, onProfileClick, onEditClick, onDeleteClick }: PostDetailProps) {
+export default function PostDetail({ postId, onBack, onCommunityClick, onProfileClick, onEditClick, onDeleteClick, onQuoteClick }: PostDetailProps) {
   const { user } = useAuth();
   const { t } = useI18n();
   const [post, setPost] = useState<any>(null);
@@ -245,7 +246,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const [allCollapsed, setAllCollapsed] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [commentSearch, setCommentSearch] = useState("");
-  const [replyingToPost, setReplyingToPost] = useState(false);
+  const [quotedPost, setQuotedPost] = useState<any>(null);
   const [views, setViews] = useState(0);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -466,6 +467,14 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         }
         const cSnap = await getDocs(query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc")));
         setComments(cSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Comment)));
+        // Fetch quoted post if referenced
+        const postData = postSnap.exists() ? { id: postSnap.id, ...postSnap.data() } as any : null;
+        if (postData?.quotedPostId) {
+          try {
+            const qSnap = await getDoc(doc(db, "posts", postData.quotedPostId));
+            if (qSnap.exists()) setQuotedPost({ id: qSnap.id, ...qSnap.data() });
+          } catch {}
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -550,7 +559,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       )}
 
       {/* Post - flat, no border */}
-      <article className={cn("mb-4 relative transition-all duration-300", replyingToPost && "opacity-40 blur-[1px] scale-[0.99]")} onDoubleClick={() => { if (postMyVote !== 1) setPostVote(1); }}>
+      <article className="mb-4 relative" onDoubleClick={() => { if (postMyVote !== 1) setPostVote(1); }}>
         <div className="px-3 sm:px-4 pt-3 pb-2">
           <div className="flex items-center gap-1.5 sm:gap-2 text-[12px] sm:text-[13px] mb-1.5 flex-wrap">
             <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
@@ -628,6 +637,40 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
               </div>
             ));
           })()}
+
+          {/* Quoted Post - Mini Post Card (under my content, darker bg) */}
+          {quotedPost && (
+            <div
+              className="mt-4 rounded-lg border border-nf-border-2/40 bg-[#16161a] overflow-hidden hover:border-nf-border-2/70 transition-all duration-150"
+            >
+              <div
+                onClick={() => onBack()}
+                className="px-4 pt-3 pb-2 cursor-pointer hover:bg-[#1c1c22] transition-all duration-150"
+              >
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[12px] sm:text-[13px] mb-1.5 flex-wrap">
+                  <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
+                    {quotedPost.authorPhoto ? (
+                      <img src={quotedPost.authorPhoto} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[9px] text-nf-muted font-bold">{(quotedPost.authorName || "U")[0]}</div>
+                    )}
+                  </div>
+                  <span className="font-semibold text-nf-accent cursor-pointer">n/{quotedPost.community || "عام"}</span>
+                  <span className="text-nf-dim">·</span>
+                  <span className="text-nf-muted cursor-pointer hover:text-white transition-colors">u/{quotedPost.authorName || "User"}</span>
+                  <span className="text-nf-dim">·</span>
+                  <span className="text-nf-muted">{timeAgoShort(quotedPost.createdAt)}</span>
+                </div>
+                {quotedPost.title && <h2 className="text-[16px] sm:text-[18px] font-bold text-white/80 leading-snug mb-2">{quotedPost.title}</h2>}
+                {quotedPost.body && <div className="text-sm text-nf-text-2/80 leading-relaxed">{quotedPost.body}</div>}
+                {quotedPost.imageUrl && <div className="mt-3 rounded-lg overflow-hidden"><img src={quotedPost.imageUrl} alt="" className="w-full max-h-[400px] sm:max-h-[600px] object-cover rounded-lg" /></div>}
+              </div>
+              {/* Quote actions */}
+              <div className="flex items-center gap-1 px-3 py-1.5 border-t border-nf-border-2/30 text-nf-dim">
+                <button onClick={() => onQuoteClick?.(quotedPost.id)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] hover:bg-nf-hover hover:text-white transition-colors"><Quote size={10} />اقتباس</button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 px-4 py-2 text-nf-muted flex-wrap">
           <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1.5 py-0.5">
@@ -635,7 +678,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             <span className={cn("text-xs font-bold min-w-[20px] text-center", postMyVote === 1 ? "text-orange-500" : postMyVote === -1 ? "text-blue-400" : postVoteCount > 0 ? "text-orange-500" : postVoteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{postVoteCount}</span>
             <button onClick={() => setPostVote(-1)} className={cn("p-1 rounded-md transition-colors duration-150", postMyVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
           </div>
-          <button onClick={() => { setReplyingToPost(true); setReplyTo(null); setCommentText(""); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0} {t("pc.comments")}</button>
+          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0} {t("pc.comments")}</button>
           <div className="relative" onMouseLeave={() => setShowShareMenu(false)}>
             <button onClick={() => setShowShareMenu(!showShareMenu)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Share2 size={14} /> {t("pc.share")}</button>
             <AnimatePresence>
@@ -667,6 +710,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             </AnimatePresence>
           </div>
           <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /> {postSaved ? "محفوظ" : "حفظ"}</button>
+          <button onClick={() => onQuoteClick?.(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Quote size={14} /> اقتباس</button>
           <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
           {/* AI Dropdown */}
           <div className="relative" ref={aiDropRef}>
@@ -728,51 +772,6 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           )}
           {aiDisplayText && <p className="text-[12px] text-nf-muted leading-relaxed">{aiDisplayText}<span className="inline-block w-[2px] h-[12px] bg-nf-accent/60 ml-0.5 animate-pulse" /></p>}
         </div>
-      )}
-
-      {/* Reply to Post - expanded mode */}
-      {replyingToPost && user && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="mb-4 bg-nf-primary/80 border border-nf-accent/20 rounded-xl p-4 shadow-lg shadow-black/20 backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <MessageSquare size={14} className="text-nf-accent" />
-              <span className="text-xs font-bold text-nf-accent">رد على المنشور</span>
-            </div>
-            <button onClick={() => { setReplyingToPost(false); setCommentText(""); }} className="text-nf-dim hover:text-white p-1 rounded hover:bg-nf-hover transition-colors"><X size={14} /></button>
-          </div>
-          {/* Post context preview */}
-          <div className="bg-nf-secondary/50 rounded-lg p-3 mb-3 border border-nf-border-2/30">
-            <p className="text-sm font-bold text-white/80 mb-1 line-clamp-1">{post.title}</p>
-            {post.body && <p className="text-[11px] text-nf-muted line-clamp-2 leading-relaxed">{post.body.slice(0, 150)}{post.body.length > 150 ? "..." : ""}</p>}
-          </div>
-          <div className="flex items-center gap-2.5 mb-3">
-            {user.photoURL ? <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" /> : <div className="w-7 h-7 rounded-full bg-nf-secondary flex items-center justify-center shrink-0 text-[10px] text-nf-muted font-bold">{(user.displayName || "U")[0]}</div>}
-            <span className="text-xs font-medium text-white">{user.displayName || t("gen.user")}</span>
-          </div>
-          <textarea
-            value={commentText}
-            onChange={(e) => { setCommentText(e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-            onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitComment(); } }}
-            placeholder="اكتب ردك على المنشور..."
-            rows={3}
-            maxLength={10000}
-            autoFocus
-            className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-[#555] outline-none focus:border-nf-accent/30 resize-none leading-relaxed transition-colors"
-          />
-          <div className="flex items-center justify-between mt-2.5">
-            <span className={cn("text-[10px]", commentText.length > 9000 ? "text-[#ff4444]" : "text-nf-dim")}>{commentText.length > 9000 ? `${10000 - commentText.length} حرف متبقي` : `${commentText.length} حرف`}</span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => { setReplyingToPost(false); setCommentText(""); }} className="px-3 py-1.5 rounded-lg text-xs text-nf-muted hover:text-white hover:bg-nf-hover transition-colors">إلغاء</button>
-              <button
-                onClick={() => { submitComment(); setReplyingToPost(false); }}
-                disabled={!commentText.trim()}
-                className="px-4 py-1.5 rounded-lg bg-nf-accent text-white text-xs font-bold hover:bg-nf-accent/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                نشر الرد
-              </button>
-            </div>
-          </div>
-        </motion.div>
       )}
 
       {/* Comment Input - pill shaped like original */}

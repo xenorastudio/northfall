@@ -35,6 +35,7 @@ export interface ReplyData {
   createdAt: string;
   votes: number;
   edited?: boolean;
+  quotedThreadId?: string;
 }
 
 export interface UserProfile {

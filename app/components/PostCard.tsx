@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BarChart3, BookOpen, Languages, FileText, X, ChevronDown, Settings, Key, Check, AlertCircle } from "lucide-react";
+import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BarChart3, BookOpen, Languages, FileText, X, ChevronDown, Settings, Key, Check, AlertCircle, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
@@ -13,6 +13,18 @@ import ReportModal from "./ReportModal";
 import HoverCard from "./HoverCard";
 import { renderFormattedBody } from "./PostFormatter";
 import { useToast } from "./ToastProvider";
+
+interface QuotedPostData {
+  id: string;
+  authorName?: string;
+  authorPhoto?: string;
+  authorUid?: string;
+  title?: string;
+  body?: string;
+  imageUrl?: string;
+  community?: string;
+  createdAt?: string;
+}
 
 interface PostCardProps {
   postId?: string;
@@ -32,11 +44,14 @@ interface PostCardProps {
   comments?: number;
   awards?: any[];
   poll?: { options: string[]; votes: number[]; duration: string } | null;
+  quotedPost?: QuotedPostData | null;
+  quotedPostId?: string;
   onCommunityClick?: (name: string) => void;
   onProfileClick?: (uid?: string) => void;
   onPostClick?: (id: string) => void;
   onEditClick?: (id: string) => void;
   onDeleteClick?: (id: string) => void;
+  onQuoteClick?: (id: string) => void;
 }
 
 export default function PostCard({
@@ -62,6 +77,9 @@ export default function PostCard({
   onPostClick,
   onEditClick,
   onDeleteClick,
+  onQuoteClick,
+  quotedPost: quotedPostProp,
+  quotedPostId,
 }: PostCardProps) {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -69,6 +87,19 @@ export default function PostCard({
   const [voteCount, setVoteCount] = useState(votes);
   const [myVote, setMyVote] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [fetchedQuotedPost, setFetchedQuotedPost] = useState<QuotedPostData | null>(null);
+  const quotedPost = quotedPostProp || fetchedQuotedPost;
+
+  // Fetch quoted post if quotedPostId provided but no quotedPost prop
+  useEffect(() => {
+    if (quotedPostProp || !quotedPostId) return;
+    getDoc(doc(db, "posts", quotedPostId)).then(s => {
+      if (s.exists()) {
+        const d = s.data();
+        setFetchedQuotedPost({ id: s.id, authorName: d.authorName, authorPhoto: d.authorPhoto, authorUid: d.authorUid, title: d.title, body: d.body, imageUrl: d.imageUrl || d.imageUrls?.[0], community: d.community, createdAt: d.createdAt });
+      }
+    }).catch(() => {});
+  }, [quotedPostId, quotedPostProp]);
 
   // Check if post is saved and load user's vote on mount
   useEffect(() => {
@@ -405,7 +436,6 @@ export default function PostCard({
       transition={{ duration: 0.2 }}
       onClick={handleClick}
       className={cn("bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-colors duration-150 relative",
-        showQuickReply && "opacity-50 blur-[0.5px] scale-[0.995]",
         voteCount >= 10 ? "border-orange-400/20 hover:bg-nf-accent/5 hover:border-orange-400/40" : "border-nf-border-2 hover:bg-nf-accent/5 hover:border-nf-accent/15")}
     >
       <div className="px-4 pt-3 pb-2 relative" onDoubleClick={handleDblClickVote}>
@@ -433,10 +463,10 @@ export default function PostCard({
           {voteCount >= 10 && <><span className="text-nf-dim">·</span><span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-400/15 text-orange-400 flex items-center gap-0.5"><Flame size={9} />رائج</span></>}
         </div>
 
-        {/* Title */}
+        {/* Title - MY title first */}
         <h3 className="text-[18px] font-bold text-white leading-snug mb-1">{title}</h3>
 
-        {/* Body */}
+        {/* Body - MY body */}
         {body && (
           <div className="flex items-start gap-2">
             <div className="text-sm text-nf-text-2 leading-relaxed line-clamp-3 flex-1">{renderFormattedBody(body)}</div>
@@ -514,6 +544,40 @@ export default function PostCard({
             )}
           </div>
         )}
+
+        {/* Quoted Post - Mini Post Card (under my content, darker bg) */}
+        {quotedPost && (
+          <div
+            className="mt-3 rounded-lg border border-nf-border-2/40 bg-[#16161a] overflow-hidden hover:border-nf-border-2/70 transition-all duration-150"
+          >
+            <div
+              onClick={(e) => { e.stopPropagation(); onPostClick?.(quotedPost.id); }}
+              className="px-4 pt-3 pb-2 cursor-pointer hover:bg-[#1c1c22] transition-all duration-150"
+            >
+              <div className="flex items-center gap-2 text-[13px] mb-1.5">
+                <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
+                  {quotedPost.authorPhoto ? (
+                    <img src={quotedPost.authorPhoto} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[9px] text-nf-muted font-bold">{(quotedPost.authorName || "U")[0]}</div>
+                  )}
+                </div>
+                <span className="font-semibold text-nf-accent">n/{quotedPost.community || "عام"}</span>
+                <span className="text-nf-dim">·</span>
+                <span className="text-nf-muted">u/{quotedPost.authorName || "User"}</span>
+                <span className="text-nf-dim">·</span>
+                <span className="text-nf-muted">{quotedPost.createdAt ? timeAgoShort(quotedPost.createdAt) : ""}</span>
+              </div>
+              {quotedPost.title && <h3 className="text-[18px] font-bold text-white/80 leading-snug mb-1">{quotedPost.title}</h3>}
+              {quotedPost.body && <p className="text-sm text-nf-text-2/80 leading-relaxed line-clamp-3">{quotedPost.body}</p>}
+              {quotedPost.imageUrl && <div className="mt-2 -mx-4"><img src={quotedPost.imageUrl} alt="" className="w-full max-h-[300px] object-cover" /></div>}
+            </div>
+            {/* Quote actions */}
+            <div className="flex items-center gap-1 px-3 py-1.5 border-t border-nf-border-2/30 text-nf-dim">
+              <button onClick={() => onQuoteClick?.(quotedPost.id)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] hover:bg-nf-hover hover:text-white transition-colors"><Quote size={10} />اقتباس</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer - always visible */}
@@ -525,6 +589,9 @@ export default function PostCard({
         </div>
         <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
           <MessageSquare size={14} /><span>{comments} {t("pc.comments")}</span>
+        </button>
+        <button onClick={(e) => { e.stopPropagation(); onQuoteClick?.(postId || ""); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
+          <Quote size={14} /><span>اقتباس</span>
         </button>
         <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
           <Share2 size={14} /><span>{t("pc.share")}</span>
@@ -564,41 +631,26 @@ export default function PostCard({
         </div>
       </div>
 
-      {/* Quick Reply - expanded with post context */}
+      {/* Quick Reply */}
       {showQuickReply && (
-        <div className="px-4 py-3 border-t border-nf-accent/15 bg-nf-primary/60 backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <MessageSquare size={12} className="text-nf-accent" />
-              <span className="text-[10px] font-bold text-nf-accent">رد على المنشور</span>
-            </div>
-            <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(false); setQuickReplyText(""); }} className="text-nf-dim hover:text-white p-0.5 rounded hover:bg-nf-hover transition-colors"><X size={12} /></button>
-          </div>
-          {/* Post context preview */}
-          <div className="bg-nf-secondary/40 rounded-lg p-2 mb-2 border border-nf-border-2/20">
-            <p className="text-[11px] font-bold text-white/70 line-clamp-1">{title}</p>
-            {body && <p className="text-[9px] text-nf-muted line-clamp-1">{body.slice(0, 100)}{body.length > 100 ? "..." : ""}</p>}
-          </div>
-          <div className="flex items-center gap-2">
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-nf-secondary flex items-center justify-center shrink-0"><span className="text-[8px] text-nf-muted font-bold">{(user?.displayName || "U")[0]}</span></div>
-            )}
-            <input
-              type="text"
-              value={quickReplyText}
-              onChange={(e) => setQuickReplyText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); handleQuickReply(); } }}
-              placeholder="اكتب ردك..."
-              className="flex-1 bg-nf-secondary rounded-full px-3 py-1.5 text-xs text-white placeholder:text-nf-dim border-none outline-none"
-              onClick={(e) => e.stopPropagation()}
-              autoFocus
-            />
-            <button onClick={(e) => { e.stopPropagation(); handleQuickReply(); }} disabled={!quickReplyText.trim()} className={cn("p-1.5 rounded-full transition-colors", quickReplyText.trim() ? "text-nf-accent hover:bg-nf-accent/10" : "text-nf-dim")}>
-              <Send size={14} />
-            </button>
-          </div>
+        <div className="flex items-center gap-2 px-4 py-2 border-t border-nf-border-2/50">
+          {user?.photoURL ? (
+            <img src={user.photoURL} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-nf-secondary flex items-center justify-center shrink-0"><span className="text-[9px] text-nf-muted font-bold">{(user?.displayName || "U")[0]}</span></div>
+          )}
+          <input
+            type="text"
+            value={quickReplyText}
+            onChange={(e) => setQuickReplyText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); handleQuickReply(); } }}
+            placeholder={t("pc.quickReply")}
+            className="flex-1 bg-nf-secondary rounded-full px-3 py-1.5 text-xs text-white placeholder:text-nf-dim border-none outline-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button onClick={(e) => { e.stopPropagation(); handleQuickReply(); }} disabled={!quickReplyText.trim()} className={cn("p-1.5 rounded-full transition-colors", quickReplyText.trim() ? "text-nf-accent hover:bg-nf-accent/10" : "text-nf-dim")}>
+            <Send size={14} />
+          </button>
         </div>
       )}
 
@@ -625,4 +677,16 @@ export default function PostCard({
       {showShareModal && <ShareModal open={showShareModal} onClose={() => setShowShareModal(false)} postId={postId || ""} postTitle={title} />}
     </motion.article>
   );
+}
+
+function timeAgoShort(ts?: string): string {
+  if (!ts) return "now";
+  try {
+    const d = new Date(ts);
+    const s = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (s < 60) return "now";
+    if (s < 3600) return `${Math.floor(s / 60)}m`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h`;
+    return `${Math.floor(s / 86400)}d`;
+  } catch { return "now"; }
 }

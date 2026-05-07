@@ -48,6 +48,7 @@ interface Post {
   createdAt?: string;
   awards?: any[];
   poll?: { options: string[]; votes: number[]; duration: string } | null;
+  quotedPostId?: string;
 }
 
 function AppContent() {
@@ -81,6 +82,7 @@ function AppContent() {
   const [selectedCommunity, setSelectedCommunity] = useState("");
   const [selectedPostId, setSelectedPostId] = useState("");
   const [editPostId, setEditPostId] = useState("");
+  const [quotePostId, setQuotePostId] = useState<string | undefined>(undefined);
 
   // URL-based navigation helper
   const navigateTo = (newView: View, extra: Record<string, string> = {}) => {
@@ -411,11 +413,13 @@ function AppContent() {
                             comments={post.commentCount || 0}
                             awards={post.awards}
                             poll={post.poll}
+                            quotedPostId={post.quotedPostId}
                             onPostClick={openPost}
                             onCommunityClick={openCommunity}
                             onProfileClick={openProfile}
                             onEditClick={openEdit}
                             onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }}
+                            onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }}
                           />
                       ))
                     )}
@@ -466,13 +470,13 @@ function AppContent() {
 
               {(view === "create" || view === "edit") && (
                 <motion.div key={view} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                  <CreatePostPage onBack={backToFeed} onPost={backToFeed} editPostId={view === "edit" ? editPostId : undefined} />
+                  <CreatePostPage onBack={backToFeed} onPost={backToFeed} editPostId={view === "edit" ? editPostId : undefined} quotedPostId={view === "create" ? quotePostId : undefined} />
                 </motion.div>
               )}
 
               {view === "post" && (
                 <motion.div key="post" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                  <PostDetail postId={selectedPostId} onBack={backToFeed} onCommunityClick={openCommunity} onProfileClick={openProfile} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); backToFeed(); }} />
+                  <PostDetail postId={selectedPostId} onBack={backToFeed} onCommunityClick={openCommunity} onProfileClick={openProfile} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); backToFeed(); }} onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }} />
                 </motion.div>
               )}
             </AnimatePresence>

@@ -21,7 +21,7 @@ const communities = [
 
 const flairs = ["مناقشة", "مساعدة", "إبداع", "خبر", "تعلم", "مشروع", "سؤال"];
 
-export default function CreatePostPage({ onBack, onPost, editPostId }: { onBack: () => void; onPost: () => void; editPostId?: string }) {
+export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostId }: { onBack: () => void; onPost: () => void; editPostId?: string; quotedPostId?: string }) {
   const { user } = useAuth();
   const { t } = useI18n();
   const { toast } = useToast();
@@ -48,6 +48,15 @@ export default function CreatePostPage({ onBack, onPost, editPostId }: { onBack:
   const [showDraftBanner, setShowDraftBanner] = useState(false);
   const [showDrafts, setShowDrafts] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [quotedPostData, setQuotedPostData] = useState<any>(null);
+
+  // Fetch quoted post data if quotedPostId provided
+  useEffect(() => {
+    if (!quotedPostId) return;
+    getDoc(doc(db, "posts", quotedPostId)).then(s => {
+      if (s.exists()) setQuotedPostData({ id: s.id, ...s.data() });
+    }).catch(() => {});
+  }, [quotedPostId]);
 
   const emojis = ["👍","❤️","🔥","😂","🎉","🚀","💡","⭐","✅","❌","🤔","👀","💪","🎮","🎨","💻","🐛","✨","📌","🎯"];
 
@@ -269,6 +278,7 @@ export default function CreatePostPage({ onBack, onPost, editPostId }: { onBack:
           votes: 1,
           commentCount: 0,
           createdAt: new Date().toISOString(),
+          ...(quotedPostId ? { quotedPostId } : {}),
         });
         // Save author's auto-upvote
         await setDoc(doc(db, "posts", postRef.id, "votes", user.uid), { dir: 1, votedAt: new Date().toISOString() });
@@ -313,6 +323,33 @@ export default function CreatePostPage({ onBack, onPost, editPostId }: { onBack:
           </button>
         </div>
       </div>
+
+      {/* Quote preview - full mini post card */}
+      {quotedPostData && (
+        <div className="mb-3 rounded-lg border border-nf-border-2/40 bg-[#16161a] overflow-hidden">
+          <div className="px-4 pt-3 pb-2">
+            <div className="flex items-center gap-2 text-[13px] mb-1.5">
+              <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
+                {quotedPostData.authorPhoto ? (
+                  <img src={quotedPostData.authorPhoto} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[9px] text-nf-muted font-bold">{(quotedPostData.authorName || "U")[0]}</div>
+                )}
+              </div>
+              <span className="font-semibold text-nf-accent">n/{quotedPostData.community || "عام"}</span>
+              <span className="text-nf-dim">·</span>
+              <span className="text-nf-muted">u/{quotedPostData.authorName || "User"}</span>
+            </div>
+            {quotedPostData.title && <h3 className="text-[16px] font-bold text-white/80 leading-snug mb-1">{quotedPostData.title}</h3>}
+            {quotedPostData.body && <p className="text-sm text-nf-text-2/80 leading-relaxed line-clamp-4">{quotedPostData.body}</p>}
+            {quotedPostData.imageUrl && <img src={quotedPostData.imageUrl} alt="" className="mt-2 rounded max-h-[120px] w-auto object-cover" />}
+          </div>
+          <div className="flex items-center justify-between px-3 py-1.5 border-t border-nf-border-2/30">
+            <span className="text-[10px] text-nf-dim flex items-center gap-1"><Quote size={10} />سيتم اقتباس هذا المنشور</span>
+            <button onClick={() => setQuotedPostData(null)} className="text-[10px] text-nf-dim hover:text-red-400 flex items-center gap-1 transition-colors"><X size={10} />إزالة</button>
+          </div>
+        </div>
+      )}
 
       {showPreview ? (
         /* Preview mode */

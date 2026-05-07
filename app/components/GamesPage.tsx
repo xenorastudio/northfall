@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList, ExternalLink, Filter, Monitor, ChevronDown, TrendingUp, Flame, Crown, Zap } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { ArrowLeft, Star, Gamepad2, Heart, X, Search, Users, Calendar, Tag, Trophy, Clock, Grid3X3, LayoutList, ExternalLink, Filter, Monitor, ChevronDown, TrendingUp, Flame, Crown, Zap, ChevronLeft, ChevronRight, Dice5, ArrowUp, Hash } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
@@ -99,7 +99,7 @@ export const GAMES: Game[] = [
   { id: "slay-the-spire", name: "Slay the Spire", cover: "/assets/GameCovor/Slay the Spire.png", publisher: "Mega Crit Games", developer: "Mega Crit Games", genre: ["بطاقات", "Roguelike"], rating: 4.7, releaseYear: 2019, description: "Roguelike بطاقات! ابنِ مجموعتك، قاتل الوحوش، واصعد البرج. استراتيجية عميقة وإعادة لعب لا نهائية.", platforms: ["PC", "PS", "Xbox", "Switch", "Mobile"], players: "1", steamUrl: "https://store.steampowered.com/app/646570/Slay_the_Spire/" },
 
   // === RPG / Strategy ===
-  { id: "baldurs-gate-3", name: "Baldur's Gate 3", cover: "/assets/GameCovor/Baldur's Gate 3.png", publisher: "Larian Studios", developer: "Larian Studios", genre: ["RPG", "استراتيجية دورية"], rating: 4.9, releaseYear: 2023, description: "تحفة RPG من Larian! قصة عميقة، خيارات لا نهائية، وقتال دوري مبدع.", platforms: ["PC", "PS5", "Xbox Series"], players: "1-4", steamUrl: "https://store.steampowered.com/app/1086940/Baldurs_Gate_3/" },
+  { id: "baldurs-gate-3", name: "Baldur's Gate 3", cover: "/assets/GameCovor/Baldur’s Gate 3.png", publisher: "Larian Studios", developer: "Larian Studios", genre: ["RPG", "استراتيجية دورية"], rating: 4.9, releaseYear: 2023, description: "تحفة RPG من Larian! قصة عميقة، خيارات لا نهائية، وقتال دوري مبدع.", platforms: ["PC", "PS5", "Xbox Series"], players: "1-4", steamUrl: "https://store.steampowered.com/app/1086940/Baldurs_Gate_3/" },
   { id: "diablo-iv", name: "Diablo IV", cover: "/assets/GameCovor/Diablo IV.png", publisher: "Blizzard", developer: "Blizzard Entertainment", genre: ["RPG", "أكشن"], rating: 4.0, releaseYear: 2023, description: "عودة Diablo! عالم مفتوح مظلم، نظام بناء عميق، وأحداث عالمية.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/2344520/Diablo_IV/" },
   { id: "dragon-age-inq", name: "Dragon Age: Inquisition", cover: "/assets/GameCovor/Dragon Age Inquisition.png", publisher: "EA", developer: "BioWare", genre: ["RPG", "عالم مفتوح"], rating: 4.2, releaseYear: 2014, description: "من BioWare! RPG مع قصة عميقة ورفاق لا تُنسى. قُد الإنكويزشن وأوقف الحرب.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/1222690/Dragon_Age_Inquisition/" },
   { id: "age-of-empires-4", name: "Age of Empires IV", cover: "/assets/GameCovor/Age of Empires IV.png", publisher: "Xbox Game Studios", developer: "Relic Entertainment", genre: ["استراتيجية", "RTS"], rating: 4.3, releaseYear: 2021, description: "عودة أسطورة RTS! ابنِ حضارتك، قاتل عبر العصور، وحملات تاريخية.", platforms: ["PC"], players: "1-8", steamUrl: "https://store.steampowered.com/app/1466860/Age_of_Empires_IV/" },
@@ -158,8 +158,8 @@ export const GAMES: Game[] = [
   { id: "fallout-76", name: "Fallout 76", cover: "/assets/GameCovor/Fallout 76.png", publisher: "Bethesda", developer: "Bethesda Game Studios", genre: ["RPG", "بقاء"], rating: 3.8, releaseYear: 2018, description: "فالوت أونلاين! استكشف فرجينيا الغربية بعد الحرب النووية مع لاعبين آخرين.", platforms: ["PC", "PS", "Xbox"], players: "1-24", steamUrl: "https://store.steampowered.com/app/1151340/Fallout_76/" },
   { id: "la-noire", name: "L.A. Noire", cover: "/assets/GameCovor/L.A. Noire.png", publisher: "Rockstar Games", developer: "Team Bondi", genre: ["أكشن-مغامرة", "تحقيق"], rating: 4.2, releaseYear: 2011, description: "محقق في لوس أنجلوس الأربعينات! حل الجرائم وكشف الأكاذيب.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1", steamUrl: "https://store.steampowered.com/app/1028550/LA_Noire/" },
   { id: "mafia-2", name: "Mafia II: Definitive Edition", cover: "/assets/GameCovor/Mafia II Definitive Edition.png", publisher: "2K Games", developer: "Hangar 13", genre: ["أكشن-مغامرة", "عالم مفتوح"], rating: 4.0, releaseYear: 2020, description: "قصة مافيا في الخمسينات! فيتو يصعد في عالم الجريمة بإمباير باي.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/1030830/Mafia_Definitive_Edition/" },
-  { id: "mafia-3", name: "Mafia III: Definitive Edition", cover: "/assets/GameCovor/Mafia III Definitive Edition.png", publisher: "2K Games", developer: "Hangar 13", genre: ["أكشن-مغامرة", "عالم مفتوح"], rating: 3.8, releaseYear: 2020, description: "انتقام في نيو بوردو! لينكون كلاي يهدم المافيا من الداخل.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/1290860/Mafia_III_Definitive_Edition/" },
-  { id: "me-andromeda", name: "Mass Effect: Andromeda", cover: "/assets/GameCovor/Mass Effect Andromeda.png", publisher: "EA", developer: "BioWare Montreal", genre: ["RPG", "أكشن"], rating: 3.9, releaseYear: 2017, description: "استكشاف مجرة أندروميدا! ابحث عن بيت جديد للبشرية في الفضاء.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/1232550/Mass_Effect_Andromeda/" },
+  { id: "mafia-3", name: "Mafia III: Definitive Edition", cover: "/assets/GameCovor/Mafia III Definitive Edition.png", publisher: "2K Games", developer: "Hangar 13", genre: ["أكشن-مغامرة", "عالم مفتوح"], rating: 3.8, releaseYear: 2020, description: "انتقام في نيو بوردو! لينكون كلاي يهدم المافيا من الداخل.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/360430/Mafia_III_Definitive_Edition/" },
+  { id: "me-andromeda", name: "Mass Effect: Andromeda", cover: "/assets/GameCovor/Mass Effect Andromeda.png", publisher: "EA", developer: "BioWare Montreal", genre: ["RPG", "أكشن"], rating: 3.9, releaseYear: 2017, description: "استكشاف مجرة أندروميدا! ابحث عن بيت جديد للبشرية في الفضاء.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/1238000/Mass_Effect_Andromeda_Deluxe_Edition/" },
   { id: "me-legendary", name: "Mass Effect Legendary Edition", cover: "/assets/GameCovor/Mass Effect Legendary Edition.png", publisher: "EA", developer: "BioWare", genre: ["RPG", "أكشن"], rating: 4.7, releaseYear: 2021, description: "الثلاثية الأسطورية محسّنة! شيبرد يحارب لإنقاذ المجرة. خيارات مصيرية.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/1328670/Mass_Effect_Legendary_Edition/" },
   { id: "shadow-mordor", name: "Middle-earth: Shadow of Mordor", cover: "/assets/GameCovor/Middle-earth Shadow of Mordor.png", publisher: "Warner Bros.", developer: "Monolith Productions", genre: ["أكشن-مغامرة", "عالم مفتوح"], rating: 4.3, releaseYear: 2014, description: "انتقام في موردر! نظام Nemesis فريد يخلق أعداء يتذكرونك.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/241930/Middleearth_Shadow_of_Mordor/" },
   { id: "shadow-war", name: "Middle-earth: Shadow of War", cover: "/assets/GameCovor/Middle-earth Shadow of War.png", publisher: "Warner Bros.", developer: "Monolith Productions", genre: ["أكشن-مغامرة", "عالم مفتوح"], rating: 4.1, releaseYear: 2017, description: "تكملة Shadow of Mordor! ابنِ جيشك من الأوركس وواجه سورون.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/356190/Middleearth_Shadow_of_War/" },
@@ -178,9 +178,54 @@ export const GAMES: Game[] = [
   { id: "tes-online", name: "The Elder Scrolls Online", cover: "/assets/GameCovor/The Elder Scrolls Online.png", publisher: "Bethesda", developer: "Zenimax Online", genre: ["RPG", "MMO"], rating: 4.2, releaseYear: 2014, description: "عالم Elder Scrolls أونلاين! استكشف تامريال مع آلاف اللاعبين.", platforms: ["PC", "PS", "Xbox"], players: "1-∞", steamUrl: "https://store.steampowered.com/app/306130/The_Elder_Scrolls_Online/" },
   { id: "evil-within-2", name: "The Evil Within 2", cover: "/assets/GameCovor/The Evil Within 2.png", publisher: "Bethesda", developer: "Tango Gameworks", genre: ["رعب", "أكشن"], rating: 4.1, releaseYear: 2017, description: "سيباستيان يعود لعالم STEM! أنقذ ابنتك من عالم مرعب ومشوّه.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/447440/The_Evil_Within_2/" },
   { id: "wolfenstein-2", name: "Wolfenstein II: The New Colossus", cover: "/assets/GameCovor/Wolfenstein II The New Colossus.png", publisher: "Bethesda", developer: "MachineGames", genre: ["شوتر", "أكشن"], rating: 4.4, releaseYear: 2017, description: "بي.جيه يقاتل النازيين بأمريكا المحتلة! قصة قوية وقتال عنيف.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1", steamUrl: "https://store.steampowered.com/app/612830/Wolfenstein_II_The_New_Colossus/" },
-  { id: "wolfenstein-youngblood", name: "Wolfenstein: Youngblood", cover: "/assets/GameCovor/Wolfenstein Youngblood.png", publisher: "Bethesda", developer: "MachineGames", genre: ["شوتر", "أكشن"], rating: 3.5, releaseYear: 2019, description: "بنات بي.جيه في باريس النازية! تعاوني وقتال بأخوات بلازكوفيتش.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-2", steamUrl: "https://store.steampowered.com/app/560830/Wolfenstein_Youngblood/" },
+  { id: "wolfenstein-youngblood", name: "Wolfenstein: Youngblood", cover: "/assets/GameCovor/Wolfenstein Youngblood.png", publisher: "Bethesda", developer: "MachineGames", genre: ["شوتر", "أكشن"], rating: 3.5, releaseYear: 2019, description: "بنات بي.جيه في باريس النازية! تعاوني وقتال بأخوات بلازكوفيتش.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-2", steamUrl: "https://store.steampowered.com/app/1056960/Wolfenstein_Youngblood/" },
   { id: "xcom-2", name: "XCOM 2", cover: "/assets/GameCovor/XCOM 2.png", publisher: "2K Games", developer: "Firaxis Games", genre: ["استراتيجية", "تكتيكي"], rating: 4.5, releaseYear: 2016, description: "قُد المقاومة ضد الغزاة الفضائيين! استراتيجية تكتيكية دورية عميقة.", platforms: ["PC", "PS", "Xbox"], players: "1-2", steamUrl: "https://store.steampowered.com/app/268500/XCOM_2/" },
   { id: "hoi4", name: "Hearts of Iron IV", cover: "/assets/GameCovor/Hearts of Iron IV.png", publisher: "Paradox", developer: "Paradox Dev Studio", genre: ["استراتيجية", "محاكاة"], rating: 4.4, releaseYear: 2016, description: "قُد أي دولة في الحرب العالمية الثانية! استراتيجية حرب ضخمة ومعقدة.", platforms: ["PC"], players: "1-32", steamUrl: "https://store.steampowered.com/app/394360/Hearts_of_Iron_IV/" },
+
+  // === New Additions ===
+  { id: "armored-core-6", name: "Armored Core VI: Fires of Rubicon", cover: "/assets/GameCovor/Armored Core VI Fires of Rubicon.png", publisher: "Bandai Namco", developer: "FromSoftware", genre: ["أكشن", "شوتر"], rating: 4.5, releaseYear: 2023, description: "من FromSoftware! ميكا قتال سريع وتخصيص روبوتات. معارك مكثفة وقصة غامضة.", platforms: ["PC", "PS", "Xbox"], players: "1-6", steamUrl: "https://store.steampowered.com/app/616720/ARMORED_CORE_VI_FIRES_OF_RUBICON/" },
+  { id: "bioshock-infinite", name: "BioShock Infinite", cover: "/assets/GameCovor/BioShock Infinite.png", publisher: "2K Games", developer: "Irrational Games", genre: ["شوتر", "أكشن-مغامرة"], rating: 4.6, releaseYear: 2013, description: "مدينة في السماء! بوكر ديويت في كولومبيا. قصة مبهرة ونهاية لا تُنسى.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/8870/BioShock_Infinite/" },
+  { id: "bioshock-remastered", name: "BioShock Remastered", cover: "/assets/GameCovor/BioShock Remastered.png", publisher: "2K Games", developer: "Irrational Games", genre: ["شوتر", "رعب"], rating: 4.5, releaseYear: 2016, description: "تحفة راشر! مدينة رابتشر تحت الماء. أجواء مرعبة وقصة ممتازة.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/409710/BioShock_Remastered/" },
+  { id: "black-myth-wukong", name: "Black Myth: Wukong", cover: "/assets/GameCovor/Black Myth Wukong.png", publisher: "Game Science", developer: "Game Science", genre: ["أكشن", "RPG"], rating: 4.7, releaseYear: 2024, description: "ملحمة صينية! ملك القردة ووكونغ في رحلة أسطورية. قتال مذهل وعالم مبهر.", platforms: ["PC", "PS5"], players: "1", steamUrl: "https://store.steampowered.com/app/2358720/Black_Myth_Wukong/" },
+  { id: "blasphemous-2", name: "Blasphemous 2", cover: "/assets/GameCovor/Blasphemous 2.png", publisher: "Team17", developer: "The Game Kitchen", genre: ["Metroidvania", "أكشن"], rating: 4.3, releaseYear: 2023, description: "عالم مظلم ديني! قتال صعب وفن بكسل مذهل. تكملة أفضل من الأصل.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1", steamUrl: "https://store.steampowered.com/app/1222080/Blasphemous_2/" },
+  { id: "borderlands-2", name: "Borderlands 2", cover: "/assets/GameCovor/Borderlands 2.png", publisher: "2K Games", developer: "Gearbox Software", genre: ["شوتر", "RPG"], rating: 4.5, releaseYear: 2012, description: "شوتر RPG بأسلوب كوميدي! هاندسوم جاك شرير رائع وغنائم لا نهائية.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/49520/Borderlands_2/" },
+  { id: "borderlands-3", name: "Borderlands 3", cover: "/assets/GameCovor/Borderlands 3.png", publisher: "2K Games", developer: "Gearbox Software", genre: ["شوتر", "RPG"], rating: 4.1, releaseYear: 2019, description: "تكملة Borderlands! أسلحة أكثر وعوالم متعددة وكوميديا مجنونة.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/397540/Borderlands_3/" },
+  { id: "cod-mw", name: "CoD: Modern Warfare", cover: "/assets/GameCovor/Call of Duty Modern Warfare.png", publisher: "Activision", developer: "Infinity Ward", genre: ["شوتر", "أكشن"], rating: 4.3, releaseYear: 2019, description: "إعادة صنع Modern Warfare! حملة واقعية وأوضاع متعددة محسّنة.", platforms: ["PC", "PS", "Xbox"], players: "6v6", steamUrl: "https://store.steampowered.com/app/2000950/Call_of_Duty_Modern_Warfare/" },
+  { id: "atomic-heart", name: "Atomic Heart", cover: "/assets/GameCovor/Atomic Heart.png", publisher: "Focus Entertainment", developer: "Mundfish", genre: ["أكشن-مغامرة", "شوتر"], rating: 4.0, releaseYear: 2023, description: "اتحاد سوفيتي بديل! روبوتات تتمرد ومغامرة في منشأة غامضة. Bioshock سوفيتي!", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/666610/Atomic_Heart/" },
+  { id: "mortal-kombat-1", name: "Mortal Kombat 1", cover: "/assets/GameCovor/Mortal Kombat 1.png", publisher: "Warner Bros.", developer: "NetherRealm Studios", genre: ["قتال", "تنافسي"], rating: 4.2, releaseYear: 2023, description: "إعادة بعالم جديد! فتاليتيز دموية وشخصيات كلاسيكية. أفضل MK!", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-2", steamUrl: "https://store.steampowered.com/app/1970920/Mortal_Kombat_1/" },
+  { id: "conan-exiles", name: "Conan Exiles", cover: "/assets/GameCovor/Conan Exiles.png", publisher: "Funcom", developer: "Funcom", genre: ["بقاء", "عالم مفتوح"], rating: 3.9, releaseYear: 2018, description: "بقاء في عالم كونان البربري! ابنِ قلعتك، اعبد آلهة، وقاتل الوحوش.", platforms: ["PC", "PS", "Xbox"], players: "1-70", steamUrl: "https://store.steampowered.com/app/440900/Conan_Exiles/" },
+  { id: "destiny-2", name: "Destiny 2", cover: "/assets/GameCovor/Destiny 2.png", publisher: "Bungie", developer: "Bungie", genre: ["شوتر", "RPG"], rating: 4.3, releaseYear: 2017, description: "شوتر RPG فضائي! غنائم وراء غنائم، raids تعاونية، وعالم ضخم.", platforms: ["PC", "PS", "Xbox"], players: "1-6", steamUrl: "https://store.steampowered.com/app/1085660/Destiny_2/" },
+  { id: "dragon-ball-fighterz", name: "Dragon Ball FighterZ", cover: "/assets/GameCovor/Dragon Ball FighterZ.png", publisher: "Bandai Namco", developer: "Arc System Works", genre: ["قتال", "أنمي"], rating: 4.5, releaseYear: 2018, description: "قتال أنمي بأسلوب دراغون بول! رسومات مذهلة وقتال سريع 3v3.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-2", steamUrl: "https://store.steampowered.com/app/678950/DRAGON_BALL_FighterZ/" },
+  { id: "enshrouded", name: "Enshrouded", cover: "/assets/GameCovor/Enshrouded.png", publisher: "Keen Games", developer: "Keen Games", genre: ["بقاء", "RPG"], rating: 4.2, releaseYear: 2024, description: "بقاء RPG! ابنِ، قاتل، واستكشف عالم إنفيل. تعاوني مع بناء حر.", platforms: ["PC"], players: "1-16", steamUrl: "https://store.steampowered.com/app/1203220/Enshrouded/" },
+  { id: "grounded", name: "Grounded", cover: "/assets/GameCovor/Grounded.png", publisher: "Xbox Game Studios", developer: "Obsidian Entertainment", genre: ["بقاء", "تعاوني"], rating: 4.1, releaseYear: 2022, description: "أنت بحجم نملة! نجا في الفناء الخلفي. عناكب ضخمة وبناء قواعد.", platforms: ["PC", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/962130/Grounded/" },
+  { id: "guilty-gear-strive", name: "Guilty Gear Strive", cover: "/assets/GameCovor/Guilty Gear Strive (2021) .png", publisher: "Arc System Works", developer: "Arc System Works", genre: ["قتال", "تنافسي"], rating: 4.4, releaseYear: 2021, description: "قتال أنمي فائق الجودة! رسومات مذهلة وقتال عميق وشخصيات فريدة.", platforms: ["PC", "PS"], players: "1-2", steamUrl: "https://store.steampowered.com/app/1384160/GUILTY_GEAR_STRIVE/" },
+  { id: "helldivers-2", name: "Helldivers 2", cover: "/assets/GameCovor/Helldivers 2.png", publisher: "PlayStation Studios", developer: "Arrowhead Game Studios", genre: ["شوتر", "تعاوني"], rating: 4.6, releaseYear: 2024, description: "نشر الديمقراطية! شوتر تعاوني فوق كواكب. صديقك يقتلك بالخطأ دائماً!", platforms: ["PC", "PS"], players: "1-4", steamUrl: "https://store.steampowered.com/app/553850/Helldivers_2/" },
+  { id: "helldivers-1", name: "Helldivers", cover: "/assets/GameCovor/Helldivers.png", publisher: "PlayStation Studios", developer: "Arrowhead Game Studios", genre: ["شوتر", "تعاوني"], rating: 4.0, releaseYear: 2015, description: "الأصل! شوتر تعاوني من فوق. نشر الديمقراطية بأسلوب كلاسيكي.", platforms: ["PC", "PS"], players: "1-4", steamUrl: "https://store.steampowered.com/app/394510/Helldivers_Dive_Harder_Edition/" },
+  { id: "lies-of-p", name: "Lies of P", cover: "/assets/GameCovor/Lies of P.png", publisher: "NEOWIZ", developer: "NEOWIZ", genre: ["RPG", "أكشن"], rating: 4.3, releaseYear: 2023, description: "بينوتشيو المظلم! Souls-like في مدينة ستيامبانك مرعبة. قتال بالسيوف وكذب.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/819380/Lies_of_P/" },
+  { id: "no-mans-sky", name: "No Man's Sky", cover: "/assets/GameCovor/No Man’s Sky.png", publisher: "Hello Games", developer: "Hello Games", genre: ["بقاء", "عالم مفتوح"], rating: 4.2, releaseYear: 2016, description: "كونج بلا حدود! استكشف كواكب لا نهائية. التحديثات جعلتها لعبة مختلفة.", platforms: ["PC", "PS", "Xbox"], players: "1-32", steamUrl: "https://store.steampowered.com/app/275850/No_Mans_Sky/" },
+  { id: "once-human", name: "Once Human", cover: "/assets/GameCovor/Once Human.png", publisher: "NetEase", developer: "Starry Studio", genre: ["بقاء", "عالم مفتوح"], rating: 3.8, releaseYear: 2024, description: "بقاء بعد كارثة! وحوش مشوهة وبناء قواعد. مجاني وأونلاين.", platforms: ["PC"], players: "1-∞", steamUrl: "https://store.steampowered.com/app/2139460/Once_Human/" },
+  { id: "ori-blind", name: "Ori and the Blind Forest", cover: "/assets/GameCovor/Ori and the Blind Forest.png", publisher: "Xbox Game Studios", developer: "Moon Studios", genre: ["Metroidvania", "منصات"], rating: 4.8, releaseYear: 2015, description: "منصات مذهلة! أوري ينقذ الغابة. رسومات ساحرة وموسيقى تبكي.", platforms: ["PC", "Xbox", "Switch"], players: "1", steamUrl: "https://store.steampowered.com/app/261570/Ori_and_the_Blind_Forest/" },
+  { id: "ori-wisps", name: "Ori and the Will of the Wisps", cover: "/assets/GameCovor/Ori and the Will of the Wisps.png", publisher: "Xbox Game Studios", developer: "Moon Studios", genre: ["Metroidvania", "منصات"], rating: 4.9, releaseYear: 2020, description: "تكملة أفضل! أوري في مغامرة جديدة. قتال محسّن ورسومات أبكية.", platforms: ["PC", "Xbox", "Switch"], players: "1", steamUrl: "https://store.steampowered.com/app/1057090/Ori_and_the_Will_of_the_Wisps/" },
+  { id: "palworld", name: "Palworld", cover: "/assets/GameCovor/Palworld.png", publisher: "Pocketpair", developer: "Pocketpair", genre: ["بقاء", "صندوق رمل"], rating: 4.1, releaseYear: 2024, description: "بوكيمون مع بنادق! اصطد رفاقك، ابنِ قاعدتك، واجمع موارد. جنون!", platforms: ["PC", "Xbox"], players: "1-32", steamUrl: "https://store.steampowered.com/app/1623730/Palworld/" },
+  { id: "path-of-exile", name: "Path of Exile", cover: "/assets/GameCovor/Path of Exile.png", publisher: "Grinding Gear Games", developer: "Grinding Gear Games", genre: ["RPG", "أكشن"], rating: 4.4, releaseYear: 2013, description: "مجاني Diablo بعمق أكبر! شجرة مهارات ضخمة ومواسم جديدة دائماً.", platforms: ["PC", "PS", "Xbox"], players: "1-6", steamUrl: "https://store.steampowered.com/app/238960/Path_of_Exile/" },
+  { id: "payday-2", name: "PAYDAY 2", cover: "/assets/GameCovor/PAYDAY 2.png", publisher: "505 Games", developer: "Overkill Software", genre: ["شوتر", "تعاوني"], rating: 4.3, releaseYear: 2013, description: "سرقات بنوك تعاونية! خطط ونفّذ واهرب. أكثر من 100 سرقة.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-4", steamUrl: "https://store.steampowered.com/app/218620/PAYDAY_2/" },
+  { id: "payday-3", name: "PAYDAY 3", cover: "/assets/GameCovor/PAYDAY 3.png", publisher: "Deep Silver", developer: "Starbreeze Studios", genre: ["شوتر", "تعاوني"], rating: 3.5, releaseYear: 2023, description: "تكملة PAYDAY! سرقات في نيويورك. أجواء حديثة وتعاوني.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/2218160/PAYDAY_3/" },
+  { id: "remnant-fa", name: "Remnant: From the Ashes", cover: "/assets/GameCovor/Remnant From the Ashes.png", publisher: "Perfect World", developer: "Gunfire Games", genre: ["شوتر", "RPG"], rating: 4.1, releaseYear: 2019, description: "شوتر RPG بعالم مظلم! رؤساء صعبين وعوالم متنوعة وتعاوني.", platforms: ["PC", "PS", "Xbox"], players: "1-3", steamUrl: "https://store.steampowered.com/app/617320/Remnant_From_the_Ashes/" },
+  { id: "remnant-2", name: "Remnant II", cover: "/assets/GameCovor/Remnant II.png", publisher: "Gearbox Publishing", developer: "Gunfire Games", genre: ["شوتر", "RPG"], rating: 4.3, releaseYear: 2023, description: "تكملة أفضل! عوالم أكثر ورؤساء أصعب وبناء شخصيات أعمق.", platforms: ["PC", "PS", "Xbox"], players: "1-3", steamUrl: "https://store.steampowered.com/app/1282100/Remnant_2/" },
+  { id: "returnal", name: "Returnal", cover: "/assets/GameCovor/Returnal.png", publisher: "PlayStation Studios", developer: "Housemarque", genre: ["Roguelike", "شوتر"], rating: 4.3, releaseYear: 2023, description: "حلقة زمنية على كوكب غريب! سيلين تموت وتعود. رعب وأكشن سريع.", platforms: ["PC", "PS"], players: "1", steamUrl: "https://store.steampowered.com/app/1649240/Returnal/" },
+  { id: "robocop-rc", name: "RoboCop: Rogue City", cover: "/assets/GameCovor/RoboCop Rogue City.png", publisher: "Nacon", developer: "Teyon", genre: ["شوتر", "أكشن"], rating: 3.8, releaseYear: 2023, description: "روبوكوب في ديترويت! بطيء وقوي. أنت القانون.", platforms: ["PC", "PS", "Xbox"], players: "1", steamUrl: "https://store.steampowered.com/app/1681430/RoboCop_Rogue_City/" },
+  { id: "street-fighter-6", name: "Street Fighter 6", cover: "/assets/GameCovor/Street Fighter 6.png", publisher: "Capcom", developer: "Capcom", genre: ["قتال", "تنافسي"], rating: 4.5, releaseYear: 2023, description: "أفضل Street Fighter! نظام تحكم سهل وعميق. عالم تجول جديد.", platforms: ["PC", "PS", "Xbox"], players: "1-2", steamUrl: "https://store.steampowered.com/app/1364210/Street_Fighter_6/" },
+  { id: "subnautica", name: "Subnautica", cover: "/assets/GameCovor/Subnautica.png", publisher: "Unknown Worlds", developer: "Unknown Worlds", genre: ["بقاء", "استكشاف"], rating: 4.7, releaseYear: 2018, description: "بقاء تحت الماء! استكشف محيط كوكب غريب. رعب واكتشاف وجمال.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1", steamUrl: "https://store.steampowered.com/app/264710/Subnautica/" },
+  { id: "subnautica-bz", name: "Subnautica: Below Zero", cover: "/assets/GameCovor/Subnautica Below Zero.png", publisher: "Unknown Worlds", developer: "Unknown Worlds", genre: ["بقاء", "استكشاف"], rating: 4.2, releaseYear: 2021, description: "تكملة تحت الجليد! محيط متجمد وأسرار جديدة وقصة أعمق.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1", steamUrl: "https://store.steampowered.com/app/848450/Subnautica_Below_Zero/" },
+  { id: "tekken-8", name: "Tekken 8", cover: "/assets/GameCovor/Tekken 8.png", publisher: "Bandai Namco", developer: "Bandai Namco", genre: ["قتال", "تنافسي"], rating: 4.4, releaseYear: 2024, description: "قتال 3D بأفضل رسومات! شخصيات ميشيما وقصتهم الملحمية.", platforms: ["PC", "PS", "Xbox"], players: "1-2", steamUrl: "https://store.steampowered.com/app/1778820/TEKKEN_8/" },
+  { id: "tiny-tina", name: "Tiny Tina's Wonderlands", cover: "/assets/GameCovor/Tiny Tina’s Wonderlands.png", publisher: "2K Games", developer: "Gearbox Software", genre: ["شوتر", "RPG"], rating: 4.0, releaseYear: 2022, description: "Borderlands بأسلوب D&D! تاينا تيني تحكي قصة فانتازيا مجنونة.", platforms: ["PC", "PS", "Xbox"], players: "1-4", steamUrl: "https://store.steampowered.com/app/1460580/Tiny_Tinas_Wonderlands/" },
+  { id: "trepang2", name: "Trepang2", cover: "/assets/GameCovor/Trepang2.png", publisher: "Focus Entertainment", developer: "Trepang Studios", genre: ["شوتر", "أكشن"], rating: 4.0, releaseYear: 2023, description: "شوتر سريع مثل FEAR! حركة بطيئة وقتال عنيف وأجواء مرعبة.", platforms: ["PC"], players: "1", steamUrl: "https://store.steampowered.com/app/1164640/Trepang2/" },
+  { id: "ultrakill", name: "Ultrakill", cover: "/assets/GameCovor/Ultrakill.png", publisher: "New Blood", developer: "Hakita", genre: ["شوتر", "أكشن"], rating: 4.7, releaseYear: 2020, description: "شوتر سريع بأسلوب ريترو! حركة جنونية ونظام أسلوب مثل DMC.", platforms: ["PC"], players: "1", steamUrl: "https://store.steampowered.com/app/1229490/ULTRAKILL/" },
+  { id: "v-rising", name: "V Rising", cover: "/assets/GameCovor/V Rising.png", publisher: "Stunlock Studios", developer: "Stunlock Studios", genre: ["بقاء", "أكشن"], rating: 4.1, releaseYear: 2022, description: "أنت مصاص دماء! ابنِ قلعتك، اصطد البشر، وحكم الليل.", platforms: ["PC"], players: "1-50", steamUrl: "https://store.steampowered.com/app/1604030/V_Rising/" },
+  { id: "valheim", name: "Valheim", cover: "/assets/GameCovor/Valheim.png", publisher: "Coffee Stain", developer: "Iron Gate", genre: ["بقاء", "عالم مفتوح"], rating: 4.4, releaseYear: 2021, description: "بقاء فايكنغ! ابنِ، قاتل رؤساء، واستكشف عالم الأساطير النوردية.", platforms: ["PC"], players: "1-10", steamUrl: "https://store.steampowered.com/app/892970/Valheim/" },
+  { id: "warframe", name: "Warframe", cover: "/assets/GameCovor/Warframe.png", publisher: "Digital Extremes", developer: "Digital Extremes", genre: ["شوتر", "أكشن"], rating: 4.3, releaseYear: 2013, description: "مجاني! نينجا فضائي بأسلحة غريبة. محتوى ضخم وتحديثات مستمرة.", platforms: ["PC", "PS", "Xbox", "Switch"], players: "1-4", steamUrl: "https://store.steampowered.com/app/230410/Warframe/" },
+  { id: "wh40k-sm2", name: "Warhammer 40K: Space Marine 2", cover: "/assets/GameCovor/Warhammer 40,000 Space Marine 2.png", publisher: "Focus Entertainment", developer: "Saber Interactive", genre: ["شوتر", "أكشن"], rating: 4.4, releaseYear: 2024, description: "سبيس مارين يذبح تايرنيدس! أكشن عنيف وتعاوني مع فرقة.", platforms: ["PC", "PS", "Xbox"], players: "1-3", steamUrl: "https://store.steampowered.com/app/2186880/Warhammer_40000_Space_Marine_2/" },
+  { id: "wo-long", name: "Wo Long: Fallen Dynasty", cover: "/assets/GameCovor/Wo Long Fallen Dynasty.png", publisher: "Koei Tecmo", developer: "Team Ninja", genre: ["RPG", "أكشن"], rating: 4.0, releaseYear: 2023, description: "Souls-like صيني! قتال بالسيوف وسحر في عصر سقوط هان.", platforms: ["PC", "PS", "Xbox"], players: "1-3", steamUrl: "https://store.steampowered.com/app/2285240/Wo_Long_Fallen_Dynasty/" },
 ];
 
 // Color cache to avoid re-extracting
@@ -204,8 +249,8 @@ function extractDominantColor(src: string): Promise<string> {
       }
       if (count === 0) { resolve("rgb(30,30,40)"); return; }
       r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
-      // Darken for use as background tint
-      r = Math.round(r * 0.35); g = Math.round(g * 0.35); b = Math.round(b * 0.35);
+      // Keep color vibrant for glow
+      r = Math.round(r * 0.85); g = Math.round(g * 0.85); b = Math.round(b * 0.85);
       const color = `rgb(${r},${g},${b})`;
       colorCache[src] = color;
       resolve(color);
@@ -217,9 +262,45 @@ function extractDominantColor(src: string): Promise<string> {
 
 const imgProtect = { draggable: false, onContextMenu: (e: React.MouseEvent) => e.preventDefault() } as const;
 
-function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; onFav: () => void; layout: "grid" | "list" }) {
+const platformShort: Record<string, string> = { PC: "PC", PS: "PS", PS5: "PS5", Xbox: "XB", Switch: "SW", Mobile: "Mob", Wii: "Wii" };
+
+const genreColor: Record<string, string> = {
+  "أكشن": "bg-red-500/20 text-red-400 border-red-500/25",
+  "مغامرة": "bg-emerald-500/20 text-emerald-400 border-emerald-500/25",
+  "رعب": "bg-purple-500/20 text-purple-400 border-purple-500/25",
+  "رياضة": "bg-green-500/20 text-green-400 border-green-500/25",
+  "سباق": "bg-cyan-500/20 text-cyan-400 border-cyan-500/25",
+  "قتال": "bg-orange-500/20 text-orange-400 border-orange-500/25",
+  "استراتيجية": "bg-blue-500/20 text-blue-400 border-blue-500/25",
+  "أدوار": "bg-indigo-500/20 text-indigo-400 border-indigo-500/25",
+  "شوتر": "bg-amber-500/20 text-amber-400 border-amber-500/25",
+  "بقاء": "bg-rose-500/20 text-rose-400 border-rose-500/25",
+  "عالم مفتوح": "bg-teal-500/20 text-teal-400 border-teal-500/25",
+  "محاكاة": "bg-sky-500/20 text-sky-400 border-sky-500/25",
+};
+const getGenreClass = (g: string) => genreColor[g] || "bg-white/[0.08] text-white/60 border-white/[0.08]";
+
+function TopPickCard({ game }: { game: Game }) {
+  return (
+    <div onClick={() => { if (game.steamUrl) window.open(game.steamUrl, "_blank"); }} className="shrink-0 w-[120px] group cursor-pointer">
+      <div className="relative overflow-hidden rounded-lg ring-1 ring-white/[0.04] group-hover:ring-white/[0.1] transition-all">
+        <img src={game.cover} alt={game.name} className="w-full aspect-[3/4] object-cover transition-transform duration-300 group-hover:scale-[1.05] select-none pointer-events-none" draggable={false} onContextMenu={e => e.preventDefault()} />
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-1.5 pt-6">
+          <p className="text-[8px] text-white font-bold truncate">{game.name}</p>
+          <div className="flex items-center gap-1 mt-0.5">
+            <Star size={6} className="text-amber-400" fill="currentColor" />
+            <span className="text-[7px] text-amber-400 font-bold">{game.rating}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: boolean; onFav: () => void; layout: "grid" | "list"; index: number }) {
   const [hovered, setHovered] = useState(false);
   const [dominantColor, setDominantColor] = useState("rgb(30,30,40)");
+  const [imgLoaded, setImgLoaded] = useState(false);
   const tRef = useRef<NodeJS.Timeout | null>(null);
   const loadedRef = useRef(false);
 
@@ -233,6 +314,9 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
   const onEnter = () => { tRef.current = setTimeout(() => setHovered(true), 120); };
   const onLeave = () => { if (tRef.current) clearTimeout(tRef.current); setHovered(false); };
 
+  const ratingColor = game.rating >= 4.5 ? "text-emerald-400" : game.rating >= 4.0 ? "text-amber-400" : "text-white/40";
+  const ratingLabel = game.rating >= 4.7 ? "ممتاز" : game.rating >= 4.3 ? "ممتاز جدا" : game.rating >= 4.0 ? "جيد جدا" : game.rating >= 3.5 ? "جيد" : "مقبول";
+
   const dropInfo = (
     <motion.div
       initial={{ opacity: 0, y: -8 }}
@@ -241,28 +325,24 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
       transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="absolute top-full right-0 left-0 z-40 mt-1.5"
     >
-      <div
-        className="rounded-2xl p-4 shadow-2xl shadow-black/80 border border-white/[0.06] bg-black/80 backdrop-blur-2xl"
-      >
+      <div className="rounded-2xl p-4 shadow-2xl shadow-black/80 border border-white/[0.08] bg-black/85 backdrop-blur-2xl">
         <p className="text-[11px] text-white/60 leading-relaxed mb-3">{game.description}</p>
         <div className="flex items-center gap-3 mb-3 text-[9px]">
-          <span className={cn("flex items-center gap-1 font-bold", game.rating >= 4.5 ? "text-emerald-400" : game.rating >= 4.0 ? "text-amber-400" : "text-white/40")}>
+          <span className={cn("flex items-center gap-1 font-bold", ratingColor)}>
             <Star size={9} fill="currentColor" /> {game.rating}
-            <span className="font-normal text-white/25">
-              {game.rating >= 4.7 ? "ممتاز" : game.rating >= 4.3 ? "ممتاز جدا" : game.rating >= 4.0 ? "جيد جدا" : game.rating >= 3.5 ? "جيد" : "مقبول"}
-            </span>
+            <span className="font-normal text-white/25">{ratingLabel}</span>
           </span>
           <span className="flex items-center gap-1 text-white/40"><Calendar size={9} /> {game.releaseYear}</span>
-          <span className="flex items-center gap-1 text-white/40"><Users size={9} /> {game.players} لاعب</span>
+          <span className="flex items-center gap-1 text-white/40"><Users size={9} /> {game.players}</span>
         </div>
         <div className="flex flex-wrap gap-1.5 mb-2.5">
           {game.genre.map(g => (
-            <span key={g} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/[0.06] text-white/70 font-semibold">{g}</span>
+            <span key={g} className={`text-[8px] px-2 py-0.5 rounded-lg font-semibold border ${getGenreClass(g)}`}>{g}</span>
           ))}
         </div>
         <div className="flex flex-wrap gap-1.5 mb-2.5">
           {game.platforms.map(p => (
-            <span key={p} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/[0.04] text-white/40 font-semibold border border-white/[0.04]">{p}</span>
+            <span key={p} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/[0.04] text-white/40 font-semibold border border-white/[0.04]">{platformShort[p] || p}</span>
           ))}
         </div>
         <div className="h-px bg-white/[0.06] my-2.5" />
@@ -281,65 +361,101 @@ function GameCard({ game, isFav, onFav, layout }: { game: Game; isFav: boolean; 
 
   if (layout === "list") {
     return (
-      <div onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative flex items-center gap-3 p-2.5 rounded-xl bg-nf-secondary/5 hover:bg-nf-secondary/20 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+      <motion.div
+        initial={{ opacity: 0, x: 10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.25, delay: Math.min(index * 0.02, 0.4) }}
+        onMouseEnter={onEnter} onMouseLeave={onLeave}
+        className="group relative flex items-center gap-3 p-2.5 rounded-xl bg-nf-secondary/5 hover:bg-nf-secondary/20 transition-all cursor-pointer border border-transparent hover:border-white/5 hover:shadow-lg hover:shadow-black/20"
+      >
         <div className="relative overflow-hidden rounded-lg shrink-0">
-          <img src={game.cover} alt={game.name} {...imgProtect} className="w-11 h-14 object-cover select-none" />
+          <img src={game.cover} alt={game.name} {...imgProtect} className={cn("w-12 h-16 object-cover select-none transition-all duration-300", !imgLoaded && "bg-nf-secondary/20 animate-pulse")} onLoad={() => setImgLoaded(true)} />
+          <div className="absolute top-0.5 right-0.5">
+            <span className="text-[6px] px-1 py-0.5 rounded-md bg-black/60 backdrop-blur-sm text-white/50 font-bold">{game.genre[0]}</span>
+          </div>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[12px] font-bold text-white truncate">{game.name}</p>
           <p className="text-[9px] text-nf-dim/60 mt-0.5">{game.publisher} · {game.developer}</p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="flex items-center gap-0.5"><Star size={8} className="text-amber-400" fill="currentColor" /><span className="text-[8px] text-amber-400 font-bold">{game.rating}</span></span>
+            <span className={cn("flex items-center gap-0.5", ratingColor)}>
+              <Star size={8} fill="currentColor" /><span className="text-[8px] font-bold">{game.rating}</span>
+              <span className="text-[7px] text-white/25">{ratingLabel}</span>
+            </span>
             <span className="text-[8px] text-nf-dim/40">{game.releaseYear}</span>
             <span className="text-[8px] text-nf-dim/30">·</span>
-            <span className="text-[8px] text-nf-dim/40">{game.players} لاعب</span>
+            <span className="text-[8px] text-nf-dim/40">{game.players}</span>
           </div>
-          <div className="flex flex-wrap gap-0.5 mt-1">
-            {game.genre.slice(0, 2).map(g => (<span key={g} className="text-[7px] px-1.5 py-0.5 rounded-md bg-nf-accent/8 text-nf-accent/70 font-semibold">{g}</span>))}
+          <div className="flex items-center gap-1 mt-1">
+            {game.genre.slice(0, 3).map(g => (<span key={g} className={`text-[7px] px-1.5 py-0.5 rounded-md font-semibold border ${getGenreClass(g)}`}>{g}</span>))}
+            <span className="text-[7px] text-nf-dim/20 mx-0.5">|</span>
+            {game.platforms.slice(0, 3).map(p => (<span key={p} className="text-[7px] px-1 py-0.5 rounded bg-white/[0.04] text-white/30 font-semibold">{platformShort[p] || p}</span>))}
           </div>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("shrink-0 p-1 rounded-md transition-all", isFav ? "text-red-400" : "text-nf-dim/30 hover:text-red-400")}>
-          <Heart size={13} fill={isFav ? "currentColor" : "none"} />
-        </button>
+        <div className="flex flex-col items-center gap-1.5 shrink-0">
+          <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("p-1 rounded-md transition-all", isFav ? "text-red-400" : "text-nf-dim/30 hover:text-red-400")}>
+            <Heart size={13} fill={isFav ? "currentColor" : "none"} />
+          </button>
+          {game.steamUrl && (
+            <a href={game.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-1 rounded-md text-nf-dim/30 hover:text-nf-accent transition-colors">
+              <ExternalLink size={11} />
+            </a>
+          )}
+        </div>
         <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div onMouseEnter={onEnter} onMouseLeave={onLeave} className="group relative text-right">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.6) }}
+      onMouseEnter={onEnter} onMouseLeave={onLeave}
+      className="group relative text-right"
+    >
       {/* Glow behind card */}
-      <div className="absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-30 transition-opacity duration-500 blur-lg pointer-events-none" style={{ background: dominantColor }} />
-      <div className="relative overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.04] group-hover:ring-white/[0.1] transition-all duration-300">
-        <img src={game.cover} alt={game.name} {...imgProtect} className="w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] select-none pointer-events-none" />
+      <div className="absolute -inset-6 rounded-3xl opacity-25 group-hover:opacity-100 transition-opacity duration-500 blur-[40px] pointer-events-none" style={{ background: dominantColor }} />
+      <div className="relative overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.04] group-hover:ring-white/[0.12] transition-all duration-300 group-hover:shadow-lg group-hover:shadow-black/30">
+        <img src={game.cover} alt={game.name} {...imgProtect} className={cn("w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05] select-none pointer-events-none", !imgLoaded && "bg-nf-secondary/20 animate-pulse")} onLoad={() => setImgLoaded(true)} />
         {/* Bottom gradient with name + rating */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/50 to-transparent p-2.5 pt-10">
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-2.5 pt-12">
           <p className="text-[11px] text-white font-bold truncate drop-shadow-lg">{game.name}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Star size={8} className="text-amber-400" fill="currentColor" />
             <span className="text-[8px] text-amber-400 font-bold">{game.rating}</span>
             <span className="text-[7px] text-white/20">|</span>
             <span className="text-[7px] text-white/30">{game.releaseYear}</span>
+            <span className="text-[7px] text-white/15">|</span>
+            <span className="text-[7px] text-white/30">{game.players}</span>
+          </div>
+          {/* Platform badges row */}
+          <div className="flex items-center gap-0.5 mt-1">
+            {game.platforms.slice(0, 4).map(p => (<span key={p} className="text-[6px] px-1 py-0.5 rounded bg-white/[0.06] text-white/40 font-semibold">{platformShort[p] || p}</span>))}
           </div>
         </div>
         {/* Genre badge */}
-        <div className="absolute top-1.5 right-1.5">
-          <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-md text-white/60 font-bold border border-white/[0.06]">{game.genre[0]}</span>
+        <div className="absolute top-1.5 right-1.5 flex flex-col gap-1">
+          <span className={`text-[7px] px-1.5 py-0.5 rounded-md backdrop-blur-md font-bold border ${getGenreClass(game.genre[0])}`}>{game.genre[0]}</span>
+          {game.releaseYear >= 2023 && (
+            <span className="text-[6px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 backdrop-blur-md text-emerald-400 font-bold border border-emerald-500/20">جديد</span>
+          )}
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onFav(); }}
           className={cn(
-            "absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200",
+            "absolute top-1.5 left-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200",
             isFav
-              ? "bg-red-500 text-white"
+              ? "bg-red-500 text-white shadow-lg shadow-red-500/30"
               : "bg-black/40 backdrop-blur-sm text-white/50 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100"
           )}
         >
-          <Heart size={10} fill={isFav ? "currentColor" : "none"} />
+          <Heart size={11} fill={isFav ? "currentColor" : "none"} />
         </button>
       </div>
       <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 
@@ -354,6 +470,10 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   const [sortBy, setSortBy] = useState<"name" | "rating" | "year" | "oldest">("name");
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [activeTab, setActiveTab] = useState<"all" | "followed" | "trending" | "new" | "best" | "hot">("all");
+  const [randomGame, setRandomGame] = useState<Game | null>(null);
+  const [showFavList, setShowFavList] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
   // Dropdown states
   const [showGenreDrop, setShowGenreDrop] = useState(false);
   const [showPlatformDrop, setShowPlatformDrop] = useState(false);
@@ -361,6 +481,8 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   const genreDropRef = useRef<HTMLDivElement>(null);
   const platformDropRef = useRef<HTMLDivElement>(null);
   const sortDropRef = useRef<HTMLDivElement>(null);
+  const topPicksRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
@@ -379,6 +501,27 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Keyboard shortcut: Ctrl+K to focus search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  // Scroll to top detection
+  useEffect(() => {
+    const el = pageRef.current?.parentElement;
+    if (!el) return;
+    const handler = () => setShowScrollTop(el.scrollTop > 400);
+    el.addEventListener("scroll", handler, { passive: true });
+    return () => el.removeEventListener("scroll", handler);
   }, []);
 
   const saveFavorites = async (ids: string[]) => {
@@ -420,6 +563,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
   // Featured games for hero
   const featured = GAMES.filter(g => g.rating >= 4.7).slice(0, 5);
+  const topPicks = GAMES.filter(g => g.rating >= 4.5 && g.releaseYear >= 2020).sort((a, b) => b.rating - a.rating).slice(0, 12);
   const [heroIdx, setHeroIdx] = useState(0);
   useEffect(() => {
     if (featured.length === 0) return;
@@ -428,6 +572,12 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   }, [featured.length]);
   const heroGame = featured[heroIdx];
 
+  const pickRandomGame = () => {
+    const pool = filtered.length > 0 ? filtered : GAMES;
+    const g = pool[Math.floor(Math.random() * pool.length)];
+    setRandomGame(g);
+  };
+
   const sortOptions = [
     { id: "name" as const, label: "الاسم", icon: <Tag size={10} /> },
     { id: "rating" as const, label: "التقييم", icon: <Trophy size={10} /> },
@@ -435,8 +585,9 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
     { id: "oldest" as const, label: "الأقدم", icon: <Clock size={10} className="rotate-180" /> },
   ];
 
+
   return (
-    <div className="w-full" style={{ direction: "rtl" }}>
+    <div ref={pageRef} className="w-full" style={{ direction: "rtl" }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
@@ -445,26 +596,40 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
             <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">مكتبة الألعاب</h1>
             <p className="text-[9px] text-nf-dim/50">اكتشف ألعابك المفضلة وتابعها</p>
           </div>
-          <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold border border-nf-accent/20">{GAMES.length} لعبة</span>
         </div>
         <div className="flex items-center gap-2">
-          {favoriteIds.length > 0 && (
-            <button onClick={() => setShowFavOnly(!showFavOnly)} className={cn("flex items-center gap-1 text-[9px] px-2.5 py-1 rounded-full font-bold transition-all border", showFavOnly ? "bg-red-500/15 text-red-400 border-red-500/25" : "bg-red-500/5 text-red-400/70 hover:bg-red-500/10 border-red-500/10 hover:border-red-500/20")}>
-              <Heart size={9} fill={showFavOnly ? "currentColor" : "none"} /> {favoriteIds.length}/20
-            </button>
-          )}
           <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className={cn("p-1.5 rounded-lg text-nf-dim hover:text-white transition-colors border", layout === "grid" ? "bg-nf-secondary/20 border-white/5" : "bg-nf-accent/10 border-nf-accent/20 text-nf-accent")}>
             {layout === "grid" ? <LayoutList size={14} /> : <Grid3X3 size={14} />}
           </button>
         </div>
       </div>
 
+      {/* Stats Bar */}
+      <div className="flex items-center gap-3 mb-4 p-2.5 rounded-xl bg-nf-secondary/5 border border-white/[0.03]">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold border border-nf-accent/20">{GAMES.length} لعبة</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[8px] text-nf-dim/40">
+          <span>{allGenres.length} نوع</span>
+          <span>·</span>
+          <span>{allPlatforms.length} منصة</span>
+          <span>·</span>
+          <span>{GAMES.filter(g => g.releaseYear >= 2023).length} لعبة جديدة 2023+</span>
+        </div>
+        <div className="mr-auto flex items-center gap-1 text-[8px] text-nf-dim/30">
+          <Trophy size={8} className="text-amber-400/60" />
+          <span>{GAMES.filter(g => g.rating >= 4.5).length} لعبة ممتازة</span>
+        </div>
+      </div>
+
       {/* Hero Banner */}
-      {heroGame && !searchQuery && !genreFilter && !platformFilter && activeTab === "all" && (
-        <motion.div key={heroGame.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="relative h-[150px] sm:h-[220px] rounded-2xl overflow-hidden mb-4 group cursor-pointer border border-white/5 hover:border-white/10 transition-colors" onClick={() => { const g = heroGame; if (g.steamUrl) window.open(g.steamUrl, "_blank"); }}>
-          <img src={heroGame.cover} alt={heroGame.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03] select-none pointer-events-none" />
+      {heroGame && !genreFilter && !platformFilter && activeTab === "all" && (
+        <motion.div key={heroGame.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="relative h-[160px] sm:h-[240px] rounded-2xl overflow-hidden mb-4 group cursor-pointer border border-white/5 hover:border-white/10 transition-colors" onClick={() => { const g = heroGame; if (g.steamUrl) window.open(g.steamUrl, "_blank"); }}>
+          <img src={heroGame.cover} alt={heroGame.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05] select-none pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-l from-black/90 via-black/50 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+          {/* Animated glow */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" style={{ background: `radial-gradient(ellipse at 30% 80%, ${(() => { const c = colorCache[heroGame.cover]; return c || "rgba(100,50,200,0.15)"; })()}, transparent 70%)` }} />
           <div className="absolute bottom-0 right-0 p-4 sm:p-6">
             <div className="flex items-center gap-1.5 mb-2">
               <Flame size={11} className="text-orange-400" />
@@ -477,18 +642,48 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
               <span>{heroGame.releaseYear}</span>
               <span className="text-white/30">|</span>
               <span className="px-1.5 py-0.5 rounded-md bg-white/10 text-white/70 font-semibold">{heroGame.genre[0]}</span>
+              <span className="text-white/30">|</span>
+              <span className="flex items-center gap-1">{heroGame.platforms.slice(0, 3).map(p => (<span key={p} className="text-[8px] px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-semibold">{platformShort[p] || p}</span>))}</span>
             </div>
+            {heroGame.steamUrl && (
+              <a href={heroGame.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="inline-flex items-center gap-1.5 mt-2.5 text-[9px] text-white/60 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm">
+                <ExternalLink size={9} /> صفحة Steam
+              </a>
+            )}
           </div>
-          {/* Hero dots */}
+          {/* Hero dots + progress */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
             {featured.map((_, i) => (
-              <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }} className={cn("h-1 rounded-full transition-all", i === heroIdx ? "bg-white w-5" : "bg-white/30 w-1.5 hover:bg-white/50")} />
+              <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }} className={cn("h-1 rounded-full transition-all overflow-hidden", i === heroIdx ? "bg-white/30 w-5" : "bg-white/30 w-1.5 hover:bg-white/50")}>
+                {i === heroIdx && <div className="h-full bg-white rounded-full animate-[heroProgress_5s_linear]" style={{ animation: "heroProgress 5s linear forwards" }} />}
+              </button>
             ))}
           </div>
         </motion.div>
       )}
 
-      {/* Quick Tabs */}
+      {/* Top Picks Row */}
+      {!genreFilter && !platformFilter && activeTab === "all" && topPicks.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-white font-bold">أفضل الاختيارات</span>
+              <span className="text-[8px] text-nf-dim/40">الأعلى تقييماً</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => topPicksRef.current?.scrollBy({ left: -200, behavior: "smooth" })} className="p-1 rounded-md bg-white/5 text-nf-dim hover:text-white transition-colors border border-white/5"><ChevronRight size={12} /></button>
+              <button onClick={() => topPicksRef.current?.scrollBy({ left: 200, behavior: "smooth" })} className="p-1 rounded-md bg-white/5 text-nf-dim hover:text-white transition-colors border border-white/5"><ChevronLeft size={12} /></button>
+            </div>
+          </div>
+          <div ref={topPicksRef} className="flex gap-2.5 overflow-x-auto scrollbar-none pb-1">
+            {topPicks.map(g => (
+              <TopPickCard key={g.id} game={g} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Tabs + Actions */}
       <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1 scrollbar-none">
         {[
           { id: "all" as const, label: "الكل", icon: <Gamepad2 size={10} /> },
@@ -497,17 +692,40 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
           { id: "new" as const, label: "جديد", icon: <Zap size={10} /> },
           { id: "best" as const, label: "الأفضل", icon: <Crown size={10} /> },
           { id: "hot" as const, label: "شو رائج؟", icon: <Flame size={10} /> },
-        ].map(tab => (
+        ].map(tab => {
+          const count = tab.id === "all" ? GAMES.length : tab.id === "followed" ? favoriteIds.length : tab.id === "trending" ? GAMES.filter(g => g.rating >= 4.5).length : tab.id === "new" ? GAMES.filter(g => g.releaseYear >= 2022).length : tab.id === "best" ? GAMES.filter(g => g.rating >= 4.7).length : GAMES.filter(g => g.rating >= 4.3 && g.releaseYear >= 2020).length;
+          return (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border", activeTab === tab.id ? "bg-nf-accent/15 text-nf-accent border-nf-accent/25" : "bg-nf-secondary/10 text-nf-dim hover:text-white border-white/5 hover:border-white/10")}>
-            {tab.icon} {tab.label}
+            {tab.icon} {tab.label} <span className={cn("text-[8px]", activeTab === tab.id ? "text-nf-accent/50" : "text-nf-dim/30")}>{count}</span>
           </button>
-        ))}
+        );})}
+        {/* عشوائي + المفضلة جنب التابات */}
+        <div className="h-4 w-px bg-white/10 mx-1 shrink-0" />
+        <button onClick={pickRandomGame} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border bg-nf-secondary/10 text-nf-dim hover:text-white border-white/5 hover:border-white/10")} title="لعبة عشوائية">
+          <Dice5 size={10} /> عشوائي
+        </button>
+        {favoriteIds.length > 0 && (
+          <button onClick={() => setShowFavOnly(!showFavOnly)} onContextMenu={e => { e.preventDefault(); setShowFavList(true); }} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border", showFavOnly ? "bg-nf-accent/15 text-nf-accent border-nf-accent/25" : "bg-nf-secondary/10 text-nf-dim hover:text-white border-white/5 hover:border-white/10")} title="انقر بزر يمين لعرض المفضلة">
+            <Heart size={10} fill={showFavOnly ? "currentColor" : "none"} /> {favoriteIds.length}/20
+          </button>
+        )}
       </div>
 
       {/* Search */}
       <div className="relative mb-3">
         <Search size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim/50" />
-        <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، مطور، أو نوع..." className="w-full bg-nf-secondary/15 rounded-xl pr-9 pl-4 py-2 text-[11px] text-nf-text placeholder:text-nf-dim/40 outline-none focus:ring-1 focus:ring-nf-accent/20 transition-all border border-white/5 focus:border-nf-accent/25" />
+        <input ref={searchRef} type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، مطور، أو نوع..." className="w-full bg-nf-secondary/15 rounded-xl pr-9 pl-16 py-2 text-[11px] text-nf-text placeholder:text-nf-dim/40 outline-none focus:ring-1 focus:ring-nf-accent/20 transition-all border border-white/5 focus:border-nf-accent/25" />
+        {searchQuery && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            <span className="text-[9px] text-nf-accent/60 font-bold">{filtered.length}</span>
+            <button onClick={() => setSearchQuery("")} className="p-0.5 rounded-md text-nf-dim/50 hover:text-white transition-colors bg-white/5">
+              <X size={10} />
+            </button>
+          </div>
+        )}
+        {!searchQuery && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[8px] text-nf-dim/25 font-semibold select-none">Ctrl+K</span>
+        )}
       </div>
 
       {/* Filter Row: Dropdowns */}
@@ -583,23 +801,67 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* Grid / List */}
-      {layout === "grid" ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" />))}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {filtered.map(g => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="list" />))}
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {layout === "grid" ? (
+          <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+            {filtered.map((g, i) => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" index={i} />))}
+          </motion.div>
+        ) : (
+          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex flex-col gap-1.5">
+            {filtered.map((g, i) => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="list" index={i} />))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {filtered.length === 0 && (
-        <div className="text-center py-16">
-          <div className="w-14 h-14 rounded-2xl bg-nf-secondary/20 flex items-center justify-center mx-auto mb-3 border border-white/5"><Gamepad2 size={24} className="text-nf-dim/30" /></div>
-          <p className="text-[12px] text-nf-dim font-semibold">لا توجد نتائج</p>
-          <p className="text-[10px] text-nf-dim/40 mt-1">جرّب تغيير الفلاتر أو البحث بكلمات أخرى</p>
-        </div>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16">
+          <div className="w-16 h-16 rounded-2xl bg-nf-secondary/20 flex items-center justify-center mx-auto mb-3 border border-white/5"><Gamepad2 size={28} className="text-nf-dim/30" /></div>
+          <p className="text-[13px] text-nf-dim font-bold">لا توجد نتائج</p>
+          <p className="text-[10px] text-nf-dim/40 mt-1 mb-4">جرّب تغيير الفلاتر أو البحث بكلمات أخرى</p>
+          <button onClick={() => { setSearchQuery(""); setGenreFilter(null); setPlatformFilter(null); setActiveTab("all"); }} className="px-4 py-2 rounded-xl bg-nf-accent/10 text-nf-accent text-[11px] font-bold hover:bg-nf-accent/20 transition-colors border border-nf-accent/20">مسح الفلاتر</button>
+        </motion.div>
       )}
+
+      <AnimatePresence>
+        {randomGame && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setRandomGame(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }} className="bg-nf-primary border border-white/10 rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="relative h-40">
+                <img src={randomGame.cover} alt={randomGame.name} className="w-full h-full object-cover select-none" draggable={false} />
+                <div className="absolute inset-0 bg-gradient-to-t from-nf-primary to-transparent" />
+                <button onClick={() => setRandomGame(null)} className="absolute top-2 left-2 p-1.5 rounded-lg bg-black/50 backdrop-blur-sm text-white/70 hover:text-white transition-colors"><X size={14} /></button>
+                <div className="absolute top-2 right-2">
+                  <span className="text-[8px] px-2 py-0.5 rounded-md bg-nf-accent/20 backdrop-blur-sm text-nf-accent font-bold border border-nf-accent/20">عشوائي</span>
+                </div>
+              </div>
+              <div className="p-4 -mt-4 relative">
+                <h3 className="text-sm font-bold text-white mb-1">{randomGame.name}</h3>
+                <p className="text-[10px] text-nf-dim/60 leading-relaxed mb-3">{randomGame.description}</p>
+                <div className="flex items-center gap-3 mb-3 text-[9px]">
+                  <span className={cn("flex items-center gap-1 font-bold", randomGame.rating >= 4.5 ? "text-emerald-400" : randomGame.rating >= 4.0 ? "text-amber-400" : "text-white/40")}>
+                    <Star size={9} fill="currentColor" /> {randomGame.rating}
+                  </span>
+                  <span className="flex items-center gap-1 text-white/40"><Calendar size={9} /> {randomGame.releaseYear}</span>
+                  <span className="flex items-center gap-1 text-white/40"><Users size={9} /> {randomGame.players}</span>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {randomGame.genre.map(g => (<span key={g} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/[0.06] text-white/70 font-semibold">{g}</span>))}
+                </div>
+                <div className="flex items-center gap-2">
+                  {randomGame.steamUrl && (
+                    <a href={randomGame.steamUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-nf-accent text-white text-[11px] font-bold hover:bg-nf-accent/80 transition-colors">
+                      <ExternalLink size={10} /> صفحة Steam
+                    </a>
+                  )}
+                  <button onClick={pickRandomGame} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-nf-accent/10 text-nf-accent text-[11px] font-bold hover:bg-nf-accent/20 transition-colors border border-nf-accent/20">
+                    <Dice5 size={10} /> لعبة ثانية
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showFavModal && (
@@ -613,6 +875,51 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Favorites List Modal */}
+      <AnimatePresence>
+        {showFavList && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowFavList(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }} className="bg-nf-primary border border-white/10 rounded-2xl p-4 max-w-sm w-full shadow-2xl max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2"><Heart size={14} className="text-red-400" fill="currentColor" /> المفضلة ({favoriteIds.length}/20)</h3>
+                <button onClick={() => setShowFavList(false)} className="p-1 rounded-lg text-nf-dim hover:text-white transition-colors"><X size={14} /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto scrollbar-none space-y-1.5">
+                {favoriteIds.map(id => {
+                  const g = GAMES.find(g => g.id === id);
+                  if (!g) return null;
+                  return (
+                    <div key={id} className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors border border-white/[0.04]">
+                      <img src={g.cover} alt={g.name} className="w-8 h-10 rounded-md object-cover select-none" draggable={false} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] text-white font-bold truncate">{g.name}</p>
+                        <p className="text-[8px] text-nf-dim/50">{g.genre[0]} · {g.releaseYear}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Star size={7} className="text-amber-400" fill="currentColor" />
+                        <span className="text-[9px] text-amber-400 font-bold">{g.rating}</span>
+                      </div>
+                      <button onClick={() => { toggleFavorite(id); if (favoriteIds.length <= 1) setShowFavList(false); }} className="p-1 rounded-md text-red-400/50 hover:text-red-400 transition-colors"><X size={12} /></button>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Scroll to top */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} onClick={() => pageRef.current?.parentElement?.scrollTo({ top: 0, behavior: "smooth" })} className="fixed bottom-6 left-6 z-40 w-9 h-9 rounded-full bg-nf-accent/80 text-white flex items-center justify-center shadow-lg shadow-nf-accent/20 hover:bg-nf-accent transition-colors">
+            <ArrowUp size={16} />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      <style>{`@keyframes heroProgress { from { width: 0%; } to { width: 100%; } }`}</style>
     </div>
   );
 }

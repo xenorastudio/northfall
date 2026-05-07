@@ -533,6 +533,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 comments={post.commentCount || 0}
                 awards={post.awards}
                 poll={post.poll}
+                quotedPostId={post.quotedPostId}
                 onPostClick={onPostClick}
                 onEditClick={onEditClick}
                 onDeleteClick={onDeleteClick}
@@ -590,6 +591,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 comments={post.commentCount || 0}
                 awards={post.awards}
                 poll={post.poll}
+                quotedPostId={post.quotedPostId}
                 onPostClick={onPostClick}
                 onEditClick={onEditClick}
                 onDeleteClick={onDeleteClick}

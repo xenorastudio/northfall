@@ -10,7 +10,7 @@ import {
   ArrowLeft, ArrowUp, ThumbsUp, ThumbsDown, Share2, Reply, Home, Star,
   HelpCircle, Lightbulb, Bug, Sparkles, BookOpen, Menu, Calendar, MessageCirclePlus,
   LogIn, Settings, Bell, TrendingUp, Shield, Award, BarChart3, Users, Activity, RotateCcw, ChevronDown, Check,
-  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft
+  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft, Quote
 } from "lucide-react";
 import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -204,7 +204,7 @@ interface ForumThread {
 
 interface ReplyData {
   id: string; text: string; authorName: string; authorUid: string; authorPhoto?: string;
-  createdAt: string; votes?: number; edited?: boolean;
+  createdAt: string; votes?: number; edited?: boolean; quotedThreadId?: string;
 }
 
 function timeAgo(ts: any): string {
@@ -492,7 +492,7 @@ function renderBody(text: string, onMentionClick?: (name: string) => void) {
             parts.forEach((part) => {
               if (part.startsWith("@") && part.length > 1) {
                 const mentionName = part.slice(1);
-                p += `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold cursor-pointer hover:bg-nf-accent/20 transition-colors mention-link" data-mention="${mentionName}">@${mentionName}</span>`;
+                p += `<span class="text-blue-400 font-semibold cursor-pointer hover:text-blue-300 transition-colors mention-link" data-mention="${mentionName}">@${mentionName}</span>`;
               } else {
                 p += hlInline(part);
               }
@@ -630,7 +630,7 @@ function renderBody(text: string, onMentionClick?: (name: string) => void) {
           parts.forEach((part) => {
             if (part.startsWith("@") && part.length > 1) {
               const mentionName = part.slice(1);
-              p += `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold cursor-pointer hover:bg-nf-accent/20 transition-colors mention-link" data-mention="${mentionName}">@${mentionName}</span>`;
+              p += `<span class="text-blue-400 font-semibold cursor-pointer hover:text-blue-300 transition-colors mention-link" data-mention="${mentionName}">@${mentionName}</span>`;
             } else {
               p += hlInline(part);
             }
@@ -797,6 +797,7 @@ export default function ForumsPage() {
   const [userVotes, setUserVotes] = useState<Record<string, "up" | "down">>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [quotedThreadId, setQuotedThreadId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectionRect, setSelectionRect] = useState<DOMRect | null>(null);
   const [selectedText, setSelectedText] = useState("");
@@ -1485,6 +1486,10 @@ export default function ForumsPage() {
   }, [aiMessages]);
   // Single animation loop using ref — avoids useEffect cleanup clearing timers
   useEffect(() => {
+    // Only run animation loop when in AI view and there are messages that need typing animation
+    if (viewMode !== "ai") return;
+    const hasActiveTyping = aiMessages.some(m => m.role === "assistant" && !m.isTyping && m.content && (aiTypingProgress[m.id] ?? 0) < m.content.length);
+    if (!hasActiveTyping) return;
     let active = true;
     const tick = () => {
       if (!active) return;
@@ -1502,11 +1507,11 @@ export default function ForumsPage() {
         }
         return changed ? next : prev;
       });
-      setTimeout(tick, 12);
+      setTimeout(tick, 30);
     };
-    const id = setTimeout(tick, 12);
+    const id = setTimeout(tick, 30);
     return () => { active = false; clearTimeout(id); };
-  }, []);
+  }, [viewMode, aiMessages, aiTypingProgress]);
   useEffect(() => { if (viewMode === "ai") aiChatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages, aiTypingProgress]);
   useEffect(() => { if (!aiGenerating) return; const id = setInterval(() => setAiTypingPhase(p => (p + 1) % 3), 2000); return () => clearInterval(id); }, [aiGenerating]);
   useEffect(() => { const h = (e: MouseEvent) => { if (aiModelDropdownRef.current && !aiModelDropdownRef.current.contains(e.target as Node)) setAiModelDropdown(false); if (aiModeDropdownRef.current && !aiModeDropdownRef.current.contains(e.target as Node)) setAiModeDropdown(false); }; document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h); }, []);
@@ -1736,7 +1741,7 @@ export default function ForumsPage() {
     setThreads(p => p.map(th => th.id === threadId ? { ...th, votes: (th.votes || 0) + delta } : th));
   };
   const handleCreateThread = async () => { if (!newTitle.trim()) return; setCreating(true); setCreateBlur(true); try { const tagsArr = newTags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 5); const threadData = { title: newTitle.trim(), body: newBody.trim(), authorName, authorUid, authorPhoto, community: newCommunity, pinned: false, locked: false, solved: false, replyCount: 0, views: 0, votes: 0, createdAt: new Date().toISOString(), tags: tagsArr, type: newType }; const docId = await createThread(newCommunity, threadData); if (newCommunity === selectedCommunity) setThreads(prev => [{ id: docId, ...threadData }, ...prev]); setNewTitle(""); setNewBody(""); setNewTags(""); setNewType("discussion"); setCreating(false); setTimeout(() => { setViewMode("list"); setTimeout(() => setCreateBlur(false), 100); }, 500); } catch { setCreateBlur(false); setCreating(false); } };
-  const handleReply = async (threadId: string) => { if (!replyText.trim()) return; try { const rd = { text: replyText.trim(), authorName, authorUid, authorPhoto, createdAt: new Date().toISOString(), votes: 0 }; await addReply(selectedCommunity, threadId, rd); setReplies(prev => ({ ...prev, [threadId]: [...(prev[threadId] || []), { id: "temp-" + Date.now(), ...rd }] })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: th.replyCount + 1, lastReplyAt: new Date().toISOString(), lastReplyBy: authorName } : th)); setReplyText(""); setReplyingTo(null); setTimeout(() => replyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {} };
+  const handleReply = async (threadId: string) => { if (!replyText.trim()) return; try { const rd = { text: replyText.trim(), authorName, authorUid, authorPhoto, createdAt: new Date().toISOString(), votes: 0, ...(quotedThreadId ? { quotedThreadId } : {}) }; await addReply(selectedCommunity, threadId, rd); setReplies(prev => ({ ...prev, [threadId]: [...(prev[threadId] || []), { id: "temp-" + Date.now(), ...rd }] })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: th.replyCount + 1, lastReplyAt: new Date().toISOString(), lastReplyBy: authorName } : th)); setReplyText(""); setReplyingTo(null); setQuotedThreadId(null); setTimeout(() => replyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {} };
   const handleDeleteReply = async (threadId: string, replyId: string) => { try { await deleteReplyHelper(selectedCommunity, threadId, replyId); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).filter(r => r.id !== replyId) })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: Math.max(0, th.replyCount - 1) } : th)); setMenuOpen(null); } catch {} };
   const handleEditReply = async (threadId: string, replyId: string) => { if (!editText.trim()) return; try { await updateReply(selectedCommunity, threadId, replyId, editText.trim()); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).map(r => r.id === replyId ? { ...r, text: editText.trim(), edited: true } : r) })); setEditingReply(null); setEditText(""); setMenuOpen(null); } catch {} };
 
@@ -2427,6 +2432,7 @@ export default function ForumsPage() {
                         <div className="flex items-center justify-between mt-5 pt-3 border-t border-nf-border">
                           <div className="flex items-center gap-2 flex-wrap">
                             <button onClick={() => setReplyingTo(activeThread.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-bold transition-colors"><Reply size={13} /> رد</button>
+                            <button onClick={() => { setQuotedThreadId(activeThread.id); setReplyingTo(activeThread.id); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-bold transition-colors"><Quote size={13} /> اقتباس</button>
                             <button onClick={() => openShare(activeThread.id, activeThread.title)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors"><Share2 size={12} /> مشاركة</button>
                             <button onClick={() => copyText(`${window.location.origin}/NewPage?view=thread&threadId=${activeThread.id}&community=${activeThread.community}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors"><Link2 size={12} /> نسخ الرابط</button>
                             <button onClick={() => { const n = new Set(savedThreads); if (n.has(activeThread.id)) { n.delete(activeThread.id); showToast("تم إزالة الحفظ"); } else { n.add(activeThread.id); showToast("تم الحفظ ✓"); } setSavedThreads(n); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors", savedThreads.has(activeThread.id) ? "text-nf-accent hover:bg-nf-secondary/40" : "text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40")}><Bookmark size={12} fill={savedThreads.has(activeThread.id) ? "currentColor" : "none"} /> حفظ</button>
@@ -2632,9 +2638,35 @@ export default function ForumsPage() {
                                   <button onClick={() => setEditingReply(null)} className="text-nf-dim hover:text-nf-text text-[12px] font-bold px-4 py-2 rounded-lg hover:bg-nf-secondary/40">إلغاء</button>
                                 </div>
                               </div>
-                            ) : <div className="text-[16px] text-nf-text leading-[2.2]">{renderBody(reply.text, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); })}</div>}
+                            ) : <>
+                              {reply.quotedThreadId && (() => {
+                                const qt = threads.find(t => t.id === reply.quotedThreadId) || allThreads.find(t => t.id === reply.quotedThreadId);
+                                if (!qt) return null;
+                                return (
+                                  <div onClick={() => openThread(qt.id)} className="mb-3 rounded-lg border border-nf-border-2/40 bg-[#16161a] px-4 pt-3 pb-2 cursor-pointer hover:bg-[#1c1c22] hover:border-nf-border-2/70 transition-all duration-150">
+                                    <div className="flex items-center gap-2 text-[12px] mb-1.5">
+                                      <div className="w-4 h-4 rounded-full bg-nf-secondary overflow-hidden shrink-0">
+                                        {qt.authorPhoto ? <img src={qt.authorPhoto} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[7px] text-nf-muted font-bold">{(qt.authorName || "U")[0]}</div>}
+                                      </div>
+                                      <span className="font-semibold text-nf-accent">{qt.community}</span>
+                                      <span className="text-nf-dim">·</span>
+                                      <span className="text-nf-muted">u/{qt.authorName}</span>
+                                      <span className="text-nf-dim">·</span>
+                                      <span className="text-nf-muted">{timeAgo(qt.createdAt)}</span>
+                                    </div>
+                                    {qt.title && <h4 className="text-[14px] font-bold text-white/80 leading-snug mb-1">{qt.title}</h4>}
+                                    {qt.body && <p className="text-[12px] text-nf-text-2/80 leading-relaxed line-clamp-2">{qt.body.replace(/[#*_`\[\]\(\)]/g, "").slice(0, 150)}</p>}
+                                    <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-nf-border-2/30 text-nf-dim">
+                                      <button onClick={(e) => { e.stopPropagation(); setQuotedThreadId(qt.id); setReplyingTo(activeThreadId); setReplyText(`@${qt.authorName} `); }} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] hover:bg-nf-hover hover:text-white transition-colors"><Quote size={9} />اقتباس</button>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                              <div className="text-[16px] text-nf-text leading-[2.2]">{renderBody(reply.text, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); })}</div>
+                            </>}
                             <div className="flex items-center gap-4 mt-4">
                               <button onClick={() => { setReplyingTo(reply.id); setReplyText(`@${reply.authorName} `); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-bold transition-colors"><Reply size={12} /> رد</button>
+                              <button onClick={() => { setQuotedThreadId(activeThread.id); setReplyingTo(activeThreadId); setReplyText(`@${reply.authorName} `); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-bold transition-colors"><Quote size={12} /> اقتباس</button>
                               <button onClick={() => { copyText(reply.text); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Copy size={11} /> نسخ</button>
                               <button onClick={() => openShare(activeThread.id, activeThread.title)} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Share2 size={11} /> مشاركة</button>
                               {/* AI tools for reply - per-reply state */}
@@ -2765,12 +2797,35 @@ export default function ForumsPage() {
                       onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
                       onDrop={e => { e.preventDefault(); e.stopPropagation(); const text = e.dataTransfer.getData('text/plain'); if (text) setReplyText(prev => prev + text); const files = e.dataTransfer.files; if (files.length > 0) { Array.from(files).forEach(f => { if (f.type.startsWith('image/')) { setReplyText(prev => `${prev}\n![${f.name}](اسحب الصورة هنا)\n`); showToast(`تم إضافة ${f.name} — ارفع الصورة أولاً ثم ضع الرابط`); } }); } }}>
                       {/* Reply-to indicator */}
-                      {replyingTo && (
+                      {replyingTo && !quotedThreadId && (
                         <div className="flex items-center justify-between px-4 py-2 mb-4 bg-nf-accent/5 rounded-lg">
                           <span className="flex items-center gap-1.5 text-[12px] text-nf-accent font-bold"><Reply size={12} /> رد على {activeReplies.find(r => r.id === replyingTo)?.authorName || "الموضوع"}</span>
                           <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40"><X size={14} /></button>
                         </div>
                       )}
+                      {/* Quote preview */}
+                      {quotedThreadId && (() => {
+                        const qt = threads.find(t => t.id === quotedThreadId) || allThreads.find(t => t.id === quotedThreadId);
+                        if (!qt) return null;
+                        return (
+                          <div className="mb-4 rounded-lg border border-nf-border-2/40 bg-[#16161a] overflow-hidden">
+                            <div className="px-3 pt-2.5 pb-2">
+                              <div className="flex items-center gap-1.5 text-[11px] mb-1">
+                                <Quote size={10} className="text-nf-accent" />
+                                <span className="font-semibold text-nf-accent">{qt.community}</span>
+                                <span className="text-nf-dim">·</span>
+                                <span className="text-nf-muted">u/{qt.authorName}</span>
+                              </div>
+                              {qt.title && <h4 className="text-[13px] font-bold text-white/80 leading-snug mb-0.5">{qt.title}</h4>}
+                              {qt.body && <p className="text-[11px] text-nf-text-2/80 leading-relaxed line-clamp-2">{qt.body.replace(/[#*_`\[\]\(\)]/g, "").slice(0, 100)}</p>}
+                            </div>
+                            <div className="flex items-center justify-between px-3 py-1 border-t border-nf-border-2/30">
+                              <span className="text-[9px] text-nf-dim">سيتم اقتباس هذا الموضوع</span>
+                              <button onClick={() => setQuotedThreadId(null)} className="text-[9px] text-nf-dim hover:text-red-400 flex items-center gap-1 transition-colors"><X size={9} />إزالة</button>
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <div className="flex items-center gap-3 mb-4">
                         {user?.photoURL ? <img src={user.photoURL} alt="" className="w-9 h-9 rounded-full object-cover" /> : <div className="w-9 h-9 rounded-full bg-nf-muted flex items-center justify-center text-white text-[13px] font-bold">م</div>}
                         <div>

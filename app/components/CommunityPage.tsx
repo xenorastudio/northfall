@@ -266,6 +266,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
               comments={post.commentCount || 0}
               awards={post.awards}
               poll={post.poll}
+              quotedPostId={post.quotedPostId}
               onPostClick={onPostClick}
               onEditClick={onEditClick}
               onDeleteClick={onDeleteClick}
