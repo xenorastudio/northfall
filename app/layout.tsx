@@ -48,11 +48,15 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: SITE_URL,
+    types: {
+      'application/rss+xml': `${SITE_URL}/feed.xml`,
+    },
   },
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
   },
+  manifest: '/manifest.json',
   verification: {
     google: 'google-site-verification-code',
   },
