@@ -147,6 +147,13 @@ html, body, * { scrollbar-width: none; }
   0%, 100% { box-shadow: 0 0 8px rgba(168, 85, 247, 0.15); }
   50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.3); }
 }
+
+/* Animated gradient shift for AI button */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 .ai-glow {
   animation: glowPulse 2s ease-in-out infinite;
 }

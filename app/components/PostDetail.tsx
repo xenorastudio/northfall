@@ -669,10 +669,10 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
           {/* AI Dropdown */}
           <div className="relative" ref={aiDropRef}>
-            <button onClick={() => setAiDropOpen(!aiDropOpen)} className={cn("flex items-center gap-1 text-[10px] font-semibold transition-all", aiDropOpen ? "text-nf-accent" : "text-nf-dim/40 hover:text-nf-accent")}>
-              <Sparkles size={10} className={cn("transition-colors", aiDropOpen ? "text-nf-accent" : "text-nf-accent/40")} />
+            <button onClick={() => setAiDropOpen(!aiDropOpen)} className={cn("flex items-center gap-1 text-[10px] font-semibold transition-all rounded-md px-1.5 py-0.5 text-white overflow-hidden relative", aiDropOpen ? "ring-1 ring-white/20" : "hover:ring-1 hover:ring-white/10")} style={{ background: "linear-gradient(90deg, #5bfcc4, #f593e4, #71a4f0)", backgroundSize: "200% 100%", animation: "gradientShift 3s ease infinite", textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
+              <Sparkles size={10} className="shrink-0" />
               <span>AI</span>
-              <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-40", aiDropOpen && "rotate-180")} />
+              <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-60", aiDropOpen && "rotate-180")} />
             </button>
             {aiDropOpen && (
               <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-white/10 shadow-xl shadow-black/40 min-w-[200px] overflow-hidden" style={{ backgroundColor: "rgba(18,18,20,0.85)", backdropFilter: "blur(20px) saturate(1.2)" }}>
