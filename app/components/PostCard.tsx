@@ -535,38 +535,6 @@ export default function PostCard({
           <Eye size={12} />{views > 0 ? views : "--"}
         </span>
         <div className="flex-1" />
-        {/* AI Dropdown - right side */}
-        <div className="relative" ref={aiDropRef}>
-          <button onClick={(e) => { e.stopPropagation(); setAiDropOpen(!aiDropOpen); }} className={cn("ai-btn", aiDropOpen && "ai-btn-active")} style={{ fontSize: 10, padding: "2px 8px", gap: 3 }}>
-            <Sparkles size={10} className="ai-btn-icon" />
-            <span className="ai-btn-letter">AI</span>
-            <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-60", aiDropOpen && "rotate-180")} />
-          </button>
-          {aiDropOpen && (
-            <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-white/10 shadow-xl shadow-black/40 min-w-[200px] overflow-hidden" style={{ backgroundColor: "rgba(18,18,20,0.85)", backdropFilter: "blur(20px) saturate(1.2)" }}>
-              <div className="py-0.5">
-                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("explain"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                  <BookOpen size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">اشرح لي</span>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("summarize"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                  <FileText size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">لخّص</span>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("translate"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                  <Languages size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">ترجمة</span>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("correct"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                  <FileText size={10} className="text-amber-400/40" /> <span className="flex-1 text-right">تصحيح</span>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("tags"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                  <BookOpen size={10} className="text-blue-400/40" /> <span className="flex-1 text-right">وسوم</span>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleAiExplain("morefeatures"); }} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-white/5")}>
-                  <Sparkles size={10} className="text-purple-400/40" /> <span className="flex-1 text-right">نص محسّن</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
         <div className="relative">
           <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="hover:text-white transition-colors p-0.5 rounded hover:bg-nf-hover"><MoreHorizontal size={16} /></button>
           {showMenu && (
