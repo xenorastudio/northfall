@@ -53,6 +53,9 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
   },
+  verification: {
+    google: 'google-site-verification-code',
+  },
 };
 
 export default function RootLayout({
@@ -80,16 +83,6 @@ export default function RootLayout({
         },
       },
       {
-        '@type': 'BreadcrumbList',
-        '@id': `${SITE_URL}/#breadcrumb`,
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: SITE_URL },
-          { '@type': 'ListItem', position: 2, name: 'المجتمع', item: `${SITE_URL}/app` },
-          { '@type': 'ListItem', position: 3, name: 'الألعاب', item: `${SITE_URL}/app?view=games` },
-          { '@type': 'ListItem', position: 4, name: 'المنتدى', item: `${SITE_URL}/NewPage` },
-        ],
-      },
-      {
         '@type': 'Organization',
         '@id': `${SITE_URL}/#organization`,
         name: SITE_NAME,
@@ -101,17 +94,17 @@ export default function RootLayout({
         sameAs: [],
       },
       {
-        '@type': 'WebPage',
-        '@id': `${SITE_URL}/#webpage`,
-        url: SITE_URL,
-        name: 'NorthFall — منصة المجتمعات العربية',
-        isPartOf: { '@id': `${SITE_URL}/#website` },
-        about: { '@id': `${SITE_URL}/#organization` },
-        inLanguage: 'ar',
-        potentialAction: {
-          '@type': 'ReadAction',
-          target: SITE_URL,
-        },
+        '@type': 'ItemList',
+        '@id': `${SITE_URL}/#navigation`,
+        itemListElement: [
+          { '@type': 'SiteNavigationElement', name: 'الرئيسية', url: `${SITE_URL}/app` },
+          { '@type': 'SiteNavigationElement', name: 'الألعاب', url: `${SITE_URL}/app?view=games` },
+          { '@type': 'SiteNavigationElement', name: 'المنتدى', url: `${SITE_URL}/NewPage` },
+          { '@type': 'SiteNavigationElement', name: 'مجتمع Unity', url: `${SITE_URL}/community/Unity` },
+          { '@type': 'SiteNavigationElement', name: 'مجتمع Unreal', url: `${SITE_URL}/community/Unreal` },
+          { '@type': 'SiteNavigationElement', name: 'مجتمع Godot', url: `${SITE_URL}/community/Godot` },
+          { '@type': 'SiteNavigationElement', name: 'مجتمع Blender', url: `${SITE_URL}/community/Blender` },
+        ],
       },
     ],
   };
@@ -123,8 +116,6 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#1e1e20" />
       </head>
       <body className={`${cairo.variable} ${inter.variable} font-cairo min-h-screen w-full bg-[#1e1e20] text-[#e0e0e0] antialiased overflow-x-hidden`}>
         {children}

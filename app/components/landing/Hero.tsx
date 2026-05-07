@@ -3,36 +3,8 @@
 import Link from "next/link";
 
 export function Hero() {
-  const faqSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: 'ما هو NorthFall؟',
-        acceptedAnswer: { '@type': 'Answer', text: 'NorthFall هي منصة المجتمعات العربية الأولى للألعاب والتقنية، توفر مساحات مخصصة لـ Unity و Unreal و Godot و Blender مع نقاشات فورية وتجربة عربية بالكامل.' },
-      },
-      {
-        '@type': 'Question',
-        name: 'كيف أنضم لمجتمع على NorthFall؟',
-        acceptedAnswer: { '@type': 'Answer', text: 'يمكنك الانضمام مجاناً عبر إنشاء حساب ثم اختيار المجتمع الذي تريده مثل Unity أو Unreal أو Godot أو Blender والبدء بالنقاش والتفاعل فوراً.' },
-      },
-      {
-        '@type': 'Question',
-        name: 'هل NorthFall مجاني؟',
-        acceptedAnswer: { '@type': 'Answer', text: 'نعم، NorthFall مجاني بالكامل. يمكنك إنشاء حساب والانضمام للمجتمعات والمشاركة في النقاشات واكتشاف الألعاب بدون أي رسوم.' },
-      },
-      {
-        '@type': 'Question',
-        name: 'ما المجتمعات المتوفرة على NorthFall؟',
-        acceptedAnswer: { '@type': 'Answer', text: 'يتوفر على NorthFall مجتمعات مخصصة لـ Unity و Unreal Engine و Godot و Blender مع أدوات وتفاعلات مصممة خصيصاً لكل محرك.' },
-      },
-    ],
-  };
-
   return (
-    <section className="pt-32 pb-24 px-6 relative overflow-hidden bg-black" aria-label="الصفحة الرئيسية">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+    <section className="pt-32 pb-24 px-6 relative overflow-hidden bg-black">
       <div className="max-w-6xl mx-auto relative">
         {/* Badge */}
         <div className="flex justify-center mb-10">
@@ -41,7 +13,7 @@ export function Hero() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-[13px] text-white/40 hover:border-white/[0.15] transition-colors"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>منصة مطوري الألعاب العرب</span>
+            <span>The Arab Game Dev Platform</span>
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -51,22 +23,23 @@ export function Hero() {
         {/* Main Headline */}
         <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-[-0.02em] leading-[1.1] mb-6">
-            منصة المجتمعات
+            The community platform
             <br />
-            <span className="text-white/25">المبنية للمطورين العرب</span>
+            <span className="text-white/25">built for Arab devs</span>
           </h1>
 
           <p className="text-base sm:text-lg text-white/30 max-w-lg mx-auto mb-10 leading-relaxed">
-            مساحات مخصصة لـ Unity و Unreal و Godot و Blender. نقاشات فورية، تجربة عربية بالكامل، ومجتمع يفهمك فعلاً.
+            Dedicated spaces for Unity, Unreal, Godot &amp; Blender. Real-time discussions,
+            Arabic-first experience, and a community that actually gets it.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
             <Link href="/app" className="inline-flex items-center justify-center px-6 py-2.5 text-[14px] font-semibold bg-white text-black rounded-lg hover:bg-white/90 transition-colors">
-              ابدأ مجاناً
+              Get started free
             </Link>
             <a href="#features" className="inline-flex items-center justify-center px-6 py-2.5 text-[14px] font-medium text-white/35 hover:text-white/70 transition-colors">
-              عرض المميزات ←
+              View features →
             </a>
           </div>
         </div>
@@ -190,7 +163,7 @@ export function Hero() {
 
         {/* Social Proof */}
         <div className="mt-16 text-center">
-          <p className="text-sm text-white/20 mb-6">مبني لمشهد تطوير الألعاب العربي</p>
+          <p className="text-sm text-white/20 mb-6">Built for the Arab game dev scene</p>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-30">
             {["Unity", "Unreal", "Godot", "Blender", "GameDev"].map((name) => (
               <span key={name} className="text-lg font-semibold text-white/30">{name}</span>
