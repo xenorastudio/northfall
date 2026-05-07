@@ -1,0 +1,157 @@
+# NorthFall
+
+[NorthFall](https://northfall.blog/)
+Features
+Communities
+Discussions
+The Arab Game Dev Platform
+
+# The community platformbuilt for Arab devs
+Dedicated spaces for Unity, Unreal, Godot & Blender. Real-time discussions, Arabic-first experience, and a community that actually gets it.
+[Get started free](https://northfall.blog/app)
+View features →
+
+### Your Communities
+
+### How do you handle LOD in large open worlds with Unreal Engine 5?
+
+### I built an Arabic localization plugin for Unity — open source
+
+### Godot 4.4 shader tutorial for beginners (Arabic)
+Built for the Arab game dev scene
+
+## Everything you need to build community
+Powerful features designed for Arab game developers to create, grow, and manage thriving communities.
+
+### Real-time Discussions
+Engage in live conversations with instant updates. No refresh needed.
+
+### Smart Moderation
+AI-powered tools to keep your community safe and welcoming.
+
+### Rich Media
+Share images, videos, code snippets, and files seamlessly.
+
+### Arabic-First
+Full RTL support, Arabic UI, and content designed for Arab developers.
+
+### Community Analytics
+Track engagement, growth, and community health metrics.
+
+### Engine Integrations
+Dedicated spaces for Unity, Unreal, Godot & Blender with tailored tools.
+
+## Build spaces whereArab devs belong
+Dedicated communities for every engine. Arabic-first experience, custom roles, and everything you need to foster meaningful connections.
+Unity Community
+Scripts, shaders, and 2D/3D workflows
+Unreal Engine Hub
+Blueprints, C++, and AAA techniques
+Godot Corner
+GDScript, nodes, and indie workflows
+[Explore communities](https://northfall.blog/app)
+
+#### Unity
+2.4k members
+340/week
+active posts
+
+#### Unreal
+1.8k members
+210/week
+active posts
+
+#### Godot
+960 members
+150/week
+active posts
+
+#### Blender
+1.2k members
+180/week
+active posts
+6.3k
+Total Members
+4
+Communities
+99.9%
+Uptime
+ahmad_dev
+Posted 2 hours ago
+
+### Best approach for Arabic text rendering in Unity?
+I'm working on an Arabic visual novel and the text keeps disconnecting. What are your recommendations for proper RTL support?
+
+```
+// Current approach TextMeshPro txt = GetComponent<TMP_Text>(); txt.isRightToLeftText = true; txt.font = arabicFont;
+```
+
+Use the ArabicSupport plugin from the Asset Store. It handles ligatures properly.
+I wrote a custom shader for this. Happy to share the repo.
+
+## Conversations thatdrive engagement
+Threaded discussions with rich formatting, code highlighting, and real-time updates. Make every conversation count.
+Markdown & code blocks
+Full formatting support for technical content
+Threaded replies
+Organized conversations at any depth
+Real-time updates
+See new posts and replies instantly
+[Explore discussion features](https://northfall.blog/app)
+
+## Loved by Arab game devs
+Join developers who trust NorthFall to power their game dev conversations.
+Ahmad K.
+Unity Developer
+Sara M.
+Unreal Engine Artist
+Kareem R.
+Indie Game Dev
+
+## Ready to join the Arab game dev community?
+Start for free. No credit card required. Just you, your engine, and your people.
+[Get started free](https://northfall.blog/app)
+Learn more →
+[NorthFall](https://northfall.blog/)
+The Arab game dev community platform. Built by us, for us.
+
+#### Product
+- Features
+- Communities
+- Discussions
+- Changelog
+Features
+Communities
+Discussions
+Changelog
+
+#### Resources
+- Documentation
+- API Reference
+- Guides
+- Blog
+Documentation
+API Reference
+Guides
+Blog
+
+#### Company
+- About
+- Careers
+- Contact
+- Partners
+About
+Careers
+Contact
+Partners
+
+#### Legal
+- Privacy
+- Terms
+- Security
+Privacy
+Terms
+Security
+© 2026 NorthFall. All rights reserved.
+Privacy
+Terms
