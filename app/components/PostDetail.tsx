@@ -669,7 +669,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
           {/* AI Dropdown */}
           <div className="relative" ref={aiDropRef}>
-            <button onClick={() => setAiDropOpen(!aiDropOpen)} className={cn("ai-btn", aiDropOpen && "ai-btn-active")} style={{ fontSize: 10, padding: "2px 8px", gap: 3 }}>
+            <button onClick={() => setAiDropOpen(!aiDropOpen)} className={cn("ai-btn", aiDropOpen && "ai-btn-active")} style={{ fontSize: 10, padding: "2px 8px" }}>
               <Sparkles size={10} className="ai-btn-icon" />
               <span className="ai-btn-letter">AI</span>
               <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-60", aiDropOpen && "rotate-180")} />
