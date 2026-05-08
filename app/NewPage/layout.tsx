@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 const SITE_URL = 'https://www.northfall.blog';
 
 export const metadata: Metadata = {
-  title: 'المنتدى — نقاشات الألعاب والتقنية بالعربي',
-  description: 'منتدى NorthFall للنقاشات والمحادثات حول الألعاب والتقنية — اسأل أي سؤال عن Unity و Unreal Engine و Godot و Blender وتطوير الألعاب والبرمجة والتصميم. شارك رأيك، تعلم من الخبراء العرب، وتفاعل مع مجتمع المطورين العربي الأكبر.',
+  title: 'المنتدى — نقاشات الألعاب والتقنية',
+  description: 'تبغى تسأل عن شي يخص الألعاب أو البرمجة أو التصميم؟ هذا مكانك. نتناقش عن Unity و Unreal و Godot و Blender وكل شي يخص مطورين الألعاب العرب.',
   keywords: ['منتدى', 'منتدى ألعاب', 'نقاشات ألعاب', 'نقاشات تقنية', 'منتدى مطورين', 'منتدى GameDev', 'سؤال وجواب', 'Q&A', 'forum', 'game forum', 'gaming forum arabic', 'منتدى Unity', 'منتدى Unreal', 'منتدى Godot', 'منتدى Blender', 'منتدى عربي', 'مجتمع مطورين عرب', 'تطوير ألعاب', 'برمجة', 'تصميم ألعاب', 'ألعاب فيديو', 'GameDev عربي'],
   alternates: { canonical: `${SITE_URL}/NewPage` },
   openGraph: {

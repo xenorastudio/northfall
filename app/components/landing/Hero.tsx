@@ -13,7 +13,7 @@ export function Hero() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-[13px] text-white/40 hover:border-white/[0.15] transition-colors"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>The Arab Game Dev Platform</span>
+            <span>منصة مطوري الألعاب العرب</span>
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -23,23 +23,23 @@ export function Hero() {
         {/* Main Headline */}
         <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-[-0.02em] leading-[1.1] mb-6">
-            منصة المجتمعات العربية
+            مجتمع مطوري الألعاب العرب
             <br />
-            <span className="text-white/25">لتطوير الألعاب والتقنية</span>
+            <span className="text-white/25">زي ريدت بس للعرب</span>
           </h1>
 
           <p className="text-base sm:text-lg text-white/30 max-w-lg mx-auto mb-10 leading-relaxed">
-            مجتمعات Unity و Unreal Engine و Godot و Blender — نقاشات مباشرة،
-            شروحات بالعربي، ومجتمع يفهمك. انضم لمطوري الألعاب العرب.
+            مكان واحد تناقش فيه عن Unity و Unreal و Godot و Blender.
+            تشارك مشروعك، تتعلم من الناس، وتلقى مساعدة. كل شي بالعربي.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
             <Link href="/app" className="inline-flex items-center justify-center px-6 py-2.5 text-[14px] font-semibold bg-white text-black rounded-lg hover:bg-white/90 transition-colors">
-              Get started free
+              ابدأ مجاناً
             </Link>
             <a href="#features" className="inline-flex items-center justify-center px-6 py-2.5 text-[14px] font-medium text-white/35 hover:text-white/70 transition-colors">
-              View features →
+              شوف الميزات ←
             </a>
           </div>
         </div>
@@ -163,7 +163,7 @@ export function Hero() {
 
         {/* Social Proof */}
         <div className="mt-16 text-center">
-          <p className="text-sm text-white/20 mb-6">منصة مطوري الألعاب العرب — GameDev بالعربي</p>
+          <p className="text-sm text-white/20 mb-6">مجتمع GameDev العرب — كل المحركات بمكان واحد</p>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-30">
             {["Unity", "Unreal Engine", "Godot", "Blender", "GameDev", "تطوير ألعاب", "برمجة"].map((name) => (
               <span key={name} className="text-lg font-semibold text-white/30">{name}</span>

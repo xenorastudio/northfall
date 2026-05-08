@@ -5,35 +5,35 @@ const SITE_URL = 'https://www.northfall.blog';
 const communityMeta: Record<string, { title: string; description: string; img: string; keywords: string[]; h1: string; body: string }> = {
   Unity: {
     title: 'مجتمع Unity — تعلم تطوير الألعاب بالعربي',
-    description: 'مجتمع Unity العربي الأول على NorthFall — تعلم Unity 3D و Unity 2D و C# و Shader و VR و AR. شارك مشاريعك، تعلم من شروحات Unity بالعربي، وتفاعل مع مطورين عرب. دورات Unity مجانية، نصائح تطوير ألعاب، مشاريع Unity مفتوحة المصدر.',
+    description: 'تبي تتعلم Unity؟ هذا مكانك. هنا نتناقش عن Unity 3D و 2D و C# وكل شي يخص المحرك. نشارك مشاريعنا ونساعد بعض من الصفر لحد الاحتراف.',
     img: '/assets/images/unitylogo.png',
     keywords: ['Unity', 'يونيتي', 'تعلم Unity', 'Unity بالعربي', 'Unity 3D', 'Unity 2D', 'Unity C#', 'Unity shader', 'Unity VR', 'Unity AR', 'Unity tutorials arabic', 'دورة Unity', 'محرك Unity', 'Unity game engine', 'Unity developer', 'مطور Unity', 'Unity مشاريع', 'Unity UI', 'Unity mobile', 'Unity animation', 'Unity scripting', 'Unity assets', 'Unity learn', 'تطوير ألعاب Unity', 'Unity عربي'],
-    h1: 'مجتمع Unity العربي — تعلم تطوير الألعاب',
-    body: 'تعلم Unity بالعربي من الصفر — شروحات Unity 3D و Unity 2D و C# Scripting و Shader Programming و VR/AR Development. انضم لمجتمع مطوري Unity العرب، شارك مشاريعك، احصل على feedback من مطورين محترفين. دروس Unity مجانية، نصائح GameDev، وأحدث أخبار Unity Engine.',
+    h1: 'مجتمع Unity العربي',
+    body: 'سواء تبي تسوي لعبتك الأولى أو عندك خبرة وتبغى تشارك — هنا تلقى ناس مثلك. شروحات Unity بالعربي، مشاريع مفتوحة المصدر، نصائح من مطورين مجربين. من C# لحد Shader Programming و VR/AR، كل شي موجود.',
   },
   Unreal: {
     title: 'مجتمع Unreal Engine — تعلم UE5 بالعربي',
-    description: 'مجتمع Unreal Engine العربي الأول على NorthFall — تعلم UE5 و Blueprint و C++ و Nanite و Lumen و MetaHuman. شارك مشاريعك، تعلم من شروحات Unreal بالعربي، وتفاعل مع مطورين عرب. دورات Unreal مجانية، نصائح تطوير ألعاب AAA.',
+    description: 'كل شي يخص Unreal Engine و UE5 هني. Blueprint و C++ و Nanite و Lumen — نتناقش ونساعد بعض. مكان محترفين ومبتدئين مع بعض.',
     img: '/assets/images/unreallogo.svg',
     keywords: ['Unreal', 'Unreal Engine', 'UE5', 'UE4', 'أنريل', 'تعلم Unreal', 'Unreal بالعربي', 'Unreal Blueprint', 'Unreal C++', 'Unreal Nanite', 'Unreal Lumen', 'Unreal MetaHuman', 'Unreal tutorials arabic', 'دورة Unreal Engine', 'محرك Unreal', 'Unreal developer', 'مطور Unreal', 'Unreal مشاريع', 'Unreal 3D', 'Unreal VR', 'Unreal shader', 'Unreal visual scripting', 'تطوير ألعاب Unreal', 'Unreal عربي', 'UE5 عربي'],
-    h1: 'مجتمع Unreal Engine العربي — تعلم UE5',
-    body: 'تعلم Unreal Engine 5 بالعربي — شروحات Blueprint Visual Scripting و C++ Programming و Nanite و Lumen و MetaHuman. انضم لمجتمع مطوري Unreal العرب، شارك مشاريعك AAA، تعلم صناعة ألعاب احترافية. دروس UE5 مجانية، نصائح GameDev، وأحدث أخبار Unreal Engine.',
+    h1: 'مجتمع Unreal Engine العربي',
+    body: 'لو تبغى تسوي ألعاب AAA أو تتعلم Blueprint و C++ — هذا مكانك. نتناقش عن Nanite و Lumen و MetaHuman وكل جديد في UE5. شروحات بالعربي، مشاريع نشاركها، وناس تساعدك من البداية.',
   },
   Godot: {
-    title: 'مجتمع Godot — تعلم تطوير الألعاب المفتوح بالعربي',
-    description: 'مجتمع Godot العربي الأول على NorthFall — تعلم Godot 4 و GDScript و 3D و 2D. محرك ألعاب مفتوح المصدر ومجاني 100%. شارك مشاريعك، تعلم من شروحات Godot بالعربي، وتفاعل مع مطورين عرب. دورات Godot مجانية، نصائح indie game dev.',
+    title: 'مجتمع Godot — محرك الألعاب المفتوح بالعربي',
+    description: 'Godot مجاني ومفتوح المصدر 100%. هنا نتعلم GDScript و 3D و 2D مع بعض. مكان ممتاز للمطورين المستقلين واللي يبون يبدون بدون تكاليف.',
     img: '/assets/images/godotlogo.png',
     keywords: ['Godot', 'جودوت', 'تعلم Godot', 'Godot بالعربي', 'Godot 4', 'Godot 3D', 'Godot 2D', 'Godot GDScript', 'Godot open source', 'Godot مفتوح المصدر', 'Godot tutorials arabic', 'دورة Godot', 'محرك Godot', 'Godot developer', 'مطور Godot', 'Godot مشاريع', 'Godot indie', 'Godot shader', 'Godot mobile', 'Godot engine', 'تطوير ألعاب Godot', 'Godot عربي', 'Godot مجاني'],
-    h1: 'مجتمع Godot العربي — محرك الألعاب المفتوح',
-    body: 'تعلم Godot 4 بالعربي — محرك ألعاب مفتوح المصدر ومجاني 100%. شروحات GDScript و 3D و 2D و Shader و Mobile Development. انضم لمجتمع مطوري Godot العرب، شارك مشاريعك المستقلة، تعلم indie game development. دروس Godot مجانية، نصائح GameDev، وأحدث أخبار Godot Engine.',
+    h1: 'مجتمع Godot العربي',
+    body: 'محرك ألعاب مجاني ومفتوح المصدر — يعني تقدر تسوي لعبتك بدون ما تدفع ريال. هنا نتعلم GDScript و 3D و 2D و Shader مع بعض. مناسب للمشاريع المستقلة واللي يبون يبدون بسرعة.',
   },
   Blender: {
     title: 'مجتمع Blender — تعلم النمذجة والأنيميشن بالعربي',
-    description: 'مجتمع Blender العربي الأول على NorthFall — تعلم النمذجة 3D والأنيميشن والرندر والنحت باستخدام Blender. برنامج مجاني ومفتوح المصدر. شارك أعمالك الفنية، تعلم من شروحات Blender بالعربي، وتفاعل مع فنانين عرب. دورات Blender مجانية.',
+    description: 'Blender مجاني وهو أقوى برنامج نمذجة 3D. هنا نتعلم النمذجة والأنيميشن والرندر مع بعض. نشارك أعمالنا ونساعد بعض نتحسن.',
     img: '/assets/images/logoblender.png',
     keywords: ['Blender', 'بلندر', 'تعلم Blender', 'Blender بالعربي', 'Blender 3D', 'Blender modeling', 'Blender نمذجة', 'Blender animation', 'Blender أنيميشن', 'Blender rendering', 'Blender render', 'Blender sculpting', 'Blender نحت', 'Blender shader', 'Blender EEVEE', 'Blender Cycles', 'Blender Geometry Nodes', 'Blender مجاني', 'Blender free', 'Blender tutorials arabic', 'دورة Blender', 'Blender artist', 'فنان Blender', 'Blender game assets', 'Blender عربي'],
-    h1: 'مجتمع Blender العربي — تعلم النمذجة والأنيميشن',
-    body: 'تعلم Blender بالعربي — شروحات 3D Modeling و Sculpting و Animation و Rendering و Shader Nodes و Geometry Nodes. انضم لمجتمع فناني Blender العرب، شارك أعمالك الفنية، تعلم game art و asset creation. دروس Blender مجانية، نصائح digital art، وأحدث أخبار Blender.',
+    h1: 'مجتمع Blender العربي',
+    body: 'من النمذجة للأنيميشن للرندر — هنا نتعلم Blender خطوة بخطوة. سواء تبي تسوي أصول لألعابك أو تتعلم Sculpting أو Shader Nodes، تلقى ناس تساعدك. البرنامج مجاني والمجتمع كمان.',
   },
 };
 
@@ -111,11 +111,11 @@ export default async function CommunityPage({ params }: { params: Promise<{ name
             افتح المجتمع في NorthFall ←
           </a>
 
-          {/* Keyword-rich content for SEO */}
+          {/* Content for SEO — natural human writing */}
           {meta && (
             <section className="mt-10 text-right text-white/40 text-xs leading-relaxed space-y-3" aria-label="عن المجتمع">
               <p>{meta.body}</p>
-              <p>انضم لأكبر مجتمع عربي لمطوري {name} — شروحات بالعربي، مشاريع مفتوحة المصدر، نقاشات تقنية، ونصائح احترافية. سواء كنت مبتدئ أو محترف، NorthFall هو مكانك.</p>
+              <p>سواء مبتدئ أو محترف — هذا المجتمع مكانك. ناس تساعدك، شروحات بالعربي، ومشاريع تتعلم منها.</p>
             </section>
           )}
         </div>

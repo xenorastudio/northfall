@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: ['40
 
 const SITE_URL = 'https://www.northfall.blog';
 const SITE_NAME = 'NorthFall';
-const SITE_DESCRIPTION = 'منصة المجتمعات العربية الأولى للألعاب والتقنية - انضم لمجتمعات Unity و Unreal و Godot و Blender، شارك في النقاشات، اكتشف الألعاب، وتابع أحدث الأخبار';
+const SITE_DESCRIPTION = 'مكان واحد لكل مطور ألعاب عرب — نتناقش عن Unity و Unreal و Godot و Blender، نشارك مشاريعنا، ونساعد بعض نتعلم. زي ريدت بس للعرب.';
 
 const KEYWORDS = [
   // Brand
@@ -45,7 +45,7 @@ const KEYWORDS = [
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — منصة المجتمعات العربية`,
+    default: `${SITE_NAME} — مجتمع مطوري الألعاب العرب`,
     template: `%s — ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -69,13 +69,13 @@ export const metadata: Metadata = {
     locale: 'ar_SA',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — منصة المجتمعات العربية`,
+    title: `${SITE_NAME} — مجتمع مطوري الألعاب العرب`,
     description: SITE_DESCRIPTION,
     images: [{ url: `${SITE_URL}/assets/images/og-image.png`, width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} — منصة المجتمعات العربية`,
+    title: `${SITE_NAME} — مجتمع مطوري الألعاب العرب`,
     description: SITE_DESCRIPTION,
     images: [`${SITE_URL}/assets/images/og-image.png`],
   },
@@ -111,7 +111,7 @@ export default function RootLayout({
         '@id': `${SITE_URL}/#website`,
         url: SITE_URL,
         name: SITE_NAME,
-        alternateName: ['نورث فول', 'NorthFall منصة', 'NorthFall مجتمعات', 'منصة الألعاب العربية'],
+        alternateName: ['نورث فول', 'NorthFall', 'مجتمع مطورين عرب', 'ريدت الألعاب العرب', 'منتدى GameDev عربي'],
         description: SITE_DESCRIPTION,
         inLanguage: ['ar', 'en'],
         potentialAction: {
