@@ -406,6 +406,9 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
         <div className="flex-1 min-w-0 pt-1 sm:pt-2">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <h1 className="text-lg sm:text-xl font-bold text-white truncate">{displayName}</h1>
+            {(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && (
+              <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[16px] h-[16px] shrink-0" />
+            )}
             {isOwn ? (
               <div className="flex items-center gap-2">
                 <button onClick={onSettingsClick} className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
