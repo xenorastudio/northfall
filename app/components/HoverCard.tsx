@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Cake, Star, MessageSquare, Shield, Users, FileText, Clock, UserPlus, UserCheck } from "lucide-react";
-import { doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, collection, getDocs, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
@@ -59,26 +59,41 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
             Unity: {
               img: "/assets/images/unitylogo.png",
               banner: "/assets/images/bannerunity.png",
-              desc: "مكانك لو حابب تتعلم Unity وتشارك مشاريعك مع مطورين عرب.",
-              rules: ["احترام الجميع", "المحتوى متعلق بـ Unity", "لا سبام"],
-              tags: ["Unity", "GameDev", "C#"],
+              desc: "مكانك لو حابب تتعلم Unity وتشارك مشاريعك مع مطورين عرب. تواصل، اسأل، واطلع شغلك للعالم.",
+              tags: ["Unity", "GameDev", "C#", "3D", "2D", "AR/VR"],
+              memberCount: 0,
+              postCount: 0,
+              onlineCount: 0,
+            },
+            Unreal: {
+              img: "/assets/images/unreallogo.svg",
+              banner: "/assets/images/bannerunity.png",
+              desc: "محرك الألعاب الأقوى — من AAA لمستقلة. تعلم UE5، شارك مشاريعك، واساعد غيرك يبدأ.",
+              tags: ["Unreal", "UE5", "Blueprints", "C++", "Nanite", "Lumen"],
+              memberCount: 0,
+              postCount: 0,
+              onlineCount: 0,
             },
             Godot: {
               img: "/assets/images/godotlogo.png",
               banner: "/assets/images/godotbanner.png",
-              desc: "المحرك المفتوح اللي بيسمح لك تعمل لعبتك بلا قيود.",
-              rules: ["احترام الجميع", "المحتوى متعلق بـ Godot", "لا سبام"],
-              tags: ["Godot", "OpenSource", "GDScript"],
+              desc: "المحرك المفتوح اللي بيسمح لك تعمل لعبتك بلا قيود. من 2D لـ 3D — تعال شارك تجربتك وساعد غيرك يبدأ.",
+              tags: ["Godot", "OpenSource", "GDScript", "2D", "3D"],
+              memberCount: 0,
+              postCount: 0,
+              onlineCount: 0,
             },
             Blender: {
               img: "/assets/images/logoblender.png",
               banner: "/assets/images/bannerblender.png",
-              desc: "من النمذجة للأنيميشن للرندر — كل شي بيتعمل بـ Blender.",
-              rules: ["احترام الجميع", "المحتوى متعلق بـ Blender", "لا سبام"],
-              tags: ["Blender", "3D", "Modeling"],
+              desc: "من النمذجة للأنيميشن للرندر — كل شي بيتعمل بـ Blender. اعرض أعمالك وتعلم تقنيات جديدة مع مجتمع يفهمك.",
+              tags: ["Blender", "3D", "Modeling", "Animation", "Rendering"],
+              memberCount: 0,
+              postCount: 0,
+              onlineCount: 0,
             },
           };
-          const m = meta[name] || { img: "", banner: "", desc: `مجتمع n/${name}`, rules: [], tags: [] };
+          const m = meta[name] || { img: "", banner: "", desc: `مجتمع n/${name}`, tags: [], memberCount: 0, postCount: 0, onlineCount: 0 };
           setData(m);
         }
       } catch {}
@@ -256,6 +271,19 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
 
 function CommunityCard({ data, name, onCommunityClick }: { data: any; name: string; onCommunityClick?: (name: string) => void }) {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const [joined, setJoined] = useState(false);
+  const [memberCount, setMemberCount] = useState(data.memberCount || 0);
+
+  useEffect(() => {
+    if (!user) return;
+    getDoc(doc(db, "communities", name, "members", user.uid)).then(s => setJoined(s.exists())).catch(() => {});
+  }, [user, name]);
+
+  useEffect(() => {
+    getCountFromServer(collection(db, "communities", name, "members")).then(s => setMemberCount(s.data().count)).catch(() => {});
+  }, [name]);
+
   if (!data) return <div className="p-3 text-xs text-nf-muted">{t("hc.loading")}</div>;
   return (
     <div>
@@ -279,13 +307,49 @@ function CommunityCard({ data, name, onCommunityClick }: { data: any; name: stri
             <div className="text-[10px] text-nf-dim">{t("cp.founded")}</div>
           </div>
         </div>
-        <p className="text-[11px] text-nf-text-2 leading-relaxed mb-1.5">{data.desc}</p>
-        <div className="text-[10px] text-nf-dim mb-1.5">
-          <span className="text-white">{data.rules?.length || 0}</span> {t("hc.rule")} · {t("hc.openToAll")}
+        <p className="text-[11px] text-nf-text-2 leading-relaxed mb-2">{data.desc}</p>
+
+        {/* Stats */}
+        <div className="text-[10px] text-nf-dim mb-2 flex items-center gap-3">
+          <span className="flex items-center gap-1"><Users size={9} /> <span className="text-white font-bold">{memberCount > 0 ? memberCount.toLocaleString() : "—"}</span> {t("cp.members")}</span>
+          <span className="flex items-center gap-1"><FileText size={9} /> <span className="text-white font-bold">{data.postCount || "—"}</span> {t("cp.posts")}</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400" /> <span className="text-green-400 font-bold">{data.onlineCount || "—"}</span> متصل</span>
         </div>
-        <button onClick={() => onCommunityClick?.(name)} className="w-full py-1.5 rounded text-[11px] font-bold bg-nf-secondary text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
-          {t("hc.viewCommunity")}
-        </button>
+
+        {/* Tags */}
+        {data.tags && data.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2.5">
+            {data.tags.slice(0, 4).map((tag: string) => (
+              <span key={tag} className="px-1.5 py-0.5 rounded bg-nf-accent/10 text-[9px] font-medium text-nf-accent">{tag}</span>
+            ))}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button onClick={() => onCommunityClick?.(name)} className="flex-1 py-1.5 rounded text-[11px] font-bold bg-nf-secondary text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+            {t("hc.viewCommunity")}
+          </button>
+          {user && !joined && (
+            <button
+              onClick={async () => {
+                try {
+                  await setDoc(doc(db, "communities", name, "members", user.uid), { uid: user.uid, joinedAt: new Date().toISOString() });
+                  await setDoc(doc(db, "users", user.uid, "communities", name), { name, joinedAt: new Date().toISOString() });
+                  setJoined(true);
+                } catch {}
+              }}
+              className="px-3 py-1.5 rounded text-[11px] font-bold bg-nf-accent text-white hover:bg-nf-accent/80 transition-colors"
+            >
+              {t("cp.join")}
+            </button>
+          )}
+          {joined && (
+            <span className="flex items-center gap-1 px-2 py-1.5 rounded text-[11px] font-bold bg-nf-accent/15 text-nf-accent">
+              <UserCheck size={11} /> {t("cp.member")}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
