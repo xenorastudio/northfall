@@ -12,6 +12,7 @@ export async function GET() {
   <url><loc>${SITE_URL}/community/Unreal</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>${SITE_URL}/community/Godot</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>${SITE_URL}/community/Blender</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>${SITE_URL}/feed.xml</loc><changefreq>always</changefreq><priority>0.6</priority></url>
 </urlset>`;
 
   return new Response(xml, {
