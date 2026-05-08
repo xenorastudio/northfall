@@ -4308,8 +4308,8 @@ export default function ForumsPage() {
               <div className="mb-5">
                 <label className="text-[12px] font-bold text-nf-text mb-2 block">روابط التواصل</label>
                 <div className="space-y-2">
-                  {["twitter", "youtube", "github", "steam", "discord", "twitch", "itch", "artstation", "linkedin", "website"].map(key => {
-                    const labels: Record<string, string> = { twitter: "X / Twitter", youtube: "YouTube", github: "GitHub", steam: "Steam", discord: "Discord", twitch: "Twitch", itch: "Itch.io", artstation: "ArtStation", linkedin: "LinkedIn", website: "موقع شخصي" };
+                  {["twitter", "youtube", "github", "steam", "discord", "website"].map(key => {
+                    const labels: Record<string, string> = { twitter: "X / Twitter", youtube: "YouTube", github: "GitHub", steam: "Steam", discord: "Discord", website: "موقع شخصي" };
                     return (
                       <div key={key} className="flex items-center gap-2">
                         <span className="text-[11px] text-nf-dim font-bold w-[90px] text-left shrink-0">{labels[key]}</span>
