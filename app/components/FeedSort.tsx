@@ -3,6 +3,7 @@
 import { Flame, Sparkles, TrendingUp, Hash, ChevronDown, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "./I18nProvider";
 
 const trendingTags = ["#Unity", "#Unreal", "#Godot", "#Blender", "#GameDev", "#UE5", "#3D", "#IndieDev", "#CSharp", "#OpenSource"];
@@ -86,9 +87,14 @@ export default function FeedSort({ onSortChange, onTagClick, tagFilter, feedMode
               <ChevronDown size={12} className={cn("transition-transform", showTrending && "rotate-180")} />
             </button>
 
-            {showTrending && (
-                <div
-                  className="absolute top-full mt-1 left-0 right-0 bg-nf-primary border border-nf-border-2 rounded-lg shadow-xl shadow-black/20 z-10 py-1 animate-in fade-in slide-in-from-top-1 duration-100 min-w-[200px]"
+            <AnimatePresence>
+              {showTrending && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full mt-1 right-0 bg-nf-primary border border-nf-border rounded-lg p-3 shadow-xl z-20 min-w-[200px]"
                 >
                   <div className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-2">{t("fs.topNow")}</div>
                   <div className="flex flex-wrap gap-1.5">
@@ -103,22 +109,25 @@ export default function FeedSort({ onSortChange, onTagClick, tagFilter, feedMode
                       </button>
                     ))}
                   </div>
-                </div>
+                </motion.div>
               )}
+            </AnimatePresence>
           </div>
         </div>
 
         {/* Active tag filter */}
         {tagFilter && (
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-nf-accent/15 text-nf-accent text-[11px] font-bold animate-in fade-in zoom-in duration-150"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-nf-accent/15 text-nf-accent text-[11px] font-bold"
           >
             <Hash size={12} />
             {tagFilter}
             <button onClick={() => onTagClick?.(tagFilter)} className="hover:text-white transition-colors mr-0.5">
               <X size={10} />
             </button>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

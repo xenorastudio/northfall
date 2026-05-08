@@ -17,7 +17,7 @@
     --text-primary: #fff;
     --text-secondary: #d4d4d4;
     --text-muted: #878a8c;
-    --text-dim: #8a8d8f;
+    --text-dim: #6a6d6f;
     --accent: #a0a0a0;
     --radius: 0.5rem;
   }
@@ -475,9 +475,6 @@ html, body, * { scrollbar-width: none; }
 }
 .animate-in.fade-in.slide-in-from-top-2 {
   animation: slideInFromTop 0.2s ease-out both;
-}
-.animate-in.fade-in.slide-in-from-top-1 {
-  animation: slideInFromTop 0.1s ease-out both;
 }
 .animate-in.fade-in.zoom-in {
   animation: zoomIn 0.2s ease-out both;

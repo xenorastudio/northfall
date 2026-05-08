@@ -167,7 +167,7 @@ export default function RootLayout({
         '@id': `${SITE_URL}/#navigation`,
         itemListElement: [
           { '@type': 'SiteNavigationElement', name: 'الرئيسية', url: `${SITE_URL}/app` },
-          { '@type': 'SiteNavigationElement', name: 'المنتدى', url: `${SITE_URL}/NewPage` },
+          { '@type': 'SiteNavigationElement', name: 'المنتدى', url: `${SITE_URL}/forum` },
           { '@type': 'SiteNavigationElement', name: 'مجتمع Unity', url: `${SITE_URL}/community/Unity` },
           { '@type': 'SiteNavigationElement', name: 'مجتمع Unreal', url: `${SITE_URL}/community/Unreal` },
           { '@type': 'SiteNavigationElement', name: 'مجتمع Godot', url: `${SITE_URL}/community/Godot` },

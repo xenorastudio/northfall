@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, limit, getDoc, doc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, getDoc, doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Flame, TrendingUp, Bookmark, ExternalLink } from "lucide-react";
+import { motion } from "framer-motion";
 import { useI18n } from "./I18nProvider";
 
 const trendingCommunities = [
@@ -78,16 +79,11 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
   const meta = communityName ? communityMeta[communityName] : null;
 
   useEffect(() => {
-    async function fetchRecent() {
-      try {
-        const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(5));
-        const snap = await getDocs(q);
-        setRecentPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch {}
-    }
-    fetchRecent();
-    const interval = setInterval(fetchRecent, 30000);
-    return () => clearInterval(interval);
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(5));
+    const unsub = onSnapshot(q, (snap) => {
+      setRecentPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    return () => unsub();
   }, []);
 
   useEffect(() => {
@@ -114,12 +110,14 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
         ) : (
           <div className="py-1">
             {recentPosts.map((post, i) => (
-              <a
+              <motion.a
                 key={post.id}
                 href="#"
                 onClick={(e) => { e.preventDefault(); onPostClick(post.id); }}
-                className="flex items-start gap-2.5 px-3.5 py-2 hover:bg-nf-hover transition-colors duration-150 cursor-pointer animate-in fade-in duration-150"
-                style={{ animationDelay: `${i * 50}ms` }}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="flex items-start gap-2.5 px-3.5 py-2 hover:bg-nf-hover transition-colors duration-150 cursor-pointer"
               >
                 {post.imageUrl ? (
                   <img src={post.imageUrl} alt="" className="w-10 h-10 rounded-md object-cover shrink-0" />
@@ -136,7 +134,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
                     <span className="text-[10px] text-nf-dim">{post.commentCount || 0} {t("sr.comment")}</span>
                   </div>
                 </div>
-              </a>
+              </motion.a>
             ))}
           </div>
         )}
@@ -243,18 +241,20 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
             </div>
             <div className="py-1">
               {trendingCommunities.map((c, i) => (
-                <button
+                <motion.button
                   key={c.name}
                   onClick={() => onCommunityClick(c.name.replace("n/", ""))}
-                  className="flex items-center gap-3 w-full px-3.5 py-2 hover:bg-nf-hover transition-colors text-right animate-in fade-in duration-150"
-                  style={{ animationDelay: `${i * 50}ms` }}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="flex items-center gap-3 w-full px-3.5 py-2 hover:bg-nf-hover transition-colors text-right"
                 >
                   <img src={c.img} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-nf-border-2" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold text-white truncate">{c.name}</p>
                     <p className="text-[9px] text-nf-dim truncate">{c.desc}</p>
                   </div>
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>

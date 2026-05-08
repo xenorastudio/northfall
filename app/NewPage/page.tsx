@@ -1,12 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import ForumsPage from "../components/ForumsPage";
-import AuthProvider from "../components/AuthProvider";
-
-export default function ForumsRoute() {
-  return (
-    <AuthProvider>
-      <ForumsPage />
-    </AuthProvider>
-  );
+export default function NewPageRedirect() {
+  redirect("/forum");
 }

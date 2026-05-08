@@ -213,7 +213,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
         <div className="text-center py-12">
           <MessageSquare size={28} className="mx-auto text-nf-dim/15 mb-3" />
           <p className="text-[14px] font-bold text-nf-muted mb-2">المنتدى في صفحة مستقلة</p>
-          <button onClick={() => window.open("/NewPage", "_blank")} className="bg-nf-accent/12 text-nf-accent px-4 py-2 rounded-lg text-[12px] font-bold hover:bg-nf-accent/20 transition-colors">فتح المنتدى</button>
+          <button onClick={() => window.open("/forum", "_blank")} className="bg-nf-accent/12 text-nf-accent px-4 py-2 rounded-lg text-[12px] font-bold hover:bg-nf-accent/20 transition-colors">فتح المنتدى</button>
         </div>
       ) : (
       <>

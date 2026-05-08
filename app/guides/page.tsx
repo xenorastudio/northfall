@@ -98,7 +98,7 @@ export default function GuidesPage() {
           تبي تتعلم تطوير ألعاب بالعربي؟ هنا تلقى أدلة مجانية تأخذك من الصفر.
           سواء تبي Unity أو Unreal أو Godot أو Blender — كل شي موجود ومجاني.
         </p>
-        <p className="text-white/50 mb-10 text-sm">
+        <p className="text-white/30 mb-10 text-sm">
           زي ما نقول دايمًا: أحسن شي تسويه عشان تتعلم هو إنك تسوي شي بنفسك.
           هذي الأدلة تساعدك تبدأ، وبعدين انضم للمجتمع واسأل لو حصلت مشكلة.
         </p>
@@ -114,7 +114,7 @@ export default function GuidesPage() {
               <p className="text-sm text-white/40 leading-relaxed mb-3">{guide.desc}</p>
               <div className="flex flex-wrap gap-2">
                 {guide.tags.map((tag) => (
-                  <span key={tag} className="px-2 py-0.5 rounded text-xs bg-white/[0.06] text-white/50">
+                  <span key={tag} className="px-2 py-0.5 rounded text-xs bg-white/[0.06] text-white/30">
                     {tag}
                   </span>
                 ))}
@@ -124,7 +124,7 @@ export default function GuidesPage() {
         </div>
 
         {/* SEO content — natural writing */}
-        <section className="mt-16 text-white/50 text-sm leading-relaxed space-y-4" aria-label="عن الأدلة">
+        <section className="mt-16 text-white/30 text-sm leading-relaxed space-y-4" aria-label="عن الأدلة">
           <h2 className="text-xl font-bold text-white/50">ليش تتعلم تطوير ألعاب؟</h2>
           <p>
             تطوير الألعاب من أكثر المجالات اللي تنمو بسرعة. والشي الحلو إنك ما تحتاج شهادة ولا خبرة سابقة — بس تحتاج جهاز وإنترنت وصبر.
@@ -143,12 +143,12 @@ export default function GuidesPage() {
 
         {/* Internal links */}
         <nav className="mt-10 flex flex-wrap gap-4" aria-label="روابط سريعة">
-          <Link href="/community/Unity" className="text-sm text-white/50 hover:text-white/60 transition-colors">مجتمع Unity</Link>
-          <Link href="/community/Unreal" className="text-sm text-white/50 hover:text-white/60 transition-colors">مجتمع Unreal</Link>
-          <Link href="/community/Godot" className="text-sm text-white/50 hover:text-white/60 transition-colors">مجتمع Godot</Link>
-          <Link href="/community/Blender" className="text-sm text-white/50 hover:text-white/60 transition-colors">مجتمع Blender</Link>
-          <Link href="/NewPage" className="text-sm text-white/50 hover:text-white/60 transition-colors">المنتدى</Link>
-          <Link href="/app" className="text-sm text-white/50 hover:text-white/60 transition-colors">الرئيسية</Link>
+          <Link href="/community/Unity" className="text-sm text-white/30 hover:text-white/60 transition-colors">مجتمع Unity</Link>
+          <Link href="/community/Unreal" className="text-sm text-white/30 hover:text-white/60 transition-colors">مجتمع Unreal</Link>
+          <Link href="/community/Godot" className="text-sm text-white/30 hover:text-white/60 transition-colors">مجتمع Godot</Link>
+          <Link href="/community/Blender" className="text-sm text-white/30 hover:text-white/60 transition-colors">مجتمع Blender</Link>
+          <Link href="/forum" className="text-sm text-white/30 hover:text-white/60 transition-colors">المنتدى</Link>
+          <Link href="/app" className="text-sm text-white/30 hover:text-white/60 transition-colors">الرئيسية</Link>
         </nav>
       </div>
     </div>

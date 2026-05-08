@@ -55,7 +55,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Link href="/community/Unreal">مجتمع Unreal</Link>
           <Link href="/community/Godot">مجتمع Godot</Link>
           <Link href="/community/Blender">مجتمع Blender</Link>
-          <Link href="/NewPage">المنتدى</Link>
+          <Link href="/forum">المنتدى</Link>
         </nav>
       </div>
       {children}

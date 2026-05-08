@@ -18,7 +18,7 @@ export async function GET() {
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>${SITE_URL}/NewPage</loc>
+    <loc>${SITE_URL}/forum</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>

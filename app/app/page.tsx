@@ -23,7 +23,7 @@ import LoginModal from "../components/LoginModal";
 import ToastProvider from "../components/ToastProvider";
 import { Megaphone, X, ArrowUp } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, startAfter } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, startAfter, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 // framer-motion removed for performance
 import { cn } from "@/lib/utils";
@@ -219,28 +219,20 @@ function AppContent() {
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-  // Poll for new posts every 15s (replaces onSnapshot to reduce connections)
+  // Real-time new posts detection (replaces polling)
   useEffect(() => {
     if (view !== "feed") return;
-    let lastLatestId: string | null = null;
-    const checkNew = async () => {
-      try {
-        const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(1));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const latestId = snap.docs[0].id;
-          if (lastLatestId === null) { lastLatestId = latestId; return; }
-          if (latestId !== lastLatestId && posts.length > 0) {
-            lastLatestId = latestId;
-            setNewPostsCount(c => c + 1);
-          }
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(1));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty && posts.length > 0) {
+        const latestId = snap.docs[0].id;
+        if (!posts.find(p => p.id === latestId)) {
+          setNewPostsCount(c => c + 1);
         }
-      } catch {}
-    };
-    checkNew();
-    const interval = setInterval(checkNew, 15000);
-    return () => clearInterval(interval);
-  }, [view, posts.length]);
+      }
+    }, () => {});
+    return () => unsub();
+  }, [view, posts]);
 
   // Re-fetch when feed mode changes
   useEffect(() => { fetchPosts(); }, [feedMode]);
@@ -316,7 +308,7 @@ function AppContent() {
           if (id === "profile" || id === "saved") requireAuth(() => { setViewingUid(user?.uid || null); navigateTo("profile", { uid: user?.uid || "" }); });
           else if (id === "notifs") navigateTo("notifs");
           else if (id === "settings") navigateTo("settings");
-          else if (id === "forums") window.open("/NewPage", "_blank");
+          else if (id === "forums") window.open("/forum", "_blank");
           else if (id === "games") navigateTo("games");
           else if (id === "hot" || id === "new" || id === "top") { setSortMode(id); navigateTo("feed"); }
           else backToFeed();
