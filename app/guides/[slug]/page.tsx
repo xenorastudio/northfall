@@ -65,7 +65,7 @@ export default function UnityBeginnerGuide() {
       />
 
       <article className="max-w-3xl mx-auto px-6 py-16">
-        <Link href="/guides" className="text-sm text-white/30 hover:text-white/60 mb-6 inline-block">← رجوع للأدلة</Link>
+        <Link href="/guides" className="text-sm text-white/50 hover:text-white/60 mb-6 inline-block">← رجوع للأدلة</Link>
 
         <h1 className="text-3xl font-bold text-white mb-4">كيف تبدأ مع Unity من الصفر</h1>
         <p className="text-white/40 mb-8">
@@ -180,12 +180,12 @@ export default function UnityBeginnerGuide() {
 
         {/* Internal links */}
         <nav className="mt-16 pt-8 border-t border-white/[0.06] flex flex-wrap gap-4" aria-label="روابط سريعة">
-          <Link href="/guides" className="text-sm text-white/30 hover:text-white/60 transition-colors">كل الأدلة</Link>
-          <Link href="/guides/unreal-beginner" className="text-sm text-white/30 hover:text-white/60 transition-colors">دليل Unreal Engine</Link>
-          <Link href="/guides/godot-beginner" className="text-sm text-white/30 hover:text-white/60 transition-colors">دليل Godot</Link>
-          <Link href="/guides/blender-beginner" className="text-sm text-white/30 hover:text-white/60 transition-colors">دليل Blender</Link>
-          <Link href="/community/Unity" className="text-sm text-white/30 hover:text-white/60 transition-colors">مجتمع Unity</Link>
-          <Link href="/app" className="text-sm text-white/30 hover:text-white/60 transition-colors">الرئيسية</Link>
+          <Link href="/guides" className="text-sm text-white/50 hover:text-white/60 transition-colors">كل الأدلة</Link>
+          <Link href="/guides/unreal-beginner" className="text-sm text-white/50 hover:text-white/60 transition-colors">دليل Unreal Engine</Link>
+          <Link href="/guides/godot-beginner" className="text-sm text-white/50 hover:text-white/60 transition-colors">دليل Godot</Link>
+          <Link href="/guides/blender-beginner" className="text-sm text-white/50 hover:text-white/60 transition-colors">دليل Blender</Link>
+          <Link href="/community/Unity" className="text-sm text-white/50 hover:text-white/60 transition-colors">مجتمع Unity</Link>
+          <Link href="/app" className="text-sm text-white/50 hover:text-white/60 transition-colors">الرئيسية</Link>
         </nav>
       </article>
     </div>

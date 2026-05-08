@@ -2,7 +2,6 @@
 
 import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BarChart3, BookOpen, Languages, FileText, X, ChevronDown, Settings, Key, Check, AlertCircle, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { doc, updateDoc, setDoc, deleteDoc, getDoc, collection, addDoc, getDocs, query, where, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -430,20 +429,17 @@ export default function PostCard({
   };
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+    <article
       onClick={handleClick}
-      className={cn("bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-colors duration-150 relative",
+      className={cn("bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-colors duration-150 relative animate-in fade-in duration-200",
         voteCount >= 10 ? "border-orange-400/20 hover:bg-nf-accent/5 hover:border-orange-400/40" : "border-nf-border-2 hover:bg-nf-accent/5 hover:border-nf-accent/15")}
     >
       <div className="px-4 pt-3 pb-2 relative" onDoubleClick={handleDblClickVote}>
         {/* Double-click heart animation */}
         {dblClickAnim && (
-          <motion.div initial={{ opacity: 1, scale: 0.5, y: 0 }} animate={{ opacity: 0, scale: 1.8, y: -30 }} transition={{ duration: 0.7 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none animate-in fade-in zoom-in duration-700">
             <svg width="60" height="60" viewBox="0 0 24 24" fill="#ff4444"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </motion.div>
+          </div>
         )}
         {/* Header */}
         <div className="flex items-center gap-2 text-[13px] mb-1.5">
@@ -675,7 +671,7 @@ export default function PostCard({
 
       {showReport && <ReportModal open={showReport} onClose={() => setShowReport(false)} type="post" targetId={postId || ""} />}
       {showShareModal && <ShareModal open={showShareModal} onClose={() => setShowShareModal(false)} postId={postId || ""} postTitle={title} />}
-    </motion.article>
+    </article>
   );
 }
 

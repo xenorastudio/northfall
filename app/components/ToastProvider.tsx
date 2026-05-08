@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, AlertTriangle, Info, Heart, Bookmark, Star, ArrowUp, ArrowDown, MessageSquare } from "lucide-react";
 
 interface Toast {
@@ -41,21 +40,15 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toast }}>
       {children}
       <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none" style={{ direction: "rtl" }}>
-        <AnimatePresence>
-          {toasts.map(t => (
-            <motion.div
+        {toasts.map(t => (
+            <div
               key={t.id}
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 40, scale: 0.9 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-nf-primary/95 border border-nf-border-2 shadow-xl shadow-black/30 backdrop-blur-sm pointer-events-auto"
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-nf-primary/95 border border-nf-border-2 shadow-xl shadow-black/30 backdrop-blur-sm pointer-events-auto animate-in fade-in zoom-in duration-200"
             >
               <span className="shrink-0">{iconMap[t.type] || iconMap.success}</span>
               <span className="text-[13px] text-white font-medium">{t.message}</span>
-            </motion.div>
+            </div>
           ))}
-        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );

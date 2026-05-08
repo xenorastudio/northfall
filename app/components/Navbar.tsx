@@ -8,7 +8,6 @@ import { useState, useEffect, useRef } from "react";
 import { collection, getDocs, query, orderBy, limit, where, getCountFromServer } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
-import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useI18n } from "./I18nProvider";
 
@@ -337,14 +336,9 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
           )}
         </div>
 
-        <AnimatePresence>
-          {showDropdown && (
-            <motion.div
-              initial={{ opacity: 0, y: -2 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -2 }}
-              transition={{ duration: 0.1 }}
-              className="absolute mt-0 left-0 right-0 bg-nf-primary border border-t-0 border-nf-border-2 rounded-b-xl overflow-hidden shadow-xl shadow-black/30"
+        {showDropdown && (
+            <div
+              className="absolute mt-0 left-0 right-0 bg-nf-primary border border-t-0 border-nf-border-2 rounded-b-xl overflow-hidden shadow-xl shadow-black/30 animate-in fade-in slide-in-from-top-1 duration-100"
             >
               {/* Filter tabs */}
               <div className="flex items-center border-b border-nf-border-2/50">
@@ -505,9 +499,8 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                 </div>
                 <span className="text-[11px] text-nf-dim">{searchResults.length} {t("search.results")}</span>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+        )}
       </div>
 
       {/* Actions - icons then account on far right */}
@@ -529,9 +522,8 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
               )}
               <ChevronDown size={10} className={cn("text-nf-dim shrink-0 transition-transform", showUserMenu && "rotate-180")} />
             </button>
-            <AnimatePresence>
-              {showUserMenu && (
-                <motion.div initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.1 }} className="absolute top-full mt-1 left-0 w-[240px] bg-nf-primary border border-nf-border-2 rounded-lg z-50 overflow-hidden" style={{ direction: "rtl" }}>
+            {showUserMenu && (
+                <div className="absolute top-full mt-1 left-0 w-[240px] bg-nf-primary border border-nf-border-2 rounded-lg z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-100" style={{ direction: "rtl" }}>
                   {/* User info header */}
                   <div className="px-3 py-2.5 border-b border-nf-border-2">
                     <div className="flex items-center gap-2.5">
@@ -573,9 +565,8 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       <span>تسجيل الخروج</span>
                     </button>
                   </div>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
           </div>
         ) : (
           <button onClick={onLoginClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, limit, getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Flame, TrendingUp, Bookmark, ExternalLink } from "lucide-react";
-import { motion } from "framer-motion";
 import { useI18n } from "./I18nProvider";
 
 const trendingCommunities = [
@@ -115,14 +114,12 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
         ) : (
           <div className="py-1">
             {recentPosts.map((post, i) => (
-              <motion.a
+              <a
                 key={post.id}
                 href="#"
                 onClick={(e) => { e.preventDefault(); onPostClick(post.id); }}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="flex items-start gap-2.5 px-3.5 py-2 hover:bg-nf-hover transition-colors duration-150 cursor-pointer"
+                className="flex items-start gap-2.5 px-3.5 py-2 hover:bg-nf-hover transition-colors duration-150 cursor-pointer animate-in fade-in duration-150"
+                style={{ animationDelay: `${i * 50}ms` }}
               >
                 {post.imageUrl ? (
                   <img src={post.imageUrl} alt="" className="w-10 h-10 rounded-md object-cover shrink-0" />
@@ -139,7 +136,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
                     <span className="text-[10px] text-nf-dim">{post.commentCount || 0} {t("sr.comment")}</span>
                   </div>
                 </div>
-              </motion.a>
+              </a>
             ))}
           </div>
         )}
@@ -246,20 +243,18 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
             </div>
             <div className="py-1">
               {trendingCommunities.map((c, i) => (
-                <motion.button
+                <button
                   key={c.name}
                   onClick={() => onCommunityClick(c.name.replace("n/", ""))}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="flex items-center gap-3 w-full px-3.5 py-2 hover:bg-nf-hover transition-colors text-right"
+                  className="flex items-center gap-3 w-full px-3.5 py-2 hover:bg-nf-hover transition-colors text-right animate-in fade-in duration-150"
+                  style={{ animationDelay: `${i * 50}ms` }}
                 >
                   <img src={c.img} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-nf-border-2" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold text-white truncate">{c.name}</p>
                     <p className="text-[9px] text-nf-dim truncate">{c.desc}</p>
                   </div>
-                </motion.button>
+                </button>
               ))}
             </div>
           </div>
