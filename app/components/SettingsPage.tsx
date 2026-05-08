@@ -510,7 +510,9 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                               try {
                                 const provider = new GoogleAuthProvider();
                                 const result = await linkWithPopup(user, provider);
-                                const entry = { id: "google.com", email: result.user.email || undefined, name: result.user.displayName || undefined };
+                                const entry: { id: string; email?: string; name?: string } = { id: "google.com" };
+                                if (result.user.email) entry.email = result.user.email;
+                                if (result.user.displayName) entry.name = result.user.displayName;
                                 const updated = [...linkedProviders.filter(x => x.id !== "google.com"), entry];
                                 setLinkedProviders(updated);
                                 await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
@@ -518,11 +520,13 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                               } catch (e: any) {
                                 console.error("Google link error:", e?.code, e?.message);
                                 if (e?.code === "auth/email-already-in-use" || e?.code === "auth/credential-already-in-use") {
-                                  const entry = { id: "google.com", email: e?.customData?.email || user?.email || undefined, name: undefined };
+                                  const entry: { id: string; email?: string; name?: string } = { id: "google.com" };
+                                  const em = e?.customData?.email || user?.email;
+                                  if (em) entry.email = em;
                                   const updated = [...linkedProviders.filter(x => x.id !== "google.com"), entry];
                                   setLinkedProviders(updated);
-                                  await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
-                                  toast("تم ربط Google (نفس البريد مستخدم بحساب آخر في Firebase)", "success");
+                                  try { await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated }); } catch (err) { console.error("Firestore save error:", err); }
+                                  toast("تم ربط Google", "success");
                                 } else if (e?.code === "auth/popup-closed-by-user") {
                                   toast("تم إغلاق النافذة", "error");
                                 } else {
@@ -578,7 +582,9 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                               try {
                                 const provider = new GithubAuthProvider();
                                 const result = await linkWithPopup(user, provider);
-                                const entry = { id: "github.com", email: result.user.email || undefined, name: result.user.displayName || undefined };
+                                const entry: { id: string; email?: string; name?: string } = { id: "github.com" };
+                                if (result.user.email) entry.email = result.user.email;
+                                if (result.user.displayName) entry.name = result.user.displayName;
                                 const updated = [...linkedProviders.filter(x => x.id !== "github.com"), entry];
                                 setLinkedProviders(updated);
                                 await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
@@ -586,11 +592,13 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                               } catch (e: any) {
                                 console.error("GitHub link error:", e?.code, e?.message);
                                 if (e?.code === "auth/email-already-in-use" || e?.code === "auth/credential-already-in-use") {
-                                  const entry = { id: "github.com", email: e?.customData?.email || user?.email || undefined, name: undefined };
+                                  const entry: { id: string; email?: string; name?: string } = { id: "github.com" };
+                                  const em = e?.customData?.email || user?.email;
+                                  if (em) entry.email = em;
                                   const updated = [...linkedProviders.filter(x => x.id !== "github.com"), entry];
                                   setLinkedProviders(updated);
-                                  await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
-                                  toast("تم ربط GitHub (نفس البريد مستخدم بحساب آخر في Firebase)", "success");
+                                  try { await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated }); } catch (err) { console.error("Firestore save error:", err); }
+                                  toast("تم ربط GitHub", "success");
                                 } else if (e?.code === "auth/popup-closed-by-user") {
                                   toast("تم إغلاق النافذة", "error");
                                 } else {
