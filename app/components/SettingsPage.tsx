@@ -513,13 +513,18 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                               if (!user) return;
                               try {
                                 const provider = new GoogleAuthProvider();
+                                provider.addScope("profile");
+                                provider.addScope("email");
                                 const result = await linkWithPopup(user, provider);
                                 const info = getAdditionalUserInfo(result);
                                 const profile: any = info?.profile || {};
+                                console.log("Google profile data:", JSON.stringify(profile));
                                 const entry: typeof linkedProviders[0] = { id: "google.com" };
                                 if (result.user.email) entry.email = result.user.email;
-                                if (profile.name || result.user.displayName) entry.name = profile.name || result.user.displayName;
-                                if (profile.picture || result.user.photoURL) entry.avatar = profile.picture || result.user.photoURL;
+                                const displayName = profile.name || profile.given_name || result.user.displayName;
+                                if (displayName) entry.name = displayName;
+                                const avatar = profile.picture || result.user.photoURL;
+                                if (avatar) entry.avatar = avatar;
                                 if (profile.link) entry.url = profile.link;
                                 const updated = [...linkedProviders.filter(x => x.id !== "google.com"), entry];
                                 setLinkedProviders(updated);
@@ -593,16 +598,22 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                               if (!user) return;
                               try {
                                 const provider = new GithubAuthProvider();
+                                provider.addScope("read:user");
+                                provider.addScope("user:email");
                                 const result = await linkWithPopup(user, provider);
                                 const info = getAdditionalUserInfo(result);
                                 const profile: any = info?.profile || {};
+                                console.log("GitHub profile data:", JSON.stringify(profile));
                                 const entry: typeof linkedProviders[0] = { id: "github.com" };
                                 if (result.user.email) entry.email = result.user.email;
-                                if (profile.name || result.user.displayName) entry.name = profile.name || result.user.displayName;
+                                const displayName = profile.name || result.user.displayName;
+                                if (displayName) entry.name = displayName;
                                 if (profile.login) entry.username = profile.login;
-                                if (profile.avatar_url || result.user.photoURL) entry.avatar = profile.avatar_url || result.user.photoURL;
+                                const avatar = profile.avatar_url || result.user.photoURL;
+                                if (avatar) entry.avatar = avatar;
                                 if (profile.bio) entry.bio = profile.bio;
                                 if (profile.html_url) entry.url = profile.html_url;
+                                if (profile.blog) entry.url = profile.blog;
                                 const updated = [...linkedProviders.filter(x => x.id !== "github.com"), entry];
                                 setLinkedProviders(updated);
                                 await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
