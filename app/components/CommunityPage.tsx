@@ -19,13 +19,15 @@ interface CommunityPageProps {
   onJoinToggle?: (name: string, joined: boolean) => void;
 }
 
-const communityMeta: Record<string, { img: string; banner: string; desc: string; rules: string[]; tags: string[]; bookmarks: { label: string; url: string; icon?: string }[] }> = {
+const communityMeta: Record<string, { img: string; banner: string; desc: string; shortDesc: string; rules: string[]; tags: string[]; bookmarks: { label: string; url: string; icon?: string }[]; stats: { label: string; value: string }[] }> = {
   Unity: {
     img: "/assets/images/unitylogo.png",
     banner: "/assets/images/bannerunity.png",
-    desc: "مكانك لو حابب تتعلم Unity وتشارك مشاريعك مع مطورين عرب. تواصل، اسأل، واطلع شغلك للعالم.",
-    rules: ["احترام الجميع", "المحتوى متعلق بـ Unity", "لا سبام"],
-    tags: ["Unity", "GameDev", "C#"],
+    desc: "مجتمع مطوري Unity العرب — مكانك لو حابب تتعلم تطوير الألعاب وتشارك مشاريعك مع مطورين عرب. سواء كنت مبتدئ أو محترف، هون تلاقي مساعدة، مراجعات، أفكار، وشغل يلهمك. ناقش C# و Shader Graph و DOTS و UI Toolkit وكل شي يخص Unity.",
+    shortDesc: "تعلّم Unity وشارك مشاريعك مع مطورين عرب",
+    rules: ["احترام الجميع وعدم الإساءة", "المحتوى يجب أن يكون متعلقًا بـ Unity", "لا سبام أو إعلانات غير مصرّحة", "اذكر المصدر عند مشاركة أعمال الغير", "استخدم الفلير (Flair) المناسب"],
+    tags: ["Unity", "GameDev", "C#", "Shader Graph", "DOTS", "AR/VR", "2D", "3D"],
+    stats: [{ label: "تأسس", value: "2025" }, { label: "النوع", value: "محرك ألعاب" }, { label: "اللغة", value: "C#" }, { label: "المنصة", value: "Cross-platform" }],
     bookmarks: [
       { label: "Unity Documentation", url: "https://docs.unity3d.com/" },
       { label: "Unity Learn", url: "https://learn.unity.com/" },
@@ -34,12 +36,29 @@ const communityMeta: Record<string, { img: string; banner: string; desc: string;
       { label: "Unity Discord", url: "https://discord.gg/unity" },
     ],
   },
+  Unreal: {
+    img: "/assets/images/unreallogo.svg",
+    banner: "/assets/images/bannerunity.png",
+    desc: "مجتمع مطوري Unreal Engine العرب — من AAA لمستقلة. تعلّم UE5 وBlueprints وC++ وNanite وLumen. شارك مشاريعك، اسأل، وساعد غيرك يبدأ. هون مناقشات تقنية عميقة عن الـ Rendering و Niagara و MetaHuman وكل ما يخص Unreal.",
+    shortDesc: "محرك الألعاب الأقوى — تعلّم UE5 مع مجتمع عربي",
+    rules: ["احترام الجميع وعدم الإساءة", "المحتوى يجب أن يكون متعلقًا بـ Unreal Engine", "لا سبام أو إعلانات غير مصرّحة", "اذكر المصدر عند مشاركة أعمال الغير", "استخدم الفلير (Flair) المناسب"],
+    tags: ["Unreal", "UE5", "Blueprints", "C++", "Nanite", "Lumen", "Niagara", "MetaHuman"],
+    stats: [{ label: "تأسس", value: "2025" }, { label: "النوع", value: "محرك ألعاب" }, { label: "اللغة", value: "C++ / Blueprints" }, { label: "المنصة", value: "Cross-platform" }],
+    bookmarks: [
+      { label: "Unreal Documentation", url: "https://dev.epicgames.com/documentation/" },
+      { label: "Unreal Forums", url: "https://forums.unrealengine.com/" },
+      { label: "Unreal Marketplace", url: "https://www.unrealengine.com/marketplace" },
+      { label: "Unreal Discord", url: "https://discord.gg/unreal" },
+    ],
+  },
   Godot: {
     img: "/assets/images/godotlogo.png",
     banner: "/assets/images/godotbanner.png",
-    desc: "المحرك المفتوح اللي بيسمح لك تعمل لعبتك بلا قيود. من 2D لـ 3D — تعال شارك تجربتك وساعد غيرك يبدأ.",
-    rules: ["احترام الجميع", "المحتوى متعلق بـ Godot", "لا سبام"],
-    tags: ["Godot", "OpenSource", "GDScript"],
+    desc: "مجتمع مطوري Godot العرب — المحرك المفتوح المصدر اللي بيسمح لك تعمل لعبتك بلا قيود. من 2D لـ 3D، من GDScript لـ C# — تعال شارك تجربتك، اعرض مشاريعك، وساعد غيرك يبدأ. مناقشات عن الـ Nodes و Scenes و Shaders و GDExtension.",
+    shortDesc: "المحرك المفتوح — اعمل لعبتك بلا قيود",
+    rules: ["احترام الجميع وعدم الإساءة", "المحتوى يجب أن يكون متعلقًا بـ Godot", "لا سبام أو إعلانات غير مصرّحة", "اذكر المصدر عند مشاركة أعمال الغير", "استخدم الفلير (Flair) المناسب"],
+    tags: ["Godot", "OpenSource", "GDScript", "C#", "2D", "3D", "Shaders", "GDExtension"],
+    stats: [{ label: "تأسس", value: "2025" }, { label: "النوع", value: "محرك ألعاب" }, { label: "اللغة", value: "GDScript / C#" }, { label: "الترخيص", value: "MIT (مفتوح)" }],
     bookmarks: [
       { label: "Godot Documentation", url: "https://docs.godotengine.org/" },
       { label: "Godot Q&A", url: "https://godotengine.org/qa/" },
@@ -50,9 +69,11 @@ const communityMeta: Record<string, { img: string; banner: string; desc: string;
   Blender: {
     img: "/assets/images/logoblender.png",
     banner: "/assets/images/bannerblender.png",
-    desc: "من النمذجة للأنيميشن للرندر — كل شي بيتعمل بـ Blender. اعرض أعمالك وتعلم تقنيات جديدة مع مجتمع يفهمك.",
-    rules: ["احترام الجميع", "المحتوى متعلق بـ Blender", "لا سبام"],
-    tags: ["Blender", "3D", "Modeling"],
+    desc: "مجتمع فنّاني ومطوري Blender العرب — من النمذجة للأنيميشن للرندر، كل شي بيتعمل بـ Blender. اعرض أعمالك، تعلّم تقنيات جديدة، ناقش Geometry Nodes و EEVEE و Cycles و Sculpting و Rigging. مجتمع يفهمك ويساعدك تطوّر مهاراتك.",
+    shortDesc: "من النمذجة للأنيميشن — كل شي بـ Blender",
+    rules: ["احترام الجميع وعدم الإساءة", "المحتوى يجب أن يكون متعلقًا بـ Blender", "لا سبام أو إعلانات غير مصرّحة", "اذكر المصدر عند مشاركة أعمال الغير", "استخدم الفلير (Flair) المناسب"],
+    tags: ["Blender", "3D", "Modeling", "Animation", "Sculpting", "Rendering", "Geometry Nodes", "EEVEE"],
+    stats: [{ label: "تأسس", value: "2025" }, { label: "النوع", value: "نمذجة 3D" }, { label: "الرندر", value: "EEVEE / Cycles" }, { label: "الترخيص", value: "GPL (مفتوح)" }],
     bookmarks: [
       { label: "Blender Documentation", url: "https://docs.blender.org/" },
       { label: "Blender Artists", url: "https://blenderartists.org/" },
@@ -71,7 +92,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   const [memberCount, setMemberCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"posts" | "forums">("posts");
   const [sortMode, setSortMode] = useState<"new" | "top" | "comments">("new");
-  const meta = communityMeta[name] || { img: "", banner: "", desc: `مجتمع n/${name}`, rules: [], tags: [], bookmarks: [] };
+  const meta = communityMeta[name] || { img: "", banner: "", desc: `مجتمع n/${name}`, shortDesc: `مجتمع ${name}`, rules: [], tags: [], bookmarks: [], stats: [] };
 
   // Check if user is a member
   useEffect(() => {
@@ -147,7 +168,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
         )}
         <div className="flex-1 min-w-0 pt-1 sm:pt-3">
           <h1 className="text-lg sm:text-xl font-bold text-white">n/{name}</h1>
-          <p className="text-xs text-nf-muted mt-1 leading-relaxed line-clamp-2">{meta.desc}</p>
+          <p className="text-xs text-nf-muted mt-1 leading-relaxed line-clamp-2">{meta.shortDesc}</p>
         </div>
         <button
           onClick={() => user ? toggleJoin() : undefined}
@@ -172,27 +193,59 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
       </div>
 
       {/* About Community card */}
-      <div className="bg-nf-primary border border-nf-border-2 rounded-lg p-4 mb-4">
-        <h3 className="font-bold text-white text-sm mb-2">{t("cp.aboutCommunity")}</h3>
-        <p className="text-xs text-nf-muted leading-relaxed mb-3">{meta.desc}</p>
+      <div className="bg-nf-primary border border-nf-border-2 rounded-lg overflow-hidden mb-4">
+        <div className="p-4">
+          <h3 className="font-bold text-white text-sm mb-2">{t("cp.aboutCommunity")}</h3>
+          <p className="text-xs text-nf-muted leading-relaxed mb-3">{meta.desc}</p>
+        </div>
+        {/* Stats grid */}
+        {meta.stats && meta.stats.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-nf-border-2">
+            {meta.stats.map((s, i) => (
+              <div key={i} className="px-4 py-2.5 border-nf-border-2/50 border-l first:border-l-0 text-center">
+                <p className="text-[10px] text-nf-dim">{s.label}</p>
+                <p className="text-[12px] font-bold text-white">{s.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Rules */}
         {meta.rules && meta.rules.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-1.5">{t("cp.communityRules")}</p>
-            <div className="space-y-1">
+          <div className="px-4 pt-3 pb-1 border-t border-nf-border-2">
+            <p className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-2">{t("cp.communityRules")}</p>
+            <div className="space-y-1.5">
               {meta.rules.map((rule, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-nf-muted">
-                  <span className="w-4 h-4 rounded-full bg-nf-secondary flex items-center justify-center text-[9px] font-bold text-nf-dim shrink-0">{i + 1}</span>
-                  {rule}
+                <div key={i} className="flex items-start gap-2 text-xs text-nf-muted">
+                  <span className="w-5 h-5 rounded-md bg-nf-secondary flex items-center justify-center text-[10px] font-bold text-nf-accent shrink-0">{i + 1}</span>
+                  <span className="leading-relaxed">{rule}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
+        {/* Tags */}
         {meta.tags && meta.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {meta.tags.map((tag) => (
-              <span key={tag} className="px-2 py-0.5 rounded-full bg-nf-accent/10 text-[10px] font-medium text-nf-accent">{tag}</span>
-            ))}
+          <div className="px-4 py-3 border-t border-nf-border-2">
+            <p className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-2">التصنيفات</p>
+            <div className="flex flex-wrap gap-1.5">
+              {meta.tags.map((tag) => (
+                <span key={tag} className="px-2.5 py-1 rounded-full bg-nf-accent/10 text-[10px] font-semibold text-nf-accent border border-nf-accent/10">{tag}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Bookmarks */}
+        {meta.bookmarks && meta.bookmarks.length > 0 && (
+          <div className="px-4 py-3 border-t border-nf-border-2">
+            <p className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-2">روابط مفيدة</p>
+            <div className="space-y-1">
+              {meta.bookmarks.map((bm) => (
+                <a key={bm.label} href={bm.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-nf-accent hover:text-white transition-colors">
+                  <span className="w-1.5 h-1.5 rounded-full bg-nf-accent/40 shrink-0" />
+                  {bm.label}
+                </a>
+              ))}
+            </div>
           </div>
         )}
       </div>
