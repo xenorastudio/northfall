@@ -16,6 +16,10 @@ function IconGitHub() { return <svg width="14" height="14" viewBox="0 0 24 24"><
 function IconSteam() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M11.502 18.003l-2.09-1.442a1.29 1.29 0 0 1-.398-1.666 1.28 1.28 0 0 1 1.532-.623l1.898.633.418-1.858a1.284 1.284 0 0 1 1.796-.856 1.29 1.29 0 0 1 .577 1.748l-1.012 2.024a1.29 1.29 0 0 1-1.878.478z" fill="#fff"/><path d="M22.5 12c0 5.799-4.701 10.5-10.5 10.5S1.5 17.799 1.5 12 6.201 1.5 12 1.5 22.5 6.201 22.5 12z" fill="none" stroke="#fff" strokeWidth="1.5"/></svg>; }
 function IconDiscord() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0c-.164-.393-.406-.874-.618-1.25a.077.077 0 0 0-.079-.036 19.74 19.74 0 0 0-4.885 1.515.07.07 0 0 0-.032.028C.533 9.046-.32 13.56.1 18.058a.082.082 0 0 0 .031.056c2.053 1.508 4.041 2.423 5.993 3.03a.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.926.077.077 0 0 1-.008-.126c.126-.094.252-.192.372-.301a.074.074 0 0 1 .078-.012c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .079.01c.12.1.246.204.373.302a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.926.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.028c1.96-.607 3.949-1.522 6.002-3.029a.077.077 0 0 0 .031-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029z" fill="#5865F2"/></svg>; }
 function IconWebsite() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#00e5ff"/></svg>; }
+function IconTwitch() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" fill="#9146FF"/></svg>; }
+function IconItch() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M3.13 8.43a1.35 1.35 0 0 1 1.27-1.02c.86-.1 1.68.3 2.54.46a8.3 8.3 0 0 0 3.06.06c.86-.16 1.68-.56 2.54-.46a1.35 1.35 0 0 1 1.27 1.02c.12.59.04 1.2-.02 1.8-.1.96-.2 1.92-.3 2.88-.06.5-.1 1-.2 1.5-.1.5-.3.96-.7 1.24-.4.1-.7-.1-1-.3-.6-.4-1.1-.9-1.7-1.2-.4-.2-.9-.3-1.3-.1-.4.1-.6.5-.7.9-.1.4 0 .8.1 1.2.1.4.3.7.6 1 .5.4 1.1.7 1.7.8.6.1 1.2.1 1.8 0 .6-.1 1.2-.4 1.7-.8.3-.3.5-.6.6-1 .1-.4.2-.8.1-1.2-.1-.4-.3-.8-.7-.9-.4-.2-.9-.1-1.3.1-.6.3-1.1.8-1.7 1.2-.3.2-.6.4-1 .3-.4-.28-.6-.74-.7-1.24-.1-.5-.14-1-.2-1.5-.1-.96-.2-1.92-.3-2.88-.06-.6-.14-1.21-.02-1.8z" fill="#FA5C5C"/></svg>; }
+function IconArtStation() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M0 17.723l2.027 3.505h.001a2.424 2.424 0 0 0 2.164 1.333h13.457l-2.792-4.838H0zm24-3.723a2.42 2.42 0 0 0-.637-1.614L14.5.822a2.42 2.42 0 0 0-3.427 0L9.637 2.32l5.747 9.956H24zm-14.5 0L2.792 4.838 0 9.677h9.5z" fill="#13AFF0"/></svg>; }
+function IconLinkedIn() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="#0A66C2"/></svg>; }
 
 const TRANSLATE_LANGS = [
   { id: "en", label: "English", sub: "إنجليزي", flag: "🇺🇸" },
@@ -72,6 +76,10 @@ const socialFields = [
   { id: "github", label: "GitHub", placeholder: "https://github.com/username", bg: "#333", icon: IconGitHub },
   { id: "steam", label: "Steam", placeholder: "https://steamcommunity.com/id/username", bg: "#1b2838", icon: IconSteam },
   { id: "discord", label: "Discord", placeholder: "https://discord.gg/invite-code", bg: "#5865f2", icon: IconDiscord },
+  { id: "twitch", label: "Twitch", placeholder: "https://twitch.tv/username", bg: "#9146FF", icon: IconTwitch },
+  { id: "itch", label: "Itch.io", placeholder: "https://username.itch.io", bg: "#FA5C5C", icon: IconItch },
+  { id: "artstation", label: "ArtStation", placeholder: "https://artstation.com/username", bg: "#13AFF0", icon: IconArtStation },
+  { id: "linkedin", label: "LinkedIn", placeholder: "https://linkedin.com/in/username", bg: "#0A66C2", icon: IconLinkedIn },
   { id: "website", labelKey: "sp.personalWebsite", placeholder: "https://your-site.com", bg: "#0d1117", icon: IconWebsite },
 ];
 
@@ -121,7 +129,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const [accentColor, setAccentColor] = useState("#a0a0a0");
   const [bannerUrl, setBannerUrl] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
-  const [socialLinks, setSocialLinks] = useState<Record<string, string>>({ twitter: "", youtube: "", github: "", steam: "", discord: "", website: "" });
+  const [socialLinks, setSocialLinks] = useState<Record<string, string>>({ twitter: "", youtube: "", github: "", steam: "", discord: "", twitch: "", itch: "", artstation: "", linkedin: "", website: "" });
 
   useEffect(() => {
     const s = localStorage.getItem("nf-dark");
@@ -145,7 +153,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
         setShowOnline(d.showOnline !== false);
         setBannerUrl(d.bannerUrl || "");
         setPhotoUrl(d.photoURL || user?.photoURL || "");
-        setSocialLinks(d.socialLinks || { twitter: "", youtube: "", github: "", steam: "", discord: "", website: "" });
+        setSocialLinks(d.socialLinks || { twitter: "", youtube: "", github: "", steam: "", discord: "", twitch: "", itch: "", artstation: "", linkedin: "", website: "" });
         setNotifVotes(d.notifVotes !== false);
         setNotifComments(d.notifComments !== false);
         setNotifMentions(d.notifMentions !== false);
