@@ -134,7 +134,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
                   </div>
                 )}
               </div>
-              <span className="font-bold text-white hover:text-blue-400 transition-colors inline-flex items-center gap-1">u/{comment.authorName || t("gen.user")}{(comment.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || comment.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] inline drop-shadow-[0_0_4px_rgba(96,165,250,0.5)]" />}</span>
+              <span className="font-bold text-white hover:text-blue-400 transition-colors inline-flex items-center gap-1">u/{comment.authorName || t("gen.user")}{(comment.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || comment.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] inline" />}</span>
             </div>
           </HoverCard>
           <span className="text-nf-dim">·</span>
@@ -571,7 +571,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             </div>
             <HoverCard type="community" name={post.community || t("gen.general")} onCommunityClick={onCommunityClick}><span className="font-semibold text-nf-accent cursor-pointer">n/{post.community || t("gen.general")}</span></HoverCard>
             <span className="text-nf-dim">·</span>
-            <HoverCard type="user" name={post.authorName || t("gen.user")} uid={post.authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted cursor-pointer hover:text-white transition-colors inline-flex items-center gap-1">u/{post.authorName || t("gen.user")}{(post.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || post.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] inline drop-shadow-[0_0_4px_rgba(96,165,250,0.5)]" />}</span></HoverCard>
+            <HoverCard type="user" name={post.authorName || t("gen.user")} uid={post.authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted cursor-pointer hover:text-white transition-colors inline-flex items-center gap-1">u/{post.authorName || t("gen.user")}{(post.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || post.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] inline" />}</span></HoverCard>
             <span className="text-nf-dim">·</span>
             <span className="text-nf-muted">{timeAgoShort(post.createdAt)}</span>
             {post.flair && <><span className="text-nf-dim">·</span><span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-nf-accent/20 text-nf-accent">{post.flair}</span></>}

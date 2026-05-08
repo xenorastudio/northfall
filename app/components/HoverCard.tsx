@@ -232,7 +232,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
             <div className="flex items-center gap-1.5">
               <span className="text-[13px] font-bold text-white">u/{data.name}</span>
               {(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && (
-                <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] shrink-0 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]" />
+                <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] shrink-0" />
               )}
               {(() => {
                 const isOnline = data.lastSeen && (Date.now() - new Date(data.lastSeen).getTime()) < 5 * 60 * 1000;
