@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { Search, Bell, User, ChevronDown, X, FileText, Users, Hash, TrendingUp, Clock, ArrowUp, MessageSquare, Sparkles, RotateCcw, Flame, Settings, LogOut, Bookmark, Shield, HelpCircle, Plus } from "lucide-react";
 import { useAuth } from "./AuthProvider";
+import { useData } from "./DataProvider";
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, orderBy, limit, where, onSnapshot, getCountFromServer } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, where, getCountFromServer } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
@@ -89,7 +90,6 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
     }
     return true;
   });
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -121,15 +121,8 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
     localStorage.removeItem("nf-search-history");
   };
 
-  // Real-time unread count
-  useEffect(() => {
-    if (!user) { setUnreadCount(0); return; }
-    const q2 = query(collection(db, "users", user.uid, "notifications"), orderBy("createdAt", "desc"), limit(20));
-    const unsub = onSnapshot(q2, (snap) => {
-      setUnreadCount(snap.docs.filter(d => !d.data().read).length);
-    }, () => {});
-    return () => unsub();
-  }, [user]);
+  // Real-time unread count (from DataProvider)
+  const { unreadCount } = useData();
 
   // Cmd+K shortcut
   useEffect(() => {
@@ -159,7 +152,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
 
   const toggleTheme = () => setDarkMode(!darkMode);
 
-  // Search logic
+  // Search logic (debounced 500ms, limited results)
   useEffect(() => {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
     const timer = setTimeout(async () => {
@@ -167,16 +160,19 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
       try {
         const qLower = searchQuery.toLowerCase();
 
+        // Fetch limited posts for search (not all fields)
         const postsQuery = searchSort === "top"
-          ? query(collection(db, "posts"), orderBy("votes", "desc"), limit(15))
-          : query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(15));
+          ? query(collection(db, "posts"), orderBy("votes", "desc"), limit(10))
+          : query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10));
         const snap = await getDocs(postsQuery);
 
         let postResults = snap.docs
-          .map((d) => ({ id: d.id, ...d.data(), _type: "post" as const }))
-          .filter((d: any) =>
+          .map((d) => {
+            const data = d.data();
+            return { id: d.id, title: data.title, body: data.body, community: data.community, authorName: data.authorName, authorUid: data.authorUid, votes: data.votes, _type: "post" as const };
+          })
+          .filter((d) =>
             d.title?.toLowerCase().includes(qLower) ||
-            d.body?.toLowerCase().includes(qLower) ||
             d.community?.toLowerCase().includes(qLower) ||
             d.authorName?.toLowerCase().includes(qLower)
           );

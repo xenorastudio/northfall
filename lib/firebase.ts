@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED, persistentLocalCache, persistentSingleTabManager } from "firebase/firestore";
+import { getAuth, browserLocalPersistence, setPersistence } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD2rbBw37_HLLEDWW8Ym5Cmwz3HOaD6KOk",
@@ -14,7 +14,16 @@ const firebaseConfig = {
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const db = getFirestore(app);
+
+// Firestore with offline persistence & unlimited cache
+const db = getApps().length === 0
+  ? initializeFirestore(app, {
+      localCache: persistentLocalCache({ cacheSizeBytes: CACHE_SIZE_UNLIMITED, tabManager: persistentSingleTabManager({}) }),
+    })
+  : getFirestore(app);
+
+// Auth persistence - stay logged in across tabs/sessions
 const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence).catch(() => {});
 
 export { app, db, auth };

@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useI18n } from "./I18nProvider";
 import { useAuth } from "./AuthProvider";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { useData } from "./DataProvider";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 const communities = [
@@ -60,13 +61,13 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
 }) {
   const { t, lang } = useI18n();
   const { user } = useAuth();
+  const { unreadCount, joinedCommunities } = useData();
   const [commSearch, setCommSearch] = useState("");
   const [joinedComms, setJoinedComms] = useState<{ name: string; label: string; img: string }[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [darkMode, setDarkMode] = useState(false);
   const filteredComms = commSearch.trim() ? communities.filter(c => c.name.toLowerCase().includes(commSearch.toLowerCase()) || c.label.toLowerCase().includes(commSearch.toLowerCase())) : communities;
 
-  // Fetch joined communities from Firebase
+  // Fetch joined communities from Firebase (with cache)
   useEffect(() => {
     if (!user) { setJoinedComms([]); return; }
     async function fetchJoined() {
@@ -86,21 +87,6 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
       } catch (e) { console.error(e); }
     }
     fetchJoined();
-  }, [user]);
-
-  // Fetch unread notification count
-  useEffect(() => {
-    if (!user) { setUnreadCount(0); return; }
-    async function fetchUnread() {
-      try {
-        const q = query(collection(db, "users", user!.uid, "notifications"), where("read", "==", false));
-        const snap = await getDocs(q);
-        setUnreadCount(snap.size);
-      } catch (e) { console.error(e); }
-    }
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 30000);
-    return () => clearInterval(interval);
   }, [user]);
 
   // Dark mode toggle

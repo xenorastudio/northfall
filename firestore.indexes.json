@@ -1,0 +1,15 @@
+{
+  "indexes": [
+    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "authorUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "community", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "community", "order": "ASCENDING" }, { "fieldPath": "votes", "order": "DESCENDING" }] },
+    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "authorUid", "order": "ASCENDING" }, { "fieldPath": "votes", "order": "DESCENDING" }] },
+    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "posts", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "votes", "order": "DESCENDING" }] },
+    { "collectionGroup": "notifications", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "read", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "notifications", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "type", "order": "ASCENDING" }, { "fieldPath": "read", "order": "ASCENDING" }] },
+    { "collectionGroup": "comments", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "authorUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "comments", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "createdAt", "order": "ASCENDING" }] }
+  ],
+  "fieldOverrides": []
+}

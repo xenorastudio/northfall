@@ -21,7 +21,7 @@ import LoginModal from "../components/LoginModal";
 import ToastProvider from "../components/ToastProvider";
 import { Megaphone, X, ArrowUp } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, startAfter } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, startAfter, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -217,22 +217,19 @@ function AppContent() {
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-  // Poll for new posts
+  // Real-time new posts detection (replaces polling)
   useEffect(() => {
     if (view !== "feed") return;
-    const interval = setInterval(async () => {
-      try {
-        const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(1));
-        const snap = await getDocs(q);
-        if (!snap.empty && posts.length > 0) {
-          const latestId = snap.docs[0].id;
-          if (!posts.find(p => p.id === latestId)) {
-            setNewPostsCount(c => c + 1);
-          }
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(1));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty && posts.length > 0) {
+        const latestId = snap.docs[0].id;
+        if (!posts.find(p => p.id === latestId)) {
+          setNewPostsCount(c => c + 1);
         }
-      } catch {}
-    }, 15000);
-    return () => clearInterval(interval);
+      }
+    }, () => {});
+    return () => unsub();
   }, [view, posts]);
 
   // Re-fetch when feed mode changes
