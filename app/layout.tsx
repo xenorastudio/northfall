@@ -134,10 +134,7 @@ export default function RootLayout({
         inLanguage: ['ar', 'en'],
         potentialAction: {
           '@type': 'SearchAction',
-          target: {
-            '@type': 'EntryPoint',
-            urlTemplate: `${SITE_URL}/app?view=feed&q={search_term_string}`,
-          },
+          target: `${SITE_URL}/app?view=feed&q={search_term_string}`,
           'query-input': 'required name=search_term_string',
         },
       },
