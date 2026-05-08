@@ -23,7 +23,7 @@ import LoginModal from "../components/LoginModal";
 import ToastProvider from "../components/ToastProvider";
 import { Megaphone, X, ArrowUp } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, startAfter, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, startAfter } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 // framer-motion removed for performance
 import { cn } from "@/lib/utils";
@@ -219,20 +219,28 @@ function AppContent() {
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-  // Real-time new posts detection (replaces polling)
+  // Poll for new posts every 15s (replaces onSnapshot to reduce connections)
   useEffect(() => {
     if (view !== "feed") return;
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(1));
-    const unsub = onSnapshot(q, (snap) => {
-      if (!snap.empty && posts.length > 0) {
-        const latestId = snap.docs[0].id;
-        if (!posts.find(p => p.id === latestId)) {
-          setNewPostsCount(c => c + 1);
+    let lastLatestId: string | null = null;
+    const checkNew = async () => {
+      try {
+        const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(1));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const latestId = snap.docs[0].id;
+          if (lastLatestId === null) { lastLatestId = latestId; return; }
+          if (latestId !== lastLatestId && posts.length > 0) {
+            lastLatestId = latestId;
+            setNewPostsCount(c => c + 1);
+          }
         }
-      }
-    }, () => {});
-    return () => unsub();
-  }, [view, posts]);
+      } catch {}
+    };
+    checkNew();
+    const interval = setInterval(checkNew, 15000);
+    return () => clearInterval(interval);
+  }, [view, posts.length]);
 
   // Re-fetch when feed mode changes
   useEffect(() => { fetchPosts(); }, [feedMode]);

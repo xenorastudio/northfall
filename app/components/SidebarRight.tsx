@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, limit, getDoc, doc, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Flame, TrendingUp, Bookmark, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
@@ -79,11 +79,16 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
   const meta = communityName ? communityMeta[communityName] : null;
 
   useEffect(() => {
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(5));
-    const unsub = onSnapshot(q, (snap) => {
-      setRecentPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    }, () => {});
-    return () => unsub();
+    async function fetchRecent() {
+      try {
+        const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(5));
+        const snap = await getDocs(q);
+        setRecentPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch {}
+    }
+    fetchRecent();
+    const interval = setInterval(fetchRecent, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

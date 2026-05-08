@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Wrench, ShieldCheck } from "lucide-react";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 
@@ -14,16 +14,20 @@ export default function MaintenanceOverlay({ children }: { children: React.React
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "system", "maintenance"), (snap) => {
-      if (snap.exists()) {
-        setActive(!!snap.data().active);
-      } else {
-        // Create doc only once if missing
-        setDoc(doc(db, "system", "maintenance"), { active: false }).catch(() => {});
-      }
+    async function checkMaintenance() {
+      try {
+        const snap = await getDoc(doc(db, "system", "maintenance"));
+        if (snap.exists()) {
+          setActive(!!snap.data().active);
+        } else {
+          await setDoc(doc(db, "system", "maintenance"), { active: false }).catch(() => {});
+        }
+      } catch {}
       setLoading(false);
-    }, () => setLoading(false));
-    return () => unsub();
+    }
+    checkMaintenance();
+    const interval = setInterval(checkMaintenance, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const isOwner = OWNER_UIDS.includes(user?.uid || "");
