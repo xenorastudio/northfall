@@ -231,7 +231,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
           <div className="flex-1">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px] font-bold text-white">u/{data.name}</span>
-              {(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && (
+              {(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && (
                 <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] shrink-0" />
               )}
               {(() => {

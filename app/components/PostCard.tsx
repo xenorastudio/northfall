@@ -456,7 +456,7 @@ export default function PostCard({
           </div>
           <HoverCard type="community" name={community.replace("n/", "")} onCommunityClick={onCommunityClick}><span className="font-semibold text-nf-accent cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onCommunityClick?.(community.replace("n/", "")); }}>{community}</span></HoverCard>
           <span className="text-nf-dim">·</span>
-          <HoverCard type="user" name={author} uid={authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted hover:text-white hover:underline cursor-pointer inline-flex items-center gap-1" onClick={(e) => { e.stopPropagation(); onProfileClick?.(authorUid || undefined); }}>u/{author}{(authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span></HoverCard>
+          <HoverCard type="user" name={author} uid={authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted hover:text-white hover:underline cursor-pointer inline-flex items-center gap-1" onClick={(e) => { e.stopPropagation(); onProfileClick?.(authorUid || undefined); }}>u/{author}{(authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span></HoverCard>
           <span className="text-nf-dim">·</span>
           <span className="text-nf-muted">{time}</span>
           {flair && <><span className="text-nf-dim">·</span><span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-nf-accent/20 text-nf-accent">{flair}</span></>}

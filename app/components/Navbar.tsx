@@ -541,7 +541,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                         <div className="w-10 h-10 rounded-full bg-nf-secondary flex items-center justify-center border border-nf-border-2"><User size={18} className="text-nf-muted" /></div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-bold text-white truncate flex items-center gap-1">{user.displayName || t("gen.user")}{(user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] inline" />}</p>
+                        <p className="text-[13px] font-bold text-white truncate flex items-center gap-1">{user.displayName || t("gen.user")}{(user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] inline" />}</p>
                         <p className="text-[10px] text-nf-dim truncate">{user.email || ""}</p>
                       </div>
                     </div>
@@ -558,7 +558,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       { icon: Bell, label: t("nav.notifs"), action: () => { onNotifsClick?.(); setShowUserMenu(false); } },
                       { icon: Plus, label: t("pc.createPlaceholder"), action: () => { onCreateClick?.(); setShowUserMenu(false); } },
                       { icon: Settings, label: t("nav.settings"), action: () => { onSettingsClick?.(); setShowUserMenu(false); } },
-                      ...(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1" ? [{ icon: Shield, label: "لوحة الإشراف", action: () => { onAdminClick?.(); setShowUserMenu(false); } }] : []),
+                      ...(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" ? [{ icon: Shield, label: "لوحة الإشراف", action: () => { onAdminClick?.(); setShowUserMenu(false); } }] : []),
                       { icon: HelpCircle, label: t("sb.help"), action: () => { setShowUserMenu(false); } },
                     ].map((item, i) => (
                       <button key={i} onClick={item.action} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
