@@ -507,8 +507,10 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                             await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
                             toast("تم ربط Google بنجاح", "success");
                           } catch (e: any) {
+                            console.error("Google link error:", e?.code, e?.message);
                             if (e?.code === "auth/credential-already-in-use") toast("هذا الحساب مربوط بمستخدم آخر", "error");
-                            else toast("فشل ربط Google", "error");
+                            else if (e?.code === "auth/popup-closed-by-user") toast("تم إغلاق النافذة", "error");
+                            else toast(`فشل ربط Google: ${e?.message || e?.code || "خطأ"}`, "error");
                           }
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-nf-accent text-white hover:bg-nf-accent/80 transition-colors"
@@ -553,8 +555,10 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                             await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
                             toast("تم ربط GitHub بنجاح", "success");
                           } catch (e: any) {
+                            console.error("GitHub link error:", e?.code, e?.message);
                             if (e?.code === "auth/credential-already-in-use") toast("هذا الحساب مربوط بمستخدم آخر", "error");
-                            else toast("فشل ربط GitHub", "error");
+                            else if (e?.code === "auth/popup-closed-by-user") toast("تم إغلاق النافذة", "error");
+                            else toast(`فشل ربط GitHub: ${e?.message || e?.code || "خطأ"}`, "error");
                           }
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-nf-accent text-white hover:bg-nf-accent/80 transition-colors"
