@@ -195,6 +195,11 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className="dark">
       <head>
+        <link rel="icon" href="/assets/favicon/favicon.ico" sizes="48x48" />
+        <link rel="icon" href="/assets/favicon/favicon.svg" type="image/svg+xml" sizes="any" />
+        <link rel="icon" href="/assets/favicon/favicon-96x96.png" type="image/png" sizes="96x96" />
+        <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" sizes="180x180" />
+        <link rel="manifest" href="/assets/favicon/site.webmanifest" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
