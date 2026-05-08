@@ -74,6 +74,11 @@ export default function LandingPage() {
         <nav aria-label="Site map" className="sr-only">
           <Link href="/app">الرئيسية</Link>
           <Link href="/NewPage">المنتدى</Link>
+          <Link href="/guides">أدلة مجانية</Link>
+          <Link href="/guides/unity-beginner">تعلم Unity</Link>
+          <Link href="/guides/unreal-beginner">تعلم Unreal</Link>
+          <Link href="/guides/godot-beginner">تعلم Godot</Link>
+          <Link href="/guides/blender-beginner">تعلم Blender</Link>
           <Link href="/community/Unity">مجتمع Unity</Link>
           <Link href="/community/Unreal">مجتمع Unreal</Link>
           <Link href="/community/Godot">مجتمع Godot</Link>

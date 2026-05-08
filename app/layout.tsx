@@ -10,36 +10,36 @@ const SITE_NAME = 'NorthFall';
 const SITE_DESCRIPTION = 'مكان واحد لكل مطور ألعاب عرب — نتناقش عن Unity و Unreal و Godot و Blender، نشارك مشاريعنا، ونساعد بعض نتعلم. زي ريدت بس للعرب.';
 
 const KEYWORDS = [
-  // Brand
-  'NorthFall', 'نورث فول', 'NorthFall منصة', 'NorthFall مجتمعات', 'منصة الألعاب العربية', 'NorthFall blog',
-  // Gaming AR
-  'ألعاب', 'العاب', 'ألعاب فيديو', 'العاب فيديو', 'جيمر عرب', 'جيمرز عرب', 'مجتمع ألعاب', 'منتدى ألعاب', 'منتدى العاب', 'نقاشات ألعاب', 'أخبار الألعاب', 'مراجعات ألعاب', 'تحميل ألعاب', 'ألعاب مجانية', 'ألعاب عربية', 'ألعاب عرب', 'قيمز عرب', 'جيمر عربي',
-  // Gaming EN
-  'games', 'gaming', 'gaming community', 'gaming forum', 'game forum', 'game discussion', 'game reviews', 'free games', 'game news', 'gamer', 'gamers', 'video games', 'pc gaming', 'mobile games', 'indie games', 'game development', 'game dev',
-  // Unity AR/EN
-  'Unity', 'يونيتي', 'تعلم Unity', 'دورة Unity', 'Unity بالعربي', 'Unity عربي', 'Unity tutorials', 'Unity tutorial arabic', 'Unity 3D', 'Unity 2D', 'Unity game engine', 'محرك Unity', 'Unity C#', 'Unity مشاريع', 'Unity تطوير ألعاب', 'Unity learn', 'Unity course', 'Unity developer', 'مطور Unity', 'Unity scripting', 'Unity assets', 'Unity UI', 'Unity VR', 'Unity AR', 'Unity mobile', 'Unity shader', 'Unity animation',
-  // Unreal AR/EN
-  'Unreal', 'أنريل', 'Unreal Engine', 'UE5', 'UE4', 'تعلم Unreal', 'دورة Unreal Engine', 'Unreal بالعربي', 'Unreal عربي', 'Unreal tutorials arabic', 'Unreal Blueprint', 'Unreal C++', 'محرك Unreal', 'Unreal مشاريع', 'Unreal تطوير ألعاب', 'Unreal developer', 'مطور Unreal', 'Unreal 3D', 'Unreal Nanite', 'Unreal Lumen', 'Unreal MetaHuman', 'Unreal animation', 'Unreal VR', 'Unreal shader', 'Unreal visual scripting',
-  // Godot AR/EN
-  'Godot', 'جودوت', 'تعلم Godot', 'دورة Godot', 'Godot بالعربي', 'Godot عربي', 'Godot tutorials', 'Godot tutorial arabic', 'Godot 4', 'Godot 3D', 'Godot 2D', 'محرك Godot', 'Godot GDScript', 'Godot open source', 'Godot مفتوح المصدر', 'Godot مشاريع', 'Godot تطوير ألعاب', 'Godot developer', 'مطور Godot', 'Godot indie', 'Godot shader', 'Godot mobile', 'Godot engine',
-  // Blender AR/EN
-  'Blender', 'بلندر', 'تعلم Blender', 'دورة Blender', 'Blender بالعربي', 'Blender عربي', 'Blender tutorials', 'Blender tutorial arabic', 'Blender 3D', 'Blender modeling', 'Blender نمذجة', 'Blender animation', 'Blender أنيميشن', 'Blender rendering', 'Blender render', 'Blender sculpting', 'Blender نحت', 'Blender UV', 'Blender texture', 'Blender shader', 'Blender EEVEE', 'Blender Cycles', 'Blender Geometry Nodes', 'Blender مجاني', 'Blender free', 'Blender artist', 'فنان Blender', 'Blender game assets',
-  // GameDev AR/EN
-  'تطوير ألعاب', 'تطوير العاب', 'صناعة ألعاب', 'صناعة العاب', 'برمجة ألعاب', 'برمجة العاب', 'تصميم ألعاب', 'تصميم العاب', 'مطور ألعاب', 'مطور العاب', 'مطور ألعاب عربي', 'game development', 'game developer', 'game design', 'game programming', 'indie game dev', 'indie developer', 'indie game', 'لعبة مستقلة', 'مطور مستقل', 'game jam', 'هاكاثون ألعاب',
-  // Programming AR/EN
-  'برمجة', 'تعلم برمجة', 'دورة برمجة', 'برمجة بالعربي', 'C#', 'C++', 'Python', 'JavaScript', 'GDScript', 'برمجة C#', 'برمجة سي شارب', 'programming', 'coding', 'learn programming', 'programming tutorial', 'learn coding', 'كود', 'coding عربي',
-  // 3D/Art AR/EN
-  'نمذجة ثلاثية الأبعاد', '3D modeling', '3D design', 'تصميم ثلاثي الأبعاد', '3D artist', 'فنان رقمي', 'digital art', 'فن رقمي', 'game art', 'game assets', 'أصول ألعاب', 'pixel art', 'ريسورس ألعاب', 'game resources', 'مصادر ألعاب',
-  // Community AR/EN
-  'مجتمع', 'مجتمعات', 'منتدى', 'منتديات', 'نقاش', 'نقاشات', 'مشاركة', 'تواصل', 'شبكة اجتماعية', 'social network', 'community platform', 'forum', 'discussion', 'منصة مجتمع', 'منصة مجتمعات', 'مجتمع مطورين', 'مجتمع جيمرز', 'مجتمع عربي', 'مجتمع تقني',
-  // Tech AR/EN
-  'تقنية', 'تكنولوجيا', 'tech', 'technology', 'أخبار تقنية', 'tech news', 'تقنية ألعاب', 'gaming tech', 'VR', 'AR', 'الواقع الافتراضي', 'الواقع المعزز', 'virtual reality', 'augmented reality', 'AI', 'ذكاء اصطناعي', 'artificial intelligence',
-  // Learning AR/EN
-  'تعلم', 'دورة', 'دروس', 'شروحات', 'تعليم', 'tutorial', 'course', 'learn', 'learning', 'شرح', 'شروحات عربية', 'تعلم بالعربي', 'دورة مجانية', 'free course', 'تعلم مجاني', 'أكاديمية', 'academy',
-  // Countries/Regions (Arabic gaming audience)
+  // Brand (similar to competitors but NOT exact same)
+  'NorthFall', 'نورث فول', 'NorthFall مجتمع', 'NorthFall منتدى', 'مجتمع الألعاب العرب', 'NorthFall blog',
+  // Gaming AR — variations competitors don't use
+  'ألعاب', 'العاب', 'ألعاب فيديو', 'العاب فيديو', 'جيمر عرب', 'جيمرز عرب', 'مجتمع ألعاب عربي', 'منتدى ألعاب عربي', 'منتدى العاب عرب', 'نقاشات ألعاب عربية', 'أخبار الألعاب العربية', 'مراجعات ألعاب عربي', 'تحميل ألعاب مجانية', 'ألعاب عربية مجانية', 'ألعاب عرب', 'قيمز عرب', 'جيمر عربي',
+  // Gaming EN — similar but different phrasing
+  'games', 'gaming', 'gaming community arabic', 'gaming forum arab', 'game forum arabic', 'game discussion arabic', 'game reviews arabic', 'free games arabic', 'game news arabic', 'gamer arab', 'gamers arab', 'video games arabic', 'pc gaming arabic', 'mobile games arabic', 'indie games arabic', 'game development arabic', 'game dev arabic',
+  // Unity — similar keywords not exact match
+  'Unity', 'يونيتي', 'تعلم Unity بالعربي', 'دورة Unity مجانية', 'Unity بالعربي', 'Unity عربي', 'Unity tutorials arabic', 'Unity tutorial بالعربي', 'Unity 3D عربي', 'Unity 2D عربي', 'Unity game engine عربي', 'محرك Unity بالعربي', 'Unity C# عربي', 'Unity مشاريع عربية', 'Unity تطوير ألعاب عربي', 'Unity learn عربي', 'Unity course عربي', 'Unity developer عربي', 'مطور Unity عربي', 'Unity scripting عربي', 'Unity assets عربية', 'Unity UI عربي', 'Unity VR عربي', 'Unity AR عربي', 'Unity mobile عربي', 'Unity shader عربي', 'Unity animation عربي',
+  // Unreal — variations
+  'Unreal', 'أنريل', 'Unreal Engine عربي', 'UE5 عربي', 'UE4 عربي', 'تعلم Unreal بالعربي', 'دورة Unreal Engine مجانية', 'Unreal بالعربي', 'Unreal عربي', 'Unreal tutorials arabic', 'Unreal Blueprint عربي', 'Unreal C++ عربي', 'Unreal Nanite عربي', 'Unreal Lumen عربي', 'Unreal MetaHuman عربي', 'محرك Unreal بالعربي', 'Unreal مشاريع عربية', 'Unreal تطوير ألعاب عربي', 'Unreal developer عربي', 'مطور Unreal عربي', 'Unreal 3D عربي', 'Unreal VR عربي', 'Unreal shader عربي', 'Unreal visual scripting عربي',
+  // Godot — variations
+  'Godot', 'جودوت', 'تعلم Godot بالعربي', 'دورة Godot مجانية', 'Godot بالعربي', 'Godot عربي', 'Godot tutorials arabic', 'Godot 4 عربي', 'Godot 3D عربي', 'Godot 2D عربي', 'محرك Godot بالعربي', 'Godot GDScript عربي', 'Godot open source عربي', 'Godot مفتوح المصدر عربي', 'Godot مشاريع عربية', 'Godot تطوير ألعاب عربي', 'Godot developer عربي', 'مطور Godot عربي', 'Godot indie عربي', 'Godot shader عربي', 'Godot mobile عربي', 'Godot engine عربي',
+  // Blender — variations
+  'Blender', 'بلندر', 'تعلم Blender بالعربي', 'دورة Blender مجانية', 'Blender بالعربي', 'Blender عربي', 'Blender tutorials arabic', 'Blender 3D عربي', 'Blender modeling عربي', 'Blender نمذجة عربية', 'Blender animation عربي', 'Blender أنيميشن عربي', 'Blender rendering عربي', 'Blender render عربي', 'Blender sculpting عربي', 'Blender نحت عربي', 'Blender shader عربي', 'Blender EEVEE عربي', 'Blender Cycles عربي', 'Blender Geometry Nodes عربي', 'Blender مجاني عربي', 'Blender free عربي', 'Blender artist عربي', 'فنان Blender عربي', 'Blender game assets عربية',
+  // GameDev — similar not exact
+  'تطوير ألعاب بالعربي', 'تطوير العاب عربي', 'صناعة ألعاب عربية', 'صناعة العاب عربي', 'برمجة ألعاب بالعربي', 'برمجة العاب عربي', 'تصميم ألعاب عربي', 'تصميم العاب عربي', 'مطور ألعاب عربي', 'مطور العاب عربي', 'game development arabic', 'game developer arabic', 'game design arabic', 'game programming arabic', 'indie game dev arabic', 'indie developer عربي', 'indie game عربي', 'لعبة مستقلة عربية', 'مطور مستقل عربي', 'game jam عربي', 'هاكاثون ألعاب عربي',
+  // Programming
+  'برمجة بالعربي', 'تعلم برمجة عربي', 'دورة برمجة مجانية', 'برمجة عربي', 'C# عربي', 'C++ عربي', 'Python عربي', 'JavaScript عربي', 'GDScript عربي', 'برمجة C# بالعربي', 'programming arabic', 'coding عربي', 'learn programming arabic', 'programming tutorial arabic', 'learn coding عربي',
+  // 3D/Art
+  'نمذجة ثلاثية الأبعاد عربي', '3D modeling عربي', '3D design عربي', 'تصميم ثلاثي الأبعاد عربي', '3D artist عربي', 'فنان رقمي عربي', 'digital art عربي', 'فن رقمي عربي', 'game art عربي', 'game assets عربية', 'pixel art عربي', 'game resources عربية', 'مصادر ألعاب عربية',
+  // Community — different phrasing
+  'مجتمع مطورين عرب', 'مجتمعات مطورين عربية', 'منتدى مطورين عربي', 'منتديات مطورين عربية', 'نقاش تقني عربي', 'نقاشات تقنية عربية', 'مشاركة مطورين عرب', 'تواصل مطورين عرب', 'شبكة مطورين عربية', 'social network مطورين عرب', 'community platform عربي', 'forum عربي مطورين', 'discussion عربي تقني', 'منصة مطورين عرب', 'مجتمع جيمرز عرب', 'مجتمع تقني عربي',
+  // Tech
+  'تقنية ألعاب عربية', 'تكنولوجيا ألعاب عربي', 'tech عربي', 'أخبار تقنية عربية', 'tech news عربي', 'gaming tech عربي', 'VR عربي', 'AR عربي', 'الواقع الافتراضي عربي', 'الواقع المعزز عربي', 'virtual reality عربي', 'augmented reality عربي', 'AI ألعاب عربي', 'ذكاء اصطناعي ألعاب عربي',
+  // Learning — similar not exact
+  'تعلم تطوير ألعاب عربي', 'دورة تطوير ألعاب مجانية', 'دروس تطوير ألعاب عربية', 'شروحات تطوير ألعاب عربية', 'تعليم تطوير ألعاب عربي', 'tutorial تطوير ألعاب عربي', 'course تطوير ألعاب عربي', 'learn game dev arabic', 'تعلم بالعربي مطورين', 'دورة مجانية مطورين عرب', 'free course game dev arabic', 'تعلم مجاني تطوير ألعاب', 'أكاديمية تطوير ألعاب عربية',
+  // Countries — local SEO
   'ألعاب السعودية', 'ألعاب مصر', 'ألعاب العراق', 'ألعاب الإمارات', 'ألعاب الكويت', 'ألعاب الأردن', 'ألعاب المغرب', 'ألعاب تونس', 'ألعاب الجزائر', 'ألعاب لبنان', 'ألعاب فلسطين', 'ألعاب سوريا', 'ألعاب اليمن', 'ألعاب عمان', 'ألعاب البحرين', 'ألعاب قطر', 'ألعاب السودان', 'ألعاب ليبيا', 'ألعاب عربية',
-  // Specific popular terms
-  'فالورانت', 'Valorant', 'ماينكرافت', 'Minecraft', 'فورتنایت', 'Fortnite', 'PUBG', 'ببجي', 'GTA', 'جي تي أي', 'Roblox', 'روبلوكس', 'League of Legends', 'ليق أوف ليجندز', 'FIFA', 'فيفا', 'Call of Duty', 'كول أوف ديوتي', 'Apex Legends', 'أبيكس ليجندز', 'Genshin Impact', 'جينشين إمباكت',
+  // Popular games — traffic drivers
+  'فالورانت', 'Valorant عربي', 'ماينكرافت', 'Minecraft عربي', 'فورتنایت', 'Fortnite عربي', 'PUBG عربي', 'ببجي', 'GTA عربي', 'Roblox عربي', 'روبلوكس', 'League of Legends عربي', 'FIFA عربي', 'فيفا', 'Call of Duty عربي', 'Apex Legends عربي', 'Genshin Impact عربي', 'جينشين إمباكت',
 ];
 
 export const metadata: Metadata = {
