@@ -305,7 +305,6 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
       {/* Logo */}
       <Link href="/app" className="hidden md:flex w-[260px] items-center shrink-0 gap-2" aria-label="NorthFall - الصفحة الرئيسية">
         <span className="font-inter text-[15px] font-bold text-white tracking-tight">NorthFall</span>
-        <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px]" />
       </Link>
 
       {/* Search */}
