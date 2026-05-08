@@ -23,14 +23,14 @@ export function Hero() {
         {/* Main Headline */}
         <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-[-0.02em] leading-[1.1] mb-6">
-            The community platform
+            منصة المجتمعات العربية
             <br />
-            <span className="text-white/25">built for Arab devs</span>
+            <span className="text-white/25">لتطوير الألعاب والتقنية</span>
           </h1>
 
           <p className="text-base sm:text-lg text-white/30 max-w-lg mx-auto mb-10 leading-relaxed">
-            Dedicated spaces for Unity, Unreal, Godot &amp; Blender. Real-time discussions,
-            Arabic-first experience, and a community that actually gets it.
+            مجتمعات Unity و Unreal Engine و Godot و Blender — نقاشات مباشرة،
+            شروحات بالعربي، ومجتمع يفهمك. انضم لمطوري الألعاب العرب.
           </p>
 
           {/* CTA Buttons */}
@@ -163,9 +163,9 @@ export function Hero() {
 
         {/* Social Proof */}
         <div className="mt-16 text-center">
-          <p className="text-sm text-white/20 mb-6">Built for the Arab game dev scene</p>
+          <p className="text-sm text-white/20 mb-6">منصة مطوري الألعاب العرب — GameDev بالعربي</p>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-30">
-            {["Unity", "Unreal", "Godot", "Blender", "GameDev"].map((name) => (
+            {["Unity", "Unreal Engine", "Godot", "Blender", "GameDev", "تطوير ألعاب", "برمجة"].map((name) => (
               <span key={name} className="text-lg font-semibold text-white/30">{name}</span>
             ))}
           </div>

@@ -27,7 +27,7 @@ export function Testimonials() {
       <div className="absolute inset-0 z-0">
         <img
           src="/assets/images/Background.png"
-          alt=""
+          alt="NorthFall — منصة المجتمعات العربية للألعاب والتقنية"
           className="w-full h-full object-cover blur-2xl scale-110"
         />
         <div className="absolute inset-0 bg-black/40" />

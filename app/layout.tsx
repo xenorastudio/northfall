@@ -9,6 +9,39 @@ const SITE_URL = 'https://www.northfall.blog';
 const SITE_NAME = 'NorthFall';
 const SITE_DESCRIPTION = 'منصة المجتمعات العربية الأولى للألعاب والتقنية - انضم لمجتمعات Unity و Unreal و Godot و Blender، شارك في النقاشات، اكتشف الألعاب، وتابع أحدث الأخبار';
 
+const KEYWORDS = [
+  // Brand
+  'NorthFall', 'نورث فول', 'NorthFall منصة', 'NorthFall مجتمعات', 'منصة الألعاب العربية', 'NorthFall blog',
+  // Gaming AR
+  'ألعاب', 'العاب', 'ألعاب فيديو', 'العاب فيديو', 'جيمر عرب', 'جيمرز عرب', 'مجتمع ألعاب', 'منتدى ألعاب', 'منتدى العاب', 'نقاشات ألعاب', 'أخبار الألعاب', 'مراجعات ألعاب', 'تحميل ألعاب', 'ألعاب مجانية', 'ألعاب عربية', 'ألعاب عرب', 'قيمز عرب', 'جيمر عربي',
+  // Gaming EN
+  'games', 'gaming', 'gaming community', 'gaming forum', 'game forum', 'game discussion', 'game reviews', 'free games', 'game news', 'gamer', 'gamers', 'video games', 'pc gaming', 'mobile games', 'indie games', 'game development', 'game dev',
+  // Unity AR/EN
+  'Unity', 'يونيتي', 'تعلم Unity', 'دورة Unity', 'Unity بالعربي', 'Unity عربي', 'Unity tutorials', 'Unity tutorial arabic', 'Unity 3D', 'Unity 2D', 'Unity game engine', 'محرك Unity', 'Unity C#', 'Unity مشاريع', 'Unity تطوير ألعاب', 'Unity learn', 'Unity course', 'Unity developer', 'مطور Unity', 'Unity scripting', 'Unity assets', 'Unity UI', 'Unity VR', 'Unity AR', 'Unity mobile', 'Unity shader', 'Unity animation',
+  // Unreal AR/EN
+  'Unreal', 'أنريل', 'Unreal Engine', 'UE5', 'UE4', 'تعلم Unreal', 'دورة Unreal Engine', 'Unreal بالعربي', 'Unreal عربي', 'Unreal tutorials arabic', 'Unreal Blueprint', 'Unreal C++', 'محرك Unreal', 'Unreal مشاريع', 'Unreal تطوير ألعاب', 'Unreal developer', 'مطور Unreal', 'Unreal 3D', 'Unreal Nanite', 'Unreal Lumen', 'Unreal MetaHuman', 'Unreal animation', 'Unreal VR', 'Unreal shader', 'Unreal visual scripting',
+  // Godot AR/EN
+  'Godot', 'جودوت', 'تعلم Godot', 'دورة Godot', 'Godot بالعربي', 'Godot عربي', 'Godot tutorials', 'Godot tutorial arabic', 'Godot 4', 'Godot 3D', 'Godot 2D', 'محرك Godot', 'Godot GDScript', 'Godot open source', 'Godot مفتوح المصدر', 'Godot مشاريع', 'Godot تطوير ألعاب', 'Godot developer', 'مطور Godot', 'Godot indie', 'Godot shader', 'Godot mobile', 'Godot engine',
+  // Blender AR/EN
+  'Blender', 'بلندر', 'تعلم Blender', 'دورة Blender', 'Blender بالعربي', 'Blender عربي', 'Blender tutorials', 'Blender tutorial arabic', 'Blender 3D', 'Blender modeling', 'Blender نمذجة', 'Blender animation', 'Blender أنيميشن', 'Blender rendering', 'Blender render', 'Blender sculpting', 'Blender نحت', 'Blender UV', 'Blender texture', 'Blender shader', 'Blender EEVEE', 'Blender Cycles', 'Blender Geometry Nodes', 'Blender مجاني', 'Blender free', 'Blender artist', 'فنان Blender', 'Blender game assets',
+  // GameDev AR/EN
+  'تطوير ألعاب', 'تطوير العاب', 'صناعة ألعاب', 'صناعة العاب', 'برمجة ألعاب', 'برمجة العاب', 'تصميم ألعاب', 'تصميم العاب', 'مطور ألعاب', 'مطور العاب', 'مطور ألعاب عربي', 'game development', 'game developer', 'game design', 'game programming', 'indie game dev', 'indie developer', 'indie game', 'لعبة مستقلة', 'مطور مستقل', 'game jam', 'هاكاثون ألعاب',
+  // Programming AR/EN
+  'برمجة', 'تعلم برمجة', 'دورة برمجة', 'برمجة بالعربي', 'C#', 'C++', 'Python', 'JavaScript', 'GDScript', 'برمجة C#', 'برمجة سي شارب', 'programming', 'coding', 'learn programming', 'programming tutorial', 'learn coding', 'كود', 'coding عربي',
+  // 3D/Art AR/EN
+  'نمذجة ثلاثية الأبعاد', '3D modeling', '3D design', 'تصميم ثلاثي الأبعاد', '3D artist', 'فنان رقمي', 'digital art', 'فن رقمي', 'game art', 'game assets', 'أصول ألعاب', 'pixel art', 'ريسورس ألعاب', 'game resources', 'مصادر ألعاب',
+  // Community AR/EN
+  'مجتمع', 'مجتمعات', 'منتدى', 'منتديات', 'نقاش', 'نقاشات', 'مشاركة', 'تواصل', 'شبكة اجتماعية', 'social network', 'community platform', 'forum', 'discussion', 'منصة مجتمع', 'منصة مجتمعات', 'مجتمع مطورين', 'مجتمع جيمرز', 'مجتمع عربي', 'مجتمع تقني',
+  // Tech AR/EN
+  'تقنية', 'تكنولوجيا', 'tech', 'technology', 'أخبار تقنية', 'tech news', 'تقنية ألعاب', 'gaming tech', 'VR', 'AR', 'الواقع الافتراضي', 'الواقع المعزز', 'virtual reality', 'augmented reality', 'AI', 'ذكاء اصطناعي', 'artificial intelligence',
+  // Learning AR/EN
+  'تعلم', 'دورة', 'دروس', 'شروحات', 'تعليم', 'tutorial', 'course', 'learn', 'learning', 'شرح', 'شروحات عربية', 'تعلم بالعربي', 'دورة مجانية', 'free course', 'تعلم مجاني', 'أكاديمية', 'academy',
+  // Countries/Regions (Arabic gaming audience)
+  'ألعاب السعودية', 'ألعاب مصر', 'ألعاب العراق', 'ألعاب الإمارات', 'ألعاب الكويت', 'ألعاب الأردن', 'ألعاب المغرب', 'ألعاب تونس', 'ألعاب الجزائر', 'ألعاب لبنان', 'ألعاب فلسطين', 'ألعاب سوريا', 'ألعاب اليمن', 'ألعاب عمان', 'ألعاب البحرين', 'ألعاب قطر', 'ألعاب السودان', 'ألعاب ليبيا', 'ألعاب عربية',
+  // Specific popular terms
+  'فالورانت', 'Valorant', 'ماينكرافت', 'Minecraft', 'فورتنایت', 'Fortnite', 'PUBG', 'ببجي', 'GTA', 'جي تي أي', 'Roblox', 'روبلوكس', 'League of Legends', 'ليق أوف ليجندز', 'FIFA', 'فيفا', 'Call of Duty', 'كول أوف ديوتي', 'Apex Legends', 'أبيكس ليجندز', 'Genshin Impact', 'جينشين إمباكت',
+];
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -16,7 +49,7 @@ export const metadata: Metadata = {
     template: `%s — ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
-  keywords: ['NorthFall', 'نورث فول', 'مجتمعات عربية', 'ألعاب', 'Unity', 'Unreal', 'Godot', 'Blender', 'GameDev', 'تقنية', 'مجتمع', 'منشورات', 'نقاشات', 'منتدى ألعاب', 'تطوير ألعاب', 'مجتمع مطورين عرب', 'NorthFall منصة', 'منصة الألعاب العربية'],
+  keywords: KEYWORDS,
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
   publisher: SITE_NAME,

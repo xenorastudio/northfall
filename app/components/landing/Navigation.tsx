@@ -39,7 +39,7 @@ export function Navigation() {
             <div className="relative">
               <button onClick={() => setShowMenu(!showMenu)} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.06] transition-colors">
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-white/[0.1]" />
+                  <img src={user.photoURL} alt="صورة المستخدم" className="w-8 h-8 rounded-full object-cover ring-1 ring-white/[0.1]" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center ring-1 ring-white/[0.1]">
                     <User size={14} className="text-white/40" />

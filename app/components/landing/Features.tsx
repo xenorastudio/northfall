@@ -55,7 +55,7 @@ export function Features() {
       <div className="absolute inset-0 z-0">
         <img
           src="/assets/images/BackgroundBl.jpg"
-          alt=""
+          alt="ميزات NorthFall — مجتمعات Unity و Unreal و Godot و Blender"
           className="w-full h-full object-cover blur-2xl scale-110"
         />
         <div className="absolute inset-0 bg-black/40" />
