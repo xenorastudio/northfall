@@ -57,6 +57,14 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   manifest: '/manifest.json',
+  other: {
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-title': SITE_NAME,
+    'mobile-web-app-capable': 'yes',
+    'msapplication-TileColor': '#1e1e20',
+    'theme-color': '#1e1e20',
+  },
   verification: {
     google: 'google-site-verification-code',
   },
@@ -131,8 +139,9 @@ export default function RootLayout({
         '@id': `${SITE_URL}/#navigation`,
         itemListElement: [
           { '@type': 'SiteNavigationElement', name: 'الرئيسية', url: `${SITE_URL}/app` },
-          { '@type': 'SiteNavigationElement', name: 'الألعاب', url: `${SITE_URL}/app?view=games` },
+          { '@type': 'SiteNavigationElement', name: 'الألعاب', url: `${SITE_URL}/games` },
           { '@type': 'SiteNavigationElement', name: 'المنتدى', url: `${SITE_URL}/NewPage` },
+          { '@type': 'SiteNavigationElement', name: 'عن NorthFall', url: `${SITE_URL}/about` },
           { '@type': 'SiteNavigationElement', name: 'مجتمع Unity', url: `${SITE_URL}/community/Unity` },
           { '@type': 'SiteNavigationElement', name: 'مجتمع Unreal', url: `${SITE_URL}/community/Unreal` },
           { '@type': 'SiteNavigationElement', name: 'مجتمع Godot', url: `${SITE_URL}/community/Godot` },

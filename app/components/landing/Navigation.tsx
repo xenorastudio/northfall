@@ -27,10 +27,10 @@ export function Navigation() {
           </Link>
           <div className="hidden md:flex items-center gap-1">
             <a href="#features" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">المميزات</a>
+            <Link href="/games" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">الألعاب</Link>
             <a href="#communities" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">المجتمعات</a>
-            <a href="#discussions" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">النقاشات</a>
-            <Link href="/app?view=games" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">الألعاب</Link>
             <Link href="/NewPage" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">المنتدى</Link>
+            <Link href="/about" className="text-[14px] text-white/40 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/[0.05]">عن NorthFall</Link>
           </div>
         </div>
 

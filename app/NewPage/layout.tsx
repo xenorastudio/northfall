@@ -26,11 +26,17 @@ export default function ForumsLayout({ children }: { children: React.ReactNode }
         ],
       },
       {
-        '@type': 'DiscussionForumPosting',
+        '@type': 'QAPage',
         name: 'منتدى NorthFall',
         description: 'منتدى للنقاشات حول الألعاب والتقنية وتطوير الألعاب',
         url: `${SITE_URL}/NewPage`,
-        isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}/#website` },
+        mainEntity: {
+          '@type': 'Question',
+          name: 'نقاشات الألعاب والتقنية على NorthFall',
+          text: 'اسأل أي سؤال عن تطوير الألعاب والتقنية في مجتمعات NorthFall العربية',
+          answerCount: 1000,
+          isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}/#website` },
+        },
       },
     ],
   };
