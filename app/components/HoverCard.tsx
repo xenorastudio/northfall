@@ -231,6 +231,9 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
           <div className="flex-1">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px] font-bold text-white">u/{data.name}</span>
+              {(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && (
+                <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] shrink-0 drop-shadow-[0_0_4px_rgba(96,165,250,0.5)]" />
+              )}
               {(() => {
                 const isOnline = data.lastSeen && (Date.now() - new Date(data.lastSeen).getTime()) < 5 * 60 * 1000;
                 return <span className={cn("text-[10px] font-semibold", isOnline ? "text-green-400" : "text-nf-dim")}>{isOnline ? "متصل" : "غير متصل"}</span>;
