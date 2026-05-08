@@ -1,6 +1,7 @@
 "use client";
 
 import { Home, Flame, Sparkles, TrendingUp, User, Bookmark, Bell, Settings, HelpCircle, Shield, Plus, Search, MessageSquare, Gamepad2 } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useI18n } from "./I18nProvider";
@@ -16,6 +17,21 @@ const communities = [
   { name: "Blender", label: "n/Blender", img: "/assets/images/logoblender.png" },
 ];
 
+const navHrefMap: Record<string, string> = {
+  home: "/app",
+  hot: "/app?view=hot",
+  new: "/app?view=new",
+  top: "/app?view=top",
+  forums: "/forum",
+  games: "/app?view=games",
+  profile: "/app?view=profile",
+  saved: "/app?view=saved",
+  notifs: "/app?view=notifs",
+  settings: "/app?view=settings",
+  help: "/app?view=help",
+  rules: "/app?view=rules",
+};
+
 function NavSection({ title, items, active, onSelect, badges }: {
   title: string;
   items: { icon: typeof Home; labelKey: string; id: string }[];
@@ -29,27 +45,52 @@ function NavSection({ title, items, active, onSelect, badges }: {
       <div className="text-[10px] font-bold text-nf-dim uppercase tracking-wider px-3.5 py-2 pb-1">
         {title}
       </div>
-      {items.map((item) => (
-        <button
-          key={item.id}
-          onClick={() => onSelect(item.id)}
-          className={cn(
-            "relative flex items-center gap-3 px-3.5 py-2 rounded-lg text-[13px] font-medium mx-2 transition-colors duration-150",
-            active === item.id
-              ? "bg-nf-hover text-white"
-              : "text-nf-muted hover:bg-nf-hover hover:text-white"
-          )}
-        >
-          <item.icon size={18} className={cn("shrink-0", active === item.id ? "opacity-100" : "opacity-50")} />
-          <span>{t(item.labelKey)}</span>
-          {badges && badges[item.id] > 0 && (
-            <span className="ml-auto px-1.5 py-0.5 rounded-full bg-nf-accent text-white text-[9px] font-bold min-w-[18px] text-center">{badges[item.id] > 99 ? "99+" : badges[item.id]}</span>
-          )}
-          {active === item.id && (
-            <span className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-nf-accent rounded-full" />
-          )}
-        </button>
-      ))}
+      {items.map((item) => {
+        const href = navHrefMap[item.id];
+        const isActive = active === item.id;
+        const label = t(item.labelKey);
+        const inner = (
+          <>
+            <item.icon size={18} className={cn("shrink-0", isActive ? "opacity-100" : "opacity-50")} />
+            <span>{label}</span>
+            {badges && badges[item.id] > 0 && (
+              <span className="ml-auto px-1.5 py-0.5 rounded-full bg-nf-accent text-white text-[9px] font-bold min-w-[18px] text-center">{badges[item.id] > 99 ? "99+" : badges[item.id]}</span>
+            )}
+            {isActive && (
+              <span className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-nf-accent rounded-full" />
+            )}
+          </>
+        );
+        return href ? (
+          <Link
+            key={item.id}
+            href={href}
+            onClick={(e) => { e.preventDefault(); onSelect(item.id); }}
+            className={cn(
+              "relative flex items-center gap-3 px-3.5 py-2 rounded-lg text-[13px] font-medium mx-2 transition-colors duration-150",
+              isActive
+                ? "bg-nf-hover text-white"
+                : "text-nf-muted hover:bg-nf-hover hover:text-white"
+            )}
+            aria-label={label}
+          >
+            {inner}
+          </Link>
+        ) : (
+          <button
+            key={item.id}
+            onClick={() => onSelect(item.id)}
+            className={cn(
+              "relative flex items-center gap-3 px-3.5 py-2 rounded-lg text-[13px] font-medium mx-2 transition-colors duration-150",
+              isActive
+                ? "bg-nf-hover text-white"
+                : "text-nf-muted hover:bg-nf-hover hover:text-white"
+            )}
+          >
+            {inner}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -132,15 +173,17 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
             {t("gen.myCommunities")}
           </div>
           {joinedComms.map((c) => (
-            <button
+            <Link
               key={c.name}
-              onClick={() => onCommunityClick(c.name)}
+              href={`/community/${encodeURIComponent(c.name)}`}
+              onClick={(e) => { e.preventDefault(); onCommunityClick(c.name); }}
               className={cn(
                 "flex items-center gap-3 px-3.5 py-2 rounded-lg text-[13px] font-medium mx-2 transition-colors duration-150",
                 activeNav === c.name
                   ? "bg-nf-hover text-white"
                   : "text-nf-muted hover:bg-nf-hover hover:text-white"
               )}
+              aria-label={`مجتمع ${c.name}`}
             >
               {c.img ? (
                 <img src={c.img} alt="" className="w-[18px] h-[18px] rounded-full opacity-80" />
@@ -148,7 +191,7 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
                 <div className="w-[18px] h-[18px] rounded-full bg-nf-accent/20 flex items-center justify-center text-[8px] text-nf-accent font-bold">n/</div>
               )}
               <span>{c.label}</span>
-            </button>
+            </Link>
           ))}
         </div>
       )}
@@ -166,19 +209,21 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav }:
           </div>
         </div>
         {filteredComms.map((c) => (
-          <button
+          <Link
             key={c.name}
-            onClick={() => onCommunityClick(c.name)}
+            href={`/community/${encodeURIComponent(c.name)}`}
+            onClick={(e) => { e.preventDefault(); onCommunityClick(c.name); }}
             className={cn(
               "flex items-center gap-3 px-3.5 py-2 rounded-lg text-[13px] font-medium mx-2 transition-colors duration-150",
               activeNav === c.name
                 ? "bg-nf-hover text-white"
                 : "text-nf-muted hover:bg-nf-hover hover:text-white"
             )}
+            aria-label={`مجتمع ${c.name}`}
           >
             <img src={c.img} alt="" className="w-[18px] h-[18px] rounded-full opacity-60" />
             <span>{c.label}</span>
-          </button>
+          </Link>
         ))}
         {filteredComms.length === 0 && <div className="px-3.5 py-2 text-[11px] text-nf-dim text-center">{t("search.noResults")}</div>}
       </div>

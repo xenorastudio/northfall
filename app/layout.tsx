@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: ['40
 
 const SITE_URL = 'https://www.northfall.blog';
 const SITE_NAME = 'NorthFall';
-const SITE_DESCRIPTION = 'NorthFall — أكبر مجتمع عربي لتطوير الألعاب. تعلم Unity و Unreal Engine و Godot و Blender بالعربي. شارك مشروعك، تواصل مع مطورين عرب، شروحات مجانية، دورات برمجة ألعاب، ونقاشات تقنية. انضم لمجتمع GameDev العربي الأول.';
+const SITE_DESCRIPTION = 'NorthFall — منصة مجتمعات عربية شاملة. تعلم البرمجة وتطوير الألعاب والتصميم والتقنية بالعربي. مجتمعات Unity و Unreal Engine و Godot و Blender وبرمجة وتصميم ونقاشات تقنية. انضم لأكبر مجتمع عربي للمطورين والمبدعين.';
 
 const KEYWORDS = [
   // Brand — NorthFall alone + every variation
@@ -46,12 +46,24 @@ const KEYWORDS = [
   'مشكلة Unity عربي', 'حل مشكلة Unreal عربي', 'خطأ Godot عربي', 'مشكلة Blender عربي', 'Unity لا يعمل عربي', 'Unreal crash عربي', 'Godot bug عربي', 'Blender مشكلة عربي', 'كيف أصنع لعبة عربي', 'كيف أتعلم تطوير ألعاب عربي', 'من أين أبدأ تطوير ألعاب عربي', 'أفضل محرك ألعاب للمبتدئين عربي', 'كيف أنشر لعبة على Steam عربي', 'كيف أربح من الألعاب عربي',
   // Long-tail — very specific searches
   'كيفية صنع لعبة بالعربي خطوة بخطوة', 'تعلم برمجة الألعاب من الصفر بالعربي', 'أفضل محرك ألعاب للمبتدئين عربي 2024', 'أفضل محرك ألعاب للمبتدئين عربي 2025', 'صنع لعبة 2D بالعربي', 'صنع لعبة 3D بالعربي', 'صنع لعبة موبايل بالعربي', 'صنع لعبة أونلاين بالعربي', 'تعلم Unity من الصفر بالعربي', 'تعلم Unreal Engine من الصفر بالعربي', 'تعلم Godot من الصفر بالعربي', 'تعلم Blender من الصفر بالعربي', 'دورة Unity مجانية بالعربي 2025', 'دورة Unreal مجانية بالعربي 2025', 'دورة Godot مجانية بالعربي 2025',
+  // Web Development — broader platform
+  'تطوير ويب عربي', 'برمجة ويب بالعربي', 'تعلم تطوير مواقع عربي', 'React عربي', 'Next.js عربي', 'Node.js عربي', 'TypeScript عربي', 'HTML CSS عربي', 'تطوير frontend عربي', 'تطوير backend عربي', 'full stack عربي', 'web development arabic', 'learn web dev arabic', 'برمجة مواقع عربي', 'تصميم مواقع عربي', 'دورة تطوير ويب مجانية عربي',
+  // Mobile Development
+  'تطوير تطبيقات موبايل عربي', 'Flutter عربي', 'React Native عربي', 'Swift عربي', 'Kotlin عربي', 'تطبيق أندرويد عربي', 'تطبيق iOS عربي', 'mobile development arabic', 'تعلم تطوير تطبيقات عربي', 'دورة تطوير تطبيقات مجانية عربي',
+  // AI & Data
+  'ذكاء اصطناعي عربي', 'تعلم آلي عربي', 'machine learning عربي', 'deep learning عربي', 'ChatGPT عربي', 'AI عربي', 'تعلم ذكاء اصطناعي عربي', 'دورة AI مجانية عربي', 'بيانات عربي', 'data science عربي', 'تحليل بيانات عربي', 'Python AI عربي',
+  // Design & UI/UX
+  'تصميم واجهات عربي', 'UI UX عربي', 'Figma عربي', 'تصميم جرافيك عربي', 'تصميم تطبيقات عربي', 'UX design arabic', 'تعلم تصميم واجهات عربي', 'دورة UI UX مجانية عربي', 'تصميم شعارات عربي', 'تصميم هوية بصرية عربي',
+  // General Tech & Community
+  'مجتمع تقني عربي', 'منصة تقنية عربية', 'شبكة مطورين عرب', 'منتدى تقني عربي', 'نقاشات تقنية عربية', 'أخبار تقنية عربية', 'تقنية عربية', 'تكنولوجيا عربي', 'IT عربي', 'سيرفرات عربي', 'DevOps عربي', 'لينكس عربي', 'Linux عربي', 'أمن سيبراني عربي', 'cybersecurity عربي', 'قواعد بيانات عربي', 'database عربي', 'API عربي', 'cloud عربي', 'سحابة عربي',
+  // General Arabic community platform
+  'منصة مجتمعات عربية', 'موقع مجتمعات عربي', 'شبكة اجتماعية عربية', 'منتدى عربي شامل', 'مجتمع عربي', 'منصة عربية', 'موقع عربي تقني', 'منتدى عربي تقني', 'منصة محتوى عربي', 'إنشاء محتوى عربي', 'كتابة محتوى عربي', 'مدونة عربية', 'تدوين عربي',
 ];
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — مجتمع مطوري الألعاب العرب`,
+    default: `${SITE_NAME} — منصة المجتمعات العربية`,
     template: `%s — ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -75,13 +87,13 @@ export const metadata: Metadata = {
     locale: 'ar_SA',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — مجتمع مطوري الألعاب العرب`,
+    title: `${SITE_NAME} — منصة المجتمعات العربية`,
     description: SITE_DESCRIPTION,
     images: [{ url: `${SITE_URL}/assets/images/og-image.png`, width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} — مجتمع مطوري الألعاب العرب`,
+    title: `${SITE_NAME} — منصة المجتمعات العربية`,
     description: SITE_DESCRIPTION,
     images: [`${SITE_URL}/assets/images/og-image.png`],
   },

@@ -46,8 +46,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       />
       {/* SSR content for SEO — hidden visually but visible to crawlers */}
       <div className="sr-only">
-        <h1>NorthFall — مجتمعات تطوير الألعاب بالعربي</h1>
-        <p>استكشف المنشورات والمجتمعات على NorthFall. مجتمعات متخصصة لـ Unity و Unreal Engine و Godot و Blender.</p>
+        <h1>NorthFall — منصة المجتمعات العربية</h1>
+        <p>استكشف المنشورات والمجتمعات على NorthFall. مجتمعات متخصصة لـ Unity و Unreal Engine و Godot و Blender وبرمجة وتصميم وتقنية.</p>
         <h2>المجتمعات</h2>
         <nav aria-label="روابط سريعة">
           <Link href="/guides">أدلة مجانية</Link>
