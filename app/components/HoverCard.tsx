@@ -141,7 +141,7 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
               exit={{ opacity: 0, y: 4, scale: 0.97 }}
               transition={{ duration: 0.12 }}
               style={{ position: "fixed", top: pos.top, right: pos.right, zIndex: 99999 }}
-              className={cn("w-[280px] bg-nf-primary border border-nf-border rounded-lg shadow-xl overflow-hidden pointer-events-auto", (uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && "ring-1 ring-blue-400/20 shadow-[0_0_20px_rgba(96,165,250,0.1)]")}
+              className="w-[280px] bg-nf-primary border border-nf-border rounded-lg shadow-xl overflow-hidden pointer-events-auto"
               onMouseEnter={() => setShow(true)}
               onMouseLeave={handleLeave}
             >
@@ -232,7 +232,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
             <div className="flex items-center gap-1.5">
               <span className="text-[13px] font-bold text-white">u/{data.name}</span>
               {(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && (
-                <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] shrink-0 drop-shadow-[0_0_4px_rgba(96,165,250,0.5)]" />
+                <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] shrink-0 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]" />
               )}
               {(() => {
                 const isOnline = data.lastSeen && (Date.now() - new Date(data.lastSeen).getTime()) < 5 * 60 * 1000;

@@ -655,7 +655,7 @@ function UserHoverCard({ name, photo, uid, children }: { name: string; photo?: s
     <span className="relative inline-block" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
       {children}
       <AnimatePresence>{show && profile && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.12 }} className={cn("absolute z-50 bottom-full mb-2 right-0 w-[340px] bg-nf-card rounded-xl overflow-hidden border border-nf-border shadow-xl shadow-black/30", (uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && "ring-1 ring-blue-400/20 shadow-[0_0_20px_rgba(96,165,250,0.1)]")} onMouseEnter={() => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }} onMouseLeave={handleLeave}>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.12 }} className="absolute z-50 bottom-full mb-2 right-0 w-[340px] bg-nf-card rounded-xl overflow-hidden border border-nf-border shadow-xl shadow-black/30" onMouseEnter={() => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }} onMouseLeave={handleLeave}>
           {/* Banner */}
           <div className="relative h-[60px] overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-l from-nf-accent/20 via-nf-secondary to-nf-accent/10" />
@@ -667,7 +667,7 @@ function UserHoverCard({ name, photo, uid, children }: { name: string; photo?: s
               {profile.photo ? <img src={profile.photo} alt="" className="w-14 h-14 rounded-full object-cover border-3 border-nf-card" /> : <div className="w-14 h-14 rounded-full bg-nf-muted flex items-center justify-center text-white text-[22px] font-bold border-3 border-nf-card">{(profile.name || "م")[0]}</div>}
               <div className="flex-1 min-w-0 pb-0.5">
                 <div className="flex items-center gap-2">
-                  <p className="text-[15px] font-bold text-nf-text truncate inline-flex items-center gap-1.5">{profile.name}{(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline drop-shadow-[0_0_4px_rgba(96,165,250,0.5)]" />}</p>
+                  <p className="text-[15px] font-bold text-nf-text truncate inline-flex items-center gap-1.5">{profile.name}{(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[16px] h-[16px] inline drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]" />}</p>
                   {profile.isOnline && <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />}
                 </div>
                 <p className="text-[11px] text-nf-accent font-medium">@{profile.name}</p>
@@ -2113,7 +2113,7 @@ export default function ForumsPage() {
                 <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <button onClick={backToList} className="flex items-center gap-1.5 text-[13px] text-nf-accent hover:underline mb-4 font-bold"><ArrowLeft size={14} /> العودة</button>
 
-                  <div className={cn("bg-nf-card rounded-lg overflow-hidden mb-5", (profileUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || profileUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && "ring-1 ring-blue-400/20 shadow-[0_0_30px_rgba(96,165,250,0.08)]")}>
+                  <div className="bg-nf-card rounded-lg overflow-hidden mb-5">
                     {/* Banner */}
                     <div className="relative h-[140px] overflow-hidden">
                       <img src={profileData.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
@@ -2127,7 +2127,7 @@ export default function ForumsPage() {
                       </div>
                       <div className="flex-1 min-w-0 pt-3">
                         <div className="flex items-center gap-3 flex-wrap mb-1">
-                          <h1 className="text-[22px] font-bold text-nf-text inline-flex items-center gap-2">{profileData.name}{(profileUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || profileUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <span className="relative inline-flex items-center justify-center shrink-0"><span className="absolute inset-0 rounded-full bg-blue-400/20 animate-pulse" /><img src="/assets/favicon/verified.png" alt="موثّق" className="w-[18px] h-[18px] relative z-10 drop-shadow-[0_0_6px_rgba(96,165,250,0.4)]" /></span>}</h1>
+                          <h1 className="text-[22px] font-bold text-nf-text">{profileData.name}</h1>
                           <span className="text-[10px] px-2 py-0.5 rounded bg-nf-accent/10 text-nf-accent font-bold">{profileData.role}</span>
                           <span className={cn("flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded", profileData.isOnline ? "bg-green-400/10 text-green-400" : "bg-nf-secondary text-nf-dim")}>
                             <span className={cn("w-1.5 h-1.5 rounded-full", profileData.isOnline ? "bg-green-400" : "bg-nf-dim")} />
@@ -2292,7 +2292,7 @@ export default function ForumsPage() {
                         <div className="relative group shrink-0" onMouseEnter={() => fetchAuthorCache(activeThread.authorUid)}>
                           <div className="flex flex-col items-center gap-1.5 w-[52px]" onClick={() => openProfile(activeThread.authorUid, activeThread.authorName, activeThread.authorPhoto)}>
                             {activeThread.authorPhoto ? <img src={activeThread.authorPhoto} alt="" className="w-11 h-11 rounded-full object-cover cursor-pointer" /> : <div className="w-11 h-11 rounded-full bg-nf-muted flex items-center justify-center text-white text-[15px] font-bold cursor-pointer">{(activeThread.authorName || "م")[0]}</div>}
-                            <span className="text-[11px] font-bold text-nf-text hover:text-nf-accent cursor-pointer text-center inline-flex items-center gap-0.5">{activeThread.authorName}{(activeThread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || activeThread.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[10px] h-[10px] inline drop-shadow-[0_0_3px_rgba(96,165,250,0.5)]" />}</span>
+                            <span className="text-[11px] font-bold text-nf-text hover:text-nf-accent cursor-pointer text-center inline-flex items-center gap-0.5">{activeThread.authorName}{(activeThread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || activeThread.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[10px] h-[10px] inline drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]" />}</span>
                             <span className="text-[9px] px-1.5 py-0.5 rounded bg-nf-accent/10 text-nf-accent font-bold">صاحب</span>
                           </div>
                           {/* Hover Profile Card */}
@@ -2306,7 +2306,7 @@ export default function ForumsPage() {
                             <div className="px-5 pt-1 pb-4">
                               <div className="flex items-center justify-between mb-1.5">
                                 <div>
-                                  <p className="text-[17px] font-bold text-nf-text inline-flex items-center gap-1.5">{activeThread.authorName}{(activeThread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || activeThread.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline drop-shadow-[0_0_4px_rgba(96,165,250,0.5)]" />}</p>
+                                  <p className="text-[17px] font-bold text-nf-text inline-flex items-center gap-1.5">{activeThread.authorName}{(activeThread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || activeThread.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[16px] h-[16px] inline drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]" />}</p>
                                   <div className="flex items-center gap-2 mt-0.5">
                                     <p className="text-[11px] text-nf-accent">@{activeThread.authorName}</p>
                                     <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold">{authorCache[activeThread.authorUid]?.role || "عضو"}</span>
@@ -2561,7 +2561,7 @@ export default function ForumsPage() {
                             <div className="relative group shrink-0 mb-2 inline-block" onMouseEnter={() => fetchAuthorCache(reply.authorUid)}>
                               <span className="flex items-center gap-2 cursor-pointer" onClick={() => openProfile(reply.authorUid, reply.authorName, reply.authorPhoto)}>
                                 {reply.authorPhoto ? <img src={reply.authorPhoto} alt="" className="w-6 h-6 rounded-full object-cover" /> : <div className="w-6 h-6 rounded-full bg-nf-muted flex items-center justify-center text-white text-[10px] font-bold">{(reply.authorName || "م")[0]}</div>}
-                                <span className="text-[13px] font-medium text-nf-accent hover:text-nf-accent/80 transition-colors inline-flex items-center gap-1">{reply.authorName}{(reply.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || reply.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[11px] h-[11px] inline drop-shadow-[0_0_3px_rgba(96,165,250,0.5)]" />}</span>
+                                <span className="text-[13px] font-medium text-nf-accent hover:text-nf-accent/80 transition-colors inline-flex items-center gap-1">{reply.authorName}{(reply.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || reply.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]" />}</span>
                                 {reply.authorUid === activeThread.authorUid && <span className="text-[9px] px-1.5 py-0.5 rounded bg-nf-accent/10 text-nf-accent font-bold">صاحب</span>}
                               </span>
                               {/* Hover Profile Card */}
@@ -2575,7 +2575,7 @@ export default function ForumsPage() {
                                 <div className="px-4 pt-1 pb-3">
                                   <div className="flex items-center justify-between mb-1.5">
                                     <div>
-                                      <p className="text-[16px] font-bold text-nf-text inline-flex items-center gap-1.5">{reply.authorName}{(reply.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || reply.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] inline drop-shadow-[0_0_4px_rgba(96,165,250,0.5)]" />}</p>
+                                      <p className="text-[16px] font-bold text-nf-text inline-flex items-center gap-1.5">{reply.authorName}{(reply.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || reply.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] inline drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]" />}</p>
                                       <div className="flex items-center gap-2 mt-0.5">
                                         <p className="text-[10px] text-nf-accent">@{reply.authorName}</p>
                                         <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold">{authorCache[reply.authorUid]?.role || "عضو"}</span>
@@ -4518,7 +4518,7 @@ function ThreadRow({ thread, onOpen, saved, onSave, userVotes, onVote, openProfi
           {/* Bottom bar */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-[11px] text-nf-dim font-medium">
-              <span onClick={e => { e.stopPropagation(); openProfile(thread.authorUid, thread.authorName, thread.authorPhoto); }} className="text-nf-text font-bold hover:text-nf-accent cursor-pointer inline-flex items-center gap-1">{thread.authorName}{(thread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || thread.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[11px] h-[11px] inline drop-shadow-[0_0_3px_rgba(96,165,250,0.5)]" />}</span>
+              <span onClick={e => { e.stopPropagation(); openProfile(thread.authorUid, thread.authorName, thread.authorPhoto); }} className="text-nf-text font-bold hover:text-nf-accent cursor-pointer inline-flex items-center gap-1">{thread.authorName}{(thread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || thread.authorUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]" />}</span>
               <span className="text-nf-dim">{timeAgo(thread.createdAt)}</span>
               <span className="flex items-center gap-1"><MessageSquare size={11} /> {thread.replyCount} رد</span>
               <span className="flex items-center gap-1"><Eye size={11} /> {thread.views || 0}</span>
