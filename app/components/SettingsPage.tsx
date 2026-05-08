@@ -126,7 +126,6 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const [bannerUrl, setBannerUrl] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({ twitter: "", youtube: "", github: "", steam: "", discord: "", website: "" });
-  const [linkedAccounts, setLinkedAccounts] = useState<Record<string, string>>({ steam: "", twitch: "" });
   const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
 
   useEffect(() => {
@@ -149,7 +148,6 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
         setBannerUrl(d.bannerUrl || "");
         setPhotoUrl(d.photoURL || user?.photoURL || "");
         setSocialLinks(d.socialLinks || { twitter: "", youtube: "", github: "", steam: "", discord: "", website: "" });
-        setLinkedAccounts(d.linkedAccounts || { steam: "", twitch: "" });
         setNotifVotes(d.notifVotes !== false);
         setNotifComments(d.notifComments !== false);
         setNotifMentions(d.notifMentions !== false);
@@ -166,7 +164,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
     if (!user) return;
     try {
       await updateDoc(doc(db, "users", user.uid), {
-        displayName, photoURL: photoUrl, bio, bannerUrl, profilePrivate, hideActivity, showOnline, socialLinks, linkedAccounts,
+        displayName, photoURL: photoUrl, bio, bannerUrl, profilePrivate, hideActivity, showOnline, socialLinks,
         notifVotes, notifComments, notifMentions, notifFollows, notifAwards, emailNotifs,
       });
       // Update Firebase Auth profile too
@@ -487,7 +485,9 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                           if (!user) return;
                           try {
                             await unlink(user, "google.com");
-                            setLinkedProviders(p => p.filter(x => x !== "google.com"));
+                            const updated = linkedProviders.filter(x => x !== "google.com");
+                            setLinkedProviders(updated);
+                            await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
                             toast("تم إلغاء ربط Google", "info");
                           } catch { toast("فشل إلغاء الربط", "error"); }
                         }}
@@ -502,7 +502,9 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                           try {
                             const provider = new GoogleAuthProvider();
                             await linkWithPopup(user, provider);
-                            setLinkedProviders(p => [...p, "google.com"]);
+                            const updated = [...linkedProviders, "google.com"];
+                            setLinkedProviders(updated);
+                            await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
                             toast("تم ربط Google بنجاح", "success");
                           } catch (e: any) {
                             if (e?.code === "auth/credential-already-in-use") toast("هذا الحساب مربوط بمستخدم آخر", "error");
@@ -529,7 +531,9 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                           if (!user) return;
                           try {
                             await unlink(user, "github.com");
-                            setLinkedProviders(p => p.filter(x => x !== "github.com"));
+                            const updated = linkedProviders.filter(x => x !== "github.com");
+                            setLinkedProviders(updated);
+                            await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
                             toast("تم إلغاء ربط GitHub", "info");
                           } catch { toast("فشل إلغاء الربط", "error"); }
                         }}
@@ -544,7 +548,9 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                           try {
                             const provider = new GithubAuthProvider();
                             await linkWithPopup(user, provider);
-                            setLinkedProviders(p => [...p, "github.com"]);
+                            const updated = [...linkedProviders, "github.com"];
+                            setLinkedProviders(updated);
+                            await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
                             toast("تم ربط GitHub بنجاح", "success");
                           } catch (e: any) {
                             if (e?.code === "auth/credential-already-in-use") toast("هذا الحساب مربوط بمستخدم آخر", "error");
@@ -558,25 +564,6 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                     )}
                   </div>
                 </div>
-
-                {/* Text-input linked accounts: Steam & Twitch */}
-                <h4 className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-2">حسابات أخرى</h4>
-                <div className="space-y-2">
-                  {/* Steam */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-[#1b2838]/30 text-nf-muted"><IconSteam /></div>
-                    <input type="url" value={linkedAccounts.steam || ""} onChange={(e) => setLinkedAccounts(prev => ({ ...prev, steam: e.target.value }))} placeholder="https://steamcommunity.com/id/username"
-                      className="flex-1 bg-nf-input border border-nf-border-2 rounded-lg px-3 py-1.5 text-[11px] text-white placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
-                  </div>
-                  {/* Twitch */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-[#9146FF]/15 text-nf-muted"><IconTwitch /></div>
-                    <input type="url" value={linkedAccounts.twitch || ""} onChange={(e) => setLinkedAccounts(prev => ({ ...prev, twitch: e.target.value }))} placeholder="https://twitch.tv/username"
-                      className="flex-1 bg-nf-input border border-nf-border-2 rounded-lg px-3 py-1.5 text-[11px] text-white placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
-                  </div>
-                </div>
-
-                <button onClick={saveAll} className="mt-4 w-full py-2 rounded-lg text-[12px] font-bold bg-nf-accent text-white hover:bg-nf-accent/80 transition-colors">حفظ</button>
               </div>
             </div>
           )}
