@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Navigation } from "./components/landing/Navigation";
 import { Hero } from "./components/landing/Hero";
 import { Features } from "./components/landing/Features";
@@ -68,6 +69,16 @@ export default function LandingPage() {
         <Testimonials />
         <CTA />
         <Footer />
+
+        {/* Internal links for search engine crawlers */}
+        <nav aria-label="Site map" className="sr-only">
+          <Link href="/app">الرئيسية</Link>
+          <Link href="/NewPage">المنتدى</Link>
+          <Link href="/community/Unity">مجتمع Unity</Link>
+          <Link href="/community/Unreal">مجتمع Unreal</Link>
+          <Link href="/community/Godot">مجتمع Godot</Link>
+          <Link href="/community/Blender">مجتمع Blender</Link>
+        </nav>
       </main>
     </AuthProvider>
   );
