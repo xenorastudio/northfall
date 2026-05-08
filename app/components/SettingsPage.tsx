@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
 import { doc, updateDoc, getDoc, deleteDoc, collection, getDocs, query, where } from "firebase/firestore";
-import { linkWithPopup, unlink, GoogleAuthProvider, GithubAuthProvider, fetchSignInMethodsForEmail } from "firebase/auth";
+import { linkWithPopup, unlink, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { auth } from "@/lib/firebase";
 import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Camera, AlertTriangle, Sparkles, Key, ChevronDown, Link2, Unlink } from "lucide-react";
@@ -126,7 +126,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const [bannerUrl, setBannerUrl] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({ twitter: "", youtube: "", github: "", steam: "", discord: "", website: "" });
-  const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
+  const [linkedProviders, setLinkedProviders] = useState<{ id: string; email?: string; name?: string }[]>([]);
 
   useEffect(() => {
     const s = localStorage.getItem("nf-dark");
@@ -154,10 +154,9 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
         setNotifFollows(d.notifFollows !== false);
         setNotifAwards(d.notifAwards !== false);
         setEmailNotifs(d.emailNotifs || false);
+        setLinkedProviders(d.linkedProviders || []);
       }
     }).catch(() => {});
-    // Check linked OAuth providers
-    fetchSignInMethodsForEmail(auth, user.email || "").then(methods => setLinkedProviders(methods)).catch(() => {});
   }, [user]);
 
   const saveAll = async () => {
@@ -473,118 +472,140 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                 {/* OAuth-linked accounts: Google & GitHub */}
                 <div className="space-y-2 mb-6">
                   {/* Google */}
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-nf-secondary/30 border border-nf-border-2/50">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shrink-0"><IconGoogle /></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[12px] font-bold text-white">Google</div>
-                      <div className="text-[9px] text-nf-dim">{linkedProviders.includes("google.com") ? "مربوط" : "غير مربوط"}</div>
-                    </div>
-                    {linkedProviders.includes("google.com") ? (
-                      <button
-                        onClick={async () => {
-                          if (!user) return;
-                          try {
-                            await unlink(user, "google.com");
-                            const updated = linkedProviders.filter(x => x !== "google.com");
-                            setLinkedProviders(updated);
-                            await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
-                            toast("تم إلغاء ربط Google", "info");
-                          } catch { toast("فشل إلغاء الربط", "error"); }
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-400 bg-red-400/5 border border-red-400/20 hover:bg-red-400/10 transition-colors"
-                      >
-                        <Unlink size={11} /> إلغاء الربط
-                      </button>
-                    ) : (
-                      <button
-                        onClick={async () => {
-                          if (!user) return;
-                          try {
-                            const provider = new GoogleAuthProvider();
-                            await linkWithPopup(user, provider);
-                            const updated = [...linkedProviders, "google.com"];
-                            setLinkedProviders(updated);
-                            await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
-                            toast("تم ربط Google بنجاح", "success");
-                          } catch (e: any) {
-                            console.error("Google link error:", e?.code, e?.message);
-                            if (e?.code === "auth/email-already-in-use" || e?.code === "auth/credential-already-in-use") {
-                              // User authenticated with Google but email exists on another Firebase account
-                              // Save as linked in Firestore anyway since OAuth verified ownership
-                              const updated = [...new Set([...linkedProviders, "google.com"])];
+                  {(() => {
+                    const gp = linkedProviders.find(p => p.id === "google.com");
+                    return (
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-nf-secondary/30 border border-nf-border-2/50">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shrink-0"><IconGoogle /></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[12px] font-bold text-white">Google</div>
+                          {gp ? (
+                            <div className="text-[9px] text-nf-dim truncate">
+                              {gp.email || gp.name || "مربوط"}
+                            </div>
+                          ) : (
+                            <div className="text-[9px] text-nf-dim">غير مربوط</div>
+                          )}
+                        </div>
+                        {gp ? (
+                          <button
+                            onClick={async () => {
+                              if (!user) return;
+                              try {
+                                await unlink(user, "google.com");
+                              } catch {}
+                              const updated = linkedProviders.filter(x => x.id !== "google.com");
                               setLinkedProviders(updated);
                               await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
-                              toast("تم ربط Google (نفس البريد مستخدم بحساب آخر في Firebase)", "success");
-                            } else if (e?.code === "auth/popup-closed-by-user") {
-                              toast("تم إغلاق النافذة", "error");
-                            } else {
-                              toast(`فشل ربط Google: ${e?.message || e?.code || "خطأ"}`, "error");
-                            }
-                          }
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-nf-accent text-white hover:bg-nf-accent/80 transition-colors"
-                      >
-                        <Link2 size={11} /> ربط
-                      </button>
-                    )}
-                  </div>
+                              toast("تم إلغاء ربط Google", "info");
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-400 bg-red-400/5 border border-red-400/20 hover:bg-red-400/10 transition-colors"
+                          >
+                            <Unlink size={11} /> إلغاء الربط
+                          </button>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              if (!user) return;
+                              try {
+                                const provider = new GoogleAuthProvider();
+                                const result = await linkWithPopup(user, provider);
+                                const entry = { id: "google.com", email: result.user.email || undefined, name: result.user.displayName || undefined };
+                                const updated = [...linkedProviders.filter(x => x.id !== "google.com"), entry];
+                                setLinkedProviders(updated);
+                                await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
+                                toast("تم ربط Google بنجاح", "success");
+                              } catch (e: any) {
+                                console.error("Google link error:", e?.code, e?.message);
+                                if (e?.code === "auth/email-already-in-use" || e?.code === "auth/credential-already-in-use") {
+                                  const entry = { id: "google.com", email: e?.customData?.email || user?.email || undefined, name: undefined };
+                                  const updated = [...linkedProviders.filter(x => x.id !== "google.com"), entry];
+                                  setLinkedProviders(updated);
+                                  await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
+                                  toast("تم ربط Google (نفس البريد مستخدم بحساب آخر في Firebase)", "success");
+                                } else if (e?.code === "auth/popup-closed-by-user") {
+                                  toast("تم إغلاق النافذة", "error");
+                                } else {
+                                  toast(`فشل ربط Google: ${e?.message || e?.code || "خطأ"}`, "error");
+                                }
+                              }
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-nf-accent text-white hover:bg-nf-accent/80 transition-colors"
+                          >
+                            <Link2 size={11} /> ربط
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* GitHub */}
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-nf-secondary/30 border border-nf-border-2/50">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shrink-0"><IconGitHub /></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[12px] font-bold text-white">GitHub</div>
-                      <div className="text-[9px] text-nf-dim">{linkedProviders.includes("github.com") ? "مربوط" : "غير مربوط"}</div>
-                    </div>
-                    {linkedProviders.includes("github.com") ? (
-                      <button
-                        onClick={async () => {
-                          if (!user) return;
-                          try {
-                            await unlink(user, "github.com");
-                            const updated = linkedProviders.filter(x => x !== "github.com");
-                            setLinkedProviders(updated);
-                            await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
-                            toast("تم إلغاء ربط GitHub", "info");
-                          } catch { toast("فشل إلغاء الربط", "error"); }
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-400 bg-red-400/5 border border-red-400/20 hover:bg-red-400/10 transition-colors"
-                      >
-                        <Unlink size={11} /> إلغاء الربط
-                      </button>
-                    ) : (
-                      <button
-                        onClick={async () => {
-                          if (!user) return;
-                          try {
-                            const provider = new GithubAuthProvider();
-                            await linkWithPopup(user, provider);
-                            const updated = [...linkedProviders, "github.com"];
-                            setLinkedProviders(updated);
-                            await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
-                            toast("تم ربط GitHub بنجاح", "success");
-                          } catch (e: any) {
-                            console.error("GitHub link error:", e?.code, e?.message);
-                            if (e?.code === "auth/email-already-in-use" || e?.code === "auth/credential-already-in-use") {
-                              // User authenticated with GitHub but email exists on another Firebase account
-                              // Save as linked in Firestore anyway since OAuth verified ownership
-                              const updated = [...new Set([...linkedProviders, "github.com"])];
+                  {(() => {
+                    const gp = linkedProviders.find(p => p.id === "github.com");
+                    return (
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-nf-secondary/30 border border-nf-border-2/50">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shrink-0"><IconGitHub /></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[12px] font-bold text-white">GitHub</div>
+                          {gp ? (
+                            <div className="text-[9px] text-nf-dim truncate">
+                              {gp.name || gp.email || "مربوط"}
+                            </div>
+                          ) : (
+                            <div className="text-[9px] text-nf-dim">غير مربوط</div>
+                          )}
+                        </div>
+                        {gp ? (
+                          <button
+                            onClick={async () => {
+                              if (!user) return;
+                              try {
+                                await unlink(user, "github.com");
+                              } catch {}
+                              const updated = linkedProviders.filter(x => x.id !== "github.com");
                               setLinkedProviders(updated);
                               await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
-                              toast("تم ربط GitHub (نفس البريد مستخدم بحساب آخر في Firebase)", "success");
-                            } else if (e?.code === "auth/popup-closed-by-user") {
-                              toast("تم إغلاق النافذة", "error");
-                            } else {
-                              toast(`فشل ربط GitHub: ${e?.message || e?.code || "خطأ"}`, "error");
-                            }
-                          }
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-nf-accent text-white hover:bg-nf-accent/80 transition-colors"
-                      >
-                        <Link2 size={11} /> ربط
-                      </button>
-                    )}
-                  </div>
+                              toast("تم إلغاء ربط GitHub", "info");
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-400 bg-red-400/5 border border-red-400/20 hover:bg-red-400/10 transition-colors"
+                          >
+                            <Unlink size={11} /> إلغاء الربط
+                          </button>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              if (!user) return;
+                              try {
+                                const provider = new GithubAuthProvider();
+                                const result = await linkWithPopup(user, provider);
+                                const entry = { id: "github.com", email: result.user.email || undefined, name: result.user.displayName || undefined };
+                                const updated = [...linkedProviders.filter(x => x.id !== "github.com"), entry];
+                                setLinkedProviders(updated);
+                                await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
+                                toast("تم ربط GitHub بنجاح", "success");
+                              } catch (e: any) {
+                                console.error("GitHub link error:", e?.code, e?.message);
+                                if (e?.code === "auth/email-already-in-use" || e?.code === "auth/credential-already-in-use") {
+                                  const entry = { id: "github.com", email: e?.customData?.email || user?.email || undefined, name: undefined };
+                                  const updated = [...linkedProviders.filter(x => x.id !== "github.com"), entry];
+                                  setLinkedProviders(updated);
+                                  await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
+                                  toast("تم ربط GitHub (نفس البريد مستخدم بحساب آخر في Firebase)", "success");
+                                } else if (e?.code === "auth/popup-closed-by-user") {
+                                  toast("تم إغلاق النافذة", "error");
+                                } else {
+                                  toast(`فشل ربط GitHub: ${e?.message || e?.code || "خطأ"}`, "error");
+                                }
+                              }
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-nf-accent text-white hover:bg-nf-accent/80 transition-colors"
+                          >
+                            <Link2 size={11} /> ربط
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
