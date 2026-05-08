@@ -130,7 +130,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [loading, setLoading] = useState(true);
   const [karma, setKarma] = useState(0);
 
-  const [profileData, setProfileData] = useState<{ name: string; photo: string; bio: string; bannerUrl: string; socialLinks: Record<string, string>; linkedProviders: { id: string; email?: string; name?: string }[] } | null>(null);
+  const [profileData, setProfileData] = useState<{ name: string; photo: string; bio: string; bannerUrl: string; socialLinks: Record<string, string>; linkedProviders: { id: string; email?: string; name?: string; username?: string; avatar?: string; bio?: string; url?: string }[] } | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
@@ -686,8 +686,12 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                     return (
                       <div key={provider.id} className={cn("relative overflow-hidden rounded-xl border border-white/[0.06] bg-gradient-to-br p-4", meta.bg)}>
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-black/30 backdrop-blur-sm shrink-0">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill={meta.color}><path d={meta.path} /></svg>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-black/30 backdrop-blur-sm shrink-0 overflow-hidden">
+                            {provider.avatar ? (
+                              <img src={provider.avatar} alt="" className="w-10 h-10 object-cover rounded-xl" />
+                            ) : (
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill={meta.color}><path d={meta.path} /></svg>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -697,10 +701,21 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                             {provider.name && (
                               <p className="text-[11px] text-white/70 mt-1 font-medium truncate">{provider.name}</p>
                             )}
+                            {provider.username && (
+                              <p className="text-[10px] text-nf-accent/70 mt-0.5 truncate">@{provider.username}</p>
+                            )}
                             {provider.email && (
                               <p className="text-[10px] text-nf-dim mt-0.5 truncate">{provider.email}</p>
                             )}
-                            {!provider.name && !provider.email && (
+                            {provider.bio && (
+                              <p className="text-[10px] text-nf-dim mt-1 line-clamp-2 leading-relaxed">{provider.bio}</p>
+                            )}
+                            {provider.url && (
+                              <a href={provider.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] text-nf-accent/60 hover:text-nf-accent mt-1 transition-colors">
+                                <ExternalLink size={9} /> {provider.url.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                              </a>
+                            )}
+                            {!provider.name && !provider.email && !provider.username && (
                               <p className="text-[10px] text-nf-dim mt-1">حساب {meta.label} مربوط</p>
                             )}
                           </div>

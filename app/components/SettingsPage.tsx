@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
 import { doc, updateDoc, getDoc, deleteDoc, collection, getDocs, query, where } from "firebase/firestore";
-import { linkWithPopup, unlink, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
+import { linkWithPopup, unlink, GoogleAuthProvider, GithubAuthProvider, getAdditionalUserInfo } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { auth } from "@/lib/firebase";
 import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Camera, AlertTriangle, Sparkles, Key, ChevronDown, Link2, Unlink } from "lucide-react";
@@ -126,7 +126,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const [bannerUrl, setBannerUrl] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({ twitter: "", youtube: "", github: "", steam: "", discord: "", website: "" });
-  const [linkedProviders, setLinkedProviders] = useState<{ id: string; email?: string; name?: string }[]>([]);
+  const [linkedProviders, setLinkedProviders] = useState<{ id: string; email?: string; name?: string; username?: string; avatar?: string; bio?: string; url?: string }[]>([]);
 
   useEffect(() => {
     const s = localStorage.getItem("nf-dark");
@@ -476,12 +476,16 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                     const gp = linkedProviders.find(p => p.id === "google.com");
                     return (
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-nf-secondary/30 border border-nf-border-2/50">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shrink-0"><IconGoogle /></div>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shrink-0 overflow-hidden">
+                          {gp?.avatar ? <img src={gp.avatar} alt="" className="w-8 h-8 object-cover rounded-lg" /> : <IconGoogle />}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[12px] font-bold text-white">Google</div>
                           {gp ? (
                             <div className="text-[9px] text-nf-dim truncate">
-                              {gp.email || gp.name || "مربوط"}
+                              {gp.name && <span className="text-white/70">{gp.name}</span>}
+                              {gp.name && gp.email && <span className="mx-1">·</span>}
+                              {gp.email || "مربوط"}
                             </div>
                           ) : (
                             <div className="text-[9px] text-nf-dim">غير مربوط</div>
@@ -510,9 +514,13 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                               try {
                                 const provider = new GoogleAuthProvider();
                                 const result = await linkWithPopup(user, provider);
-                                const entry: { id: string; email?: string; name?: string } = { id: "google.com" };
+                                const info = getAdditionalUserInfo(result);
+                                const profile: any = info?.profile || {};
+                                const entry: typeof linkedProviders[0] = { id: "google.com" };
                                 if (result.user.email) entry.email = result.user.email;
-                                if (result.user.displayName) entry.name = result.user.displayName;
+                                if (profile.name || result.user.displayName) entry.name = profile.name || result.user.displayName;
+                                if (profile.picture || result.user.photoURL) entry.avatar = profile.picture || result.user.photoURL;
+                                if (profile.link) entry.url = profile.link;
                                 const updated = [...linkedProviders.filter(x => x.id !== "google.com"), entry];
                                 setLinkedProviders(updated);
                                 await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
@@ -548,11 +556,15 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                     const gp = linkedProviders.find(p => p.id === "github.com");
                     return (
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-nf-secondary/30 border border-nf-border-2/50">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shrink-0"><IconGitHub /></div>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shrink-0 overflow-hidden">
+                          {gp?.avatar ? <img src={gp.avatar} alt="" className="w-8 h-8 object-cover rounded-lg" /> : <IconGitHub />}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[12px] font-bold text-white">GitHub</div>
                           {gp ? (
                             <div className="text-[9px] text-nf-dim truncate">
+                              {gp.username && <span className="text-white/70">{gp.username}</span>}
+                              {gp.username && gp.name && <span className="mx-1">·</span>}
                               {gp.name || gp.email || "مربوط"}
                             </div>
                           ) : (
@@ -582,9 +594,15 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                               try {
                                 const provider = new GithubAuthProvider();
                                 const result = await linkWithPopup(user, provider);
-                                const entry: { id: string; email?: string; name?: string } = { id: "github.com" };
+                                const info = getAdditionalUserInfo(result);
+                                const profile: any = info?.profile || {};
+                                const entry: typeof linkedProviders[0] = { id: "github.com" };
                                 if (result.user.email) entry.email = result.user.email;
-                                if (result.user.displayName) entry.name = result.user.displayName;
+                                if (profile.name || result.user.displayName) entry.name = profile.name || result.user.displayName;
+                                if (profile.login) entry.username = profile.login;
+                                if (profile.avatar_url || result.user.photoURL) entry.avatar = profile.avatar_url || result.user.photoURL;
+                                if (profile.bio) entry.bio = profile.bio;
+                                if (profile.html_url) entry.url = profile.html_url;
                                 const updated = [...linkedProviders.filter(x => x.id !== "github.com"), entry];
                                 setLinkedProviders(updated);
                                 await updateDoc(doc(db, "users", user.uid), { linkedProviders: updated });
