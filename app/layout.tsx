@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: ['40
 
 const SITE_URL = 'https://www.northfall.blog';
 const SITE_NAME = 'NorthFall';
-const SITE_DESCRIPTION = 'مكان واحد لكل مطور ألعاب عرب — نتناقش عن Unity و Unreal و Godot و Blender، نشارك مشاريعنا، ونساعد بعض نتعلم. زي ريدت بس للعرب.';
+const SITE_DESCRIPTION = 'مجتمعات متخصصة لتطوير الألعاب بالعربي — Unity و Unreal Engine و Godot و Blender. شارك مشروعك، تعلم من خبراء عرب، وكن جزء من أكبر مجتمع لتطوير الألعاب في العالم العربي.';
 
 const KEYWORDS = [
   // Brand (similar to competitors but NOT exact same)
