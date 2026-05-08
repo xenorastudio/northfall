@@ -28,7 +28,7 @@ export function Hero() {
             <span className="text-white/25">العربية معاً</span>
           </h1>
 
-          <p className="text-base sm:text-lg text-white/30 max-w-xl mx-auto mb-10 leading-relaxed">
+          <p className="text-base sm:text-lg text-white/50 max-w-xl mx-auto mb-10 leading-relaxed">
             مجتمعات متخصصة لـ Unity و Unreal Engine و Godot و Blender.
             شارك مشروعك، تعلم من خبراء عرب، وكن جزء من أكبر مجتمع لتطوير الألعاب في العالم العربي.
           </p>
@@ -74,14 +74,14 @@ export function Hero() {
             >
               <img src={c.img} alt={`${c.name} — ${c.desc}`} className="w-10 h-10 rounded-lg mb-3 object-cover" width={40} height={40} />
               <h3 className="font-bold text-sm text-white/70 group-hover:text-white/90 transition-colors">{c.name}</h3>
-              <p className="text-xs text-white/30 mt-1">{c.desc}</p>
+              <p className="text-xs text-white/50 mt-1">{c.desc}</p>
             </Link>
           ))}
         </div>
 
         {/* Social Proof */}
         <div className="mt-16 text-center">
-          <p className="text-sm text-white/20 mb-6">كل محركات الألعاب الرئيسية — بمكان واحد</p>
+          <p className="text-sm text-white/40 mb-6">كل محركات الألعاب الرئيسية — بمكان واحد</p>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-30">
             {["Unity", "Unreal Engine", "Godot", "Blender", "GameDev", "تطوير ألعاب", "برمجة"].map((name) => (
               <span key={name} className="text-lg font-semibold text-white/30">{name}</span>
