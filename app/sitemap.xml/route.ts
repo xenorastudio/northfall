@@ -1,4 +1,4 @@
-const SITE_URL = 'https://northfall.blog';
+const SITE_URL = 'https://www.northfall.blog';
 
 export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

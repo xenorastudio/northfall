@@ -5,7 +5,7 @@ import { Cairo, Inter } from 'next/font/google';
 const cairo = Cairo({ subsets: ['arabic', 'latin'], variable: '--font-cairo', weight: ['400', '600', '700', '800'] });
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: ['400', '500', '600', '700', '800', '900'] });
 
-const SITE_URL = 'https://northfall.blog';
+const SITE_URL = 'https://www.northfall.blog';
 const SITE_NAME = 'NorthFall';
 const SITE_DESCRIPTION = 'منصة المجتمعات العربية الأولى للألعاب والتقنية - انضم لمجتمعات Unity و Unreal و Godot و Blender، شارك في النقاشات، اكتشف الألعاب، وتابع أحدث الأخبار';
 

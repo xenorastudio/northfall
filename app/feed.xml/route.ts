@@ -1,7 +1,7 @@
 import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-const SITE_URL = 'https://northfall.blog';
+const SITE_URL = 'https://www.northfall.blog';
 
 export async function GET() {
   let items = '';

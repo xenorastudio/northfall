@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-const SITE_URL = 'https://northfall.blog';
+const SITE_URL = 'https://www.northfall.blog';
 
 interface PostData {
   title: string;

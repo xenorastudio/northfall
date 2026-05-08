@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-const SITE_URL = 'https://northfall.blog';
+const SITE_URL = 'https://www.northfall.blog';
 
 export const metadata: Metadata = {
   title: 'الألعاب',

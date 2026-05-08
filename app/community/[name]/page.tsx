@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-const SITE_URL = 'https://northfall.blog';
+const SITE_URL = 'https://www.northfall.blog';
 
 const communityMeta: Record<string, { title: string; description: string; img: string }> = {
   Unity: { title: 'مجتمع Unity', description: 'انضم لمجتمع Unity على NorthFall - تعلم تطوير الألعاب باستخدام Unity، شارك مشاريعك، وتفاعل مع المطورين العرب', img: '/assets/images/unitylogo.png' },
