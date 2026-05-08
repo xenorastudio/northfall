@@ -1,4 +1,4 @@
-import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const SITE_URL = 'https://www.northfall.blog';
@@ -6,9 +6,10 @@ const SITE_URL = 'https://www.northfall.blog';
 export async function GET() {
   let items = '';
   try {
-    const snap = await getDocs(query(collection(db, 'threads'), orderBy('createdAt', 'desc'), limit(50)));
+    const q = query(collection(db, 'threads'), limit(50));
+    const snap = await getDocs(q);
     items = snap.docs.map((d) => {
-      const p = d.data();
+      const p = d.data() as Record<string, any>;
       const pubDate = p.createdAt ? new Date(p.createdAt).toUTCString() : new Date().toUTCString();
       return `    <item>
       <title><![CDATA[${p.title || ''}]]></title>
@@ -17,10 +18,10 @@ export async function GET() {
       <pubDate>${pubDate}</pubDate>
       <description><![CDATA[${(p.body || '').slice(0, 300)}]]></description>
       ${p.community ? `<category>${p.community}</category>` : ''}
-      ${p.imageUrl ? `<enclosure url="${p.imageUrl}" type="image/jpeg" />` : ''}
     </item>`;
     }).join('\n');
-  } catch {
+  } catch (e) {
+    console.error('Feed error:', e);
     items = '';
   }
 
