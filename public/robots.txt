@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /app?view=profile
+Disallow: /app?view=settings
+Disallow: /app?view=notifs
+Disallow: /app?view=admin
+Disallow: /app?view=edit
+
+Sitemap: https://www.northfall.blog/sitemap.xml
