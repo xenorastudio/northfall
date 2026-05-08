@@ -10,10 +10,12 @@ import CommunityPage from "../components/CommunityPage";
 import ProfilePage from "../components/ProfilePage";
 import PostDetail from "../components/PostDetail";
 import CreatePostPage from "../components/CreatePostPage";
-import SettingsPage from "../components/SettingsPage";
-import NotificationsPage from "../components/NotificationsPage";
-import AdminPage from "../components/AdminPage";
-import GamesPage from "../components/GamesPage";
+import { lazy, Suspense } from "react";
+
+const SettingsPage = lazy(() => import("../components/SettingsPage"));
+const NotificationsPage = lazy(() => import("../components/NotificationsPage"));
+const AdminPage = lazy(() => import("../components/AdminPage"));
+const GamesPage = lazy(() => import("../components/GamesPage"));
 import MaintenanceOverlay from "../components/MaintenanceOverlay";
 import AuthProvider, { useAuth } from "../components/AuthProvider";
 import { I18nProvider, useI18n } from "../components/I18nProvider";
@@ -23,7 +25,7 @@ import { Megaphone, X, ArrowUp } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, startAfter, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { AnimatePresence, motion } from "framer-motion";
+// framer-motion removed for performance
 import { cn } from "@/lib/utils";
 
 type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games";
@@ -320,24 +322,21 @@ function AppContent() {
           <div className="hidden lg:block"><SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={view === "community" ? selectedCommunity : undefined} /></div>
 
           <div className={cn("flex-1", view === "feed" ? "max-w-[680px]" : "max-w-[920px]")} style={{ direction: "rtl" }}>
-            <AnimatePresence mode="wait">
+            <div>
               {view === "feed" && (
-                <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+                <div key="feed" className="animate-in fade-in duration-150">
                   <PostComposer onFocus={openCreate} onPost={() => { backToFeed(); }} />
 
                   <FeedSort onSortChange={(s) => setSortMode(s)} onTagClick={(t) => setTagFilter(t === tagFilter ? null : t)} tagFilter={tagFilter} feedMode={feedMode} onFeedModeChange={setFeedMode} requireAuth={requireAuth} />
 
                   {newPostsCount > 0 && (
-                    <motion.button
-                      initial={{ opacity: 0, y: -20, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -20 }}
+                    <button
                       onClick={() => { setNewPostsCount(0); fetchPosts(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-xl bg-nf-accent/10 border border-nf-accent/25 text-nf-accent text-xs font-bold hover:bg-nf-accent/20 transition-colors shadow-sm shadow-nf-accent/5"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-xl bg-nf-accent/10 border border-nf-accent/25 text-nf-accent text-xs font-bold hover:bg-nf-accent/20 transition-colors shadow-sm shadow-nf-accent/5 animate-in fade-in slide-in-from-top-2 duration-200"
                     >
                       <ArrowUp size={14} />
                       {newPostsCount} {t("gen.newPosts")}
-                    </motion.button>
+                    </button>
                   )}
 
                   {showAnnouncement && (
@@ -426,57 +425,65 @@ function AppContent() {
                       </button>
                     )}
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {view === "community" && selectedCommunity && (
-                <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+                <div key="community" className="animate-in fade-in duration-150">
                   <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} />
-                </motion.div>
+                </div>
               )}
 
               {view === "profile" && (
-                <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+                <div key="profile" className="animate-in fade-in duration-150">
                   <ProfilePage uid={viewingUid || undefined} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onSettingsClick={() => navigateTo("settings")} onAdminClick={() => navigateTo("admin")} onPostClick={openPost} />
-                </motion.div>
+                </div>
               )}
 
               {view === "settings" && (
-                <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                  <SettingsPage onBack={backToFeed} />
-                </motion.div>
+                <div key="settings" className="animate-in fade-in duration-150">
+                  <Suspense fallback={<div className="p-8 text-center text-nf-dim">جاري التحميل...</div>}>
+                    <SettingsPage onBack={backToFeed} />
+                  </Suspense>
+                </div>
               )}
 
               {view === "notifs" && (
-                <motion.div key="notifs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                  <NotificationsPage onBack={backToFeed} />
-                </motion.div>
+                <div key="notifs" className="animate-in fade-in duration-150">
+                  <Suspense fallback={<div className="p-8 text-center text-nf-dim">جاري التحميل...</div>}>
+                    <NotificationsPage onBack={backToFeed} />
+                  </Suspense>
+                </div>
               )}
 
               {view === "admin" && (
-                <motion.div key="admin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                  <AdminPage onBack={backToFeed} onPostClick={openPost} />
-                </motion.div>
+                <div key="admin" className="animate-in fade-in duration-150">
+                  <Suspense fallback={<div className="p-8 text-center text-nf-dim">جاري التحميل...</div>}>
+                    <AdminPage onBack={backToFeed} onPostClick={openPost} />
+                  </Suspense>
+                </div>
               )}
 
               {view === "games" && (
-                <motion.div key="games" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                  <GamesPage onBack={backToFeed} />
-                </motion.div>
+                <div key="games" className="animate-in fade-in duration-150">
+                  <Suspense fallback={<div className="p-8 text-center text-nf-dim">جاري التحميل...</div>}>
+                    <GamesPage onBack={backToFeed} />
+                  </Suspense>
+                </div>
               )}
 
               {(view === "create" || view === "edit") && (
-                <motion.div key={view} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+                <div key={view} className="animate-in fade-in duration-150">
                   <CreatePostPage onBack={backToFeed} onPost={backToFeed} editPostId={view === "edit" ? editPostId : undefined} quotedPostId={view === "create" ? quotePostId : undefined} />
-                </motion.div>
+                </div>
               )}
 
               {view === "post" && (
-                <motion.div key="post" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+                <div key="post" className="animate-in fade-in duration-150">
                   <PostDetail postId={selectedPostId} onBack={backToFeed} onCommunityClick={openCommunity} onProfileClick={openProfile} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); backToFeed(); }} onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }} />
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
@@ -486,28 +493,23 @@ function AppContent() {
       {/* Scroll progress bar - only in feed */}
       {view === "feed" && (
         <div className="fixed top-12 left-0 right-0 h-[2px] z-[1002] bg-transparent">
-          <motion.div className="h-full bg-nf-accent/60 origin-left" style={{ width: `${scrollProgress}%` }} transition={{ duration: 0.1 }} />
+          <div className="h-full bg-nf-accent/60 origin-left transition-[width] duration-100" style={{ width: `${scrollProgress}%` }} />
         </div>
       )}
 
       {/* Back to top */}
-      <AnimatePresence>
-        {showBackTop && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="fixed bottom-20 sm:bottom-6 left-6 w-10 h-10 rounded-full bg-nf-accent text-white flex items-center justify-center shadow-lg hover:bg-nf-accent/80 transition-colors z-50"
-          >
-            <svg className="absolute inset-0 w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-              <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2.5" />
-              <circle cx="20" cy="20" r="17" fill="none" stroke="white" strokeWidth="2.5" strokeDasharray={`${scrollProgress * 1.07} 107`} strokeLinecap="round" />
-            </svg>
-            <ArrowUp size={14} className="relative z-10" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {showBackTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-20 sm:bottom-6 left-6 w-10 h-10 rounded-full bg-nf-accent text-white flex items-center justify-center shadow-lg hover:bg-nf-accent/80 transition-all z-50 animate-in fade-in zoom-in duration-200"
+        >
+          <svg className="absolute inset-0 w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2.5" />
+            <circle cx="20" cy="20" r="17" fill="none" stroke="white" strokeWidth="2.5" strokeDasharray={`${scrollProgress * 1.07} 107`} strokeLinecap="round" />
+          </svg>
+          <ArrowUp size={14} className="relative z-10" />
+        </button>
+      )}
     </>
   );
 }

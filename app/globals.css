@@ -455,3 +455,27 @@ html, body, * { scrollbar-width: none; }
   0% { opacity: 0; transform: translateY(8px); filter: blur(2px); }
   100% { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
+
+/* CSS animation utilities (replacing framer-motion for performance) */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideInFromTop {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-in {
+  animation: fadeIn 0.15s ease-out both;
+}
+.animate-in.fade-in.slide-in-from-top-2 {
+  animation: slideInFromTop 0.2s ease-out both;
+}
+.animate-in.fade-in.zoom-in {
+  animation: zoomIn 0.2s ease-out both;
+}

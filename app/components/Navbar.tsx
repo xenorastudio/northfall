@@ -417,7 +417,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                           <button key={r.id} onClick={() => handleResultClick(r)} onMouseEnter={() => setSelectedIdx(globalIdx)}
                             className={cn("flex items-center gap-3 w-full px-3 py-2.5 transition-colors", selectedIdx === globalIdx ? "bg-nf-hover" : "hover:bg-nf-hover/50")}>
                             {img ? (
-                              <img src={img} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 border border-nf-border-2" />
+                              <img src={img} alt={`مجتمع ${r.name}`} className="w-9 h-9 rounded-lg object-cover shrink-0 border border-nf-border-2" />
                             ) : (
                               <div className="w-9 h-9 rounded-lg bg-nf-accent/10 flex items-center justify-center shrink-0 border border-nf-border-2"><Hash size={14} className="text-nf-accent" /></div>
                             )}
@@ -441,7 +441,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                           <button key={r.id} onClick={() => handleResultClick(r)} onMouseEnter={() => setSelectedIdx(globalIdx)}
                             className={cn("flex items-center gap-3 w-full px-3 py-2.5 transition-colors", selectedIdx === globalIdx ? "bg-nf-hover" : "hover:bg-nf-hover/50")}>
                             {r.photo ? (
-                              <img src={r.photo} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 border border-nf-border-2" />
+                              <img src={r.photo} alt={`صورة ${r.name}`} className="w-9 h-9 rounded-full object-cover shrink-0 border border-nf-border-2" />
                             ) : (
                               <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center text-sm font-bold text-blue-400 shrink-0 border border-nf-border-2">{(r.name || "U")[0]}</div>
                             )}
@@ -466,9 +466,9 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                           <button key={r.id} onClick={() => handleResultClick(r)} onMouseEnter={() => setSelectedIdx(globalIdx)}
                             className={cn("flex items-start gap-3 w-full px-3 py-2.5 transition-colors", selectedIdx === globalIdx ? "bg-nf-hover" : "hover:bg-nf-hover/50")}>
                             {r.imageUrl ? (
-                              <img src={r.imageUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0 border border-nf-border-2" />
+                              <img src={r.imageUrl} alt="صورة المنشور" className="w-11 h-11 rounded-lg object-cover shrink-0 border border-nf-border-2" />
                             ) : commImg ? (
-                              <img src={commImg} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 border border-nf-border-2" />
+                              <img src={commImg} alt={`مجتمع ${r.community}`} className="w-9 h-9 rounded-lg object-cover shrink-0 border border-nf-border-2" />
                             ) : (
                               <div className="w-9 h-9 rounded-lg bg-nf-secondary flex items-center justify-center shrink-0 border border-nf-border-2"><FileText size={14} className="text-nf-dim" /></div>
                             )}
@@ -523,7 +523,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
           <div className="relative" ref={userMenuRef}>
             <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-nf-hover transition-colors border border-transparent hover:border-nf-border-2">
               {user.photoURL ? (
-                <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover border border-nf-border-2" />
+                <img src={user.photoURL} alt="صورة المستخدم" className="w-7 h-7 rounded-full object-cover border border-nf-border-2" />
               ) : (
                 <div className="w-7 h-7 rounded-full bg-nf-secondary flex items-center justify-center border border-nf-border-2"><User size={13} className="text-nf-muted" /></div>
               )}
@@ -536,7 +536,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                   <div className="px-3 py-2.5 border-b border-nf-border-2">
                     <div className="flex items-center gap-2.5">
                       {user.photoURL ? (
-                        <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full object-cover border border-nf-border-2" />
+                        <img src={user.photoURL} alt="صورة المستخدم" className="w-10 h-10 rounded-full object-cover border border-nf-border-2" />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-nf-secondary flex items-center justify-center border border-nf-border-2"><User size={18} className="text-nf-muted" /></div>
                       )}
