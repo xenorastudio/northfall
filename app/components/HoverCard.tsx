@@ -141,7 +141,7 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
               exit={{ opacity: 0, y: 4, scale: 0.97 }}
               transition={{ duration: 0.12 }}
               style={{ position: "fixed", top: pos.top, right: pos.right, zIndex: 99999 }}
-              className="w-[280px] bg-nf-primary border border-nf-border rounded-lg shadow-xl overflow-hidden pointer-events-auto"
+              className={cn("w-[280px] bg-nf-primary border border-nf-border rounded-lg shadow-xl overflow-hidden pointer-events-auto", (uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && "ring-1 ring-blue-400/20 shadow-[0_0_20px_rgba(96,165,250,0.1)]")}
               onMouseEnter={() => setShow(true)}
               onMouseLeave={handleLeave}
             >

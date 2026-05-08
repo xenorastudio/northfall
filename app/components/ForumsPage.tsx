@@ -655,7 +655,7 @@ function UserHoverCard({ name, photo, uid, children }: { name: string; photo?: s
     <span className="relative inline-block" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
       {children}
       <AnimatePresence>{show && profile && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.12 }} className="absolute z-50 bottom-full mb-2 right-0 w-[340px] bg-nf-card rounded-xl overflow-hidden border border-nf-border shadow-xl shadow-black/30" onMouseEnter={() => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }} onMouseLeave={handleLeave}>
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.12 }} className={cn("absolute z-50 bottom-full mb-2 right-0 w-[340px] bg-nf-card rounded-xl overflow-hidden border border-nf-border shadow-xl shadow-black/30", (uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && "ring-1 ring-blue-400/20 shadow-[0_0_20px_rgba(96,165,250,0.1)]")} onMouseEnter={() => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }} onMouseLeave={handleLeave}>
           {/* Banner */}
           <div className="relative h-[60px] overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-l from-nf-accent/20 via-nf-secondary to-nf-accent/10" />
@@ -2113,7 +2113,7 @@ export default function ForumsPage() {
                 <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <button onClick={backToList} className="flex items-center gap-1.5 text-[13px] text-nf-accent hover:underline mb-4 font-bold"><ArrowLeft size={14} /> العودة</button>
 
-                  <div className="bg-nf-card rounded-lg overflow-hidden mb-5">
+                  <div className={cn("bg-nf-card rounded-lg overflow-hidden mb-5", (profileUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || profileUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && "ring-1 ring-blue-400/20 shadow-[0_0_30px_rgba(96,165,250,0.08)]")}>
                     {/* Banner */}
                     <div className="relative h-[140px] overflow-hidden">
                       <img src={profileData.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
@@ -2127,7 +2127,7 @@ export default function ForumsPage() {
                       </div>
                       <div className="flex-1 min-w-0 pt-3">
                         <div className="flex items-center gap-3 flex-wrap mb-1">
-                          <h1 className="text-[22px] font-bold text-nf-text">{profileData.name}</h1>
+                          <h1 className="text-[22px] font-bold text-nf-text inline-flex items-center gap-2">{profileData.name}{(profileUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || profileUid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && <span className="relative inline-flex items-center justify-center shrink-0"><span className="absolute inset-0 rounded-full bg-blue-400/20 animate-pulse" /><img src="/assets/favicon/verified.png" alt="موثّق" className="w-[18px] h-[18px] relative z-10 drop-shadow-[0_0_6px_rgba(96,165,250,0.4)]" /></span>}</h1>
                           <span className="text-[10px] px-2 py-0.5 rounded bg-nf-accent/10 text-nf-accent font-bold">{profileData.role}</span>
                           <span className={cn("flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded", profileData.isOnline ? "bg-green-400/10 text-green-400" : "bg-nf-secondary text-nf-dim")}>
                             <span className={cn("w-1.5 h-1.5 rounded-full", profileData.isOnline ? "bg-green-400" : "bg-nf-dim")} />

@@ -375,7 +375,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const displayPhoto = isOwn ? (user?.photoURL || "") : (profileData?.photo || "");
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} className={cn((user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1") && "ring-1 ring-blue-400/20 shadow-[0_0_30px_rgba(96,165,250,0.08)] rounded-lg")}>
       {/* Banner */}
       <div className="relative h-[80px] sm:h-[120px] rounded-lg overflow-hidden mb-3">
         <img src={profileData?.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
