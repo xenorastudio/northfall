@@ -1,44 +1,104 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAuth } from "./AuthProvider";
-import { ArrowLeft, Search, Globe, Zap, CheckCircle2, XCircle, Loader2, ExternalLink, Shield } from "lucide-react";
+import { ArrowLeft, Zap, Loader2, Shield, Flame, Globe, StopCircle } from "lucide-react";
 
-const SITE_URL = "https://www.northfall.blog";
+const OWNER_UID = "bn6vKOGvIeUdF91P0fzMEbFZfGr2";
 
-interface SubmitResult {
-  engine: string;
-  status: "idle" | "loading" | "success" | "error";
-  message: string;
-}
-
-const ENGINES = [
-  { id: "google-ping", name: "Google Sitemap Ping", url: `https://www.google.com/ping?sitemap=${SITE_URL}/sitemap.xml`, type: "ping" },
-  { id: "google-index", name: "Google Index Now", url: `https://indexing.googleapis.com/v3/urlNotifications:publish`, type: "info" },
-  { id: "bing-ping", name: "Bing Sitemap Submit", url: `https://www.bing.com/ping?sitemap=${SITE_URL}/sitemap.xml`, type: "ping" },
-  { id: "bing-indexnow", name: "Bing IndexNow", url: `https://www.bing.com/indexnow?url=${SITE_URL}&key=key&keyLocation=${SITE_URL}/key.txt`, type: "info" },
-  { id: "yandex", name: "Yandex Webmaster", url: `https://webmaster.yandex.com/`, type: "link" },
-  { id: "baidu", name: "Baidu Webmaster", url: `https://ziyuan.baidu.com/`, type: "link" },
+const PING_ENDPOINTS = [
+  { name: "Google", url: (u: string) => `https://www.google.com/ping?sitemap=${encodeURIComponent(u)}` },
+  { name: "Bing", url: (u: string) => `https://www.bing.com/ping?sitemap=${encodeURIComponent(u)}` },
+  { name: "Google Crawl", url: (u: string) => `https://www.google.com/webmasters/sitemaps/ping?sitemap=${encodeURIComponent(u)}` },
 ];
 
-const PAGES_TO_SUBMIT = [
-  { url: "/", label: "الرئيسية" },
-  { url: "/app", label: "التطبيق" },
-  { url: "/forum", label: "المنتدى" },
-  { url: "/community/Unity", label: "مجتمع Unity" },
-  { url: "/community/Unreal", label: "مجتمع Unreal" },
-  { url: "/community/Godot", label: "مجتمع Godot" },
-  { url: "/community/Blender", label: "مجتمع Blender" },
+const SITE_PAGES = [
+  "https://www.northfall.blog/",
+  "https://www.northfall.blog/app",
+  "https://www.northfall.blog/forum",
+  "https://www.northfall.blog/community/Unity",
+  "https://www.northfall.blog/community/Unreal",
+  "https://www.northfall.blog/community/Godot",
+  "https://www.northfall.blog/community/Blender",
 ];
 
 export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
   const { user } = useAuth();
-  const isOwner = user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2";
-  const [results, setResults] = useState<Record<string, SubmitResult>>({});
-  const [blastMode, setBlastMode] = useState(false);
-  const [blastCount, setBlastCount] = useState(10);
-  const [blasting, setBlasting] = useState(false);
-  const [blastLog, setBlastLog] = useState<string[]>([]);
+  const isOwner = user?.uid === OWNER_UID;
+  const [targetUrl, setTargetUrl] = useState("https://www.northfall.blog/");
+  const [repeatCount, setRepeatCount] = useState(1000);
+  const [speed, setSpeed] = useState<"fast" | "normal" | "slow">("fast");
+  const [running, setRunning] = useState(false);
+  const [sent, setSent] = useState(0);
+  const [errors, setErrors] = useState(0);
+  const [logs, setLogs] = useState<string[]>([]);
+  const stopRef = useRef(false);
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  const addLog = useCallback((msg: string) => {
+    setLogs(prev => {
+      const next = [...prev, msg];
+      if (next.length > 500) return next.slice(-300);
+      return next;
+    });
+  }, []);
+
+  const startBlast = async () => {
+    if (running) return;
+    setRunning(true);
+    setSent(0);
+    setErrors(0);
+    setLogs([]);
+    stopRef.current = false;
+
+    const urls = targetUrl.trim() ? [targetUrl.trim()] : SITE_PAGES;
+    const delay = speed === "fast" ? 50 : speed === "normal" ? 200 : 500;
+
+    addLog(`🚀 بدء Blast: ${urls.length} رابط × ${repeatCount} مرة × ${PING_ENDPOINTS.length} محرك = ${urls.length * repeatCount * PING_ENDPOINTS.length} طلب`);
+
+    for (let round = 0; round < repeatCount; round++) {
+      if (stopRef.current) {
+        addLog("⏹ تم الإيقاف");
+        break;
+      }
+
+      for (const url of urls) {
+        if (stopRef.current) break;
+
+        for (const engine of PING_ENDPOINTS) {
+          if (stopRef.current) break;
+
+          try {
+            await fetch(engine.url(url), { mode: "no-cors", cache: "no-store" });
+            setSent(prev => prev + 1);
+          } catch {
+            setErrors(prev => prev + 1);
+          }
+
+          // Minimal delay between requests
+          if (delay > 50) await new Promise(r => setTimeout(r, delay));
+        }
+      }
+
+      // Log progress every 10 rounds
+      if ((round + 1) % 10 === 0 || round === 0) {
+        const total = (round + 1) * urls.length * PING_ENDPOINTS.length;
+        addLog(`⚡ الدورة ${round + 1}/${repeatCount} — تم إرسال ${total} طلب`);
+      }
+
+      // Small delay between rounds to avoid overwhelming
+      if (delay <= 50 && round % 5 === 4) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
+
+    addLog(`✅ انتهى! المُرسل: ${sent + errors} | النجاح: ${sent} | الأخطاء: ${errors}`);
+    setRunning(false);
+  };
+
+  const stopBlast = () => {
+    stopRef.current = true;
+  };
 
   if (!isOwner) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -48,252 +108,177 @@ export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
     </div>
   );
 
-  const updateResult = (id: string, status: SubmitResult["status"], message: string) => {
-    setResults(prev => ({ ...prev, [id]: { engine: id, status, message } }));
-  };
-
-  const submitSitemap = async (engineId: string) => {
-    const engine = ENGINES.find(e => e.id === engineId);
-    if (!engine) return;
-
-    updateResult(engineId, "loading", "جاري الإرسال...");
-
-    if (engine.type === "link") {
-      window.open(engine.url, "_blank");
-      updateResult(engineId, "success", "تم فتح الرابط — أضف الموقع يدوياً");
-      return;
-    }
-
-    if (engine.type === "info") {
-      updateResult(engineId, "success", "يتطلب API Key — استخدم الروابط أدناه");
-      return;
-    }
-
-    try {
-      // Use fetch with no-cors for ping URLs (they return opaque response but the ping still registers)
-      await fetch(engine.url, { mode: "no-cors" });
-      updateResult(engineId, "success", "تم إرسال الـ sitemap بنجاح ✓");
-    } catch {
-      updateResult(engineId, "error", "فشل الإرسال — جرّب يدوياً");
-    }
-  };
-
-  const submitAllPings = async () => {
-    const pings = ENGINES.filter(e => e.type === "ping");
-    for (const engine of pings) {
-      await submitSitemap(engine.id);
-    }
-  };
-
-  const runBlast = async () => {
-    setBlasting(true);
-    setBlastLog([]);
-    const log = (msg: string) => setBlastLog(prev => [...prev, msg]);
-
-    for (let i = 0; i < blastCount; i++) {
-      // Ping Google with each page URL
-      for (const page of PAGES_TO_SUBMIT) {
-        const fullUrl = `${SITE_URL}${page.url}`;
-        try {
-          await fetch(`https://www.google.com/ping?sitemap=${fullUrl}`, { mode: "no-cors" });
-          log(`[${i + 1}/${blastCount}] ✓ Google: ${page.label}`);
-        } catch {
-          log(`[${i + 1}/${blastCount}] ✗ Google: ${page.label}`);
-        }
-      }
-      // Ping Bing with each page URL
-      for (const page of PAGES_TO_SUBMIT) {
-        const fullUrl = `${SITE_URL}${page.url}`;
-        try {
-          await fetch(`https://www.bing.com/ping?sitemap=${fullUrl}`, { mode: "no-cors" });
-          log(`[${i + 1}/${blastCount}] ✓ Bing: ${page.label}`);
-        } catch {
-          log(`[${i + 1}/${blastCount}] ✗ Bing: ${page.label}`);
-        }
-      }
-      // Small delay between rounds
-      if (i < blastCount - 1) {
-        await new Promise(r => setTimeout(r, 2000));
-      }
-    }
-    log("✓ انتهى الـ Blast!");
-    setBlasting(false);
-  };
-
-  const getStatusIcon = (status: SubmitResult["status"]) => {
-    switch (status) {
-      case "loading": return <Loader2 size={14} className="animate-spin text-nf-accent" />;
-      case "success": return <CheckCircle2 size={14} className="text-green-400" />;
-      case "error": return <XCircle size={14} className="text-red-400" />;
-      default: return <div className="w-3.5 h-3.5 rounded-full bg-nf-secondary border border-nf-border" />;
-    }
-  };
+  const totalRequests = (targetUrl.trim() ? 1 : SITE_PAGES.length) * repeatCount * PING_ENDPOINTS.length;
 
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <button onClick={onBack} className="p-2 rounded-lg hover:bg-nf-hover text-nf-muted hover:text-white transition-colors">
           <ArrowLeft size={18} />
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <Search size={18} className="text-nf-accent" />
-            أدوات SEO
+            <Flame size={18} className="text-orange-400" />
+            أدوات الأداء
           </h1>
-          <p className="text-[11px] text-nf-dim mt-0.5">إرسال الموقع لمحركات البحث وتحسين الظهور</p>
+          <p className="text-[11px] text-nf-dim mt-0.5">إرسال الموقع لمحركات البحث — كرّر ملايين المرات</p>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 text-center">
-          <Globe size={16} className="mx-auto text-nf-accent mb-1" />
-          <p className="text-[10px] text-nf-dim">الصفحات</p>
-          <p className="text-sm font-bold text-white">{PAGES_TO_SUBMIT.length}</p>
+          <p className="text-[10px] text-nf-dim">تم الإرسال</p>
+          <p className="text-lg font-bold text-green-400">{sent.toLocaleString()}</p>
         </div>
         <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 text-center">
-          <Search size={16} className="mx-auto text-nf-accent mb-1" />
-          <p className="text-[10px] text-nf-dim">محركات</p>
-          <p className="text-sm font-bold text-white">{ENGINES.filter(e => e.type === "ping").length}</p>
+          <p className="text-[10px] text-nf-dim">أخطاء</p>
+          <p className="text-lg font-bold text-red-400">{errors.toLocaleString()}</p>
         </div>
         <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 text-center">
-          <Zap size={16} className="mx-auto text-yellow-400 mb-1" />
-          <p className="text-[10px] text-nf-dim">Sitemap</p>
-          <p className="text-sm font-bold text-green-400">✓</p>
+          <p className="text-[10px] text-nf-dim">إجمالي مطلوب</p>
+          <p className="text-lg font-bold text-white">{running ? totalRequests.toLocaleString() : "—"}</p>
         </div>
       </div>
 
-      {/* Submit Sitemap */}
-      <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-white">إرسال Sitemap</h3>
-          <button
-            onClick={submitAllPings}
-            className="px-3 py-1.5 rounded-lg bg-nf-accent/15 text-nf-accent text-[11px] font-bold hover:bg-nf-accent/25 transition-colors"
-          >
-            إرسال الكل
-          </button>
+      {/* Config */}
+      <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-4 mb-4 space-y-4">
+        {/* URL Input */}
+        <div>
+          <label className="text-[11px] font-bold text-nf-dim mb-1.5 block">رابط الموقع</label>
+          <input
+            type="url"
+            value={targetUrl}
+            onChange={e => setTargetUrl(e.target.value)}
+            placeholder="https://www.northfall.blog/"
+            className="w-full px-3 py-2 rounded-lg bg-nf-primary border border-nf-border-2 text-xs text-white placeholder-nf-dim focus:outline-none focus:border-nf-accent"
+          />
+          <p className="text-[9px] text-nf-dim mt-1">اتركه فارغ لإرسال كل صفحات الموقع ({SITE_PAGES.length} صفحات)</p>
         </div>
-        <div className="space-y-2">
-          {ENGINES.map(engine => {
-            const r = results[engine.id];
-            return (
-              <div key={engine.id} className="flex items-center justify-between bg-nf-primary/60 rounded-lg px-3 py-2">
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(r?.status || "idle")}
-                  <span className="text-xs text-nf-text">{engine.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {r && <span className="text-[10px] text-nf-dim">{r.message}</span>}
-                  {engine.type === "link" ? (
-                    <a href={engine.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md hover:bg-nf-hover text-nf-muted hover:text-white transition-colors">
-                      <ExternalLink size={12} />
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => submitSitemap(engine.id)}
-                      disabled={r?.status === "loading"}
-                      className="px-2.5 py-1 rounded-md bg-nf-accent/10 text-nf-accent text-[10px] font-bold hover:bg-nf-accent/20 transition-colors disabled:opacity-50"
-                    >
-                      إرسال
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Blast Mode */}
-      <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Zap size={16} className="text-yellow-400" />
-            <h3 className="text-sm font-bold text-white">Blast Mode</h3>
+        {/* Repeat Count */}
+        <div>
+          <label className="text-[11px] font-bold text-nf-dim mb-1.5 block">عدد التكرار</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={100}
+              max={1000000}
+              step={100}
+              value={repeatCount}
+              onChange={e => setRepeatCount(Number(e.target.value))}
+              className="flex-1 accent-orange-400"
+            />
+            <input
+              type="number"
+              value={repeatCount}
+              onChange={e => setRepeatCount(Math.max(1, Number(e.target.value)))}
+              className="w-24 px-2 py-1.5 rounded-lg bg-nf-primary border border-nf-border-2 text-xs text-white text-center focus:outline-none focus:border-orange-400"
+            />
           </div>
-          <button
-            onClick={() => setBlastMode(!blastMode)}
-            className={blastMode ? "text-yellow-400 text-[10px] font-bold" : "text-nf-dim text-[10px] font-bold"}
-          >
-            {blastMode ? "مفعّل" : "مطفأ"}
-          </button>
-        </div>
-        {blastMode && (
-          <>
-            <p className="text-[10px] text-nf-dim mb-3">
-              يرسل كل صفحات الموقع لـ Google و Bing عدة مرات لتسريع الأرشفة. كل دورة ترسل {PAGES_TO_SUBMIT.length * 2} طلب.
-            </p>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-xs text-nf-muted">عدد الدورات:</span>
-              <input
-                type="range"
-                min={1}
-                max={100}
-                value={blastCount}
-                onChange={e => setBlastCount(Number(e.target.value))}
-                className="flex-1 accent-nf-accent"
-              />
-              <span className="text-xs font-bold text-white w-8 text-center">{blastCount}</span>
-            </div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] text-nf-dim">إجمالي الطلبات: {blastCount * PAGES_TO_SUBMIT.length * 2}</span>
-              <button
-                onClick={runBlast}
-                disabled={blasting}
-                className="px-4 py-1.5 rounded-lg bg-yellow-400/15 text-yellow-400 text-[11px] font-bold hover:bg-yellow-400/25 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {blasting ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-                {blasting ? "جاري..." : "تشغيل Blast"}
+          <div className="flex gap-2 mt-2">
+            {[100, 1000, 10000, 100000, 1000000].map(n => (
+              <button key={n} onClick={() => setRepeatCount(n)} className={`px-2 py-1 rounded text-[9px] font-bold transition-colors ${repeatCount === n ? "bg-orange-400/20 text-orange-400" : "bg-nf-primary text-nf-dim hover:text-white"}`}>
+                {n >= 1000000 ? `${n / 1000000}M` : n >= 1000 ? `${n / 1000}K` : n}
               </button>
-            </div>
-            {blastLog.length > 0 && (
-              <div className="bg-nf-primary/80 rounded-lg p-2 max-h-[200px] overflow-y-auto text-[9px] font-mono text-nf-dim space-y-0.5">
-                {blastLog.map((log, i) => (
-                  <p key={i} className={log.includes("✓") ? "text-green-400/70" : log.includes("✗") ? "text-red-400/70" : ""}>{log}</p>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+            ))}
+          </div>
+        </div>
+
+        {/* Speed */}
+        <div>
+          <label className="text-[11px] font-bold text-nf-dim mb-1.5 block">السرعة</label>
+          <div className="flex gap-2">
+            {[
+              { id: "fast" as const, label: "⚡ سريع", desc: "50ms" },
+              { id: "normal" as const, label: "🔄 عادي", desc: "200ms" },
+              { id: "slow" as const, label: "🐢 بطيء", desc: "500ms" },
+            ].map(s => (
+              <button key={s.id} onClick={() => setSpeed(s.id)} className={`flex-1 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors ${speed === s.id ? "bg-orange-400/20 text-orange-400 border border-orange-400/30" : "bg-nf-primary text-nf-dim border border-nf-border-2 hover:text-white"}`}>
+                {s.label}
+                <span className="block text-[8px] text-nf-dim">{s.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Total estimate */}
+        <div className="bg-nf-primary/60 rounded-lg p-3 flex items-center justify-between">
+          <span className="text-[10px] text-nf-dim">إجمالي الطلبات المتوقعة</span>
+          <span className="text-sm font-bold text-orange-400">{totalRequests.toLocaleString()}</span>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-2">
+          {!running ? (
+            <button
+              onClick={startBlast}
+              className="flex-1 px-4 py-2.5 rounded-lg bg-orange-400/20 text-orange-400 text-sm font-bold hover:bg-orange-400/30 transition-colors flex items-center justify-center gap-2"
+            >
+              <Zap size={16} />
+              تشغيل — إرسال {totalRequests.toLocaleString()} طلب
+            </button>
+          ) : (
+            <button
+              onClick={stopBlast}
+              className="flex-1 px-4 py-2.5 rounded-lg bg-red-400/20 text-red-400 text-sm font-bold hover:bg-red-400/30 transition-colors flex items-center justify-center gap-2"
+            >
+              <StopCircle size={16} />
+              إيقاف
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Direct Links */}
-      <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-4 mb-4">
-        <h3 className="text-sm font-bold text-white mb-3">روابط مباشرة</h3>
-        <div className="space-y-1.5">
+      {/* Progress */}
+      {running && (
+        <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-nf-dim flex items-center gap-1.5">
+              <Loader2 size={12} className="animate-spin text-orange-400" />
+              جاري الإرسال...
+            </span>
+            <span className="text-[10px] text-nf-accent">{Math.round((sent / totalRequests) * 100)}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-nf-primary overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-l from-orange-400 to-yellow-400 transition-all duration-300"
+              style={{ width: `${Math.min(100, (sent / totalRequests) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Log */}
+      {logs.length > 0 && (
+        <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-nf-dim">السجل</span>
+            <button onClick={() => setLogs([])} className="text-[9px] text-nf-dim hover:text-white">مسح</button>
+          </div>
+          <div className="bg-nf-primary/80 rounded-lg p-2 max-h-[200px] overflow-y-auto text-[9px] font-mono space-y-0.5">
+            {logs.map((log, i) => (
+              <p key={i} className={log.includes("✅") ? "text-green-400" : log.includes("⏹") ? "text-yellow-400" : log.includes("🚀") ? "text-orange-400" : "text-nf-dim"}>{log}</p>
+            ))}
+            <div ref={logEndRef} />
+          </div>
+        </div>
+      )}
+
+      {/* Quick Links */}
+      <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-4">
+        <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2"><Globe size={14} /> روابط مباشرة</h3>
+        <div className="grid grid-cols-2 gap-1.5">
           {[
             { label: "Google Search Console", url: "https://search.google.com/search-console?resource_id=https://www.northfall.blog/" },
-            { label: "Bing Webmaster Tools", url: "https://www.bing.com/webmasters?siteUrl=https://www.northfall.blog/" },
-            { label: "Google PageSpeed Insights", url: `https://pagespeed.web.dev/analysis?url=${SITE_URL}/` },
-            { label: "Google Rich Results Test", url: `https://search.google.com/test/rich-results?url=${SITE_URL}/` },
-            { label: "Schema Markup Validator", url: `https://validator.schema.org/#url=${SITE_URL}` },
-            { label: "GTmetrix Performance", url: `https://gtmetrix.com/?url=${SITE_URL}/` },
+            { label: "Bing Webmaster", url: "https://www.bing.com/webmasters?siteUrl=https://www.northfall.blog/" },
+            { label: "PageSpeed Insights", url: "https://pagespeed.web.dev/analysis?url=https://www.northfall.blog/" },
+            { label: "Rich Results Test", url: "https://search.google.com/test/rich-results?url=https://www.northfall.blog/" },
           ].map(link => (
-            <a
-              key={link.label}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-nf-hover transition-colors group"
-            >
-              <span className="text-xs text-nf-muted group-hover:text-white transition-colors">{link.label}</span>
-              <ExternalLink size={12} className="text-nf-dim group-hover:text-nf-accent transition-colors" />
+            <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded-lg bg-nf-primary/60 text-[10px] text-nf-muted hover:text-white hover:bg-nf-hover transition-colors text-center">
+              {link.label}
             </a>
-          ))}
-        </div>
-      </div>
-
-      {/* Pages to Submit */}
-      <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-4">
-        <h3 className="text-sm font-bold text-white mb-3">الصفحات المُرسلة</h3>
-        <div className="space-y-1">
-          {PAGES_TO_SUBMIT.map(page => (
-            <div key={page.url} className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-nf-primary/40">
-              <span className="text-xs text-nf-muted">{page.label}</span>
-              <span className="text-[10px] text-nf-dim font-mono">{SITE_URL}{page.url}</span>
-            </div>
           ))}
         </div>
       </div>
