@@ -38,7 +38,24 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
       try {
         if (type === "user") {
           const { collection, getDocs, query, where, orderBy, limit, getDoc, doc } = await import("firebase/firestore");
-          // Try direct user lookup by displayName via limited scan
+          // Try direct lookup by uid first (most reliable)
+          if (uid) {
+            const userSnap = await getDoc(doc(db, "users", uid));
+            if (userSnap.exists()) {
+              const d = userSnap.data();
+              setData({
+                photo: d.photoURL || "",
+                name: d.displayName || name,
+                uid: userSnap.id,
+                karma: d.karma || 0,
+                postCount: d.postCount || 0,
+                bannerUrl: d.bannerUrl || "",
+                lastSeen: d.lastSeen || null,
+              });
+              return;
+            }
+          }
+          // Fallback: scan by displayName
           const q = query(collection(db, "users"), orderBy("displayName"), limit(15));
           const snap = await getDocs(q);
           const userDoc = snap.docs.find(d => d.data().displayName === name);

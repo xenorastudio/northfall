@@ -159,10 +159,10 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
         }
 
         if (isOwn && user) {
-          // For own profile, use fresh Auth data + Firestore bio/links
+          // For own profile, prefer Firestore custom photo over Google auth photo
           setProfileData({
             name: user.displayName || userData?.displayName || t("gen.user"),
-            photo: user.photoURL || userData?.photoURL || "",
+            photo: userData?.photoURL || user.photoURL || "",
             bio: userData?.bio || "",
             bannerUrl: userData?.bannerUrl || "",
             socialLinks: userData?.socialLinks || {},
@@ -372,7 +372,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   }
 
   const displayName = isOwn ? (user?.displayName || t("gen.user")) : (profileData?.name || t("gen.user"));
-  const displayPhoto = isOwn ? (user?.photoURL || "") : (profileData?.photo || "");
+  const displayPhoto = profileData?.photo || (isOwn ? user?.photoURL || "" : "");
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
