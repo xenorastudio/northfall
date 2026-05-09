@@ -406,7 +406,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
         <div className="flex-1 min-w-0 pt-1 sm:pt-2">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <h1 className="text-lg sm:text-xl font-bold text-white truncate">{displayName}</h1>
-            {(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && (
+            {(targetUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && (
               <span className="relative inline-flex items-center justify-center shrink-0">
                 <span className="absolute inset-0 rounded-full bg-blue-400/20 animate-pulse" />
                 <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[20px] h-[20px] relative z-10 drop-shadow-[0_0_8px_rgba(96,165,250,0.4)]" />
