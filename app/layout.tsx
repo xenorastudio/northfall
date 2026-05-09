@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: ['40
 
 const SITE_URL = 'https://www.northfall.blog';
 const SITE_NAME = 'NorthFall';
-const SITE_DESCRIPTION = 'NorthFall — منصة المجتمعات العربية الأولى. نقاشات، محتوى، ومجتمعات لكل شي — ألعاب، تقنية، برمجة، تصميم، رياضة، فن، طبخ، سفر، تعليم، وأكثر. انضم لأكبر مجتمع عربي وتواصل مع ناس يشاركونك اهتماماتك.';
+const SITE_DESCRIPTION = 'NorthFall — مجتمعك العربي على الإنترنت. مكان للمجتمعات، المنشورات، والنقاشات عن كل شيء تقريبًا. شارك أفكارك، انشر محتوى جديد، وتابع اهتماماتك داخل مجتمع عربي فيه ناس تتفاعل يوميًا من خلال المنشورات والتعليقات والنقاشات. الألعاب والبرمجة هم الأكثر نشاطًا على NorthFall، لكن أكيد بتلاقي مجتمعات ومواضيع ثانية بكل المجالات تقريبًا.';
 
 const KEYWORDS = [
   // Brand — NorthFall alone + every variation (extensive to beat clothing store)
@@ -19,19 +19,22 @@ const KEYWORDS = [
   // Brand intent — people searching for the platform itself
   'مجتمع الألعاب العرب', 'منتدى الألعاب العرب', 'منصة مطورين عرب', 'شبكة مطورين عربية', 'ريدت الألعاب العرب', 'reddit الألعاب عربي',
   'أكبر مجتمع عربي للألعاب', 'أكبر منتدى عربي للألعاب', 'أفضل مجتمع جيمرز عربي', 'أفضل منصة مطورين عرب', 'منصة ألعاب عربية', 'شبكة ألعاب عربية', 'منتدى جيمر عربي', 'مجتمع جيمر عربي',
-  // General Arabic community — NorthFall is not just games
+  // General Arabic community — NorthFall is like Reddit for Arabs
   'مجتمع عربي', 'منصة مجتمعات عربية', 'منتدى عربي', 'شبكة اجتماعية عربية', 'منصة عربية', 'موقع عربي', 'منصة محتوى عربي', 'مجتمعات عربية', 'منتديات عربية', 'تواصل عربي', 'نقاشات عربية', 'محتوى عربي',
   'أكبر مجتمع عربي', 'أكبر منصة عربية', 'أفضل مجتمع عربي', 'أفضل منتدى عربي', 'منصة نقاشات عربية', 'شبكة عربية اجتماعية',
-  'مجتمع رياضة عربي', 'مجتمع فن عربي', 'مجتمع طبخ عربي', 'مجتمع سفر عربي', 'مجتمع تعليم عربي', 'مجتمع تصميم عربي', 'مجتمع أنمي عربي', 'مجتمع أفلام عربي', 'مجتمع موسيقى عربي', 'مجتمع كتب عربي', 'مجتمع صحة عربي', 'مجتمع طب عربي', 'مجتمع تجارة عربي', 'مجتمع أعمال عربي',
-  'رياضة عربي', 'كرة قدم عربي', 'دوري عربي', 'أخبار رياضة عربية',
-  'فن عربي', 'رسم عربي', 'تصميم جرافيك عربي', 'فن رقمي عربي',
-  'طبخ عربي', 'وصفات عربية', 'مطبخ عربي', 'أكلات عربية',
-  'سفر عربي', 'سياحة عربية', 'رحلات عربية',
-  'تعليم عربي', 'دروس عربية', 'منهج عربي', 'كورس مجاني عربي',
-  'أنمي عربي', 'مانجا عربي', 'أفلام عربي', 'سينما عربية', 'مسلسلات عربية',
-  'كتب عربية', 'قراءة عربية', 'أدب عربي',
-  'صحة عربي', 'لياقة عربي', 'طب عربي',
-  'تجارة عربي', 'أعمال عربية', 'ريادة أعمال عربية', 'مشروعات عربية', 'استثمار عربي',
+  'مجتمع منشورات عربي', 'مجتمع نقاشات عربي', 'مجتمع تفاعل عربي', 'مجتمع محتوى عربي', 'مجتمع أسئلة عربي', 'مجتمع أجوبة عربي',
+  'مجتمع ألعاب عربي', 'مجتمع برمجة عربي', 'مجتمع تصميم عربي', 'مجتمع أنمي عربي', 'مجتمع أفلام عربي',
+  'reddit عربي', 'مثل reddit عربي', 'ريدت عربي', 'موقع مثل reddit عربي', 'منتدى مثل reddit عربي',
+  'مشاركة محتوى عربي', 'إنشاء محتوى عربي', 'منشورات عربية', 'تعليقات عربية', 'تفاعل عربي',
+  'سؤال وجواب عربي', 'أسئلة وأجوبة عربية', 'نقاش مفتوح عربي', 'حوار عربي',
+  'مجتمع مفتوح عربي', 'مجتمع حر عربي', 'منصة حرة عربية', 'مساحة نقاش عربية',
+  // English brand variations — extensive
+  'NorthFall community', 'NorthFall forum', 'NorthFall Arabic community', 'NorthFall Arabic forum', 'NorthFall Arabic platform', 'NorthFall social', 'NorthFall social network', 'NorthFall posts', 'NorthFall discussions', 'NorthFall Arabic discussions', 'NorthFall Arabic posts', 'NorthFall user generated content', 'NorthFall user content Arabic',
+  'North Fall community', 'North Fall forum', 'North Fall Arabic', 'North Fall Arabic community', 'North Fall social',
+  'Northfall community', 'Northfall forum', 'Northfall Arabic', 'Northfall Arabic community', 'Northfall social',
+  'northfall.blog community', 'northfall.blog forum', 'northfall.blog Arabic',
+  'Arabic community platform', 'Arabic forum platform', 'Arabic social network', 'Arabic discussion platform', 'Arabic Reddit', 'Arabic Reddit alternative', 'Reddit for Arabs', 'Arab community website', 'Arab forum website', 'Arab social platform', 'Arab discussion website', 'Arabic online community', 'Arabic posting platform', 'Arabic content platform', 'Arabic user content', 'Arabic Q&A platform', 'Arabic open discussion',
+  'Middle East community platform', 'MENA social network', 'Arab world forum', 'Arabic internet community', 'Arabic web community',
   // Gaming AR — every variation
   'ألعاب', 'العاب', 'ألعاب فيديو', 'العاب فيديو', 'جيمر عرب', 'جيمرز عرب', 'جيمر عربي', 'مجتمع ألعاب عربي', 'منتدى ألعاب عربي', 'منتدى العاب عرب', 'نقاشات ألعاب عربية', 'أخبار الألعاب العربية', 'مراجعات ألعاب عربي', 'تحميل ألعاب مجانية', 'ألعاب عربية مجانية', 'ألعاب عرب', 'قيمز عرب', 'عالم الألعاب عربي', 'عالم الالعاب', 'مجتمع جيمرز عربي', 'منتدى جيمرز عربي', 'ألعاب اونلاين عربية', 'ألعاب مجانية عربية', 'ألعاب جديدة عربية', 'تحميل العاب عربي', 'توبيكات ألعاب عربية', 'ستريم ألعاب عربي', 'بث ألعاب عربي', 'قنوات ألعاب عربية', 'يوتيوب ألعاب عربي',
   // Gaming EN
@@ -81,7 +84,7 @@ const KEYWORDS = [
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — منصة المجتمعات العربية لكل الاهتمامات`,
+    default: `${SITE_NAME} — مجتمعك العربي`,
     template: `%s — ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -105,13 +108,13 @@ export const metadata: Metadata = {
     locale: 'ar_SA',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — منصة المجتمعات العربية لكل الاهتمامات`,
+    title: `${SITE_NAME} — مجتمعك العربي`,
     description: SITE_DESCRIPTION,
     images: [{ url: `${SITE_URL}/assets/images/og-image.png`, width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} — منصة المجتمعات العربية لكل الاهتمامات`,
+    title: `${SITE_NAME} — مجتمعك العربي`,
     description: SITE_DESCRIPTION,
     images: [`${SITE_URL}/assets/images/og-image.png`],
   },
@@ -147,7 +150,7 @@ export default function RootLayout({
         '@id': `${SITE_URL}/#website`,
         url: SITE_URL,
         name: SITE_NAME,
-        alternateName: ['نورث فول', 'نورثفول', 'نورثفال', 'نورث', 'NorthFall', 'Northfall', 'North Fall', 'northfall.blog', 'NorthFall blog', 'مجتمع مطورين عرب', 'ريدت الألعاب العرب', 'منتدى GameDev عربي', 'أكبر مجتمع عربي لتطوير الألعاب', 'منصة نورث فول', 'مجتمع نورث فول', 'منتدى نورث فول', 'NorthFall مجتمع ألعاب', 'نورث فول منصة تقنية', 'NorthFall Arabic Gaming Community', 'NorthFall Arabic Game Dev Community', 'أكبر مجتمع عربي', 'منصة مجتمعات عربية', 'منتدى عربي شامل', 'NorthFall Arabic Community Platform'],
+        alternateName: ['نورث فول', 'نورثفول', 'نورثفال', 'نورث', 'NorthFall', 'Northfall', 'North Fall', 'northfall.blog', 'NorthFall blog', 'مجتمع مطورين عرب', 'ريدت الألعاب العرب', 'منتدى GameDev عربي', 'أكبر مجتمع عربي لتطوير الألعاب', 'منصة نورث فول', 'مجتمع نورث فول', 'منتدى نورث فول', 'NorthFall مجتمع ألعاب', 'نورث فول منصة تقنية', 'NorthFall Arabic Gaming Community', 'NorthFall Arabic Game Dev Community', 'أكبر مجتمع عربي', 'منصة مجتمعات عربية', 'منتدى عربي شامل', 'NorthFall Arabic Community', 'Arabic Reddit', 'Reddit for Arabs', 'NorthFall Arabic Community Platform'],
         description: SITE_DESCRIPTION,
         inLanguage: ['ar', 'en'],
         potentialAction: {

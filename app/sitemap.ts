@@ -2,6 +2,8 @@ import { MetadataRoute } from 'next';
 
 const SITE_URL = 'https://www.northfall.blog';
 
+const COMMUNITIES = ['Unity', 'Unreal', 'Godot', 'Blender'];
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
@@ -10,12 +12,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: SITE_URL, lastModified: now, changeFrequency: 'daily', priority: 1.0 },
     { url: `${SITE_URL}/app`, lastModified: now, changeFrequency: 'always', priority: 1.0 },
     { url: `${SITE_URL}/forum`, lastModified: now, changeFrequency: 'always', priority: 0.9 },
-    { url: `${SITE_URL}/guides`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
   ];
 
   // Communities — high priority
-  const communities: MetadataRoute.Sitemap = ['Unity', 'Unreal', 'Godot', 'Blender', 'عام'].map(name => ({
-    url: `${SITE_URL}/community/${encodeURIComponent(name)}`,
+  const communities: MetadataRoute.Sitemap = COMMUNITIES.map(name => ({
+    url: `${SITE_URL}/community/${name}`,
     lastModified: now,
     changeFrequency: 'hourly' as const,
     priority: 0.8,

@@ -37,6 +37,10 @@ const communityMeta: Record<string, { title: string; description: string; img: s
   },
 };
 
+export function generateStaticParams() {
+  return Object.keys(communityMeta).map(name => ({ name }));
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
   const { name } = await params;
   const meta = communityMeta[name];

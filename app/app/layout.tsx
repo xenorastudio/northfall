@@ -5,12 +5,12 @@ const SITE_URL = 'https://www.northfall.blog';
 
 export const metadata: Metadata = {
   title: 'الرئيسية — استكشف المنشورات والمجتمعات',
-  description: 'شوف شنو ينناقش الناس في مجتمعات Unity و Unreal و Godot و Blender. شارك برأيك، انشر مشروعك، أو تعلم شي جديد.',
-  keywords: ['NorthFall', 'منشورات', 'مجتمعات', 'ألعاب', 'Unity', 'Unreal', 'Godot', 'Blender', 'نقاشات', 'تطوير ألعاب', 'مطورين عرب', 'GameDev', 'استكشف', 'منصة مجتمعات', 'أخبار الألعاب', 'مشاريع'],
+  description: 'اكتشف المجتمعات والمنشورات الأكثر تفاعلًا على NorthFall. شوف شو الناس تناقش كل يوم، شارك رأيك، انشر محتوى جديد، وتفاعل مع مجتمع عربي مفتوح للنقاشات والمنشورات في مختلف المجالات. من الأسئلة السريعة إلى النقاشات الطويلة والمحتوى اللي يصنعه المستخدمون، دائمًا فيه شيء جديد تكتشفه.',
+  keywords: ['NorthFall', 'نورث فول', 'منشورات', 'مجتمعات', 'ألعاب', 'Unity', 'Unreal', 'Godot', 'Blender', 'نقاشات', 'تطوير ألعاب', 'مطورين عرب', 'GameDev', 'استكشف', 'منصة مجتمعات', 'أخبار الألعاب', 'مشاريع', 'مجتمع عربي', 'منتدى عربي', 'منصة عربية', 'رياضة', 'فن', 'تصميم', 'برمجة', 'تعليم'],
   alternates: { canonical: `${SITE_URL}/app` },
   openGraph: {
-    title: 'NorthFall — استكشف المنشورات والمجتمعات',
-    description: 'شوف شنو ينناقش الناس في مجتمعات Unity و Unreal و Godot و Blender.',
+    title: 'NorthFall — مجتمعك العربي',
+    description: 'اكتشف المجتمعات والمنشورات الأكثر تفاعلًا على NorthFall. شوف شو الناس تناقش كل يوم، شارك رأيك، انشر محتوى جديد، وتفاعل مع مجتمع عربي مفتوح للنقاشات والمنشورات.',
     url: `${SITE_URL}/app`,
     type: 'website',
   },
@@ -46,11 +46,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       />
       {/* SSR content for SEO — hidden visually but visible to crawlers */}
       <div className="sr-only">
-        <h1>NorthFall — منصة المجتمعات العربية</h1>
-        <p>استكشف المنشورات والمجتمعات على NorthFall. مجتمعات متخصصة لـ Unity و Unreal Engine و Godot و Blender وبرمجة وتصميم وتقنية.</p>
+        <h1>NorthFall — مجتمع عربي للمنشورات والنقاشات والمجتمعات</h1>
+        <p>مكان يشارك فيه الناس أفكارهم واهتماماتهم من خلال منشورات وتعليقات ونقاشات يومية في مختلف المجالات. الألعاب والبرمجة هم الأكثر نشاطًا، ومعهم مجتمعات كثيرة ومحتوى جديد ينزل باستمرار من المستخدمين.</p>
         <h2>المجتمعات</h2>
         <nav aria-label="روابط سريعة">
-          <Link href="/guides">أدلة مجانية</Link>
           <Link href="/community/Unity">مجتمع Unity</Link>
           <Link href="/community/Unreal">مجتمع Unreal</Link>
           <Link href="/community/Godot">مجتمع Godot</Link>
