@@ -51,6 +51,7 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
                 postCount: d.postCount || 0,
                 bannerUrl: d.bannerUrl || "",
                 lastSeen: d.lastSeen || null,
+                joinedAt: d.createdAt || null,
               });
               return;
             }
@@ -69,6 +70,7 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
               postCount: d.postCount || 0,
               bannerUrl: d.bannerUrl || "",
               lastSeen: d.lastSeen || null,
+              joinedAt: d.createdAt || null,
             });
           }
         } else {
@@ -256,7 +258,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
                 return <span className={cn("text-[10px] font-semibold", isOnline ? "text-green-400" : "text-nf-dim")}>{isOnline ? "متصل" : "غير متصل"}</span>;
               })()}
             </div>
-            <div className="text-[10px] text-nf-dim flex items-center gap-0.5"><Cake size={8} /> {t("hc.joinedApril")}</div>
+              <div className="text-[10px] text-nf-dim flex items-center gap-0.5"><Cake size={8} /> {(() => { if (uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") return "انضم أبريل 2024"; if (data.joinedAt) { const d = new Date(data.joinedAt); const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]; return `انضم ${months[d.getMonth()]} ${d.getFullYear()}`; } return t("hc.joinedApril"); })()}</div>
           </div>
         </div>
         <div className="text-[10px] text-nf-dim mb-1.5">

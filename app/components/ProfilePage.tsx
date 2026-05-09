@@ -129,7 +129,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [loading, setLoading] = useState(true);
   const [karma, setKarma] = useState(0);
 
-  const [profileData, setProfileData] = useState<{ name: string; photo: string; bio: string; bannerUrl: string; socialLinks: Record<string, string> } | null>(null);
+  const [profileData, setProfileData] = useState<{ name: string; photo: string; bio: string; bannerUrl: string; socialLinks: Record<string, string>; createdAt?: string } | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
@@ -166,6 +166,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             bio: userData?.bio || "",
             bannerUrl: userData?.bannerUrl || "",
             socialLinks: userData?.socialLinks || {},
+            createdAt: userData?.createdAt || "",
           });
         } else if (userData) {
           setProfileData({
@@ -174,6 +175,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             bio: userData.bio || "",
             bannerUrl: userData.bannerUrl || "",
             socialLinks: userData.socialLinks || {},
+            createdAt: userData.createdAt || "",
           });
         } else {
           // Fallback: get name/photo from posts
@@ -485,7 +487,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
           <span className={cn("w-1.5 h-1.5 rounded-full inline-block", isOnline ? "bg-green-400" : "bg-nf-dim")} />
           {isOnline ? "متصل" : "غير متصل"}
         </span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><Cake size={11} className="inline ml-0.5" /> {t("pp.joinedRecently")}</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><Cake size={11} className="inline ml-0.5" /> {(() => { if (targetUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") return "انضم أبريل 2024"; if (profileData?.createdAt) { const d = new Date(profileData.createdAt); const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]; return `انضم ${months[d.getMonth()]} ${d.getFullYear()}`; } return t("pp.joinedRecently"); })()}</span>
       </div>
 
       {/* Tabs */}

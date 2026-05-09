@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 interface AuthContextType {
   user: User | null;
@@ -28,11 +28,20 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       setLoading(false);
       if (u) {
-        setDoc(doc(db, "users", u.uid), { lastSeen: new Date().toISOString(), displayName: u.displayName || "", photoURL: u.photoURL || "", email: u.email || "" }, { merge: true }).catch(() => {});
+        const userRef = doc(db, "users", u.uid);
+        const userSnap = await getDoc(userRef).catch(() => null);
+        const isNew = !userSnap?.exists();
+        setDoc(userRef, {
+          lastSeen: new Date().toISOString(),
+          displayName: u.displayName || "",
+          photoURL: u.photoURL || "",
+          email: u.email || "",
+          ...(isNew ? { createdAt: new Date().toISOString() } : {}),
+        }, { merge: true }).catch(() => {});
       }
     });
     return () => unsub();

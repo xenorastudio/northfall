@@ -12,7 +12,7 @@ import {
   LogIn, Settings, Bell, TrendingUp, Shield, Award, BarChart3, Users, Activity, RotateCcw, ChevronDown, Check,
   FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft, Quote
 } from "lucide-react";
-import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
   fetchCommunityThreads, fetchAllCommunityThreads, fetchUserThreads,
@@ -892,6 +892,8 @@ export default function ForumsPage() {
     setFontSize(18);
   };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifList, setNotifList] = useState<{ id: string; type: string; text: string; read: boolean; createdAt: string; fromUid?: string; fromName?: string; fromPhoto?: string }[]>([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [tableModalOpen, setTableModalOpen] = useState(false);
   const [tableRows, setTableRows] = useState(3);
@@ -1520,6 +1522,25 @@ export default function ForumsPage() {
 
   useEffect(() => { if (!user) { setUnreadCount(0); return; } async function fetchUnread() { try { const q = query(collection(db, "users", user!.uid, "notifications"), where("read", "==", false)); const snap = await getDocs(q); setUnreadCount(snap.size); } catch {} } fetchUnread(); const interval = setInterval(fetchUnread, 30000); return () => clearInterval(interval); }, [user]);
 
+  const openNotifications = async () => {
+    if (!user) return;
+    setNotifOpen(true);
+    setUserMenuOpen(false);
+    try {
+      const q = query(collection(db, "users", user.uid, "notifications"), orderBy("createdAt", "desc"), limit(30));
+      const snap = await getDocs(q);
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      setNotifList(items);
+      // Mark all as read
+      if (unreadCount > 0) {
+        const batch = writeBatch(db);
+        snap.docs.forEach(d => { if (!d.data().read) batch.update(d.ref, { read: true }); });
+        await batch.commit();
+        setUnreadCount(0);
+      }
+    } catch {}
+  };
+
   useEffect(() => { const handler = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(null); if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSearchDropdown(false); if (userMenuOpen && !(e.target as HTMLElement).closest('.user-menu-trigger')) setUserMenuOpen(false); if (typeDropdownOpen) setTypeDropdownOpen(false); if (sizeMenuOpen && !(e.target as HTMLElement).closest('[data-size-menu]')) { setSizeMenuOpen(null); savedSel.current = null; } if (emojiMenuOpen && !(e.target as HTMLElement).closest('[data-emoji-menu]')) setEmojiMenuOpen(null); }; document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler); }, [userMenuOpen, typeDropdownOpen, sizeMenuOpen, emojiMenuOpen]);
 
   // Search history
@@ -1938,7 +1959,7 @@ export default function ForumsPage() {
               <a href="/app" className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:text-white hover:bg-nf-secondary/40 transition-colors">التطبيق</a>
             </div>
             {/* Notifications */}
-            <button className="hidden sm:flex p-2 rounded-lg text-nf-muted hover:text-white hover:bg-nf-secondary/40 transition-colors relative">
+            <button onClick={openNotifications} className="hidden sm:flex p-2 rounded-lg text-nf-muted hover:text-white hover:bg-nf-secondary/40 transition-colors relative">
               <Bell size={18} />
               {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-nf-accent rounded-full" />}
             </button>
@@ -1965,7 +1986,7 @@ export default function ForumsPage() {
                       <div className="py-0.5">
                         <button onClick={() => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><User size={14} className="shrink-0 text-nf-dim" /> البروفايل</button>
                         <button onClick={() => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setUserMenuOpen(false); setTimeout(() => setProfileTab("saved"), 100); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Bookmark size={14} className="shrink-0 text-nf-dim" /> المحفوظات</button>
-                        <button onClick={() => { setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Bell size={14} className="shrink-0 text-nf-dim" /> الإشعارات</button>
+                        <button onClick={() => { openNotifications(); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Bell size={14} className="shrink-0 text-nf-dim" /> الإشعارات</button>
                         <button onClick={() => { navigateForum("new"); setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Plus size={14} className="shrink-0 text-nf-dim" /> موضوع جديد</button>
                         <a href="/app" className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Settings size={14} className="shrink-0 text-nf-dim" /> الإعدادات</a>
                       </div>
@@ -1982,6 +2003,36 @@ export default function ForumsPage() {
           </div>
         </div>
       </header>
+
+      {/* Notifications Panel */}
+      <AnimatePresence>
+        {notifOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] flex items-start justify-center pt-20" onClick={() => setNotifOpen(false)}>
+            <motion.div initial={{ opacity: 0, y: -10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.97 }} transition={{ duration: 0.15 }} className="w-full max-w-md bg-nf-card border border-nf-border rounded-xl shadow-2xl shadow-black/50 overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border">
+                <h3 className="text-sm font-bold text-nf-text flex items-center gap-2"><Bell size={16} /> الإشعارات</h3>
+                <button onClick={() => setNotifOpen(false)} className="p-1 text-nf-dim hover:text-white rounded-lg hover:bg-nf-secondary/40 transition-colors"><X size={16} /></button>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto">
+                {notifList.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-nf-dim text-sm">لا توجد إشعارات</div>
+                ) : notifList.map(n => (
+                  <div key={n.id} className={cn("px-4 py-3 border-b border-nf-border/30 hover:bg-nf-secondary/20 transition-colors", !n.read && "bg-nf-accent/5")}>
+                    <div className="flex items-center gap-2.5">
+                      {n.fromPhoto ? <img src={n.fromPhoto} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" /> : <div className="w-8 h-8 rounded-full bg-nf-secondary flex items-center justify-center text-nf-dim text-[11px] font-bold shrink-0">{(n.fromName || "م")[0]}</div>}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] text-nf-text leading-relaxed">{n.text}</p>
+                        <p className="text-[10px] text-nf-dim mt-0.5">{n.createdAt ? timeAgo(n.createdAt) : ""}</p>
+                      </div>
+                      {!n.read && <span className="w-2 h-2 rounded-full bg-nf-accent shrink-0" />}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex flex-1">
         <aside className={cn("w-[240px] bg-nf-body border-r border-nf-border overflow-y-auto flex-shrink-0 sticky top-[56px] h-[calc(100vh-56px)] py-3 flex flex-col", viewMode === "ai" ? "hidden" : sidebarOpen ? "block" : "hidden lg:block")}>
@@ -2023,7 +2074,7 @@ export default function ForumsPage() {
                 {[
                   { icon: User, label: "البروفايل", id: "profile", onClick: () => openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined) },
                   { icon: Bookmark, label: "المحفوظات", id: "saved", onClick: () => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setTimeout(() => setProfileTab("saved"), 100); } },
-                  { icon: Bell, label: "الإشعارات", id: "notifs", onClick: () => {} },
+                  { icon: Bell, label: "الإشعارات", id: "notifs", onClick: openNotifications },
                   { icon: Plus, label: "موضوع جديد", id: "newthread", onClick: () => navigateForum("new") },
                 ].map(item => (
                   <button key={item.id} onClick={item.onClick} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-all", item.id === "newthread" && "text-nf-accent hover:bg-nf-accent/10")}>
