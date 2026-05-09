@@ -44,6 +44,8 @@ export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
   const [logs, setLogs] = useState<string[]>([]);
   const [tab, setTab] = useState<"blast" | "links">("blast");
   const stopRef = useRef(false);
+  const sentRef = useRef(0);
+  const errorsRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +62,8 @@ export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
     setRunning(true);
     setSent(0);
     setErrors(0);
+    sentRef.current = 0;
+    errorsRef.current = 0;
     setElapsed(0);
     setLogs([]);
     stopRef.current = false;
@@ -85,9 +89,12 @@ export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
 
           try {
             await fetch(engine.url(url), { mode: "no-cors", cache: "no-store" });
-            setSent(prev => prev + 1);
+            // no-cors resolves with opaque response — request was sent
+            sentRef.current++;
+            setSent(sentRef.current);
           } catch {
-            setErrors(prev => prev + 1);
+            errorsRef.current++;
+            setErrors(errorsRef.current);
           }
 
           if (delay > 50) await new Promise(r => setTimeout(r, delay));
@@ -105,7 +112,9 @@ export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
     }
 
     if (timerRef.current) clearInterval(timerRef.current);
-    addLog(`انتهى -- المرسل: ${(sent + errors).toLocaleString()} | النجاح: ${sent.toLocaleString()} | الاخطاء: ${errors.toLocaleString()}`);
+    const finalSent = sentRef.current;
+    const finalErrors = errorsRef.current;
+    addLog(`انتهى -- المرسل: ${(finalSent + finalErrors).toLocaleString()} | النجاح: ${finalSent.toLocaleString()} | الاخطاء: ${finalErrors.toLocaleString()}`);
     setRunning(false);
   };
 
