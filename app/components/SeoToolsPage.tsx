@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useAuth } from "./AuthProvider";
-import { ArrowLeft, Zap, Loader2, Shield, Flame, Globe, StopCircle } from "lucide-react";
+import { ArrowLeft, Zap, Loader2, Shield, Globe, StopCircle, Search, ExternalLink, RotateCw, Timer, Activity } from "lucide-react";
 
 const OWNER_UID = "bn6vKOGvIeUdF91P0fzMEbFZfGr2";
 
@@ -22,6 +22,15 @@ const SITE_PAGES = [
   "https://www.northfall.blog/community/Blender",
 ];
 
+const QUICK_LINKS = [
+  { label: "Google Search Console", url: "https://search.google.com/search-console?resource_id=https://www.northfall.blog/" },
+  { label: "Bing Webmaster", url: "https://www.bing.com/webmasters?siteUrl=https://www.northfall.blog/" },
+  { label: "PageSpeed Insights", url: "https://pagespeed.web.dev/analysis?url=https://www.northfall.blog/" },
+  { label: "Rich Results Test", url: "https://search.google.com/test/rich-results?url=https://www.northfall.blog/" },
+  { label: "Schema Validator", url: "https://validator.schema.org/#url=https://www.northfall.blog" },
+  { label: "GTmetrix", url: "https://gtmetrix.com/?url=https://www.northfall.blog/" },
+];
+
 export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
   const { user } = useAuth();
   const isOwner = user?.uid === OWNER_UID;
@@ -31,8 +40,11 @@ export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
   const [running, setRunning] = useState(false);
   const [sent, setSent] = useState(0);
   const [errors, setErrors] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
+  const [tab, setTab] = useState<"blast" | "links">("blast");
   const stopRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   const addLog = useCallback((msg: string) => {
@@ -48,17 +60,20 @@ export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
     setRunning(true);
     setSent(0);
     setErrors(0);
+    setElapsed(0);
     setLogs([]);
     stopRef.current = false;
+
+    timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
 
     const urls = targetUrl.trim() ? [targetUrl.trim()] : SITE_PAGES;
     const delay = speed === "fast" ? 50 : speed === "normal" ? 200 : 500;
 
-    addLog(`🚀 بدء Blast: ${urls.length} رابط × ${repeatCount} مرة × ${PING_ENDPOINTS.length} محرك = ${urls.length * repeatCount * PING_ENDPOINTS.length} طلب`);
+    addLog(`بدء Blast: ${urls.length} رابط x ${repeatCount} مرة x ${PING_ENDPOINTS.length} محرك = ${(urls.length * repeatCount * PING_ENDPOINTS.length).toLocaleString()} طلب`);
 
     for (let round = 0; round < repeatCount; round++) {
       if (stopRef.current) {
-        addLog("⏹ تم الإيقاف");
+        addLog("تم الإيقاف");
         break;
       }
 
@@ -75,29 +90,34 @@ export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
             setErrors(prev => prev + 1);
           }
 
-          // Minimal delay between requests
           if (delay > 50) await new Promise(r => setTimeout(r, delay));
         }
       }
 
-      // Log progress every 10 rounds
       if ((round + 1) % 10 === 0 || round === 0) {
         const total = (round + 1) * urls.length * PING_ENDPOINTS.length;
-        addLog(`⚡ الدورة ${round + 1}/${repeatCount} — تم إرسال ${total} طلب`);
+        addLog(`الدورة ${round + 1}/${repeatCount} -- تم ${total.toLocaleString()} طلب`);
       }
 
-      // Small delay between rounds to avoid overwhelming
       if (delay <= 50 && round % 5 === 4) {
         await new Promise(r => setTimeout(r, 100));
       }
     }
 
-    addLog(`✅ انتهى! المُرسل: ${sent + errors} | النجاح: ${sent} | الأخطاء: ${errors}`);
+    if (timerRef.current) clearInterval(timerRef.current);
+    addLog(`انتهى -- المرسل: ${(sent + errors).toLocaleString()} | النجاح: ${sent.toLocaleString()} | الاخطاء: ${errors.toLocaleString()}`);
     setRunning(false);
   };
 
   const stopBlast = () => {
     stopRef.current = true;
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   };
 
   if (!isOwner) return (
@@ -109,179 +129,212 @@ export default function SeoToolsPage({ onBack }: { onBack: () => void }) {
   );
 
   const totalRequests = (targetUrl.trim() ? 1 : SITE_PAGES.length) * repeatCount * PING_ENDPOINTS.length;
+  const progress = totalRequests > 0 ? (sent / totalRequests) * 100 : 0;
+  const ratePerSec = elapsed > 0 ? Math.round(sent / elapsed) : 0;
 
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-4">
         <button onClick={onBack} className="p-2 rounded-lg hover:bg-nf-hover text-nf-muted hover:text-white transition-colors">
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <Flame size={18} className="text-orange-400" />
-            أدوات الأداء
+            <Activity size={18} className="text-nf-accent" />
+            ادوات الاداء
           </h1>
-          <p className="text-[11px] text-nf-dim mt-0.5">إرسال الموقع لمحركات البحث — كرّر ملايين المرات</p>
+          <p className="text-[11px] text-nf-dim mt-0.5">ارسال الموقع لمحركات البحث -- كرر ملايين المرات</p>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 text-center">
-          <p className="text-[10px] text-nf-dim">تم الإرسال</p>
-          <p className="text-lg font-bold text-green-400">{sent.toLocaleString()}</p>
-        </div>
-        <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 text-center">
-          <p className="text-[10px] text-nf-dim">أخطاء</p>
-          <p className="text-lg font-bold text-red-400">{errors.toLocaleString()}</p>
-        </div>
-        <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 text-center">
-          <p className="text-[10px] text-nf-dim">إجمالي مطلوب</p>
-          <p className="text-lg font-bold text-white">{running ? totalRequests.toLocaleString() : "—"}</p>
-        </div>
+      {/* Tabs */}
+      <div className="flex border-b border-nf-border mb-4">
+        <button onClick={() => setTab("blast")} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold border-b-2 transition-colors ${tab === "blast" ? "border-nf-accent text-nf-accent" : "border-transparent text-nf-dim hover:text-white"}`}>
+          <Zap size={13} />
+          Blast
+        </button>
+        <button onClick={() => setTab("links")} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold border-b-2 transition-colors ${tab === "links" ? "border-nf-accent text-nf-accent" : "border-transparent text-nf-dim hover:text-white"}`}>
+          <Globe size={13} />
+          روابط
+        </button>
       </div>
 
-      {/* Config */}
-      <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-4 mb-4 space-y-4">
-        {/* URL Input */}
-        <div>
-          <label className="text-[11px] font-bold text-nf-dim mb-1.5 block">رابط الموقع</label>
-          <input
-            type="url"
-            value={targetUrl}
-            onChange={e => setTargetUrl(e.target.value)}
-            placeholder="https://www.northfall.blog/"
-            className="w-full px-3 py-2 rounded-lg bg-nf-primary border border-nf-border-2 text-xs text-white placeholder-nf-dim focus:outline-none focus:border-nf-accent"
-          />
-          <p className="text-[9px] text-nf-dim mt-1">اتركه فارغ لإرسال كل صفحات الموقع ({SITE_PAGES.length} صفحات)</p>
-        </div>
-
-        {/* Repeat Count */}
-        <div>
-          <label className="text-[11px] font-bold text-nf-dim mb-1.5 block">عدد التكرار</label>
-          <div className="flex items-center gap-3">
-            <input
-              type="range"
-              min={100}
-              max={1000000}
-              step={100}
-              value={repeatCount}
-              onChange={e => setRepeatCount(Number(e.target.value))}
-              className="flex-1 accent-orange-400"
-            />
-            <input
-              type="number"
-              value={repeatCount}
-              onChange={e => setRepeatCount(Math.max(1, Number(e.target.value)))}
-              className="w-24 px-2 py-1.5 rounded-lg bg-nf-primary border border-nf-border-2 text-xs text-white text-center focus:outline-none focus:border-orange-400"
-            />
+      {tab === "blast" && (
+        <>
+          {/* Stats Row */}
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            <div className="px-3 py-2 text-center">
+              <p className="text-[9px] text-nf-dim uppercase tracking-wider">تم الارسال</p>
+              <p className="text-base font-bold text-nf-accent">{sent.toLocaleString()}</p>
+            </div>
+            <div className="px-3 py-2 text-center">
+              <p className="text-[9px] text-nf-dim uppercase tracking-wider">اخطاء</p>
+              <p className="text-base font-bold text-red-400">{errors.toLocaleString()}</p>
+            </div>
+            <div className="px-3 py-2 text-center">
+              <p className="text-[9px] text-nf-dim uppercase tracking-wider">السرعة</p>
+              <p className="text-base font-bold text-white">{ratePerSec}/s</p>
+            </div>
+            <div className="px-3 py-2 text-center">
+              <p className="text-[9px] text-nf-dim uppercase tracking-wider">الوقت</p>
+              <p className="text-base font-bold text-white">{formatTime(elapsed)}</p>
+            </div>
           </div>
-          <div className="flex gap-2 mt-2">
-            {[100, 1000, 10000, 100000, 1000000].map(n => (
-              <button key={n} onClick={() => setRepeatCount(n)} className={`px-2 py-1 rounded text-[9px] font-bold transition-colors ${repeatCount === n ? "bg-orange-400/20 text-orange-400" : "bg-nf-primary text-nf-dim hover:text-white"}`}>
-                {n >= 1000000 ? `${n / 1000000}M` : n >= 1000 ? `${n / 1000}K` : n}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Speed */}
-        <div>
-          <label className="text-[11px] font-bold text-nf-dim mb-1.5 block">السرعة</label>
-          <div className="flex gap-2">
-            {[
-              { id: "fast" as const, label: "⚡ سريع", desc: "50ms" },
-              { id: "normal" as const, label: "🔄 عادي", desc: "200ms" },
-              { id: "slow" as const, label: "🐢 بطيء", desc: "500ms" },
-            ].map(s => (
-              <button key={s.id} onClick={() => setSpeed(s.id)} className={`flex-1 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors ${speed === s.id ? "bg-orange-400/20 text-orange-400 border border-orange-400/30" : "bg-nf-primary text-nf-dim border border-nf-border-2 hover:text-white"}`}>
-                {s.label}
-                <span className="block text-[8px] text-nf-dim">{s.desc}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Total estimate */}
-        <div className="bg-nf-primary/60 rounded-lg p-3 flex items-center justify-between">
-          <span className="text-[10px] text-nf-dim">إجمالي الطلبات المتوقعة</span>
-          <span className="text-sm font-bold text-orange-400">{totalRequests.toLocaleString()}</span>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-2">
-          {!running ? (
-            <button
-              onClick={startBlast}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-orange-400/20 text-orange-400 text-sm font-bold hover:bg-orange-400/30 transition-colors flex items-center justify-center gap-2"
-            >
-              <Zap size={16} />
-              تشغيل — إرسال {totalRequests.toLocaleString()} طلب
-            </button>
-          ) : (
-            <button
-              onClick={stopBlast}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-red-400/20 text-red-400 text-sm font-bold hover:bg-red-400/30 transition-colors flex items-center justify-center gap-2"
-            >
-              <StopCircle size={16} />
-              إيقاف
-            </button>
+          {/* Progress */}
+          {running && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] text-nf-dim flex items-center gap-1.5">
+                  <Loader2 size={11} className="animate-spin text-nf-accent" />
+                  جاري الارسال...
+                </span>
+                <span className="text-[10px] text-nf-accent font-bold">{Math.round(progress)}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-nf-secondary overflow-hidden">
+                <div className="h-full rounded-full bg-nf-accent transition-all duration-300" style={{ width: `${Math.min(100, progress)}%` }} />
+              </div>
+            </div>
           )}
-        </div>
-      </div>
 
-      {/* Progress */}
-      {running && (
-        <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-nf-dim flex items-center gap-1.5">
-              <Loader2 size={12} className="animate-spin text-orange-400" />
-              جاري الإرسال...
-            </span>
-            <span className="text-[10px] text-nf-accent">{Math.round((sent / totalRequests) * 100)}%</span>
+          {/* Config */}
+          <div className="space-y-4 mb-4">
+            {/* URL */}
+            <div>
+              <label className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-1.5 block">رابط الموقع</label>
+              <input
+                type="url"
+                value={targetUrl}
+                onChange={e => setTargetUrl(e.target.value)}
+                placeholder="https://www.northfall.blog/"
+                className="w-full px-3 py-2 rounded-lg bg-nf-secondary border border-nf-border text-xs text-white placeholder-nf-dim focus:outline-none focus:border-nf-accent transition-colors"
+              />
+              <p className="text-[9px] text-nf-dim mt-1">اتركه فارغ لارسال كل صفحات الموقع ({SITE_PAGES.length} صفحات)</p>
+            </div>
+
+            {/* Repeat */}
+            <div>
+              <label className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-1.5 block">عدد التكرار</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={100}
+                  max={1000000}
+                  step={100}
+                  value={repeatCount}
+                  onChange={e => setRepeatCount(Number(e.target.value))}
+                  className="flex-1 accent-nf-accent"
+                />
+                <input
+                  type="number"
+                  value={repeatCount}
+                  onChange={e => setRepeatCount(Math.max(1, Number(e.target.value)))}
+                  className="w-24 px-2 py-1.5 rounded-lg bg-nf-secondary border border-nf-border text-xs text-white text-center focus:outline-none focus:border-nf-accent transition-colors"
+                />
+              </div>
+              <div className="flex gap-1.5 mt-2">
+                {[100, 1000, 10000, 100000, 1000000].map(n => (
+                  <button key={n} onClick={() => setRepeatCount(n)} className={`px-2.5 py-1 rounded text-[9px] font-bold transition-colors ${repeatCount === n ? "bg-nf-accent/15 text-nf-accent" : "bg-nf-secondary text-nf-dim hover:text-white"}`}>
+                    {n >= 1000000 ? `${n / 1000000}M` : n >= 1000 ? `${n / 1000}K` : n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Speed */}
+            <div>
+              <label className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-1.5 block">السرعة</label>
+              <div className="flex gap-1.5">
+                {[
+                  { id: "fast" as const, label: "سريع", desc: "50ms" },
+                  { id: "normal" as const, label: "عادي", desc: "200ms" },
+                  { id: "slow" as const, label: "بطيء", desc: "500ms" },
+                ].map(s => (
+                  <button key={s.id} onClick={() => setSpeed(s.id)} className={`flex-1 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors ${speed === s.id ? "bg-nf-accent/15 text-nf-accent border border-nf-accent/20" : "bg-nf-secondary text-nf-dim border border-nf-border hover:text-white"}`}>
+                    {s.label}
+                    <span className="block text-[8px] text-nf-dim mt-0.5">{s.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Total + Buttons */}
+            <div className="flex items-center justify-between py-2 border-t border-nf-border">
+              <div>
+                <p className="text-[9px] text-nf-dim uppercase tracking-wider">اجمالي الطلبات</p>
+                <p className="text-sm font-bold text-white">{totalRequests.toLocaleString()}</p>
+              </div>
+              {!running ? (
+                <button
+                  onClick={startBlast}
+                  className="px-5 py-2 rounded-lg bg-nf-accent/15 text-nf-accent text-xs font-bold hover:bg-nf-accent/25 transition-colors flex items-center gap-2"
+                >
+                  <Zap size={14} />
+                  تشغيل
+                </button>
+              ) : (
+                <button
+                  onClick={stopBlast}
+                  className="px-5 py-2 rounded-lg bg-red-400/15 text-red-400 text-xs font-bold hover:bg-red-400/25 transition-colors flex items-center gap-2"
+                >
+                  <StopCircle size={14} />
+                  ايقاف
+                </button>
+              )}
+            </div>
           </div>
-          <div className="w-full h-2 rounded-full bg-nf-primary overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-l from-orange-400 to-yellow-400 transition-all duration-300"
-              style={{ width: `${Math.min(100, (sent / totalRequests) * 100)}%` }}
-            />
+
+          {/* Log */}
+          {logs.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-nf-dim uppercase tracking-wider">السجل</span>
+                <button onClick={() => setLogs([])} className="text-[9px] text-nf-dim hover:text-white transition-colors">مسح</button>
+              </div>
+              <div className="bg-nf-secondary rounded-lg p-2 max-h-[180px] overflow-y-auto text-[9px] font-mono leading-relaxed">
+                {logs.map((log, i) => (
+                  <p key={i} className={log.startsWith("انتهى") ? "text-green-400" : log.startsWith("تم الايقاف") ? "text-yellow-400" : "text-nf-dim"}>{log}</p>
+                ))}
+                <div ref={logEndRef} />
+              </div>
+            </div>
+          )}
+
+          {/* Pages list */}
+          <div>
+            <p className="text-[10px] font-bold text-nf-dim uppercase tracking-wider mb-2">الصفحات المرسلة</p>
+            <div className="space-y-0.5">
+              {SITE_PAGES.map(page => (
+                <div key={page} className="flex items-center justify-between px-3 py-1.5 text-[10px]">
+                  <span className="text-nf-muted">{page.replace("https://www.northfall.blog", "")}</span>
+                  <span className="text-nf-dim font-mono">{page}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Log */}
-      {logs.length > 0 && (
-        <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-3 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-nf-dim">السجل</span>
-            <button onClick={() => setLogs([])} className="text-[9px] text-nf-dim hover:text-white">مسح</button>
-          </div>
-          <div className="bg-nf-primary/80 rounded-lg p-2 max-h-[200px] overflow-y-auto text-[9px] font-mono space-y-0.5">
-            {logs.map((log, i) => (
-              <p key={i} className={log.includes("✅") ? "text-green-400" : log.includes("⏹") ? "text-yellow-400" : log.includes("🚀") ? "text-orange-400" : "text-nf-dim"}>{log}</p>
-            ))}
-            <div ref={logEndRef} />
-          </div>
-        </div>
-      )}
-
-      {/* Quick Links */}
-      <div className="bg-nf-secondary/40 border border-nf-border-2/60 rounded-lg p-4">
-        <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2"><Globe size={14} /> روابط مباشرة</h3>
-        <div className="grid grid-cols-2 gap-1.5">
-          {[
-            { label: "Google Search Console", url: "https://search.google.com/search-console?resource_id=https://www.northfall.blog/" },
-            { label: "Bing Webmaster", url: "https://www.bing.com/webmasters?siteUrl=https://www.northfall.blog/" },
-            { label: "PageSpeed Insights", url: "https://pagespeed.web.dev/analysis?url=https://www.northfall.blog/" },
-            { label: "Rich Results Test", url: "https://search.google.com/test/rich-results?url=https://www.northfall.blog/" },
-          ].map(link => (
-            <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded-lg bg-nf-primary/60 text-[10px] text-nf-muted hover:text-white hover:bg-nf-hover transition-colors text-center">
-              {link.label}
+      {tab === "links" && (
+        <div className="space-y-1">
+          {QUICK_LINKS.map(link => (
+            <a
+              key={link.label}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-nf-hover transition-colors group"
+            >
+              <div className="flex items-center gap-2.5">
+                <ExternalLink size={13} className="text-nf-dim group-hover:text-nf-accent transition-colors" />
+                <span className="text-xs text-nf-muted group-hover:text-white transition-colors">{link.label}</span>
+              </div>
+              <span className="text-[9px] text-nf-dim font-mono">{new URL(link.url).hostname}</span>
             </a>
           ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
