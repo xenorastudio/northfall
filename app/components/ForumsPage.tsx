@@ -806,7 +806,7 @@ export default function ForumsPage() {
   const [userJoinDate, setUserJoinDate] = useState<string>("");
   const [userBio, setUserBio] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("عضو");
-  const [myProfileData, setMyProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; followerCount?: number; followingCount?: number; isOnline?: boolean } | null>(null);
+  const [myProfileData, setMyProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; followerCount?: number; followingCount?: number; isOnline?: boolean } | null>(null);
   const fetchMyProfile = async () => {
     if (!user) return null;
     try {
@@ -823,7 +823,7 @@ export default function ForumsPage() {
             joinDateStr = date.toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
           } catch { joinDateStr = String(d.createdAt); }
         }
-        pd = { name: d.displayName || authorName, photo: d.photoURL || authorPhoto, role: d.role || "عضو", bio: d.bio || "", posts: d.postCount || 0, joinDate: joinDateStr, bannerUrl: d.bannerUrl || "", socialLinks: d.socialLinks || {}, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false };
+        pd = { name: d.displayName || authorName, photo: d.photoURL || authorPhoto, role: d.role || "عضو", bio: d.bio || "", posts: d.postCount || 0, karma: d.karma || 0, commentCount: d.commentCount || 0, joinDate: joinDateStr, bannerUrl: d.bannerUrl || "", socialLinks: d.socialLinks || {}, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false };
       }
       try { const fSnap = await getDocs(collection(db, "users", user.uid, "followers")); pd.followerCount = fSnap.size; const f2Snap = await getDocs(collection(db, "users", user.uid, "following")); pd.followingCount = f2Snap.size; } catch {}
       // Count actual threads from Firestore if postCount is 0 or missing
@@ -959,7 +959,7 @@ export default function ForumsPage() {
   const searchResultsRef = useRef<HTMLDivElement>(null);
   const [profileUid, setProfileUid] = useState<string | null>(null);
   const [profileData, setProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; threads?: ForumThread[]; followerCount?: number; followingCount?: number; isOnline?: boolean } | null>(null);
-  const [authorCache, setAuthorCache] = useState<Record<string, { bannerUrl?: string; bio?: string; role?: string; joinDate?: string; isOnline?: boolean; followerCount?: number; followingCount?: number; karma?: number; postCount?: number; socialLinks?: Record<string, string> }>>({});
+  const [authorCache, setAuthorCache] = useState<Record<string, { bannerUrl?: string; bio?: string; role?: string; joinDate?: string; isOnline?: boolean; followerCount?: number; followingCount?: number; karma?: number; postCount?: number; commentCount?: number; socialLinks?: Record<string, string> }>>({});
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [editBio, setEditBio] = useState("");
   const [editBannerUrl, setEditBannerUrl] = useState("");
@@ -1666,8 +1666,20 @@ export default function ForumsPage() {
     try {
       const profile = await fetchUserProfile(uid);
       const data: any = { role: profile.role, bio: profile.bio || "", bannerUrl: profile.bannerUrl || "", joinDate: profile.joinDate || "", isOnline: profile.isOnline || false, postCount: profile.posts || 0, socialLinks: profile.socialLinks || {}, followerCount: profile.followerCount || 0, followingCount: profile.followingCount || 0 };
-      const userThreads = allThreads.filter(t => t.authorUid === uid);
-      data.karma = userThreads.reduce((s: number, t: any) => s + (t.votes || 0), 0);
+      // Read karma and postCount directly from Firestore user doc for accuracy
+      try {
+        const uSnap = await getDoc(doc(db, "users", uid));
+        if (uSnap.exists()) {
+          const d = uSnap.data();
+          if (d.karma !== undefined) data.karma = d.karma;
+          if (d.postCount !== undefined) data.postCount = d.postCount;
+          if (d.commentCount !== undefined) data.commentCount = d.commentCount;
+        }
+      } catch {}
+      if (data.karma === undefined) {
+        const userThreads = allThreads.filter(t => t.authorUid === uid);
+        data.karma = userThreads.reduce((s: number, t: any) => s + (t.votes || 0), 0);
+      }
       setAuthorCache(prev => ({ ...prev, [uid]: data }));
     } catch {}
   };
@@ -2373,9 +2385,9 @@ export default function ForumsPage() {
                               {authorCache[activeThread.authorUid]?.bio && <p className="text-[11px] text-nf-dim leading-[1.7] mb-2.5 line-clamp-2">{authorCache[activeThread.authorUid].bio}</p>}
                               {/* Stats row */}
                               <div className="flex items-center gap-4 mb-2.5 border-t border-nf-border/40 pt-2.5 text-[11px]">
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.karma ?? sortedThreads.filter(t => t.authorUid === activeThread.authorUid).reduce((s, t) => s + (t.votes || 0), 0)}</span> تأثير</span>
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{sortedThreads.filter(t => t.authorUid === activeThread.authorUid).length}</span> موضوع</span>
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{activeReplies.filter(r => r.authorUid === activeThread.authorUid).length}</span> رد</span>
+                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.karma ?? 0}</span> تأثير</span>
+                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.postCount ?? sortedThreads.filter(t => t.authorUid === activeThread.authorUid).length}</span> موضوع</span>
+                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.commentCount ?? activeReplies.filter(r => r.authorUid === activeThread.authorUid).length}</span> رد</span>
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.followerCount ?? "—"}</span> متابِع</span>
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.followingCount ?? "—"}</span> متابَع</span>
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{allThreads.filter(t => t.authorUid === activeThread.authorUid).reduce((s, t) => s + (t.views || 0), 0)}</span> مشاهدة</span>
@@ -2643,8 +2655,8 @@ export default function ForumsPage() {
                                   {/* Stats row */}
                                   <div className="flex items-center gap-3 mb-2 border-t border-nf-border/40 pt-2 text-[10px]">
                                     <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.karma ?? "—"}</span> تأثير</span>
-                                    <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{sortedThreads.filter(t => t.authorUid === reply.authorUid).length}</span> موضوع</span>
-                                    <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{activeReplies.filter(r => r.authorUid === reply.authorUid).length}</span> رد</span>
+                                    <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.postCount ?? sortedThreads.filter(t => t.authorUid === reply.authorUid).length}</span> موضوع</span>
+                                    <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.commentCount ?? activeReplies.filter(r => r.authorUid === reply.authorUid).length}</span> رد</span>
                                     <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.followerCount ?? "—"}</span> متابِع</span>
                                     <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.followingCount ?? "—"}</span> متابَع</span>
                                   </div>
@@ -3321,7 +3333,9 @@ export default function ForumsPage() {
                                           )}
                                           <div className="flex items-center gap-2 mt-3 flex-wrap">
                                             {[
+                                              { label: "تأثير", value: myProfileData?.karma || 0, icon: Flame },
                                               { label: "مواضيع", value: myProfileData?.posts || 0, icon: MessageCircle },
+                                              { label: "تعليقات", value: myProfileData?.commentCount || 0, icon: MessageSquare },
                                               { label: "متابعين", value: myProfileData?.followerCount || 0, icon: Users },
                                               { label: "متابَعين", value: myProfileData?.followingCount || 0, icon: User },
                                             ].map((stat, i) => { const SI = stat.icon; return (

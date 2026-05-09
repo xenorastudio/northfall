@@ -128,6 +128,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [favoriteGameIds, setFavoriteGameIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [karma, setKarma] = useState(0);
+  const [postCount, setPostCount] = useState(0);
 
   const [profileData, setProfileData] = useState<{ name: string; photo: string; bio: string; bannerUrl: string; socialLinks: Record<string, string>; createdAt?: string } | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -262,6 +263,15 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
         const p = snap.docs.map((d) => ({ id: d.id, ...d.data() } as any)).sort((a: any, b: any) => (b.createdAt || "").localeCompare(a.createdAt || ""));
         setPosts(p);
         setKarma(p.reduce((sum: number, post: any) => sum + (post.votes || 0), 0));
+        // Override with Firestore karma and postCount if available (more accurate)
+        try {
+          const uSnap = await getDoc(doc(db, "users", targetUid!));
+          if (uSnap.exists()) {
+            const ud = uSnap.data();
+            if (ud.karma !== undefined) setKarma(ud.karma);
+            if (ud.postCount !== undefined) setPostCount(ud.postCount);
+          }
+        } catch {}
       } catch (e) {
         console.error(e);
       } finally {
@@ -476,7 +486,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       <div className="flex items-center gap-1 px-2 mb-3 text-[11px] flex-wrap">
         <span className={cn("px-2 py-0.5 rounded-md flex items-center gap-1", level.bg, level.color)}><level.icon size={10} /><span className="font-bold">{level.name}</span></span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-white">{karma}</span> كارما</span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{posts.length}</span> {t("pp.postCount")}</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{postCount || posts.length}</span> {t("pp.postCount")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followerCount}</span> {t("gen.followers")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followingCount}</span> {t("gen.followingCount")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{commentCount}</span> تعليقات</span>

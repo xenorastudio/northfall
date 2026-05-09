@@ -236,6 +236,10 @@ export default function PostCard({
     try {
       // Use increment to avoid race conditions
       await updateDoc(doc(db, "posts", postId), { votes: increment(diff) });
+      // Update author's karma
+      if (authorUid && diff !== 0) {
+        await updateDoc(doc(db, "users", authorUid), { karma: increment(diff) }).catch(() => {});
+      }
       // Save user's vote in subcollection
       if (newVote === 0) {
         await deleteDoc(doc(db, "posts", postId, "votes", user.uid));

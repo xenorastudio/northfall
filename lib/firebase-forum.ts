@@ -134,6 +134,12 @@ export async function createThread(
   data: Omit<ForumThread, "id">
 ): Promise<string> {
   const docRef = await addDoc(collection(db, "forums", community, "threads"), data);
+  // Update user stats
+  if (data.authorUid) {
+    await updateDoc(doc(db, "users", data.authorUid), {
+      postCount: increment(1),
+    }).catch(() => {});
+  }
   return docRef.id;
 }
 
@@ -149,6 +155,12 @@ export async function addReply(
     lastReplyAt: new Date().toISOString(),
     lastReplyBy: reply.authorName,
   });
+  // Update user comment count
+  if (reply.authorUid) {
+    await updateDoc(doc(db, "users", reply.authorUid), {
+      commentCount: increment(1),
+    }).catch(() => {});
+  }
 }
 
 /** Update a reply */

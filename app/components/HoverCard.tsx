@@ -49,6 +49,8 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
                 uid: userSnap.id,
                 karma: d.karma || 0,
                 postCount: d.postCount || 0,
+                commentCount: d.commentCount || 0,
+                bio: d.bio || "",
                 bannerUrl: d.bannerUrl || "",
                 lastSeen: d.lastSeen || null,
                 joinedAt: d.createdAt || null,
@@ -68,6 +70,8 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
               uid: userDoc.id,
               karma: d.karma || 0,
               postCount: d.postCount || 0,
+              commentCount: d.commentCount || 0,
+              bio: d.bio || "",
               bannerUrl: d.bannerUrl || "",
               lastSeen: d.lastSeen || null,
               joinedAt: d.createdAt || null,
@@ -262,9 +266,9 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
           </div>
         </div>
         <div className="text-[10px] text-nf-dim mb-1.5">
-          <span className="text-white">{data.karma || 1}</span> {t("pp.karma")} · <span className="text-white">{data.postCount || 0}</span> {t("cp.posts")} · <span className="text-white">0</span> {t("cp.comments")} · <span className="text-white">0</span> {t("pc.saved")}
+          <span className="text-white">{data.karma || 0}</span> {t("pp.karma")} · <span className="text-white">{data.postCount || 0}</span> {t("cp.posts")} · <span className="text-white">{data.commentCount || 0}</span> {t("cp.comments")}
         </div>
-        <p className="text-[10px] text-nf-dim leading-relaxed mb-1.5">{t("hc.defaultBio")}</p>
+        {data.bio && <p className="text-[10px] text-nf-dim leading-relaxed mb-1.5 line-clamp-2">{data.bio}</p>}
         <div className="text-[10px] text-nf-dim mb-2">{t("hc.memberOf")}</div>
         <div className="text-[10px] text-nf-dim mb-1.5">
           {t("hc.defaultBadges")}

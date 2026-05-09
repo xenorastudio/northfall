@@ -4,7 +4,7 @@ import { ArrowRight, Image, Link2, X, ChevronDown, FileText, Eye, Bold, Heading2
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { useState, useEffect } from "react";
-import { collection, addDoc, doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, updateDoc, setDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -282,6 +282,11 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
         });
         // Save author's auto-upvote
         await setDoc(doc(db, "posts", postRef.id, "votes", user.uid), { dir: 1, votedAt: new Date().toISOString() });
+        // Update user stats
+        await updateDoc(doc(db, "users", user.uid), {
+          postCount: increment(1),
+          karma: increment(1),
+        }).catch(() => {});
       }
       // Clear draft after publish
       const drafts = getDrafts().filter((d: any) => d.id !== "current");
