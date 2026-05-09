@@ -7,13 +7,31 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: ['40
 
 const SITE_URL = 'https://www.northfall.blog';
 const SITE_NAME = 'NorthFall';
-const SITE_DESCRIPTION = 'NorthFall — منصة مجتمعات عربية شاملة. تعلم البرمجة وتطوير الألعاب والتصميم والتقنية بالعربي. مجتمعات Unity و Unreal Engine و Godot و Blender وبرمجة وتصميم ونقاشات تقنية. انضم لأكبر مجتمع عربي للمطورين والمبدعين.';
+const SITE_DESCRIPTION = 'NorthFall — منصة المجتمعات العربية الأولى. نقاشات، محتوى، ومجتمعات لكل شي — ألعاب، تقنية، برمجة، تصميم، رياضة، فن، طبخ، سفر، تعليم، وأكثر. انضم لأكبر مجتمع عربي وتواصل مع ناس يشاركونك اهتماماتك.';
 
 const KEYWORDS = [
-  // Brand — NorthFall alone + every variation
-  'NorthFall', 'نورث فول', 'نورثفول', 'North Fall', 'Northfall', 'نورثفال', 'NorthFall مجتمع', 'NorthFall منتدى', 'NorthFall blog', 'NorthFall موقع', 'موقع NorthFall', 'NorthFall عربي', 'NorthFall Arabic', 'NorthFall gaming', 'NorthFall game dev', 'NorthFall تطوير ألعاب', 'NorthFall Unity', 'NorthFall Unreal', 'NorthFall Godot', 'NorthFall Blender', 'northfall.blog', 'www.northfall.blog',
+  // Brand — NorthFall alone + every variation (extensive to beat clothing store)
+  'NorthFall', 'نورث فول', 'نورثفول', 'North Fall', 'Northfall', 'نورثفال', 'نورث فال', 'نورثفول', 'نورث فول مجتمع', 'نورث فول منتدى', 'نورث فول ألعاب', 'نورث فول جيمر', 'نورث فول مطورين', 'نورث فول تقني', 'نورث فول عربي', 'نورث فول عرب', 'نورث فول blog', 'نورث فول موقع', 'موقع نورث فول', 'نورث فول منصة', 'منصة نورث فول', 'نورث فول تطوير', 'نورث فول برمجة', 'نورث فول Unity', 'نورث فول Unreal', 'نورث فول Godot', 'نورث فول Blender', 'نورثفول مجتمع', 'نورثفول منتدى', 'نورثفول ألعاب', 'نورثفول جيمر', 'نورثفول مطورين', 'نورثفول عربي', 'نورثفول منصة', 'موقع نورثفول', 'منصة نورثفول',
+  'NorthFall مجتمع', 'NorthFall منتدى', 'NorthFall blog', 'NorthFall موقع', 'موقع NorthFall', 'NorthFall عربي', 'NorthFall Arabic', 'NorthFall gaming', 'NorthFall game dev', 'NorthFall تطوير ألعاب', 'NorthFall Unity', 'NorthFall Unreal', 'NorthFall Godot', 'NorthFall Blender', 'NorthFall community', 'NorthFall forum', 'NorthFall platform', 'NorthFall عرب', 'NorthFall جيمر', 'NorthFall مطورين',
+  'northfall.blog', 'www.northfall.blog', 'northfall blog', 'northfall موقع', 'northfall مجتمع', 'northfall منتدى', 'northfall عربي',
+  // 'نورث' alone + disambiguation from clothing
+  'نورث', 'نورث مجتمع', 'نورث منتدى', 'نورث ألعاب', 'نورث جيمر', 'نورث مطورين', 'نورث تقني', 'نورث عربي', 'نورث برمجة', 'نورث تطوير', 'نورث منصة', 'موقع نورث', 'منصة نورث', 'مجتمع نورث', 'منتدى نورث', 'نورث فول مجتمع ألعاب', 'نورث فول منصة مطورين', 'نورث فول ليس ملابس', 'نورث فول تقنية', 'نورث فول تكنولوجيا', 'نورث فول جيم ديف',
   // Brand intent — people searching for the platform itself
   'مجتمع الألعاب العرب', 'منتدى الألعاب العرب', 'منصة مطورين عرب', 'شبكة مطورين عربية', 'ريدت الألعاب العرب', 'reddit الألعاب عربي',
+  'أكبر مجتمع عربي للألعاب', 'أكبر منتدى عربي للألعاب', 'أفضل مجتمع جيمرز عربي', 'أفضل منصة مطورين عرب', 'منصة ألعاب عربية', 'شبكة ألعاب عربية', 'منتدى جيمر عربي', 'مجتمع جيمر عربي',
+  // General Arabic community — NorthFall is not just games
+  'مجتمع عربي', 'منصة مجتمعات عربية', 'منتدى عربي', 'شبكة اجتماعية عربية', 'منصة عربية', 'موقع عربي', 'منصة محتوى عربي', 'مجتمعات عربية', 'منتديات عربية', 'تواصل عربي', 'نقاشات عربية', 'محتوى عربي',
+  'أكبر مجتمع عربي', 'أكبر منصة عربية', 'أفضل مجتمع عربي', 'أفضل منتدى عربي', 'منصة نقاشات عربية', 'شبكة عربية اجتماعية',
+  'مجتمع رياضة عربي', 'مجتمع فن عربي', 'مجتمع طبخ عربي', 'مجتمع سفر عربي', 'مجتمع تعليم عربي', 'مجتمع تصميم عربي', 'مجتمع أنمي عربي', 'مجتمع أفلام عربي', 'مجتمع موسيقى عربي', 'مجتمع كتب عربي', 'مجتمع صحة عربي', 'مجتمع طب عربي', 'مجتمع تجارة عربي', 'مجتمع أعمال عربي',
+  'رياضة عربي', 'كرة قدم عربي', 'دوري عربي', 'أخبار رياضة عربية',
+  'فن عربي', 'رسم عربي', 'تصميم جرافيك عربي', 'فن رقمي عربي',
+  'طبخ عربي', 'وصفات عربية', 'مطبخ عربي', 'أكلات عربية',
+  'سفر عربي', 'سياحة عربية', 'رحلات عربية',
+  'تعليم عربي', 'دروس عربية', 'منهج عربي', 'كورس مجاني عربي',
+  'أنمي عربي', 'مانجا عربي', 'أفلام عربي', 'سينما عربية', 'مسلسلات عربية',
+  'كتب عربية', 'قراءة عربية', 'أدب عربي',
+  'صحة عربي', 'لياقة عربي', 'طب عربي',
+  'تجارة عربي', 'أعمال عربية', 'ريادة أعمال عربية', 'مشروعات عربية', 'استثمار عربي',
   // Gaming AR — every variation
   'ألعاب', 'العاب', 'ألعاب فيديو', 'العاب فيديو', 'جيمر عرب', 'جيمرز عرب', 'جيمر عربي', 'مجتمع ألعاب عربي', 'منتدى ألعاب عربي', 'منتدى العاب عرب', 'نقاشات ألعاب عربية', 'أخبار الألعاب العربية', 'مراجعات ألعاب عربي', 'تحميل ألعاب مجانية', 'ألعاب عربية مجانية', 'ألعاب عرب', 'قيمز عرب', 'عالم الألعاب عربي', 'عالم الالعاب', 'مجتمع جيمرز عربي', 'منتدى جيمرز عربي', 'ألعاب اونلاين عربية', 'ألعاب مجانية عربية', 'ألعاب جديدة عربية', 'تحميل العاب عربي', 'توبيكات ألعاب عربية', 'ستريم ألعاب عربي', 'بث ألعاب عربي', 'قنوات ألعاب عربية', 'يوتيوب ألعاب عربي',
   // Gaming EN
@@ -63,7 +81,7 @@ const KEYWORDS = [
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — منصة المجتمعات العربية`,
+    default: `${SITE_NAME} — منصة المجتمعات العربية لكل الاهتمامات`,
     template: `%s — ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -87,13 +105,13 @@ export const metadata: Metadata = {
     locale: 'ar_SA',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — منصة المجتمعات العربية`,
+    title: `${SITE_NAME} — منصة المجتمعات العربية لكل الاهتمامات`,
     description: SITE_DESCRIPTION,
     images: [{ url: `${SITE_URL}/assets/images/og-image.png`, width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} — منصة المجتمعات العربية`,
+    title: `${SITE_NAME} — منصة المجتمعات العربية لكل الاهتمامات`,
     description: SITE_DESCRIPTION,
     images: [`${SITE_URL}/assets/images/og-image.png`],
   },
@@ -129,7 +147,7 @@ export default function RootLayout({
         '@id': `${SITE_URL}/#website`,
         url: SITE_URL,
         name: SITE_NAME,
-        alternateName: ['نورث فول', 'نورثفول', 'NorthFall', 'Northfall', 'مجتمع مطورين عرب', 'ريدت الألعاب العرب', 'منتدى GameDev عربي', 'أكبر مجتمع عربي لتطوير الألعاب', 'NorthFall blog', 'northfall.blog'],
+        alternateName: ['نورث فول', 'نورثفول', 'نورثفال', 'نورث', 'NorthFall', 'Northfall', 'North Fall', 'northfall.blog', 'NorthFall blog', 'مجتمع مطورين عرب', 'ريدت الألعاب العرب', 'منتدى GameDev عربي', 'أكبر مجتمع عربي لتطوير الألعاب', 'منصة نورث فول', 'مجتمع نورث فول', 'منتدى نورث فول', 'NorthFall مجتمع ألعاب', 'نورث فول منصة تقنية', 'NorthFall Arabic Gaming Community', 'NorthFall Arabic Game Dev Community', 'أكبر مجتمع عربي', 'منصة مجتمعات عربية', 'منتدى عربي شامل', 'NorthFall Arabic Community Platform'],
         description: SITE_DESCRIPTION,
         inLanguage: ['ar', 'en'],
         potentialAction: {
