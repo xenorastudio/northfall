@@ -63,7 +63,7 @@ function timeAgoShort(ts: any): string {
   } catch { return ""; }
 }
 
-export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick, onPostClick, onNotifsClick, onSettingsClick, onCreateClick, onAdminClick }: {
+export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick, onPostClick, onNotifsClick, onSettingsClick, onCreateClick, onAdminClick, onSeoClick }: {
   onProfileClick: (uid?: string) => void;
   onLoginClick: () => void;
   onCommunityClick?: (name: string) => void;
@@ -72,6 +72,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   onSettingsClick?: () => void;
   onCreateClick?: () => void;
   onAdminClick?: () => void;
+  onSeoClick?: () => void;
 }) {
   const { user } = useAuth();
   const { t, lang } = useI18n();
@@ -559,6 +560,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       { icon: Plus, label: t("pc.createPlaceholder"), action: () => { onCreateClick?.(); setShowUserMenu(false); } },
                       { icon: Settings, label: t("nav.settings"), action: () => { onSettingsClick?.(); setShowUserMenu(false); } },
                       ...(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" ? [{ icon: Shield, label: "لوحة الإشراف", action: () => { onAdminClick?.(); setShowUserMenu(false); } }] : []),
+                      ...(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" ? [{ icon: Search, label: "أدوات SEO", action: () => { onSeoClick?.(); setShowUserMenu(false); } }] : []),
                       { icon: HelpCircle, label: t("sb.help"), action: () => { setShowUserMenu(false); } },
                     ].map((item, i) => (
                       <button key={i} onClick={item.action} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">

@@ -16,6 +16,7 @@ const SettingsPage = lazy(() => import("../components/SettingsPage"));
 const NotificationsPage = lazy(() => import("../components/NotificationsPage"));
 const AdminPage = lazy(() => import("../components/AdminPage"));
 const GamesPage = lazy(() => import("../components/GamesPage"));
+const SeoToolsPage = lazy(() => import("../components/SeoToolsPage"));
 import MaintenanceOverlay from "../components/MaintenanceOverlay";
 import AuthProvider, { useAuth } from "../components/AuthProvider";
 import { I18nProvider, useI18n } from "../components/I18nProvider";
@@ -28,7 +29,7 @@ import { db } from "@/lib/firebase";
 // framer-motion removed for performance
 import { cn } from "@/lib/utils";
 
-type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games";
+type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo";
 
 interface Post {
   id: string;
@@ -70,14 +71,14 @@ function AppContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get("view");
-    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games"].includes(v)) {
+    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo"].includes(v)) {
       setView(v as View);
       const c = params.get("community"); if (c) setSelectedCommunity(c);
       const p = params.get("postId"); if (p) setSelectedPostId(p);
       const u = params.get("uid"); if (u) setViewingUid(u);
       const e = params.get("editPostId"); if (e) { setEditPostId(e); setView("edit"); }
       // Set tab title on direct URL load
-      const titles: Record<string, string> = { feed: "Northfall", community: c ? `n/${c}` : "مجتمع", profile: "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف", games: "ألعاب" };
+      const titles: Record<string, string> = { feed: "Northfall", community: c ? `n/${c}` : "مجتمع", profile: "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف", games: "ألعاب", seo: "أدوات SEO" };
       document.title = (titles[v] || "Northfall") + " — Northfall";
     }
   }, []);
@@ -104,6 +105,7 @@ function AppContent() {
       edit: "تعديل",
       admin: "إشراف",
       games: "ألعاب",
+      seo: "أدوات SEO",
     };
     document.title = (titleMap[newView] || "Northfall") + " — Northfall";
   };
@@ -113,7 +115,7 @@ function AppContent() {
     const onPopState = () => {
       const params = new URLSearchParams(window.location.search);
       const v = params.get("view") as View | null;
-      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games"].includes(v)) {
+      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo"].includes(v)) {
         setView(v);
         const c = params.get("community"); if (c) setSelectedCommunity(c);
         const p = params.get("postId"); if (p) setSelectedPostId(p);
@@ -301,7 +303,7 @@ function AppContent() {
 
   return (
     <>
-      <Navbar onProfileClick={openProfile} onLoginClick={() => setShowLogin(true)} onCommunityClick={openCommunity} onPostClick={openPost} onNotifsClick={() => navigateTo("notifs")} onSettingsClick={() => navigateTo("settings")} onCreateClick={openCreate} onAdminClick={() => navigateTo("admin")} />
+      <Navbar onProfileClick={openProfile} onLoginClick={() => setShowLogin(true)} onCommunityClick={openCommunity} onPostClick={openPost} onNotifsClick={() => navigateTo("notifs")} onSettingsClick={() => navigateTo("settings")} onCreateClick={openCreate} onAdminClick={() => navigateTo("admin")} onSeoClick={() => navigateTo("seo")} />
       <SidebarLeft
         key={sidebarKey}
         onNavClick={(id) => {
@@ -460,6 +462,14 @@ function AppContent() {
                 <div key="admin" className="animate-in fade-in duration-150">
                   <Suspense fallback={<div className="p-8 text-center text-nf-dim">جاري التحميل...</div>}>
                     <AdminPage onBack={backToFeed} onPostClick={openPost} />
+                  </Suspense>
+                </div>
+              )}
+
+              {view === "seo" && (
+                <div key="seo" className="animate-in fade-in duration-150">
+                  <Suspense fallback={<div className="p-8 text-center text-nf-dim">جاري التحميل...</div>}>
+                    <SeoToolsPage onBack={backToFeed} />
                   </Suspense>
                 </div>
               )}
