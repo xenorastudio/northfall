@@ -962,12 +962,13 @@ export default function ForumsPage() {
   const searchResultsRef = useRef<HTMLDivElement>(null);
   const [profileUid, setProfileUid] = useState<string | null>(null);
   const [profileData, setProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; threads?: ForumThread[]; followerCount?: number; followingCount?: number; isOnline?: boolean; favoriteGameIds?: string[] } | null>(null);
-  const [authorCache, setAuthorCache] = useState<Record<string, { bannerUrl?: string; bio?: string; role?: string; joinDate?: string; isOnline?: boolean; followerCount?: number; followingCount?: number; karma?: number; postCount?: number; commentCount?: number; socialLinks?: Record<string, string> }>>({});
+  const [authorCache, setAuthorCache] = useState<Record<string, { bannerUrl?: string; bio?: string; role?: string; joinDate?: string; isOnline?: boolean; followerCount?: number; followingCount?: number; karma?: number; postCount?: number; commentCount?: number; socialLinks?: Record<string, string>; favoriteGameIds?: string[] }>>({});
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [editBio, setEditBio] = useState("");
   const [editBannerUrl, setEditBannerUrl] = useState("");
   const [editSocialLinks, setEditSocialLinks] = useState<Record<string, string>>({});
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [forumDisclaimerOpen, setForumDisclaimerOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [sharePostId, setSharePostId] = useState("");
   const [sharePostTitle, setSharePostTitle] = useState("");
@@ -1549,6 +1550,15 @@ export default function ForumsPage() {
   // Search history
   useEffect(() => { try { const h = localStorage.getItem("nf-forum-search-history"); if (h) setSearchHistory(JSON.parse(h).slice(0, 5)); } catch {} }, []);
 
+  // Forum disclaimer — show once for new users
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("nf-forum-disclaimer-accepted")) {
+        setForumDisclaimerOpen(true);
+      }
+    } catch {}
+  }, []);
+
   // Floating Selection Toolbar — only show after mouseup to avoid breaking selection
   useEffect(() => {
     const handleMouseDown = () => {
@@ -1668,7 +1678,7 @@ export default function ForumsPage() {
     if (authorCache[uid]) return;
     try {
       const profile = await fetchUserProfile(uid);
-      const data: any = { role: profile.role, bio: profile.bio || "", bannerUrl: profile.bannerUrl || "", joinDate: profile.joinDate || "", isOnline: profile.isOnline || false, postCount: profile.posts || 0, socialLinks: profile.socialLinks || {}, followerCount: profile.followerCount || 0, followingCount: profile.followingCount || 0 };
+      const data: any = { role: profile.role, bio: profile.bio || "", bannerUrl: profile.bannerUrl || "", joinDate: profile.joinDate || "", isOnline: profile.isOnline || false, postCount: profile.posts || 0, socialLinks: profile.socialLinks || {}, followerCount: profile.followerCount || 0, followingCount: profile.followingCount || 0, favoriteGameIds: [] };
       // Read karma and postCount directly from Firestore user doc for accuracy
       try {
         const uSnap = await getDoc(doc(db, "users", uid));
@@ -1678,6 +1688,10 @@ export default function ForumsPage() {
           if (d.postCount !== undefined) data.postCount = d.postCount;
           if (d.commentCount !== undefined) data.commentCount = d.commentCount;
         }
+      } catch {}
+      try {
+        const gSnap = await getDoc(doc(db, "users", uid, "games", "favorites"));
+        if (gSnap.exists()) data.favoriteGameIds = gSnap.data().ids || [];
       } catch {}
       if (data.karma === undefined) {
         const userThreads = allThreads.filter(t => t.authorUid === uid);
@@ -2432,7 +2446,7 @@ export default function ForumsPage() {
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{allThreads.filter(t => t.authorUid === activeThread.authorUid).reduce((s, t) => s + (t.views || 0), 0)}</span> مشاهدة</span>
                               </div>
                               {/* Join date */}
-                              {authorCache[activeThread.authorUid]?.joinDate && <div className="flex items-center gap-1.5 mb-2 text-[9px] text-nf-dim"><Calendar size={9} className="text-nf-accent" /> انضم {timeAgo(authorCache[activeThread.authorUid].joinDate!)}</div>}
+                              {authorCache[activeThread.authorUid]?.joinDate && <div className="flex items-center gap-1.5 mb-2 text-[9px] text-nf-dim"><Calendar size={9} className="text-nf-accent" /> انضم {formatDate(authorCache[activeThread.authorUid].joinDate!)}</div>}
                               {/* Social links */}
                               {authorCache[activeThread.authorUid]?.socialLinks && Object.values(authorCache[activeThread.authorUid].socialLinks!).some(v => v?.trim()) && (
                                 <div className="flex items-center gap-1.5 mb-2 flex-wrap">
@@ -2442,6 +2456,22 @@ export default function ForumsPage() {
                                   })}
                                 </div>
                               )}
+                              {/* Favorite Games */}
+                              {authorCache[activeThread.authorUid]?.favoriteGameIds && authorCache[activeThread.authorUid].favoriteGameIds!.length > 0 && (() => {
+                                const topGames = GAMES.filter(g => authorCache[activeThread.authorUid].favoriteGameIds!.includes(g.id)).slice(0, 3);
+                                if (topGames.length === 0) return null;
+                                return (
+                                  <div className="flex gap-2 mb-2.5">
+                                    {topGames.map(g => (
+                                      <div key={g.id} className="relative rounded-lg overflow-hidden w-14 h-[70px] shrink-0 cursor-pointer group" onClick={() => window.open(g.steamUrl, "_blank")}>
+                                        <img src={g.cover} alt={g.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                        <span className="absolute bottom-0.5 right-0.5 left-0.5 text-[6px] text-white font-bold truncate drop-shadow leading-tight">{g.name}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                               {/* Communities */}
                               <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
                                 {[...new Set(allThreads.filter(t => t.authorUid === activeThread.authorUid).map(t => t.community))].slice(0, 5).map(c => (
@@ -2451,7 +2481,6 @@ export default function ForumsPage() {
                               {/* Badges */}
                               <div className="flex items-center gap-1.5 mb-3 flex-wrap">
                                 {authorCache[activeThread.authorUid]?.role === "مشرف" && <span className="px-2 py-0.5 rounded-full bg-red-400/10 text-red-400 text-[8px] font-bold">🛡 مشرف</span>}
-                                <span className="px-2 py-0.5 rounded-full bg-nf-secondary text-nf-dim text-[8px] font-bold">🏆 قريباً</span>
                               </div>
                               {/* Action buttons */}
                               <div className="flex items-center gap-2">
@@ -2700,7 +2729,7 @@ export default function ForumsPage() {
                                     <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.followingCount ?? "—"}</span> متابَع</span>
                                   </div>
                                   {/* Join date */}
-                                  {authorCache[reply.authorUid]?.joinDate && <div className="flex items-center gap-1.5 mb-1.5 text-[9px] text-nf-dim"><Calendar size={9} className="text-nf-accent" /> انضم {timeAgo(authorCache[reply.authorUid].joinDate!)}</div>}
+                                  {authorCache[reply.authorUid]?.joinDate && <div className="flex items-center gap-1.5 mb-1.5 text-[9px] text-nf-dim"><Calendar size={9} className="text-nf-accent" /> انضم {formatDate(authorCache[reply.authorUid].joinDate!)}</div>}
                                   {/* Social links */}
                                   {authorCache[reply.authorUid]?.socialLinks && Object.values(authorCache[reply.authorUid].socialLinks!).some(v => v?.trim()) && (
                                     <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
@@ -2710,6 +2739,22 @@ export default function ForumsPage() {
                                       })}
                                     </div>
                                   )}
+                                  {/* Favorite Games */}
+                                  {authorCache[reply.authorUid]?.favoriteGameIds && authorCache[reply.authorUid].favoriteGameIds!.length > 0 && (() => {
+                                    const topGames = GAMES.filter(g => authorCache[reply.authorUid].favoriteGameIds!.includes(g.id)).slice(0, 3);
+                                    if (topGames.length === 0) return null;
+                                    return (
+                                      <div className="flex gap-1.5 mb-2">
+                                        {topGames.map(g => (
+                                          <div key={g.id} className="relative rounded-lg overflow-hidden w-12 h-[60px] shrink-0 cursor-pointer group" onClick={() => window.open(g.steamUrl, "_blank")}>
+                                            <img src={g.cover} alt={g.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                            <span className="absolute bottom-0.5 right-0.5 left-0.5 text-[5px] text-white font-bold truncate drop-shadow leading-tight">{g.name}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
                                   {/* Communities */}
                                   <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                                     {[...new Set(allThreads.filter(t => t.authorUid === reply.authorUid).map(t => t.community))].slice(0, 4).map(c => (
@@ -2719,7 +2764,6 @@ export default function ForumsPage() {
                                   {/* Badges */}
                                   <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
                                     {authorCache[reply.authorUid]?.role === "مشرف" && <span className="px-2 py-0.5 rounded-full bg-red-400/10 text-red-400 text-[8px] font-bold">🛡 مشرف</span>}
-                                    <span className="px-2 py-0.5 rounded-full bg-nf-secondary text-nf-dim text-[8px] font-bold">🏆 قريباً</span>
                                   </div>
                                   {/* Action buttons */}
                                   <div className="flex items-center gap-2">
@@ -4384,6 +4428,64 @@ export default function ForumsPage() {
         </aside>
         )}
       </div>
+
+      {/* Forum Disclaimer Modal — first visit */}
+      <AnimatePresence>
+        {forumDisclaimerOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-nf-card border border-nf-border/10 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
+              <div className="relative h-24 bg-gradient-to-br from-nf-accent/20 via-nf-card to-nf-accent/5 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-t from-nf-card via-transparent to-transparent" />
+                <div className="relative z-10 flex flex-col items-center gap-1">
+                  <Shield size={28} className="text-nf-accent" />
+                  <span className="text-[18px] font-black text-nf-text">مرحباً بك في منتدى NorthFall</span>
+                </div>
+              </div>
+              <div className="px-6 py-5 space-y-4 max-h-[50vh] overflow-y-auto">
+                <p className="text-[13px] text-nf-dim/80 leading-[2]">
+                  نحن سعداء بانضمامك لمجتمعنا! قبل أن تبدأ، يرجى الاطلاع على بعض المعلومات المهمة:
+                </p>
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-lg bg-nf-accent/10 flex items-center justify-center shrink-0 mt-0.5"><MessageCircle size={14} className="text-nf-accent" /></div>
+                    <div>
+                      <p className="text-[12px] font-bold text-nf-text">المنتدى مجتمع مستقل</p>
+                      <p className="text-[11px] text-nf-dim/60 leading-[1.8]">المنتدى له بيئة خاصة مختلفة عن التطبيق الرئيسي. بعض بياناتك (الاسم، الصورة، الدور) ستظهر تلقائياً، ويمكنك تعديلها من إعدادات البروفايل.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-lg bg-nf-accent/10 flex items-center justify-center shrink-0 mt-0.5"><Flame size={14} className="text-nf-accent" /></div>
+                    <div>
+                      <p className="text-[12px] font-bold text-nf-text">نظام التأثير (الكارما)</p>
+                      <p className="text-[11px] text-nf-dim/60 leading-[1.8]">تأثيرك يزداد مع تفاعلك — كل منشور وتعليق وصوت يزيد من تأثيرك في المجتمع. كلما زاد تأثيرك، زادت مكانتك.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-lg bg-nf-accent/10 flex items-center justify-center shrink-0 mt-0.5"><Users size={14} className="text-nf-accent" /></div>
+                    <div>
+                      <p className="text-[12px] font-bold text-nf-text">المتابعة والتفاعل</p>
+                      <p className="text-[11px] text-nf-dim/60 leading-[1.8]">يمكنك متابعة المستخدمين والانضمام للمجتمعات التي تهمك. ستظهر ألعابك المفضلة في بروفايلك تلقائياً.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-lg bg-nf-accent/10 flex items-center justify-center shrink-0 mt-0.5"><AlertTriangle size={14} className="text-nf-accent" /></div>
+                    <div>
+                      <p className="text-[12px] font-bold text-nf-text">قواعد الاحترام</p>
+                      <p className="text-[11px] text-nf-dim/60 leading-[1.8]">يرجى الالتزام بالاحترام المتبادل. أي محتوى مسيء أو مخالف سيتم حذفه وقد يتم حظر حسابك. نحن هنا لبناء مجتمع إيجابي.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-nf-border/10 pt-3">
+                  <p className="text-[10px] text-nf-dim/40 leading-[1.8]">بالضغط على "موافقة"، أنت توافق على الالتزام بقواعد مجتمع NorthFall واحترام جميع الأعضاء. يمكن الاطلاع على الشروط الكاملة في أي وقت من صفحة الشروط والأحكام.</p>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-nf-border/10 flex items-center gap-3">
+                <button onClick={() => { localStorage.setItem("nf-forum-disclaimer-accepted", "1"); setForumDisclaimerOpen(false); }} className="flex-1 bg-nf-accent hover:bg-nf-accent/80 text-white text-[13px] font-bold py-2.5 rounded-xl transition-colors">موافقة ودخول المنتدى</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Toast notification */}
       <AnimatePresence>
