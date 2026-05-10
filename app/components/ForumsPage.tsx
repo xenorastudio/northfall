@@ -969,6 +969,7 @@ export default function ForumsPage() {
   const [editSocialLinks, setEditSocialLinks] = useState<Record<string, string>>({});
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [forumDisclaimerOpen, setForumDisclaimerOpen] = useState(false);
+  const [disclaimerScrolled, setDisclaimerScrolled] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [sharePostId, setSharePostId] = useState("");
   const [sharePostTitle, setSharePostTitle] = useState("");
@@ -4434,58 +4435,59 @@ export default function ForumsPage() {
       <AnimatePresence>
         {forumDisclaimerOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-nf-card border border-nf-border/10 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl">
-              <div className="relative h-28 bg-gradient-to-br from-nf-accent/15 via-nf-card to-nf-accent/5 flex items-center justify-center border-b border-nf-border/10">
-                <span className="text-[22px] font-black text-nf-text tracking-tight">مرحبا بك في منتدى NorthFall</span>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-nf-card border border-nf-border/10 rounded-xl max-w-xl w-full overflow-hidden shadow-2xl">
+              <div className="relative px-6 py-4 bg-gradient-to-br from-nf-accent/10 via-nf-card to-nf-accent/3 border-b border-nf-border/10">
+                <span className="text-[17px] font-black text-nf-text tracking-tight">مرحبا بك في منتدى NorthFall</span>
               </div>
-              <div className="px-8 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
-                <p className="text-[15px] text-nf-text/90 leading-[2.2] font-medium">
+              <div onScroll={(e) => { const el = e.currentTarget; if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) setDisclaimerScrolled(true); }} className="px-6 py-4 space-y-3.5 max-h-[50vh] overflow-y-auto text-[12px] leading-[2]">
+                <p className="text-nf-text/85 font-semibold">
                   مرحبا بك في مجتمع NorthFall. نحن فخورون بانضمامك الينا. قبل ان تتمكن من تصفح المنتدى والمشاركة فيه نحتاجك ان تطلع على المعلومات التالية وتوافق عليها. هذه المعلومات تهمك بشكل مباشر وتتعلق بكيفية عمل المنتدى وما هي البيانات التي نستخدمها وكيف نحمي خصوصيتك.
                 </p>
-                <div className="space-y-5">
-                  <div className="border-r-3 border-nf-accent/30 pr-5">
-                    <p className="text-[16px] font-black text-nf-text mb-2">ربط البيانات بين التطبيق والمنتدى</p>
-                    <p className="text-[14px] text-nf-dim/70 leading-[2.2]">حسابك في NorthFall حساب واحد يشمل التطبيق والمنتدى معا. عند دخولك المنتدى لاول مرة يتم استيراد بعض بياناتك من حسابك الرئيسي تلقائيا لتوفير تجربة سلسة دون الحاجة لتسجيل دخول منفصل. البيانات التي يتم استيرادها تشمل اسم المستخدم وصورة البروفايل والدور والتاريخ الذي انضممت فيه. هذه البيانات تبقى مرتبطة بحسابك واي تعديل تقوم به في التطبيق سينعكس تلقائيا في المنتدى والعكس صحيح في بعض الحالات.</p>
+                <div className="space-y-3">
+                  <div className="border-r-2 border-nf-accent/25 pr-4">
+                    <p className="text-[13px] font-black text-nf-text mb-1">ربط البيانات بين التطبيق والمنتدى</p>
+                    <p className="text-nf-dim/65">حسابك في NorthFall حساب واحد يشمل التطبيق والمنتدى معا. عند دخولك المنتدى لاول مرة يتم استيراد بعض بياناتك من حسابك الرئيسي تلقائيا لتوفير تجربة سلسة دون الحاجة لتسجيل دخول منفصل. البيانات التي يتم استيرادها تشمل اسم المستخدم وصورة البروفايل والدور والتاريخ الذي انضممت فيه. هذه البيانات تبقى مرتبطة بحسابك واي تعديل تقوم به في التطبيق سينعكس تلقائيا في المنتدى والعكس صحيح في بعض الحالات. نستخدم تقنية مزامنة فورية لضمان ان بياناتك محدثة دائما في كل مكان بدون اي تأخير.</p>
                   </div>
-                  <div className="border-r-3 border-nf-accent/30 pr-5">
-                    <p className="text-[16px] font-black text-nf-text mb-2">البيانات التي تظهر في المنتدى</p>
-                    <p className="text-[14px] text-nf-dim/70 leading-[2.2]">عند مشاركتك في المنتدى سيكون بروفايلك مرئيا لباقي الاعضاء. يتضمن بروفايلك في المنتدى اسمك وصورتك ودورك وعدد المنشورات والتعليقات وتاثيرك ورقم المتابعين والمتابَعين وتاريخ الانضمام والالعاب المفضلة لديك ان وجدت وروابط التواصل الاجتماعي ان اضفتها. يمكنك في اي وقت تعديل هذه المعلومات من اعدادات البروفايل الخاصة بك. بعض الاحصائيات مثل عدد المنشورات والتعليقات وتاثيرك يتم تحديثها تلقائيا بناء على نشاطك الفعلي في المجتمع.</p>
+                  <div className="border-r-2 border-nf-accent/25 pr-4">
+                    <p className="text-[13px] font-black text-nf-text mb-1">البيانات التي تظهر في المنتدى</p>
+                    <p className="text-nf-dim/65">عند مشاركتك في المنتدى سيكون بروفايلك مرئيا لباقي الاعضاء. يتضمن بروفايلك اسمك وصورتك ودورك وعدد المنشورات والتعليقات وتاثيرك ورقم المتابعين والمتابَعين وتاريخ الانضمام والالعاب المفضلة لديك ان وجدت وروابط التواصل الاجتماعي ان اضفتها. يمكنك في اي وقت تعديل هذه المعلومات من اعدادات البروفايل الخاصة بك. بعض الاحصائيات مثل عدد المنشورات والتعليقات وتاثيرك يتم تحديثها تلقائيا بناء على نشاطك الفعلي في المجتمع. لا يمكنك اخفاء بياناتك الاساسية لكن يمكنك التحكم في ما تشاركه اضافيا مثل الروابط والالعاب.</p>
                   </div>
-                  <div className="border-r-3 border-nf-accent/30 pr-5">
-                    <p className="text-[16px] font-black text-nf-text mb-2">نظام التاثير والمكانة</p>
-                    <p className="text-[14px] text-nf-dim/70 leading-[2.2]">NorthFall يعتمد نظام تاثير فريد يعكس مدى نشاطك وتفاعلك في المجتمع. كل منشور تنشره وكل تعليق تكتبه وكل صوت تحصل عليه يزيد من تاثيرك. التاثير ليس مجرد رقم بل هو مقياس حقيقي لمساهمتك في بناء المجتمع. الاعضاء ذوو التاثير العالي يحصلون على مكانة مميزة وقد يحصلون على صلاحيات اضافية في المستقبل مثل القدرة على الاشراف على مجتمعات معينة او المشاركة في برامج حصرية. نظام التاثير مصمم ليكون عادلا ويكافئ الجهد الحقيقي وليس مجرد الكمية.</p>
+                  <div className="border-r-2 border-nf-accent/25 pr-4">
+                    <p className="text-[13px] font-black text-nf-text mb-1">نظام التاثير والمكانة</p>
+                    <p className="text-nf-dim/65">NorthFall يعتمد نظام تاثير فريد يعكس مدى نشاطك وتفاعلك في المجتمع. كل منشور تنشره وكل تعليق تكتبه وكل صوت تحصل عليه يزيد من تاثيرك. التاثير ليس مجرد رقم بل هو مقياس حقيقي لمساهمتك في بناء المجتمع. الاعضاء ذوو التاثير العالي يحصلون على مكانة مميزة وقد يحصلون على صلاحيات اضافية في المستقبل مثل القدرة على الاشراف على مجتمعات معينة او المشاركة في برامج حصرية. نظام التاثير مصمم ليكون عادلا ويكافئ الجهد الحقيقي وليس مجرد الكمية. لا يمكن شراء التاثير او الحصول عليه بطرق غير مشروعة.</p>
                   </div>
-                  <div className="border-r-3 border-nf-accent/30 pr-5">
-                    <p className="text-[16px] font-black text-nf-text mb-2">المجتمعات والالعاب</p>
-                    <p className="text-[14px] text-nf-dim/70 leading-[2.2]">المنتدى مقسم الى مجتمعات متعددة تغطي مواضيع مختلفة. يمكنك الانضمام لاي مجتمع يهمك والمشاركة فيه بنشر مواضيع او التعليق على منشورات الاخرين. الالعاب المفضلة لديك التي تضيفها من صفحة الالعاب في التطبيق ستظهر تلقائيا في بروفايلك في المنتدى على شكل اغلفة مرئية. هذا يتيح للاعضاء التعرف على اهتماماتك المشتركة ويسهل التواصل بين الاشخاص الذين يشاركونك نفس الالعاب. يمكنك ايضا انشاء مجتمعات جديدة اذا كانت غير موجودة بعد.</p>
+                  <div className="border-r-2 border-nf-accent/25 pr-4">
+                    <p className="text-[13px] font-black text-nf-text mb-1">المجتمعات والالعاب</p>
+                    <p className="text-nf-dim/65">المنتدى مقسم الى مجتمعات متعددة تغطي مواضيع مختلفة. يمكنك الانضمام لاي مجتمع يهمك والمشاركة فيه بنشر مواضيع او التعليق على منشورات الاخرين. الالعاب المفضلة لديك التي تضيفها من صفحة الالعاب في التطبيق ستظهر تلقائيا في بروفايلك في المنتدى على شكل اغلفة مرئية. هذا يتيح للاعضاء التعرف على اهتماماتك المشتركة ويسهل التواصل بين الاشخاص الذين يشاركونك نفس الالعاب. يمكنك ايضا انشاء مجتمعات جديدة اذا كانت غير موجودة بعد وستكون انت المشرف الاول عليها.</p>
                   </div>
-                  <div className="border-r-3 border-nf-accent/30 pr-5">
-                    <p className="text-[16px] font-black text-nf-text mb-2">المتابعة والتفاعل الاجتماعي</p>
-                    <p className="text-[14px] text-nf-dim/70 leading-[2.2]">يمكنك متابعة اي عضو في المجتمع ومتابعة اي مجتمع. عند متابعتك لعضو ستظهر منشوراته بشكل ابرز في تغذيتك. عدد المتابعين والمتابَعين يظهر في بروفايلك ويعكس مدى حضورك في المجتمع. يمكنك ايضا مشاركة المنشورات ونسخ روابطها وحفظها للرجوع اليها لاحقا. نظام التفاعل في NorthFall مصمم ليشجع النقاش البناء ويكافئ المحتوى الجيد.</p>
+                  <div className="border-r-2 border-nf-accent/25 pr-4">
+                    <p className="text-[13px] font-black text-nf-text mb-1">المتابعة والتفاعل الاجتماعي</p>
+                    <p className="text-nf-dim/65">يمكنك متابعة اي عضو في المجتمع ومتابعة اي مجتمع. عند متابعتك لعضو ستظهر منشوراته بشكل ابرز في تغذيتك. عدد المتابعين والمتابَعين يظهر في بروفايلك ويعكس مدى حضورك في المجتمع. يمكنك ايضا مشاركة المنشورات ونسخ روابطها وحفظها للرجوع اليها لاحقا. نظام التفاعل في NorthFall مصمم ليشجع النقاش البناء ويكافئ المحتوى الجيد. تنبيهات المتابعة فورية ويمكنك التحكم بها من الاعدادات.</p>
                   </div>
-                  <div className="border-r-3 border-nf-accent/30 pr-5">
-                    <p className="text-[16px] font-black text-nf-text mb-2">الذكاء الاصطناعي في المنتدى</p>
-                    <p className="text-[14px] text-nf-dim/70 leading-[2.2]">المنتدى يتضمن ادوات ذكاء اصطناعي اختيارية لمساعدتك. يمكنك استخدام الذكاء الاصطناعي لتحسين نصوصك قبل نشرها او لطلب ملخص لموضوع طويل او حتى لطرح اسئلة والحصول على اجابات سريعة. هذه الادوات اختيارية تماما ولن تستخدم بياناتك الشخصية لتدريب اي نموذج خارجي. انت تتحكم بمتى وكيف تستخدم هذه الميزات.</p>
+                  <div className="border-r-2 border-nf-accent/25 pr-4">
+                    <p className="text-[13px] font-black text-nf-text mb-1">الذكاء الاصطناعي في المنتدى</p>
+                    <p className="text-nf-dim/65">المنتدى يتضمن ادوات ذكاء اصطناعي اختيارية لمساعدتك. يمكنك استخدام الذكاء الاصطناعي لتحسين نصوصك قبل نشرها او لطلب ملخص لموضوع طويل او حتى لطرح اسئلة والحصول على اجابات سريعة. هذه الادوات اختيارية تماما ولن تستخدم بياناتك الشخصية لتدريب اي نموذج خارجي. انت تتحكم بمتى وكيف تستخدم هذه الميزات. الذكاء الاصطناعي لا ينشر باسمك ولا يتخذ اي قرار بالنيابة عنك.</p>
                   </div>
-                  <div className="border-r-3 border-nf-accent/30 pr-5">
-                    <p className="text-[16px] font-black text-nf-text mb-2">قواعد المجتمع والاحترام</p>
-                    <p className="text-[14px] text-nf-dim/70 leading-[2.2]">نحن نؤمن بان المجتمع القوي مبني على الاحترام المتبادل. اي محتوى مسيء او يحرض على الكراهية او يحتوي على تهديدات سيتم حذفه فورا. الاسبام والاعلانات غير المصرح بها ممنوعة. تكرار المخالفة قد يؤدي الى حظر حسابك مؤقتا او نهائيا حسب خطورة المخالفة. فريق الاشراف يراقب المحتوى بشكل مستمر ونتعامل مع البلاغات بجدية تامة. نحن هنا لبناء مساحة امنة وايجابية للجميع بدون استثناء.</p>
+                  <div className="border-r-2 border-nf-accent/25 pr-4">
+                    <p className="text-[13px] font-black text-nf-text mb-1">قواعد المجتمع والاحترام</p>
+                    <p className="text-nf-dim/65">نحن نؤمن بان المجتمع القوي مبني على الاحترام المتبادل. اي محتوى مسيء او يحرض على الكراهية او يحتوي على تهديدات سيتم حذفه فورا. الاسبام والاعلانات غير المصرح بها ممنوعة. تكرار المخالفة قد يؤدي الى حظر حسابك مؤقتا او نهائيا حسب خطورة المخالفة. فريق الاشراف يراقب المحتوى بشكل مستمر ونتعامل مع البلاغات بجدية تامة. نحن هنا لبناء مساحة امنة وايجابية للجميع بدون استثناء. يمكنك الابلاغ عن اي مخالفة بضغطة واحدة وسيتم مراجعتها خلال 24 ساعة.</p>
                   </div>
-                  <div className="border-r-3 border-nf-accent/30 pr-5">
-                    <p className="text-[16px] font-black text-nf-text mb-2">حماية البيانات والخصوصية</p>
-                    <p className="text-[14px] text-nf-dim/70 leading-[2.2]">نحن ناخذ خصوصيتك على محمل الجد. بياناتك الشخصية محمية ولا نشاركها مع اي طرف ثالث تحت اي ظرف. لا نبيع بياناتك ولا نستخدمها لاغراض تجارية خارج نطاق الخدمة. يمكنك في اي وقت طلب حذف حسابك بالكامل وسيتم حذف جميع بياناتك ومنشوراتك وتعليقاتك بشكل نهائي خلال 30 يوما من تاريخ الطلب. نحتفظ فقط بالبيانات الضرورية لتشغيل الخدمة وبشكل مشفر. نحن ملتزمون باعلى معايير الحماية ونعمل باستمرار على تحسين امن المنصة.</p>
+                  <div className="border-r-2 border-nf-accent/25 pr-4">
+                    <p className="text-[13px] font-black text-nf-text mb-1">حماية البيانات والخصوصية</p>
+                    <p className="text-nf-dim/65">نحن ناخذ خصوصيتك على محمل الجد. بياناتك الشخصية محمية ولا نشاركها مع اي طرف ثالث تحت اي ظرف. لا نبيع بياناتك ولا نستخدمها لاغراض تجارية خارج نطاق الخدمة. يمكنك في اي وقت طلب حذف حسابك بالكامل وسيتم حذف جميع بياناتك ومنشوراتك وتعليقاتك بشكل نهائي خلال 30 يوما من تاريخ الطلب. نحتفظ فقط بالبيانات الضرورية لتشغيل الخدمة وبشكل مشفر. نحن ملتزمون باعلى معايير الحماية ونعمل باستمرار على تحسين امن المنصة. جميع الاتصالات مشفرة بتقنية TLS ولا يمكن لاي طرف ثالث اعتراض بياناتك اثناء نقلها.</p>
                   </div>
-                  <div className="border-r-3 border-nf-accent/30 pr-5">
-                    <p className="text-[16px] font-black text-nf-text mb-2">حقوقك كعضو</p>
-                    <p className="text-[14px] text-nf-dim/70 leading-[2.2]">لك كعضو في مجتمع NorthFall الحق في الوصول الى بياناتك الشخصية في اي وقت والحق في تعديلها او حذفها. لك الحق في الاعتراض على اي قرار يتخذ بحقك والتواصل مع فريق الدعم للحصول على توضيح. لك الحق في معرفة كيف يتم استخدام بياناتك واين يتم تخزينها. نحن نؤمن بان الشفافية هي اساس الثقة ونسعى دائما لان نكون صريحين معك حول كل ما يخص حسابك وبياناتك.</p>
+                  <div className="border-r-2 border-nf-accent/25 pr-4">
+                    <p className="text-[13px] font-black text-nf-text mb-1">حقوقك كعضو</p>
+                    <p className="text-nf-dim/65">لك كعضو في مجتمع NorthFall الحق في الوصول الى بياناتك الشخصية في اي وقت والحق في تعديلها او حذفها. لك الحق في الاعتراض على اي قرار يتخذ بحقك والتواصل مع فريق الدعم للحصول على توضيح. لك الحق في معرفة كيف يتم استخدام بياناتك واين يتم تخزينها. نحن نؤمن بان الشفافية هي اساس الثقة ونسعى دائما لان نكون صريحين معك حول كل ما يخص حسابك وبياناتك. فريق الدعم متوفر على مدار الساعة ويمكنك التواصل معه من خلال صفحة المساعدة.</p>
                   </div>
                 </div>
-                <div className="border-t border-nf-border/10 pt-4">
-                  <p className="text-[12px] text-nf-dim/40 leading-[2.2]">بالضغط على زر الموافقة انت تؤكد انك قرات وفهمت جميع المعلومات المذكورة اعلاه ووافقت عليها. انت توافق على الالتزام بقواعد مجتمع NorthFall واحترام جميع الاعضاء. يمكن الاطلاع على الشروط والاحكام الكاملة في اي وقت من صفحة الشروط والاحكام. اذا كنت لا توافق على اي من هذه الشروط يرجى عدم استخدام المنتدى.</p>
+                <div className="border-t border-nf-border/10 pt-3">
+                  <p className="text-[10px] text-nf-dim/35 leading-[2]">بالضغط على زر الموافقة انت تؤكد انك قرات وفهمت جميع المعلومات المذكورة اعلاه ووافقت عليها. انت توافق على الالتزام بقواعد مجتمع NorthFall واحترام جميع الاعضاء. يمكن الاطلاع على الشروط والاحكام الكاملة في اي وقت من صفحة الشروط والاحكام. اذا كنت لا توافق على اي من هذه الشروط يرجى عدم استخدام المنتدى.</p>
                 </div>
               </div>
-              <div className="px-8 py-5 border-t border-nf-border/10 flex items-center gap-3">
-                <button onClick={() => { localStorage.setItem("nf-forum-disclaimer-accepted", "1"); setForumDisclaimerOpen(false); }} className="flex-1 bg-nf-accent hover:bg-nf-accent/80 text-white text-[15px] font-black py-3 rounded-xl transition-colors">موافقة ودخول المنتدى</button>
+              <div className="px-6 py-4 border-t border-nf-border/10 flex flex-col items-center gap-1.5">
+                {!disclaimerScrolled && <p className="text-[10px] text-nf-dim/40 font-bold">يرجى قراءة جميع المعلومات اعلاه اولا</p>}
+                <button disabled={!disclaimerScrolled} onClick={() => { localStorage.setItem("nf-forum-disclaimer-accepted", "1"); setForumDisclaimerOpen(false); }} className={cn("w-full py-2 rounded-lg text-[13px] font-bold transition-all", disclaimerScrolled ? "bg-nf-accent hover:bg-nf-accent/80 text-white cursor-pointer" : "bg-nf-border/30 text-nf-dim/30 cursor-not-allowed")}>موافقة ودخول المنتدى</button>
               </div>
             </motion.div>
           </motion.div>
