@@ -285,7 +285,7 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
         // Update user stats
         await updateDoc(doc(db, "users", user.uid), {
           postCount: increment(1),
-          karma: increment(1),
+          karma: increment(3),
         }).catch(() => {});
       }
       // Clear draft after publish

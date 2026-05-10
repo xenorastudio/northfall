@@ -155,10 +155,11 @@ export async function addReply(
     lastReplyAt: new Date().toISOString(),
     lastReplyBy: reply.authorName,
   });
-  // Update user comment count
+  // Update user comment count and karma (+2 for reply)
   if (reply.authorUid) {
     await updateDoc(doc(db, "users", reply.authorUid), {
       commentCount: increment(1),
+      karma: increment(2),
     }).catch(() => {});
   }
 }

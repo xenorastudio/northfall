@@ -225,13 +225,13 @@ function formatDate(ts: any): string {
 function getTypeInfo(type?: string) { return threadTypes.find(tt => tt.id === type) || threadTypes[0]; }
 
 function getRank(karma: number) {
-  if (karma >= 5000) return { name: "اسطورة", tier: 8, color: "text-amber-300", bg: "bg-amber-300/10", border: "border-amber-300/20", glow: "shadow-amber-300/10" };
-  if (karma >= 2500) return { name: "بطل", tier: 7, color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/20", glow: "shadow-orange-400/10" };
-  if (karma >= 1000) return { name: "خبير", tier: 6, color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20", glow: "shadow-purple-400/10" };
-  if (karma >= 500) return { name: "محترف", tier: 5, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", glow: "shadow-blue-400/10" };
-  if (karma >= 200) return { name: "متقدم", tier: 4, color: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20", glow: "shadow-cyan-400/10" };
-  if (karma >= 100) return { name: "نشيط", tier: 3, color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/20", glow: "shadow-green-400/10" };
-  if (karma >= 25) return { name: "متمرس", tier: 2, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", glow: "" };
+  if (karma >= 100000) return { name: "اسطورة", tier: 8, color: "text-amber-300", bg: "bg-amber-300/10", border: "border-amber-300/20", glow: "shadow-amber-300/10" };
+  if (karma >= 25000) return { name: "بطل", tier: 7, color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/20", glow: "shadow-orange-400/10" };
+  if (karma >= 7500) return { name: "خبير", tier: 6, color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20", glow: "shadow-purple-400/10" };
+  if (karma >= 2500) return { name: "محترف", tier: 5, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", glow: "shadow-blue-400/10" };
+  if (karma >= 750) return { name: "متقدم", tier: 4, color: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20", glow: "shadow-cyan-400/10" };
+  if (karma >= 200) return { name: "نشيط", tier: 3, color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/20", glow: "shadow-green-400/10" };
+  if (karma >= 50) return { name: "متمرس", tier: 2, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", glow: "" };
   return { name: "مبتدئ", tier: 1, color: "text-nf-dim", bg: "bg-nf-secondary/60", border: "border-nf-border/20", glow: "" };
 }
 function rankBadge(karma: number, size: "sm" | "md" = "sm") {
@@ -1048,9 +1048,13 @@ export default function ForumsPage() {
       if (isFollowing) {
         await deleteDoc(followerDocRef);
         await deleteDoc(followingDocRef);
+        // Remove karma -5 for unfollow
+        await updateDoc(doc(db, "users", uid), { karma: increment(-5) }).catch(() => {});
       } else {
         await setDoc(followerDocRef, { uid: user.uid, name: user.displayName || "مستخدم", photo: user.photoURL || "", followedAt: new Date().toISOString() });
         await setDoc(followingDocRef, { uid, followedAt: new Date().toISOString() });
+        // Add karma +5 for new follower
+        await updateDoc(doc(db, "users", uid), { karma: increment(5) }).catch(() => {});
       }
       // Update authorCache if loaded
       if (authorCache[uid]) {
@@ -4469,7 +4473,7 @@ export default function ForumsPage() {
                   </div>
                   <div className="border-r-2 border-nf-accent/25 pr-4">
                     <p className="text-[13px] font-black text-nf-text mb-1">نظام الرتب</p>
-                    <p className="text-nf-dim/65">NorthFall يعتمد نظام رتب فريد يعكس مدى نشاطك وتفاعلك في المجتمع. كل منشور تنشره وكل تعليق تكتبه وكل صوت تحصل عليه يزيد من نقاطك ورتبتك تتطور معها. الرتب ليست مجرد اسم بل هي مقياس حقيقي لمساهمتك في بناء المجتمع. الاعضاء ذوو الرتب العالية يحصلون على مكانة مميزة وقد يحصلون على صلاحيات اضافية في المستقبل مثل القدرة على الاشراف على مجتمعات معينة او المشاركة في برامج حصرية. نظام الرتب مصمم ليكون عادلا ويكافئ الجهد الحقيقي وليس مجرد الكمية. لا يمكن شراء الرتبة او الحصول عليها بطرق غير مشروعة. رتبك تظهر بجانب اسمك في كل مكان في التطبيق والمنتدى وهي تعكس مكانتك الحقيقية في المجتمع.</p>
+                    <p className="text-nf-dim/65">NorthFall يعتمد نظام رتب فريد يعكس مدى نشاطك وتفاعلك في المجتمع. كل فعل تقوم فيه يكسبك نقاطا: نشر موضوع يعطيك 3 نقاط وكتابة رد تعطيك نقطتين وكل صوت ايجابي على محتواك يضيف نقطة وكل متابع جديد يضيف 5 نقاط. اما التصويت السلبي فينقص نقطتين من نقاطك. رتبتك تتطور مع نقاطك: مبتدئ من الصفر ثم متمرس عند 50 نقطة ونشيط عند 200 ومتقدم عند 750 ومحترف عند 2500 وخبير عند 7500 وبطل عند 25000 واسطورة عند 100000 نقطة. الرتب ليست مجرد اسم بل هي مقياس حقيقي لمساهمتك في بناء المجتمع. الاعضاء ذوو الرتب العالية يحصلون على مكانة مميزة وقد يحصلون على صلاحيات اضافية في المستقبل مثل القدرة على الاشراف على مجتمعات معينة او المشاركة في برامج حصرية. نظام الرتب مصمم ليكون عادلا ويكافئ الجهد الحقيقي وليس مجرد الكمية. لا يمكن شراء الرتبة او الحصول عليها بطرق غير مشروعة. رتبك تظهر بجانب اسمك في كل مكان في التطبيق والمنتدى وهي تعكس مكانتك الحقيقية في المجتمع.</p>
                   </div>
                   <div className="border-r-2 border-nf-accent/25 pr-4">
                     <p className="text-[13px] font-black text-nf-text mb-1">المجتمعات والالعاب</p>

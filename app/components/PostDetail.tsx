@@ -438,9 +438,10 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     setPostVoteCount(postVoteCount + diff);
     try {
       await updateDoc(doc(db, "posts", postId), { votes: increment(diff) });
-      // Update author's karma
+      // Update author's karma: upvote +1, downvote -2
       if (post?.authorUid && diff !== 0) {
-        await updateDoc(doc(db, "users", post.authorUid), { karma: increment(diff) }).catch(() => {});
+        const karmaDiff = diff > 0 ? diff : diff * 2;
+        await updateDoc(doc(db, "users", post.authorUid), { karma: increment(karmaDiff) }).catch(() => {});
       }
       if (newVote === 0) {
         await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
@@ -508,8 +509,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       });
       console.log("[PostDetail] Comment saved with ID:", commentRef.id);
       await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
-      // Update user comment count
-      await updateDoc(doc(db, "users", user.uid), { commentCount: increment(1) }).catch(() => {});
+      // Update user comment count and karma (+2 for reply)
+      await updateDoc(doc(db, "users", user.uid), { commentCount: increment(1), karma: increment(2) }).catch(() => {});
       console.log("[PostDetail] Comment count updated");
       setCommentText("");
       setReplyTo(null);

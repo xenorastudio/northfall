@@ -138,13 +138,13 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [isOnline, setIsOnline] = useState(false);
 
   const getRank = (k: number) => {
-    if (k >= 5000) return { name: "اسطورة", color: "text-amber-300", bg: "bg-amber-300/10", icon: Trophy };
-    if (k >= 2500) return { name: "بطل", color: "text-orange-400", bg: "bg-orange-400/10", icon: Trophy };
-    if (k >= 1000) return { name: "خبير", color: "text-purple-400", bg: "bg-purple-400/10", icon: Sparkles };
-    if (k >= 500) return { name: "محترف", color: "text-blue-400", bg: "bg-blue-400/10", icon: Zap };
-    if (k >= 200) return { name: "متقدم", color: "text-cyan-400", bg: "bg-cyan-400/10", icon: Zap };
-    if (k >= 100) return { name: "نشيط", color: "text-green-400", bg: "bg-green-400/10", icon: Star };
-    if (k >= 25) return { name: "متمرس", color: "text-emerald-500", bg: "bg-emerald-500/10", icon: Star };
+    if (k >= 100000) return { name: "اسطورة", color: "text-amber-300", bg: "bg-amber-300/10", icon: Trophy };
+    if (k >= 25000) return { name: "بطل", color: "text-orange-400", bg: "bg-orange-400/10", icon: Trophy };
+    if (k >= 7500) return { name: "خبير", color: "text-purple-400", bg: "bg-purple-400/10", icon: Sparkles };
+    if (k >= 2500) return { name: "محترف", color: "text-blue-400", bg: "bg-blue-400/10", icon: Zap };
+    if (k >= 750) return { name: "متقدم", color: "text-cyan-400", bg: "bg-cyan-400/10", icon: Zap };
+    if (k >= 200) return { name: "نشيط", color: "text-green-400", bg: "bg-green-400/10", icon: Star };
+    if (k >= 50) return { name: "متمرس", color: "text-emerald-500", bg: "bg-emerald-500/10", icon: Star };
     return { name: "مبتدئ", color: "text-nf-dim", bg: "bg-nf-secondary", icon: UserPlus };
   };
   const level = getRank(karma);

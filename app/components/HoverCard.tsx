@@ -11,13 +11,13 @@ import { useI18n } from "./I18nProvider";
 import { cn } from "@/lib/utils";
 
 function getRank(karma: number) {
-  if (karma >= 5000) return { name: "اسطورة", color: "text-amber-300", bg: "bg-amber-300/10", border: "border-amber-300/20" };
-  if (karma >= 2500) return { name: "بطل", color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/20" };
-  if (karma >= 1000) return { name: "خبير", color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20" };
-  if (karma >= 500) return { name: "محترف", color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" };
-  if (karma >= 200) return { name: "متقدم", color: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20" };
-  if (karma >= 100) return { name: "نشيط", color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/20" };
-  if (karma >= 25) return { name: "متمرس", color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
+  if (karma >= 100000) return { name: "اسطورة", color: "text-amber-300", bg: "bg-amber-300/10", border: "border-amber-300/20" };
+  if (karma >= 25000) return { name: "بطل", color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/20" };
+  if (karma >= 7500) return { name: "خبير", color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20" };
+  if (karma >= 2500) return { name: "محترف", color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" };
+  if (karma >= 750) return { name: "متقدم", color: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20" };
+  if (karma >= 200) return { name: "نشيط", color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/20" };
+  if (karma >= 50) return { name: "متمرس", color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
   return { name: "مبتدئ", color: "text-nf-dim", bg: "bg-nf-secondary/60", border: "border-nf-border/20" };
 }
 import { useToast } from "./ToastProvider";
