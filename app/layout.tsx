@@ -197,6 +197,13 @@ export default function RootLayout({
           priceCurrency: 'USD',
         },
         description: SITE_DESCRIPTION,
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: '4.8',
+          ratingCount: '127',
+          bestRating: '5',
+          worstRating: '1',
+        },
       },
       {
         '@type': 'ItemList',
