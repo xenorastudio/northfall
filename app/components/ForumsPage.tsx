@@ -3386,8 +3386,10 @@ export default function ForumsPage() {
                                             {myProfileData?.joinDate && <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-nf-secondary/40 text-[9px] text-nf-dim/50 font-medium"><Calendar size={9} className="text-nf-accent/50" /> انضم {timeAgo(myProfileData.joinDate)}</span>}
                                           </div>
                                           {/* Favorite Games */}
-                                          {myProfileData?.favoriteGameIds && myProfileData.favoriteGameIds.length > 0 && (() => {
-                                            const topGames = GAMES.filter(g => myProfileData.favoriteGameIds!.includes(g.id)).slice(0, 3);
+                                          {(() => {
+                                            const gameIds = myProfileData?.favoriteGameIds || [];
+                                            if (gameIds.length === 0) return null;
+                                            const topGames = GAMES.filter(g => gameIds.includes(g.id)).slice(0, 3);
                                             if (topGames.length === 0) return null;
                                             return (
                                               <div className="grid grid-cols-3 gap-1.5 mt-3">
