@@ -133,7 +133,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "pp.comments": { ar: "التعليقات", en: "Comments" },
   "pp.saved": { ar: "المحفوظات", en: "Saved" },
   "pp.awards": { ar: "الجوائز", en: "Awards" },
-  "pp.karma": { ar: "كارما", en: "karma" },
+  "pp.karma": { ar: "نقاط", en: "points" },
   "pp.postCount": { ar: "منشور", en: "posts" },
   "pp.joinedRecently": { ar: "انضم حديثاً", en: "Joined recently" },
   "pp.noComments": { ar: "لا توجد تعليقات بعد", en: "No comments yet" },
@@ -282,7 +282,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "gen.cancel": { ar: "إلغاء", en: "Cancel" },
   "sb.chat": { ar: "المحادثات", en: "Chat" },
   "search.memberCount": { ar: "عضو", en: "members" },
-  "search.karmaCount": { ar: "كارما", en: "karma" },
+  "search.karmaCount": { ar: "نقاط", en: "points" },
   // SidebarLeft extra
   "sb.system": { ar: "النظام", en: "System" },
   "sb.createCommunity": { ar: "إنشاء مجتمع جديد", en: "Create Community" },

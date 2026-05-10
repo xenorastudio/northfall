@@ -9,6 +9,17 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { cn } from "@/lib/utils";
+
+function getRank(karma: number) {
+  if (karma >= 5000) return { name: "اسطورة", color: "text-amber-300", bg: "bg-amber-300/10", border: "border-amber-300/20" };
+  if (karma >= 2500) return { name: "بطل", color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/20" };
+  if (karma >= 1000) return { name: "خبير", color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20" };
+  if (karma >= 500) return { name: "محترف", color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20" };
+  if (karma >= 200) return { name: "متقدم", color: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20" };
+  if (karma >= 100) return { name: "نشيط", color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/20" };
+  if (karma >= 25) return { name: "متمرس", color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
+  return { name: "مبتدئ", color: "text-nf-dim", bg: "bg-nf-secondary/60", border: "border-nf-border/20" };
+}
 import { useToast } from "./ToastProvider";
 import { GAMES } from "./GamesPage";
 
@@ -300,7 +311,8 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
           </div>
         </div>
         <div className="flex flex-wrap gap-1 mb-2">
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.karma || 0}</span> كارما</span>
+          {(() => { const r = getRank(data.karma || 0); return <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${r.bg} ${r.color} border ${r.border}`}>{r.name}</span>; })()}
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.karma || 0}</span> نقطة</span>
           <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.postCount || 0}</span> منشور</span>
           <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.commentCount || 0}</span> تعليق</span>
           <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><Users size={7} /><span className="text-white font-bold">{data.followerCount || 0}</span> يتابعونه</span>

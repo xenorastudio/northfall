@@ -137,14 +137,17 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [copiedId, setCopiedId] = useState("");
   const [isOnline, setIsOnline] = useState(false);
 
-  const getLevel = (k: number) => {
-    if (k >= 1000) return { name: "أسطورة", color: "text-yellow-400", bg: "bg-yellow-400/10", icon: Trophy };
-    if (k >= 500) return { name: "خبير", color: "text-purple-400", bg: "bg-purple-400/10", icon: Sparkles };
-    if (k >= 100) return { name: "نشيط", color: "text-blue-400", bg: "bg-blue-400/10", icon: Zap };
-    if (k >= 25) return { name: "متمرس", color: "text-green-400", bg: "bg-green-400/10", icon: Star };
+  const getRank = (k: number) => {
+    if (k >= 5000) return { name: "اسطورة", color: "text-amber-300", bg: "bg-amber-300/10", icon: Trophy };
+    if (k >= 2500) return { name: "بطل", color: "text-orange-400", bg: "bg-orange-400/10", icon: Trophy };
+    if (k >= 1000) return { name: "خبير", color: "text-purple-400", bg: "bg-purple-400/10", icon: Sparkles };
+    if (k >= 500) return { name: "محترف", color: "text-blue-400", bg: "bg-blue-400/10", icon: Zap };
+    if (k >= 200) return { name: "متقدم", color: "text-cyan-400", bg: "bg-cyan-400/10", icon: Zap };
+    if (k >= 100) return { name: "نشيط", color: "text-green-400", bg: "bg-green-400/10", icon: Star };
+    if (k >= 25) return { name: "متمرس", color: "text-emerald-500", bg: "bg-emerald-500/10", icon: Star };
     return { name: "مبتدئ", color: "text-nf-dim", bg: "bg-nf-secondary", icon: UserPlus };
   };
-  const level = getLevel(karma);
+  const level = getRank(karma);
 
   // Fetch profile data for viewed user
   useEffect(() => {
@@ -485,7 +488,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       {/* Stats */}
       <div className="flex items-center gap-1 px-2 mb-3 text-[11px] flex-wrap">
         <span className={cn("px-2 py-0.5 rounded-md flex items-center gap-1", level.bg, level.color)}><level.icon size={10} /><span className="font-bold">{level.name}</span></span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-white">{karma}</span> كارما</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-white">{karma}</span> نقطة</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{postCount || posts.length}</span> {t("pp.postCount")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followerCount}</span> {t("gen.followers")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followingCount}</span> {t("gen.followingCount")}</span>

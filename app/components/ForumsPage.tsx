@@ -224,6 +224,22 @@ function formatDate(ts: any): string {
 
 function getTypeInfo(type?: string) { return threadTypes.find(tt => tt.id === type) || threadTypes[0]; }
 
+function getRank(karma: number) {
+  if (karma >= 5000) return { name: "اسطورة", tier: 8, color: "text-amber-300", bg: "bg-amber-300/10", border: "border-amber-300/20", glow: "shadow-amber-300/10" };
+  if (karma >= 2500) return { name: "بطل", tier: 7, color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/20", glow: "shadow-orange-400/10" };
+  if (karma >= 1000) return { name: "خبير", tier: 6, color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20", glow: "shadow-purple-400/10" };
+  if (karma >= 500) return { name: "محترف", tier: 5, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", glow: "shadow-blue-400/10" };
+  if (karma >= 200) return { name: "متقدم", tier: 4, color: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20", glow: "shadow-cyan-400/10" };
+  if (karma >= 100) return { name: "نشيط", tier: 3, color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/20", glow: "shadow-green-400/10" };
+  if (karma >= 25) return { name: "متمرس", tier: 2, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", glow: "" };
+  return { name: "مبتدئ", tier: 1, color: "text-nf-dim", bg: "bg-nf-secondary/60", border: "border-nf-border/20", glow: "" };
+}
+function rankBadge(karma: number, size: "sm" | "md" = "sm") {
+  const r = getRank(karma);
+  const cls = size === "sm" ? `px-1.5 py-0.5 rounded text-[8px] font-black ${r.bg} ${r.color} border ${r.border}` : `px-2 py-0.5 rounded text-[10px] font-black ${r.bg} ${r.color} border ${r.border}`;
+  return <span className={cls}>{r.name}</span>;
+}
+
 function extractUrls(text: string): { url: string; type: "youtube" | "streamable" | "twitch" | "twitter" | "vimeo" | "image" | "link" }[] {
   const urlRegex = /https?:\/\/[^\s<>"']+/g; const matches = text.match(urlRegex) || [];
   return matches.map(url => {
@@ -683,7 +699,7 @@ function UserHoverCard({ name, photo, uid, children }: { name: string; photo?: s
               </div>
               <div className="bg-nf-secondary/60 rounded-lg p-2">
                 <div className="text-[13px] font-bold text-nf-text">{profile.karma || 0}</div>
-                <div className="text-[9px] text-nf-dim">تأثير</div>
+                <div className="text-[9px] text-nf-dim">رتبة</div>
               </div>
               <div className="bg-nf-secondary/60 rounded-lg p-2">
                 <div className="text-[13px] font-bold text-nf-text">{profile.followers || 0}</div>
@@ -2439,7 +2455,7 @@ export default function ForumsPage() {
                               {authorCache[activeThread.authorUid]?.bio && <p className="text-[11px] text-nf-dim leading-[1.7] mb-2.5 line-clamp-2">{authorCache[activeThread.authorUid].bio}</p>}
                               {/* Stats row */}
                               <div className="flex items-center gap-4 mb-2.5 border-t border-nf-border/40 pt-2.5 text-[11px]">
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.karma ?? 0}</span> تأثير</span>
+                                <span className="text-nf-dim flex items-center gap-1.5">{rankBadge(authorCache[activeThread.authorUid]?.karma ?? 0, "md")}<span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.karma ?? 0}</span> نقطة</span>
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.postCount ?? sortedThreads.filter(t => t.authorUid === activeThread.authorUid).length}</span> موضوع</span>
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.commentCount ?? activeReplies.filter(r => r.authorUid === activeThread.authorUid).length}</span> رد</span>
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.followerCount ?? "—"}</span> متابِع</span>
@@ -2723,7 +2739,7 @@ export default function ForumsPage() {
                                   {authorCache[reply.authorUid]?.bio && <p className="text-[10px] text-nf-dim leading-[1.6] mb-2 line-clamp-2">{authorCache[reply.authorUid].bio}</p>}
                                   {/* Stats row */}
                                   <div className="flex items-center gap-3 mb-2 border-t border-nf-border/40 pt-2 text-[10px]">
-                                    <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.karma ?? "—"}</span> تأثير</span>
+                                    <span className="text-nf-dim flex items-center gap-1.5">{rankBadge(authorCache[reply.authorUid]?.karma ?? 0, "sm")}<span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.karma ?? "—"}</span> نقطة</span>
                                     <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.postCount ?? sortedThreads.filter(t => t.authorUid === reply.authorUid).length}</span> موضوع</span>
                                     <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.commentCount ?? activeReplies.filter(r => r.authorUid === reply.authorUid).length}</span> رد</span>
                                     <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.followerCount ?? "—"}</span> متابِع</span>
@@ -3417,15 +3433,14 @@ export default function ForumsPage() {
                                           )}
                                           <div className="flex items-center gap-2 mt-3 flex-wrap">
                                             {[
-                                              { label: "تأثير", value: myProfileData?.karma || 0, icon: Flame },
+                                              { label: "رتبة", value: myProfileData?.karma || 0, icon: Flame, rank: getRank(myProfileData?.karma || 0) },
                                               { label: "مواضيع", value: myProfileData?.posts || 0, icon: MessageCircle },
                                               { label: "تعليقات", value: myProfileData?.commentCount || 0, icon: MessageSquare },
                                               { label: "متابعين", value: myProfileData?.followerCount || 0, icon: Users },
                                               { label: "متابَعين", value: myProfileData?.followingCount || 0, icon: User },
                                             ].map((stat, i) => { const SI = stat.icon; return (
                                               <span key={i} className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-nf-secondary/40 text-[9px] text-nf-dim/50 font-medium">
-                                                <SI size={9} className="text-nf-accent/50" />
-                                                <span className="font-bold text-nf-text">{stat.value}</span> {stat.label}
+                                                {(stat as any).rank ? rankBadge(stat.value, "sm") : <><SI size={9} className="text-nf-accent/50" /><span className="font-bold text-nf-text">{stat.value}</span> {stat.label}</>}
                                               </span>
                                             ); })}
                                             {myProfileData?.joinDate && <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-nf-secondary/40 text-[9px] text-nf-dim/50 font-medium"><Calendar size={9} className="text-nf-accent/50" /> انضم {timeAgo(myProfileData.joinDate)}</span>}
@@ -4450,11 +4465,11 @@ export default function ForumsPage() {
                   </div>
                   <div className="border-r-2 border-nf-accent/25 pr-4">
                     <p className="text-[13px] font-black text-nf-text mb-1">البيانات التي تظهر في المنتدى</p>
-                    <p className="text-nf-dim/65">عند مشاركتك في المنتدى سيكون بروفايلك مرئيا لباقي الاعضاء. يتضمن بروفايلك اسمك وصورتك ودورك وعدد المنشورات والتعليقات وتاثيرك ورقم المتابعين والمتابَعين وتاريخ الانضمام والالعاب المفضلة لديك ان وجدت وروابط التواصل الاجتماعي ان اضفتها. يمكنك في اي وقت تعديل هذه المعلومات من اعدادات البروفايل الخاصة بك. بعض الاحصائيات مثل عدد المنشورات والتعليقات وتاثيرك يتم تحديثها تلقائيا بناء على نشاطك الفعلي في المجتمع. لا يمكنك اخفاء بياناتك الاساسية لكن يمكنك التحكم في ما تشاركه اضافيا مثل الروابط والالعاب.</p>
+                    <p className="text-nf-dim/65">عند مشاركتك في المنتدى سيكون بروفايلك مرئيا لباقي الاعضاء. يتضمن بروفايلك اسمك وصورتك ودورك ورتبتك وعدد المنشورات والتعليقات ونقاطك ورقم المتابعين والمتابَعين وتاريخ الانضمام والالعاب المفضلة لديك ان وجدت وروابط التواصل الاجتماعي ان اضفتها. يمكنك في اي وقت تعديل هذه المعلومات من اعدادات البروفايل الخاصة بك. بعض الاحصائيات مثل عدد المنشورات والتعليقات ونقاطك يتم تحديثها تلقائيا بناء على نشاطك الفعلي في المجتمع. لا يمكنك اخفاء بياناتك الاساسية لكن يمكنك التحكم في ما تشاركه اضافيا مثل الروابط والالعاب.</p>
                   </div>
                   <div className="border-r-2 border-nf-accent/25 pr-4">
-                    <p className="text-[13px] font-black text-nf-text mb-1">نظام التاثير والمكانة</p>
-                    <p className="text-nf-dim/65">NorthFall يعتمد نظام تاثير فريد يعكس مدى نشاطك وتفاعلك في المجتمع. كل منشور تنشره وكل تعليق تكتبه وكل صوت تحصل عليه يزيد من تاثيرك. التاثير ليس مجرد رقم بل هو مقياس حقيقي لمساهمتك في بناء المجتمع. الاعضاء ذوو التاثير العالي يحصلون على مكانة مميزة وقد يحصلون على صلاحيات اضافية في المستقبل مثل القدرة على الاشراف على مجتمعات معينة او المشاركة في برامج حصرية. نظام التاثير مصمم ليكون عادلا ويكافئ الجهد الحقيقي وليس مجرد الكمية. لا يمكن شراء التاثير او الحصول عليه بطرق غير مشروعة.</p>
+                    <p className="text-[13px] font-black text-nf-text mb-1">نظام الرتب</p>
+                    <p className="text-nf-dim/65">NorthFall يعتمد نظام رتب فريد يعكس مدى نشاطك وتفاعلك في المجتمع. كل منشور تنشره وكل تعليق تكتبه وكل صوت تحصل عليه يزيد من نقاطك ورتبتك تتطور معها. الرتب ليست مجرد اسم بل هي مقياس حقيقي لمساهمتك في بناء المجتمع. الاعضاء ذوو الرتب العالية يحصلون على مكانة مميزة وقد يحصلون على صلاحيات اضافية في المستقبل مثل القدرة على الاشراف على مجتمعات معينة او المشاركة في برامج حصرية. نظام الرتب مصمم ليكون عادلا ويكافئ الجهد الحقيقي وليس مجرد الكمية. لا يمكن شراء الرتبة او الحصول عليها بطرق غير مشروعة. رتبك تظهر بجانب اسمك في كل مكان في التطبيق والمنتدى وهي تعكس مكانتك الحقيقية في المجتمع.</p>
                   </div>
                   <div className="border-r-2 border-nf-accent/25 pr-4">
                     <p className="text-[13px] font-black text-nf-text mb-1">المجتمعات والالعاب</p>
