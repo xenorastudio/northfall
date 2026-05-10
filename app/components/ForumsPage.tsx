@@ -807,7 +807,7 @@ export default function ForumsPage() {
   const [userJoinDate, setUserJoinDate] = useState<string>("");
   const [userBio, setUserBio] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("عضو");
-  const [myProfileData, setMyProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; followerCount?: number; followingCount?: number; isOnline?: boolean } | null>(null);
+  const [myProfileData, setMyProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; followerCount?: number; followingCount?: number; isOnline?: boolean; favoriteGameIds?: string[] } | null>(null);
   const fetchMyProfile = async () => {
     if (!user) return null;
     try {
@@ -824,7 +824,9 @@ export default function ForumsPage() {
             joinDateStr = date.toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
           } catch { joinDateStr = String(d.createdAt); }
         }
-        pd = { name: d.displayName || authorName, photo: d.photoURL || authorPhoto, role: d.role || "عضو", bio: d.bio || "", posts: d.postCount || 0, karma: d.karma || 0, commentCount: d.commentCount || 0, joinDate: joinDateStr, bannerUrl: d.bannerUrl || "", socialLinks: d.socialLinks || {}, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false };
+        let favoriteGameIds: string[] = [];
+        try { const gSnap = await getDoc(doc(db, "users", user.uid, "games", "favorites")); if (gSnap.exists()) favoriteGameIds = gSnap.data().ids || []; } catch {}
+        pd = { name: d.displayName || authorName, photo: d.photoURL || authorPhoto, role: d.role || "عضو", bio: d.bio || "", posts: d.postCount || 0, karma: d.karma || 0, commentCount: d.commentCount || 0, joinDate: joinDateStr, bannerUrl: d.bannerUrl || "", socialLinks: d.socialLinks || {}, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false, favoriteGameIds };
       }
       try { const fSnap = await getDocs(collection(db, "users", user.uid, "followers")); pd.followerCount = fSnap.size; const f2Snap = await getDocs(collection(db, "users", user.uid, "following")); pd.followingCount = f2Snap.size; } catch {}
       // Count actual threads from Firestore if postCount is 0 or missing
@@ -3383,6 +3385,22 @@ export default function ForumsPage() {
                                             ); })}
                                             {myProfileData?.joinDate && <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-nf-secondary/40 text-[9px] text-nf-dim/50 font-medium"><Calendar size={9} className="text-nf-accent/50" /> انضم {timeAgo(myProfileData.joinDate)}</span>}
                                           </div>
+                                          {/* Favorite Games */}
+                                          {myProfileData?.favoriteGameIds && myProfileData.favoriteGameIds.length > 0 && (() => {
+                                            const topGames = GAMES.filter(g => myProfileData.favoriteGameIds!.includes(g.id)).slice(0, 3);
+                                            if (topGames.length === 0) return null;
+                                            return (
+                                              <div className="grid grid-cols-3 gap-1.5 mt-3">
+                                                {topGames.map(g => (
+                                                  <div key={g.id} className="relative rounded-md overflow-hidden aspect-[3/4] cursor-pointer" onClick={() => window.open(g.steamUrl, "_blank")}>
+                                                    <img src={g.cover} alt={g.name} className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                                                    <span className="absolute bottom-1 right-1 left-1 text-[7px] text-white font-bold truncate drop-shadow">{g.name}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            );
+                                          })()}
                                           <div className="flex items-center gap-2 mt-3 pt-2 border-t border-nf-border/6">
                                             <button onClick={() => { navigator.clipboard.writeText(myProfileData?.bio || "").catch(() => {}); showToast("تم نسخ البايو"); }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-nf-dim/30 hover:text-nf-text hover:bg-nf-secondary/40 text-[9px] font-medium transition-colors"><Copy size={9} /> نسخ البايو</button>
                                             <button onClick={() => { openProfile(authorUid, authorName, authorPhoto); }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-nf-dim/30 hover:text-nf-accent hover:bg-nf-accent/5 text-[9px] font-medium transition-colors"><ExternalLink size={9} /> عرض كامل</button>
