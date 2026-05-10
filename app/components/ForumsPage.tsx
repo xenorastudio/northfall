@@ -10,7 +10,7 @@ import {
   ArrowLeft, ArrowUp, ThumbsUp, ThumbsDown, Share2, Reply, Home, Star,
   HelpCircle, Lightbulb, Bug, Sparkles, BookOpen, Menu, Calendar, MessageCirclePlus,
   LogIn, Settings, Bell, TrendingUp, Shield, Award, BarChart3, Users, Activity, RotateCcw, ChevronDown, Check,
-  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft, Quote
+  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft, Quote, Gamepad2
 } from "lucide-react";
 import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -24,6 +24,7 @@ import {
 } from "@/lib/firebase-forum";
 import { cn } from "@/lib/utils";
 import { useAuth } from "./AuthProvider";
+import { GAMES } from "./GamesPage";
 import ShareModal from "./ShareModal";
 import ReportModal from "./ReportModal";
 import ReactMarkdown from "react-markdown";
@@ -782,7 +783,7 @@ export default function ForumsPage() {
   const [createBlur, setCreateBlur] = useState(false);
   // Reset blur when entering new thread view
   useEffect(() => { if (viewMode === "new") setCreateBlur(false); }, [viewMode]);
-  const [profileTab, setProfileTab] = useState<"threads" | "replies" | "saved" | "awards">("threads");
+  const [profileTab, setProfileTab] = useState<"threads" | "replies" | "saved" | "awards" | "games">("threads");
   const [replies, setReplies] = useState<Record<string, ReplyData[]>>({});
   const [replyText, setReplyText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -958,7 +959,7 @@ export default function ForumsPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchResultsRef = useRef<HTMLDivElement>(null);
   const [profileUid, setProfileUid] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; threads?: ForumThread[]; followerCount?: number; followingCount?: number; isOnline?: boolean } | null>(null);
+  const [profileData, setProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; threads?: ForumThread[]; followerCount?: number; followingCount?: number; isOnline?: boolean; favoriteGameIds?: string[] } | null>(null);
   const [authorCache, setAuthorCache] = useState<Record<string, { bannerUrl?: string; bio?: string; role?: string; joinDate?: string; isOnline?: boolean; followerCount?: number; followingCount?: number; karma?: number; postCount?: number; commentCount?: number; socialLinks?: Record<string, string> }>>({});
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [editBio, setEditBio] = useState("");
@@ -1702,6 +1703,19 @@ export default function ForumsPage() {
     try {
       const profile = await fetchUserProfile(uid, name, photo);
       let pd: any = { ...profile };
+      // Fetch karma, commentCount, favoriteGameIds from Firestore user doc
+      try {
+        const uSnap = await getDoc(doc(db, "users", uid));
+        if (uSnap.exists()) {
+          const d = uSnap.data();
+          pd.karma = d.karma || 0;
+          pd.commentCount = d.commentCount || 0;
+        }
+      } catch {}
+      try {
+        const gSnap = await getDoc(doc(db, "users", uid, "games", "favorites"));
+        if (gSnap.exists()) pd.favoriteGameIds = gSnap.data().ids || [];
+      } catch {}
       // Fetch user threads from Firestore
       const userThreads = await fetchUserThreads(uid, allCommunities, 10);
       // Fallback: use allThreads if Firestore returned nothing
@@ -2220,11 +2234,11 @@ export default function ForumsPage() {
                     {/* Stats bar - flat */}
                     <div className="flex items-center gap-1.5 px-6 pb-4 flex-wrap">
                       {[
-                        { label: "تأثير", value: profileData.threads?.reduce((s, t) => s + (t.votes || 0), 0) || 0, icon: Star },
+                        { label: "كارما", value: profileData.karma ?? profileData.threads?.reduce((s, t) => s + (t.votes || 0), 0) ?? 0, icon: Star },
                         { label: "مواضيع", value: profileData.threads?.length || 0, icon: MessageCircle },
+                        { label: "تعليقات", value: profileData.commentCount || 0, icon: MessageSquare },
                         { label: "متابعين", value: profileData.followerCount || 0, icon: Users },
                         { label: "متابَعين", value: profileData.followingCount || 0, icon: User },
-                        { label: "مشاهدات", value: profileData.threads?.reduce((s, t) => s + (t.views || 0), 0) || 0, icon: Eye },
                       ].map((stat, i) => { const SI = stat.icon; return (
                         <span key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-nf-secondary text-[11px] text-nf-dim font-medium">
                           <SI size={11} className="text-nf-accent" />
@@ -2241,6 +2255,7 @@ export default function ForumsPage() {
                       { icon: MessageCircle, label: "المواضيع", id: "threads" as const },
                       { icon: Reply, label: "الردود", id: "replies" as const },
                       { icon: Bookmark, label: "المحفوظات", id: "saved" as const },
+                      { icon: Gamepad2, label: "الألعاب", id: "games" as const },
                       { icon: Award, label: "الإنجازات", id: "awards" as const },
                     ].map(tab => { const TI = tab.icon; return (
                       <button key={tab.id} onClick={() => setProfileTab(tab.id)} className={cn("flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-bold transition-colors", profileTab === tab.id ? "bg-nf-secondary/50 text-white" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-white")}>
@@ -2313,6 +2328,28 @@ export default function ForumsPage() {
 
                   {profileTab === "replies" && (
                     <p className="text-[14px] text-nf-dim text-center py-10">قريباً</p>
+                  )}
+
+                  {profileTab === "games" && (
+                    (() => {
+                      const gameIds = profileData.favoriteGameIds || [];
+                      if (gameIds.length === 0) return <p className="text-[14px] text-nf-dim text-center py-10">لا توجد ألعاب مفضلة بعد</p>;
+                      const userGames = GAMES.filter(g => gameIds.includes(g.id));
+                      if (userGames.length === 0) return <p className="text-[14px] text-nf-dim text-center py-10">لا توجد ألعاب مفضلة بعد</p>;
+                      return (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                          {userGames.map(g => (
+                            <div key={g.id} className="group cursor-pointer" onClick={() => window.open(g.steamUrl, "_blank")}>
+                              <div className="relative rounded-lg overflow-hidden aspect-[3/4] mb-1.5">
+                                <img src={g.cover} alt={g.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                                <span className="absolute bottom-1.5 right-1.5 left-1.5 text-[9px] text-white font-bold truncate drop-shadow">{g.name}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()
                   )}
 
                   {profileTab === "awards" && (
