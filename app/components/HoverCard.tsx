@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cake, Star, MessageSquare, Shield, Users, FileText, Clock, UserPlus, UserCheck } from "lucide-react";
+import { Cake, Star, MessageSquare, Shield, Users, FileText, Clock, UserPlus, UserCheck, ExternalLink, Gamepad2 } from "lucide-react";
 import { doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, collection, getDocs, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { cn } from "@/lib/utils";
 import { useToast } from "./ToastProvider";
+import { GAMES } from "./GamesPage";
 
 interface HoverCardProps {
   children: React.ReactNode;
@@ -43,17 +44,34 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
             const userSnap = await getDoc(doc(db, "users", uid));
             if (userSnap.exists()) {
               const d = userSnap.data();
+              // Fallback: count posts from collection only if postCount is missing
+              let postCount = d.postCount || 0;
+              if (!postCount) {
+                try {
+                  const pSnap = await getDocs(query(collection(db, "posts"), where("authorUid", "==", uid), limit(100)));
+                  postCount = pSnap.size;
+                } catch {}
+              }
+              // Get follower/following counts and favorite games
+              let followerCount = 0, followingCount = 0, favoriteGameIds: string[] = [];
+              try { const fSnap = await getDocs(collection(db, "users", uid, "followers")); followerCount = fSnap.size; } catch {}
+              try { const f2Snap = await getDocs(collection(db, "users", uid, "following")); followingCount = f2Snap.size; } catch {}
+              try { const gSnap = await getDoc(doc(db, "users", uid, "games", "favorites")); if (gSnap.exists()) favoriteGameIds = gSnap.data().ids || []; } catch {}
               setData({
                 photo: d.photoURL || "",
                 name: d.displayName || name,
                 uid: userSnap.id,
                 karma: d.karma || 0,
-                postCount: d.postCount || 0,
+                postCount,
                 commentCount: d.commentCount || 0,
                 bio: d.bio || "",
                 bannerUrl: d.bannerUrl || "",
                 lastSeen: d.lastSeen || null,
                 joinedAt: d.createdAt || null,
+                followerCount,
+                followingCount,
+                socialLinks: d.socialLinks || {},
+                favoriteGameIds,
               });
               return;
             }
@@ -64,17 +82,33 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
           const userDoc = snap.docs.find(d => d.data().displayName === name);
           if (userDoc) {
             const d = userDoc.data();
+            const foundUid = userDoc.id;
+            let postCount = d.postCount || 0;
+            if (!postCount) {
+              try {
+                const pSnap = await getDocs(query(collection(db, "posts"), where("authorUid", "==", foundUid), limit(100)));
+                postCount = pSnap.size;
+              } catch {}
+            }
+            let followerCount = 0, followingCount = 0, favoriteGameIds: string[] = [];
+            try { const fSnap = await getDocs(collection(db, "users", foundUid, "followers")); followerCount = fSnap.size; } catch {}
+            try { const f2Snap = await getDocs(collection(db, "users", foundUid, "following")); followingCount = f2Snap.size; } catch {}
+            try { const gSnap = await getDoc(doc(db, "users", foundUid, "games", "favorites")); if (gSnap.exists()) favoriteGameIds = gSnap.data().ids || []; } catch {}
             setData({
               photo: d.photoURL || "",
               name: d.displayName || name,
-              uid: userDoc.id,
+              uid: foundUid,
               karma: d.karma || 0,
-              postCount: d.postCount || 0,
+              postCount,
               commentCount: d.commentCount || 0,
               bio: d.bio || "",
               bannerUrl: d.bannerUrl || "",
               lastSeen: d.lastSeen || null,
               joinedAt: d.createdAt || null,
+              followerCount,
+              followingCount,
+              socialLinks: d.socialLinks || {},
+              favoriteGameIds,
             });
           }
         } else {
@@ -265,14 +299,41 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
               <div className="text-[10px] text-nf-dim flex items-center gap-0.5"><Cake size={8} /> {(() => { if (uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") return "انضم أبريل 2024"; if (data.joinedAt) { const d = new Date(data.joinedAt); const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]; return `انضم ${months[d.getMonth()]} ${d.getFullYear()}`; } return t("hc.joinedApril"); })()}</div>
           </div>
         </div>
-        <div className="text-[10px] text-nf-dim mb-1.5">
-          <span className="text-white">{data.karma || 0}</span> {t("pp.karma")} · <span className="text-white">{data.postCount || 0}</span> {t("cp.posts")} · <span className="text-white">{data.commentCount || 0}</span> {t("cp.comments")}
+        <div className="flex flex-wrap gap-1 mb-2">
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.karma || 0}</span> كارما</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.postCount || 0}</span> منشور</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.commentCount || 0}</span> تعليق</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><Users size={7} /><span className="text-white font-bold">{data.followerCount || 0}</span> يتابعونه</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><UserPlus size={7} /><span className="text-white font-bold">{data.followingCount || 0}</span> يتابعهم</span>
         </div>
-        {data.bio && <p className="text-[10px] text-nf-dim leading-relaxed mb-1.5 line-clamp-2">{data.bio}</p>}
-        <div className="text-[10px] text-nf-dim mb-2">{t("hc.memberOf")}</div>
-        <div className="text-[10px] text-nf-dim mb-1.5">
-          {t("hc.defaultBadges")}
-        </div>
+        {data.bio && <p className="text-[10px] text-nf-dim leading-relaxed mb-2 line-clamp-2">{data.bio}</p>}
+        {/* Social Links */}
+        {data.socialLinks && Object.values(data.socialLinks).some((v: any) => v?.trim()) && (
+          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+            {Object.entries(data.socialLinks).filter(([, v]: any) => v?.trim()).map(([key, val]: any) => {
+              const labels: Record<string, string> = { twitter: "X", youtube: "YouTube", github: "GitHub", steam: "Steam", discord: "Discord", website: "موقع" };
+              const label = labels[key] || key;
+              const url = val.startsWith("http") ? val : `https://${val}`;
+              return <button key={key} onClick={(e) => { e.stopPropagation(); window.open(url, "_blank", "noopener,noreferrer"); }} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-nf-secondary text-nf-muted hover:text-white hover:bg-nf-hover transition-colors cursor-pointer"><ExternalLink size={8} />{label}</button>;
+            })}
+          </div>
+        )}
+        {/* Favorite Games */}
+        {data.favoriteGameIds && data.favoriteGameIds.length > 0 && (() => {
+          const topGames = GAMES.filter(g => data.favoriteGameIds.includes(g.id)).slice(0, 3);
+          if (topGames.length === 0) return null;
+          return (
+            <div className="grid grid-cols-3 gap-1.5 mb-2">
+              {topGames.map(g => (
+                <div key={g.id} className="relative group rounded-lg overflow-hidden aspect-[3/4]">
+                  <img src={g.cover} alt={g.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  <span className="absolute bottom-1 right-1 left-1 text-[7px] text-white font-bold truncate drop-shadow">{g.name}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
         <div className="flex gap-2">
           <button onClick={() => onProfileClick?.(uid || "")} className="flex-1 py-1.5 rounded text-[11px] font-bold bg-nf-secondary text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
             {t("hc.viewProfile")}
