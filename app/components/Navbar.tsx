@@ -5,7 +5,7 @@ import { Search, Bell, User, ChevronDown, X, FileText, Users, Hash, TrendingUp, 
 import { useAuth } from "./AuthProvider";
 import { useData } from "./DataProvider";
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, orderBy, limit, where, getCountFromServer } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, where, getCountFromServer, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
@@ -92,6 +92,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
     return true;
   });
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [userKarma, setUserKarma] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -124,6 +125,15 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
 
   // Real-time unread count (from DataProvider)
   const { unreadCount } = useData();
+
+  // Fetch real karma from Firestore
+  useEffect(() => {
+    if (!user) { setUserKarma(0); return; }
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (snap.exists()) setUserKarma(snap.data().karma || 0);
+    }, () => {});
+    return () => unsub();
+  }, [user]);
 
   // Cmd+K shortcut
   useEffect(() => {
@@ -547,7 +557,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       </div>
                     </div>
                     <div className="flex items-center gap-3 mt-2">
-                      <span className="text-[10px] text-nf-dim"><span className="text-white font-bold">1</span> {t("pp.karma")}</span>
+                      <span className="text-[10px] text-nf-dim"><span className="text-white font-bold">{Math.max(0, Math.round(userKarma))}</span> {t("pp.karma")}</span>
                       <span className="text-[10px] text-green-400 flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />متصل</span>
                     </div>
                   </div>
