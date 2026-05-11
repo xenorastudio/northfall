@@ -7,6 +7,7 @@ import { useI18n } from "./I18nProvider";
 import { useState, useEffect, useRef } from "react";
 import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getLevel } from "@/lib/ranking";
 import PostCard from "./PostCard";
 import { GAMES } from "./GamesPage";
 import { cn } from "@/lib/utils";
@@ -128,6 +129,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [favoriteGameIds, setFavoriteGameIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [karma, setKarma] = useState(0);
+  const [xp, setXp] = useState(0);
   const [postCount, setPostCount] = useState(0);
 
   const [profileData, setProfileData] = useState<{ name: string; photo: string; bio: string; bannerUrl: string; socialLinks: Record<string, string>; createdAt?: string } | null>(null);
@@ -137,17 +139,15 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [copiedId, setCopiedId] = useState("");
   const [isOnline, setIsOnline] = useState(false);
 
-  const getRank = (k: number) => {
-    if (k >= 100000) return { name: "اسطورة", color: "text-amber-300", bg: "bg-amber-300/10", icon: Trophy };
-    if (k >= 25000) return { name: "بطل", color: "text-orange-400", bg: "bg-orange-400/10", icon: Trophy };
-    if (k >= 7500) return { name: "خبير", color: "text-purple-400", bg: "bg-purple-400/10", icon: Sparkles };
-    if (k >= 2500) return { name: "محترف", color: "text-blue-400", bg: "bg-blue-400/10", icon: Zap };
-    if (k >= 750) return { name: "متقدم", color: "text-cyan-400", bg: "bg-cyan-400/10", icon: Zap };
-    if (k >= 200) return { name: "نشيط", color: "text-green-400", bg: "bg-green-400/10", icon: Star };
-    if (k >= 50) return { name: "متمرس", color: "text-emerald-500", bg: "bg-emerald-500/10", icon: Star };
-    return { name: "مبتدئ", color: "text-nf-dim", bg: "bg-nf-secondary", icon: UserPlus };
+  const getLevelWithIcon = (xp: number) => {
+    const base = getLevel(xp);
+    const iconMap: Record<string, typeof Trophy> = {
+      "اسطورة": Trophy, "بطل": Trophy, "خبير": Sparkles, "محترف": Zap,
+      "متقدم": Zap, "نشيط": Star, "متمرس": Star,
+    };
+    return { ...base, icon: iconMap[base.name] || UserPlus };
   };
-  const level = getRank(karma);
+  const level = getLevelWithIcon(xp);
 
   // Fetch profile data for viewed user
   useEffect(() => {
@@ -272,6 +272,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
           if (uSnap.exists()) {
             const ud = uSnap.data();
             if (ud.karma !== undefined) setKarma(ud.karma);
+            if (ud.xp !== undefined) setXp(ud.xp);
             if (ud.postCount !== undefined) setPostCount(ud.postCount);
           }
         } catch {}
@@ -488,7 +489,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       {/* Stats */}
       <div className="flex items-center gap-1 px-2 mb-3 text-[11px] flex-wrap">
         <span className={cn("px-2 py-0.5 rounded-md flex items-center gap-1", level.bg, level.color)}><level.icon size={10} /><span className="font-bold">{level.name}</span></span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-white">{karma}</span> نقطة</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-white">{Math.max(0, Math.round(karma))}</span> صيت</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{postCount || posts.length}</span> {t("pp.postCount")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followerCount}</span> {t("gen.followers")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followingCount}</span> {t("gen.followingCount")}</span>

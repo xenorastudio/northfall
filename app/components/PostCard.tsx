@@ -4,7 +4,7 @@ import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHo
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
-import { doc, updateDoc, setDoc, deleteDoc, getDoc, collection, addDoc, getDocs, query, where, increment } from "firebase/firestore";
+import { doc, updateDoc, setDoc, deleteDoc, getDoc, collection, addDoc, getDocs, query, where, increment, runTransaction } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
@@ -13,6 +13,7 @@ import ReportModal from "./ReportModal";
 import HoverCard from "./HoverCard";
 import { renderFormattedBody } from "./PostFormatter";
 import { useToast } from "./ToastProvider";
+import { calcSaitGain } from "@/lib/ranking";
 
 interface QuotedPostData {
   id: string;
@@ -86,6 +87,9 @@ export default function PostCard({
   const { toast } = useToast();
   const [voteCount, setVoteCount] = useState(votes);
   const [myVote, setMyVote] = useState(0);
+  const [voteLoaded, setVoteLoaded] = useState(false);
+  const myVoteRef = useRef(0);
+  const votingRef = useRef(false);
   const [saved, setSaved] = useState(false);
   const [fetchedQuotedPost, setFetchedQuotedPost] = useState<QuotedPostData | null>(null);
   const quotedPost = quotedPostProp || fetchedQuotedPost;
@@ -107,10 +111,12 @@ export default function PostCard({
     getDoc(doc(db, "users", user.uid, "saved", postId)).then(s => setSaved(s.exists())).catch(() => {});
     getDoc(doc(db, "posts", postId, "votes", user.uid)).then(s => {
       if (s.exists()) {
-        setMyVote(s.data().dir || 0);
-        // Don't add vote to count - Firestore votes already includes it
+        const dir = s.data().dir || 0;
+        setMyVote(dir);
+        myVoteRef.current = dir;
       }
-    }).catch(() => {});
+      setVoteLoaded(true);
+    }).catch(() => { setVoteLoaded(true); });
   }, [user, postId]);
 
   const toggleSave = async () => {
@@ -228,24 +234,69 @@ export default function PostCard({
   };
 
   const handleVote = async (dir: 1 | -1) => {
-    if (!user || !postId) return;
-    const newVote = myVote === dir ? 0 : dir;
-    const diff = newVote - myVote;
+    if (!user || !postId || !voteLoaded || votingRef.current) return;
+    // Prevent self-voting
+    if (authorUid && authorUid === user.uid) return;
+    const currentVote = myVoteRef.current;
+    // If clicking same direction → remove vote (toggle off)
+    // If clicking opposite direction → just remove current vote (go neutral), don't switch
+    const newVote = currentVote === dir ? 0 : (currentVote !== 0 ? 0 : dir);
+    const diff = newVote - currentVote;
+    if (diff === 0) return;
+    myVoteRef.current = newVote;
     setMyVote(newVote);
-    setVoteCount(voteCount + diff);
+    setVoteCount(prev => prev + diff);
+    votingRef.current = true;
     try {
       // Use increment to avoid race conditions
       await updateDoc(doc(db, "posts", postId), { votes: increment(diff) });
-      // Update author's karma: upvote +1, downvote -2
+      // Update author's صيت (karma) — use transaction for atomicity + idempotency
       if (authorUid && diff !== 0) {
-        const karmaDiff = diff > 0 ? diff : diff * 2;
-        await updateDoc(doc(db, "users", authorUid), { karma: increment(karmaDiff) }).catch(() => {});
+        // Get voter's data for trust-based weight
+        const voterSnap = await getDoc(doc(db, "users", user.uid)).catch(() => null);
+        const voterData = voterSnap?.exists() ? {
+          accountAgeDays: Math.max(0, Math.floor((Date.now() - (voterSnap.data().createdAt?.toDate?.()?.getTime?.() || voterSnap.data().joinDate?.toDate?.()?.getTime?.() || Date.now())) / 86400000)),
+          karma: voterSnap.data().karma || 0,
+          postCount: voterSnap.data().postCount || 0,
+        } : { accountAgeDays: 999, karma: 999, postCount: 999 };
+        const isRemoving = newVote === 0;
+        if (isRemoving) {
+          // Removing vote → read stored saitGain from vote doc to exactly reverse it
+          const voteSnap = await getDoc(doc(db, "posts", postId, "votes", user.uid)).catch(() => null);
+          const storedGain = voteSnap?.exists() ? (voteSnap.data().saitGain || 0) : 0;
+          console.log("[SAIT] PostCard REMOVE", { postId, voterUid: user.uid, previousVote: currentVote, nextVote: newVote, storedGain, reputationDelta: -storedGain });
+          if (storedGain !== 0) {
+            await updateDoc(doc(db, "users", authorUid), { karma: increment(-storedGain) }).catch(() => {});
+          }
+          await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
+        } else {
+          // Adding new vote → use transaction to prevent double-counting
+          const saitGain = calcSaitGain(Math.abs(voteCount + diff), newVote as 1 | -1, voterData);
+          console.log("[SAIT] PostCard ADD", { postId, voterUid: user.uid, previousVote: currentVote, nextVote: newVote, saitGain, contentVotes: voteCount + diff });
+          await runTransaction(db, async (transaction) => {
+            const voteDocRef = doc(db, "posts", postId, "votes", user.uid);
+            const voteDoc = await transaction.get(voteDocRef);
+            // Idempotency: if vote doc already exists with same dir, skip karma update
+            if (voteDoc.exists() && voteDoc.data().dir === newVote) {
+              console.log("[SAIT] PostCard SKIP (vote already exists)", { postId, voterUid: user.uid });
+              return;
+            }
+            // Write vote doc + update karma atomically
+            transaction.set(voteDocRef, { dir: newVote, votedAt: new Date().toISOString(), saitGain });
+            if (saitGain !== 0) {
+              const authorRef = doc(db, "users", authorUid);
+              const authorDoc = await transaction.get(authorRef);
+              const currentKarma = authorDoc.exists() ? (authorDoc.data().karma || 0) : 0;
+              transaction.update(authorRef, { karma: currentKarma + saitGain });
+            }
+          });
+          console.log("[SAIT] PostCard DONE", { postId, voterUid: user.uid, saitGain });
+          return; // vote doc already saved in transaction
+        }
       }
-      // Save user's vote in subcollection
-      if (newVote === 0) {
+      // Save user's vote in subcollection (only for removal, adding is handled above)
+      if (newVote === 0 && !authorUid) {
         await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
-      } else {
-        await setDoc(doc(db, "posts", postId, "votes", user.uid), { dir: newVote, votedAt: new Date().toISOString() });
       }
       // Batch notification: update existing or create new
       if (authorUid && authorUid !== user.uid && newVote !== 0) {
@@ -270,7 +321,7 @@ export default function PostCard({
           }
         } catch {}
       }
-    } catch {}
+    } catch {} finally { votingRef.current = false; }
   };
 
   // AI explain post

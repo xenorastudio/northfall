@@ -3,9 +3,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowUp, ArrowDown, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, Flag, Code2, Trash2, Pencil, ExternalLink, ArrowUpCircle, Link2, BarChart3, Clock, Sparkles, BookOpen, Languages, FileText, X, Settings, Key, Quote } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { doc, getDoc, getDocs, collection, query, orderBy, addDoc, updateDoc, increment, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, collection, query, orderBy, addDoc, updateDoc, increment, setDoc, deleteDoc, runTransaction } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
+import { calcSaitGain } from "@/lib/ranking";
 import { useI18n } from "./I18nProvider";
 import { cn } from "@/lib/utils";
 import ReportModal from "./ReportModal";
@@ -238,6 +239,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const [loading, setLoading] = useState(true);
   const [postVoteCount, setPostVoteCount] = useState(0);
   const [postMyVote, setPostMyVote] = useState(0);
+  const [postVoteLoaded, setPostVoteLoaded] = useState(false);
+  const postMyVoteRef = useRef(0);
+  const postVotingRef = useRef(false);
   const [postSaved, setPostSaved] = useState(false);
   const [commentSort, setCommentSort] = useState<"best" | "new">("best");
   const [toast, setToast] = useState<string | null>(null);
@@ -431,26 +435,71 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   };
 
   const setPostVote = async (dir: 1 | -1) => {
-    if (!user) return;
-    const newVote = postMyVote === dir ? 0 : dir;
-    const diff = newVote - postMyVote;
+    if (!user || !postVoteLoaded || postVotingRef.current) return;
+    // Prevent self-voting
+    if (post?.authorUid && post.authorUid === user.uid) return;
+    const currentVote = postMyVoteRef.current;
+    // If clicking same direction → remove vote (toggle off)
+    // If clicking opposite direction → just remove current vote (go neutral), don't switch
+    const newVote = currentVote === dir ? 0 : (currentVote !== 0 ? 0 : dir);
+    const diff = newVote - currentVote;
+    if (diff === 0) return;
+    postMyVoteRef.current = newVote;
     setPostMyVote(newVote);
-    setPostVoteCount(postVoteCount + diff);
+    setPostVoteCount(prev => prev + diff);
+    postVotingRef.current = true;
     try {
       await updateDoc(doc(db, "posts", postId), { votes: increment(diff) });
-      // Update author's karma: upvote +1, downvote -2
+      // Update author's صيت (karma) — use transaction for atomicity + idempotency
       if (post?.authorUid && diff !== 0) {
-        const karmaDiff = diff > 0 ? diff : diff * 2;
-        await updateDoc(doc(db, "users", post.authorUid), { karma: increment(karmaDiff) }).catch(() => {});
+        // Get voter's data for trust-based weight
+        const voterSnap = await getDoc(doc(db, "users", user.uid)).catch(() => null);
+        const voterData = voterSnap?.exists() ? {
+          accountAgeDays: Math.max(0, Math.floor((Date.now() - (voterSnap.data().createdAt?.toDate?.()?.getTime?.() || voterSnap.data().joinDate?.toDate?.()?.getTime?.() || Date.now())) / 86400000)),
+          karma: voterSnap.data().karma || 0,
+          postCount: voterSnap.data().postCount || 0,
+        } : { accountAgeDays: 999, karma: 999, postCount: 999 };
+        const isRemoving = newVote === 0;
+        if (isRemoving) {
+          // Removing vote → read stored saitGain from vote doc to exactly reverse it
+          const voteSnap = await getDoc(doc(db, "posts", postId, "votes", user.uid)).catch(() => null);
+          const storedGain = voteSnap?.exists() ? (voteSnap.data().saitGain || 0) : 0;
+          console.log("[SAIT] PostDetail REMOVE", { postId, voterUid: user.uid, previousVote: currentVote, nextVote: newVote, storedGain, reputationDelta: -storedGain });
+          if (storedGain !== 0) {
+            await updateDoc(doc(db, "users", post.authorUid), { karma: increment(-storedGain) }).catch(() => {});
+          }
+          await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
+        } else {
+          // Adding new vote → use transaction to prevent double-counting
+          const saitGain = calcSaitGain(Math.abs(postVoteCount + diff), newVote as 1 | -1, voterData);
+          console.log("[SAIT] PostDetail ADD", { postId, voterUid: user.uid, previousVote: currentVote, nextVote: newVote, saitGain, contentVotes: postVoteCount + diff });
+          await runTransaction(db, async (transaction) => {
+            const voteDocRef = doc(db, "posts", postId, "votes", user.uid);
+            const voteDoc = await transaction.get(voteDocRef);
+            // Idempotency: if vote doc already exists with same dir, skip karma update
+            if (voteDoc.exists() && voteDoc.data().dir === newVote) {
+              console.log("[SAIT] PostDetail SKIP (vote already exists)", { postId, voterUid: user.uid });
+              return;
+            }
+            // Write vote doc + update karma atomically
+            transaction.set(voteDocRef, { dir: newVote, votedAt: new Date().toISOString(), saitGain });
+            if (saitGain !== 0) {
+              const authorRef = doc(db, "users", post.authorUid);
+              const authorDoc = await transaction.get(authorRef);
+              const currentKarma = authorDoc.exists() ? (authorDoc.data().karma || 0) : 0;
+              transaction.update(authorRef, { karma: currentKarma + saitGain });
+            }
+          });
+          console.log("[SAIT] PostDetail DONE", { postId, voterUid: user.uid, saitGain });
+          return; // vote doc already saved in transaction
+        }
       }
-      if (newVote === 0) {
+      if (newVote === 0 && !post?.authorUid) {
         await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
-      } else {
-        await setDoc(doc(db, "posts", postId, "votes", user.uid), { dir: newVote, votedAt: new Date().toISOString() });
       }
     } catch (e) {
       console.error("[PostDetail] Vote error:", e);
-    }
+    } finally { postVotingRef.current = false; }
   };
 
   useEffect(() => {
@@ -466,9 +515,11 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         if (user) {
           const voteSnap = await getDoc(doc(db, "posts", postId, "votes", user.uid));
           if (voteSnap.exists()) {
-            setPostMyVote(voteSnap.data().dir || 0);
-            // Don't add vote to count - Firestore votes already includes it
+            const dir = voteSnap.data().dir || 0;
+            setPostMyVote(dir);
+            postMyVoteRef.current = dir;
           }
+          setPostVoteLoaded(true);
         }
         const cSnap = await getDocs(query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc")));
         setComments(cSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Comment)));
@@ -509,8 +560,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       });
       console.log("[PostDetail] Comment saved with ID:", commentRef.id);
       await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
-      // Update user comment count and karma (+2 for reply)
-      await updateDoc(doc(db, "users", user.uid), { commentCount: increment(1), karma: increment(2) }).catch(() => {});
+      // Update user comment count
+      await updateDoc(doc(db, "users", user.uid), { commentCount: increment(1) }).catch(() => {});
       console.log("[PostDetail] Comment count updated");
       setCommentText("");
       setReplyTo(null);

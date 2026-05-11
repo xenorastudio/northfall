@@ -35,6 +35,9 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
   const [toasts, setToasts] = useState<string[]>([]);
   const [deletingPost, setDeletingPost] = useState(false);
   const [maintenanceOn, setMaintenanceOn] = useState(false);
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [purgeConfirm, setPurgeConfirm] = useState("");
+  const [purging, setPurging] = useState(false);
 
   const isAdmin = user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1";
 
@@ -66,6 +69,69 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
   const toggleMaintenance = async () => {
     const newVal = !maintenanceOn;
     try { await setDoc(doc(db, "system", "maintenance"), { active: newVal }); showToast(newVal ? "تم تفعيل وضع الصيانة" : "تم إطفاء وضع الصيانة"); } catch { showToast("خطأ"); }
+  };
+
+  const knownCommunities = ["Unity", "Unreal", "Godot", "Blender", "عام"];
+
+  const purgeAllData = async () => {
+    if (purgeConfirm !== "حذف الكل") { showToast("اكتب " + '"حذف الكل"' + " للتأكيد"); return; }
+    setPurging(true);
+    try {
+      // 1. Delete all posts + comments + votes
+      const postsSnap = await getDocs(collection(db, "posts"));
+      for (const p of postsSnap.docs) {
+        const commentsSnap = await getDocs(collection(db, "posts", p.id, "comments"));
+        for (const c of commentsSnap.docs) await deleteDoc(c.ref).catch(() => {});
+        const votesSnap = await getDocs(collection(db, "posts", p.id, "votes"));
+        for (const v of votesSnap.docs) await deleteDoc(v.ref).catch(() => {});
+        await deleteDoc(p.ref);
+      }
+      showToast("تم حذف المنشورات");
+
+      // 2. Delete all forum threads + replies + votes
+      for (const comm of knownCommunities) {
+        const threadsSnap = await getDocs(collection(db, "forums", comm, "threads")).catch(() => ({ docs: [] as any[] }));
+        for (const th of threadsSnap.docs) {
+          const repliesSnap = await getDocs(collection(db, "forums", comm, "threads", th.id, "replies")).catch(() => ({ docs: [] as any[] }));
+          for (const r of repliesSnap.docs) await deleteDoc(r.ref).catch(() => {});
+          const tVotesSnap = await getDocs(collection(db, "forums", comm, "threads", th.id, "votes")).catch(() => ({ docs: [] as any[] }));
+          for (const v of tVotesSnap.docs) await deleteDoc(v.ref).catch(() => {});
+          await deleteDoc(th.ref).catch(() => {});
+        }
+      }
+      showToast("تم حذف المنتدى");
+
+      // 3. Delete all users + subcollections
+      const usersSnap = await getDocs(collection(db, "users"));
+      for (const u of usersSnap.docs) {
+        const subCols = ["followers", "following", "communities", "saved", "notifications"];
+        for (const sc of subCols) {
+          const scSnap = await getDocs(collection(db, "users", u.id, sc)).catch(() => ({ docs: [] as any[] }));
+          for (const d of scSnap.docs) await deleteDoc(d.ref).catch(() => {});
+        }
+        await deleteDoc(u.ref);
+      }
+      showToast("تم حذف الحسابات");
+
+      // 4. Delete reports
+      const reportsSnap = await getDocs(collection(db, "reports"));
+      for (const r of reportsSnap.docs) await deleteDoc(r.ref).catch(() => {});
+      showToast("تم حذف البلاغات");
+
+      // 5. Delete communities + members
+      for (const comm of knownCommunities) {
+        const membersSnap = await getDocs(collection(db, "communities", comm, "members")).catch(() => ({ docs: [] as any[] }));
+        for (const m of membersSnap.docs) await deleteDoc(m.ref).catch(() => {});
+        await deleteDoc(doc(db, "communities", comm)).catch(() => {});
+      }
+      showToast("تم حذف المجتمعات");
+
+      showToast("تم حذف كل البيانات بنجاح");
+      setReports([]);
+      setPurgeOpen(false);
+      setPurgeConfirm("");
+    } catch { showToast("حدث خطأ أثناء الحذف"); }
+    setPurging(false);
   };
 
   if (!isAdmin) return (
@@ -144,6 +210,10 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
             <h1 className="text-sm font-bold text-white">لوحة الإشراف</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setPurgeOpen(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-all">
+              <Trash2 size={12} />
+              حذف كل البيانات
+            </button>
             <button onClick={toggleMaintenance} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all", maintenanceOn ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-white/5 text-nf-dim border border-white/10 hover:text-white")}>
               <Wrench size={12} />
               {maintenanceOn ? "الصيانة شغّالة" : "فعّل صيانة"}
@@ -390,6 +460,84 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
                     </button>
                   </>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Purge All Data Modal */}
+      <AnimatePresence>
+        {purgeOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => { if (!purging) setPurgeOpen(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-[420px] bg-nf-primary border border-red-500/30 rounded-lg overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border-2 bg-red-500/5">
+                <div className="flex items-center gap-2">
+                  <Trash2 size={16} className="text-red-400" />
+                  <h3 className="text-sm font-bold text-red-400">حذف كل البيانات</h3>
+                </div>
+                <button onClick={() => { if (!purging) setPurgeOpen(false); }} className="p-1 rounded-lg text-nf-dim hover:text-white hover:bg-nf-hover transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-4 space-y-3">
+                <p className="text-[13px] text-nf-text leading-relaxed">
+                  سيتم حذف <strong className="text-red-400">جميع</strong> المنشورات والتعليقات والأصوات والمنتدى والحسابات والبلاغات والمجتمعات نهائياً. لا يمكن التراجع عن هذا الإجراء.
+                </p>
+                <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
+                  <p className="text-[11px] text-nf-dim mb-2">اكتب <strong className="text-red-400">"حذف الكل"</strong> للتأكيد:</p>
+                  <input
+                    type="text"
+                    value={purgeConfirm}
+                    onChange={e => setPurgeConfirm(e.target.value)}
+                    disabled={purging}
+                    placeholder='حذف الكل'
+                    className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-sm text-white placeholder:text-nf-dim outline-none focus:border-red-500/40 transition-colors"
+                    dir="rtl"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={purgeAllData}
+                    disabled={purging || purgeConfirm !== "حذف الكل"}
+                    className={cn("flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                      purgeConfirm === "حذف الكل" && !purging
+                        ? "bg-red-500 text-white hover:bg-red-600"
+                        : "bg-red-500/20 text-red-400/50 cursor-not-allowed")}
+                  >
+                    {purging ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        جاري الحذف...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={12} />
+                        حذف نهائي
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => { setPurgeOpen(false); setPurgeConfirm(""); }}
+                    disabled={purging}
+                    className="flex-1 py-2 rounded-lg border border-nf-border text-xs font-semibold text-nf-dim hover:bg-nf-hover hover:text-white transition-colors disabled:opacity-50"
+                  >
+                    إلغاء
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

@@ -12,7 +12,8 @@ import {
   LogIn, Settings, Bell, TrendingUp, Shield, Award, BarChart3, Users, Activity, RotateCcw, ChevronDown, Check,
   FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft, Quote, Gamepad2
 } from "lucide-react";
-import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where, writeBatch } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where, writeBatch, runTransaction } from "firebase/firestore";
+import { calcSaitGain, getLevel } from "@/lib/ranking";
 import { db } from "@/lib/firebase";
 import {
   fetchCommunityThreads, fetchAllCommunityThreads, fetchUserThreads,
@@ -63,7 +64,7 @@ const AI_PROMPT = `أنت مساعد NorthFall — مساعد ذكي احترا�
 * الحفظ: حفظ المواضيع للمطالعة لاحقاً
 * المتابعة: متابعة مجتمعات ومستخدمين
 * الإشعارات: تنبيهات بالردود والتفاعلات
-* البروفايل: نبذة شخصية، صورة بنر، روابط اجتماعية (GitHub, Twitter, YouTube, LinkedIn, Discord, Website)، عدد المتابعين، عدد المواضيع، الكارما
+* البروفايل: نبذة شخصية، صورة بنر، روابط اجتماعية (GitHub, Twitter, YouTube, LinkedIn, Discord, Website)، عدد المتابعين، عدد المواضيع، الصيت
 * الذكاء الاصطناعي: مدمج في المنتدى والتطبيق
 * المشاركة: رابط الموضوع + Embed
 * الإبلاغ: بلاغ عن محتوى مخالف
@@ -194,7 +195,7 @@ const threadTypes = [
 ];
 
 type ViewMode = "list" | "thread" | "new" | "profile" | "community" | "ai";
-type SortMode = "latest" | "popular" | "pinned" | "unsolved" | "views";
+type SortMode = "latest" | "popular" | "pinned" | "unsolved" | "views" | "hot";
 
 interface ForumThread {
   id: string; title: string; body: string; authorName: string; authorUid: string; authorPhoto?: string;
@@ -224,20 +225,72 @@ function formatDate(ts: any): string {
 
 function getTypeInfo(type?: string) { return threadTypes.find(tt => tt.id === type) || threadTypes[0]; }
 
-function getRank(karma: number) {
-  if (karma >= 100000) return { name: "اسطورة", tier: 8, color: "text-amber-300", bg: "bg-amber-300/10", border: "border-amber-300/20", glow: "shadow-amber-300/10" };
-  if (karma >= 25000) return { name: "بطل", tier: 7, color: "text-orange-400", bg: "bg-orange-400/10", border: "border-orange-400/20", glow: "shadow-orange-400/10" };
-  if (karma >= 7500) return { name: "خبير", tier: 6, color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20", glow: "shadow-purple-400/10" };
-  if (karma >= 2500) return { name: "محترف", tier: 5, color: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", glow: "shadow-blue-400/10" };
-  if (karma >= 750) return { name: "متقدم", tier: 4, color: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20", glow: "shadow-cyan-400/10" };
-  if (karma >= 200) return { name: "نشيط", tier: 3, color: "text-green-400", bg: "bg-green-400/10", border: "border-green-400/20", glow: "shadow-green-400/10" };
-  if (karma >= 50) return { name: "متمرس", tier: 2, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", glow: "" };
-  return { name: "مبتدئ", tier: 1, color: "text-nf-dim", bg: "bg-nf-secondary/60", border: "border-nf-border/20", glow: "" };
-}
-function rankBadge(karma: number, size: "sm" | "md" = "sm") {
-  const r = getRank(karma);
+function levelBadge(xp: number, size: "sm" | "md" = "sm") {
+  const r = getLevel(xp);
   const cls = size === "sm" ? `px-1.5 py-0.5 rounded text-[8px] font-black ${r.bg} ${r.color} border ${r.border}` : `px-2 py-0.5 rounded text-[10px] font-black ${r.bg} ${r.color} border ${r.border}`;
   return <span className={cls}>{r.name}</span>;
+}
+
+// Hot ranking algorithm (Reddit-style) for thread sorting
+function hotRank(votes: number, replyCount: number, createdAt: string): number {
+  const now = Date.now();
+  const postTime = new Date(createdAt).getTime();
+  const ageHours = (now - postTime) / 3600000;
+  const score = votes + replyCount * 0.5;
+  // Decay: newer posts rank higher, score helps but time decays
+  return Math.log10(Math.max(score, 1)) * 10 - ageHours * 2;
+}
+
+/* ─── Rich Link Embed Card ─── */
+interface LinkPreview { title?: string | null; description?: string | null; image?: string | null; siteName?: string | null; favicon?: string | null; domain?: string; }
+
+function LinkEmbedCard({ url }: { url: string }) {
+  const [data, setData] = useState<LinkPreview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const domain = (() => { try { return new URL(url).hostname.replace("www.", ""); } catch { return url; } })();
+  const isVideo = /(?:youtube\.com|youtu\.be|streamable\.com|twitch\.tv|vimeo\.com)/.test(domain);
+
+  useEffect(() => {
+    if (isVideo) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+        if (r.ok && !cancelled) { const j = await r.json(); setData(j); }
+      } catch {}
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [url, isVideo]);
+
+  if (isVideo) return null; // videos handled by their own embeds
+
+  if (loading) return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block my-2.5 rounded-xl border border-nf-border/30 bg-nf-card/60 overflow-hidden max-w-[520px] animate-pulse">
+      <div className="h-[140px] bg-nf-secondary/30" />
+      <div className="p-3 space-y-2"><div className="h-3 bg-nf-secondary/30 rounded w-3/4" /><div className="h-2.5 bg-nf-secondary/20 rounded w-full" /><div className="h-2 bg-nf-secondary/10 rounded w-1/3" /></div>
+    </a>
+  );
+
+  if (!data?.title && !data?.image) return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-nf-secondary rounded-lg my-2 hover:bg-nf-secondary/40 text-[14px] text-nf-accent font-medium group"><Link2 size={15} /> <span className="truncate max-w-[300px] group-hover:underline">{url}</span></a>
+  );
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block my-2.5 rounded-xl border border-nf-border/30 bg-nf-card/60 hover:bg-nf-card hover:border-nf-accent/20 transition-all overflow-hidden max-w-[520px] group/embed">
+      {data.image && <div className="relative h-[140px] bg-nf-secondary/20 overflow-hidden">
+        <img src={data.image} alt="" className="w-full h-full object-cover group-hover/embed:scale-105 transition-transform duration-300" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+      </div>}
+      <div className="p-3 space-y-1">
+        <div className="flex items-center gap-1.5 text-[10px] text-nf-dim">
+          {data.favicon && <img src={data.favicon} alt="" className="w-3 h-3 rounded-sm" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />}
+          <span>{data.siteName || domain}</span>
+        </div>
+        {data.title && <p className="text-[13px] font-bold text-nf-text leading-snug line-clamp-2 group-hover/embed:text-nf-accent transition-colors">{data.title}</p>}
+        {data.description && <p className="text-[11px] text-nf-dim leading-relaxed line-clamp-2">{data.description}</p>}
+      </div>
+    </a>
+  );
 }
 
 function extractUrls(text: string): { url: string; type: "youtube" | "streamable" | "twitch" | "twitter" | "vimeo" | "image" | "link" }[] {
@@ -249,6 +302,7 @@ function extractUrls(text: string): { url: string; type: "youtube" | "streamable
     if (/(?:twitter\.com|x\.com)\//.test(url)) return { url, type: "twitter" as const };
     if (/vimeo\.com\//.test(url)) return { url, type: "vimeo" as const };
     if (/\.(png|jpg|jpeg|gif|webp|svg|bmp)(\?.*)?$/i.test(url)) return { url, type: "image" as const };
+    // All other social/content links get rich preview via LinkEmbedCard
     return { url, type: "link" as const };
   });
 }
@@ -422,7 +476,7 @@ function renderBody(text: string, onMentionClick?: (name: string) => void) {
     if (type === "youtube") { const vid = getYouTubeId(url); if (vid) return <div key={`yt-${idx}`} className="rounded-xl overflow-hidden my-3 max-w-[720px]"><div className="relative w-full" style={{ paddingBottom: "56.25%" }}><iframe src={`https://www.youtube.com/embed/${vid}`} className="absolute inset-0 w-full h-full" allowFullScreen /></div></div>; }
     if (type === "streamable") { const sid = getStreamableId(url); if (sid) return <div key={`st-${idx}`} className="rounded-xl overflow-hidden my-3 max-w-[720px]"><div className="relative w-full" style={{ paddingBottom: "56.25%" }}><iframe src={`https://streamable.com/e/${sid}`} className="absolute inset-0 w-full h-full" allowFullScreen /></div></div>; }
     if (type === "twitch") { const tw = getTwitchVideo(url); if (tw.video) return <div key={`tw-${idx}`} className="rounded-xl overflow-hidden my-3 max-w-[720px]"><div className="relative w-full" style={{ paddingBottom: "56.25%" }}><iframe src={`https://player.twitch.tv/?video=${tw.video}&parent=${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}&muted=true`} className="absolute inset-0 w-full h-full" allowFullScreen /></div></div>; if (tw.channel) return <a key={`tw-${idx}`} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-nf-secondary rounded-lg my-2 hover:bg-nf-secondary/40 text-[14px] text-purple-400 font-bold"><Play size={15} /> تويتش — {tw.channel}</a>; }
-    if (type === "twitter") return <a key={`x-${idx}`} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-nf-secondary rounded-lg my-2 hover:bg-nf-secondary/40 text-[14px] text-nf-accent font-bold"><ExternalLink size={15} /> إكس / تويتر</a>;
+    if (type === "twitter") return <LinkEmbedCard key={`x-${idx}`} url={url} />;
     if (type === "vimeo") { const vid = getVimeoId(url); if (vid) return <div key={`vm-${idx}`} className="rounded-xl overflow-hidden my-3 max-w-[720px]"><div className="relative w-full" style={{ paddingBottom: "56.25%" }}><iframe src={`https://player.vimeo.com/video/${vid}`} className="absolute inset-0 w-full h-full" allowFullScreen /></div></div>; }
     if (type === "image") {
       const imgName = decodeURIComponent(url.split('/').pop() || "صورة").split('?')[0];
@@ -438,7 +492,7 @@ function renderBody(text: string, onMentionClick?: (name: string) => void) {
         <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/70 text-[10px] text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">{imgName}</div>
       </div>;
     }
-    return <a key={`link-${idx}`} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-nf-secondary rounded-lg my-2 hover:bg-nf-secondary/40 text-[14px] text-nf-accent font-medium group"><Link2 size={15} /> <span className="truncate max-w-[300px] group-hover:underline">{url}</span></a>;
+    return <LinkEmbedCard key={`link-${idx}`} url={url} />;
   };
 
   // Placeholder regex: matches \x01TYPE IDX\x02
@@ -662,9 +716,9 @@ function renderBody(text: string, onMentionClick?: (name: string) => void) {
 }
 
 function UserHoverCard({ name, photo, uid, children }: { name: string; photo?: string; uid: string; children: React.ReactNode }) {
-  const [profile, setProfile] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; joinDate?: string; karma?: number; followers?: number; following?: number; isOnline?: boolean } | null>(null);
+  const [profile, setProfile] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; joinDate?: string; karma?: number; xp?: number; followers?: number; following?: number; isOnline?: boolean } | null>(null);
   const [show, setShow] = useState(false); const [loaded, setLoaded] = useState(false); const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const loadProfile = useCallback(async () => { if (loaded) return; try { const snap = await getDoc(doc(db, "users", uid)); if (snap.exists()) { const d = snap.data(); setProfile({ name: d.displayName || name, photo: d.photoURL || photo, role: d.role || "عضو", bio: d.bio, posts: d.postCount, joinDate: d.createdAt, karma: d.karma || 0, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false }); } else setProfile({ name, photo, role: "عضو" }); setLoaded(true); } catch { setProfile({ name, photo, role: "عضو" }); setLoaded(true); } }, [uid, name, photo, loaded]);
+  const loadProfile = useCallback(async () => { if (loaded) return; try { const snap = await getDoc(doc(db, "users", uid)); if (snap.exists()) { const d = snap.data(); setProfile({ name: d.displayName || name, photo: d.photoURL || photo, role: d.role || "عضو", bio: d.bio, posts: d.postCount, joinDate: d.createdAt, karma: d.karma || 0, xp: d.xp || 0, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false }); } else setProfile({ name, photo, role: "عضو" }); setLoaded(true); } catch { setProfile({ name, photo, role: "عضو" }); setLoaded(true); } }, [uid, name, photo, loaded]);
   const handleEnter = () => { timeoutRef.current = setTimeout(() => { setShow(true); loadProfile(); }, 350); };
   const handleLeave = () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); timeoutRef.current = setTimeout(() => setShow(false), 200); };
   useEffect(() => { return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }; }, []);
@@ -698,16 +752,16 @@ function UserHoverCard({ name, photo, uid, children }: { name: string; photo?: s
                 <div className="text-[9px] text-nf-dim">موضوع</div>
               </div>
               <div className="bg-nf-secondary/60 rounded-lg p-2">
-                <div className="text-[13px] font-bold text-nf-text">{profile.karma || 0}</div>
-                <div className="text-[9px] text-nf-dim">رتبة</div>
+                <div className="text-[13px] font-bold text-nf-text">{Math.round(profile.karma || 0)}</div>
+                <div className="text-[9px] text-nf-dim">صيت</div>
               </div>
               <div className="bg-nf-secondary/60 rounded-lg p-2">
                 <div className="text-[13px] font-bold text-nf-text">{profile.followers || 0}</div>
-                <div className="text-[9px] text-nf-dim">متابع</div>
+                <div className="text-[9px] text-nf-dim">يتابعونه</div>
               </div>
               <div className="bg-nf-secondary/60 rounded-lg p-2">
                 <div className="text-[13px] font-bold text-nf-text">{profile.following || 0}</div>
-                <div className="text-[9px] text-nf-dim">يتابع</div>
+                <div className="text-[9px] text-nf-dim">يتابعهم</div>
               </div>
             </div>
             {/* Role + join date */}
@@ -823,7 +877,7 @@ export default function ForumsPage() {
   const [userJoinDate, setUserJoinDate] = useState<string>("");
   const [userBio, setUserBio] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("عضو");
-  const [myProfileData, setMyProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; followerCount?: number; followingCount?: number; isOnline?: boolean; favoriteGameIds?: string[] } | null>(null);
+  const [myProfileData, setMyProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; xp?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; followerCount?: number; followingCount?: number; isOnline?: boolean; favoriteGameIds?: string[] } | null>(null);
   const fetchMyProfile = async () => {
     if (!user) return null;
     try {
@@ -842,7 +896,7 @@ export default function ForumsPage() {
         }
         let favoriteGameIds: string[] = [];
         try { const gSnap = await getDoc(doc(db, "users", user.uid, "games", "favorites")); if (gSnap.exists()) favoriteGameIds = gSnap.data().ids || []; } catch {}
-        pd = { name: d.displayName || authorName, photo: d.photoURL || authorPhoto, role: d.role || "عضو", bio: d.bio || "", posts: d.postCount || 0, karma: d.karma || 0, commentCount: d.commentCount || 0, joinDate: joinDateStr, bannerUrl: d.bannerUrl || "", socialLinks: d.socialLinks || {}, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false, favoriteGameIds };
+        pd = { name: d.displayName || authorName, photo: d.photoURL || authorPhoto, role: d.role || "عضو", bio: d.bio || "", posts: d.postCount || 0, karma: d.karma || 0, xp: d.xp || 0, commentCount: d.commentCount || 0, joinDate: joinDateStr, bannerUrl: d.bannerUrl || "", socialLinks: d.socialLinks || {}, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false, favoriteGameIds };
       }
       try { const fSnap = await getDocs(collection(db, "users", user.uid, "followers")); pd.followerCount = fSnap.size; const f2Snap = await getDocs(collection(db, "users", user.uid, "following")); pd.followingCount = f2Snap.size; } catch {}
       // Count actual threads from Firestore if postCount is 0 or missing
@@ -977,8 +1031,8 @@ export default function ForumsPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchResultsRef = useRef<HTMLDivElement>(null);
   const [profileUid, setProfileUid] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; threads?: ForumThread[]; followerCount?: number; followingCount?: number; isOnline?: boolean; favoriteGameIds?: string[] } | null>(null);
-  const [authorCache, setAuthorCache] = useState<Record<string, { bannerUrl?: string; bio?: string; role?: string; joinDate?: string; isOnline?: boolean; followerCount?: number; followingCount?: number; karma?: number; postCount?: number; commentCount?: number; socialLinks?: Record<string, string>; favoriteGameIds?: string[] }>>({});
+  const [profileData, setProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; xp?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; threads?: ForumThread[]; followerCount?: number; followingCount?: number; isOnline?: boolean; favoriteGameIds?: string[] } | null>(null);
+  const [authorCache, setAuthorCache] = useState<Record<string, { bannerUrl?: string; bio?: string; role?: string; joinDate?: string; isOnline?: boolean; followerCount?: number; followingCount?: number; karma?: number; xp?: number; postCount?: number; commentCount?: number; socialLinks?: Record<string, string>; favoriteGameIds?: string[] }>>({});
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [editBio, setEditBio] = useState("");
   const [editBannerUrl, setEditBannerUrl] = useState("");
@@ -1048,13 +1102,9 @@ export default function ForumsPage() {
       if (isFollowing) {
         await deleteDoc(followerDocRef);
         await deleteDoc(followingDocRef);
-        // Remove karma -5 for unfollow
-        await updateDoc(doc(db, "users", uid), { karma: increment(-5) }).catch(() => {});
       } else {
         await setDoc(followerDocRef, { uid: user.uid, name: user.displayName || "مستخدم", photo: user.photoURL || "", followedAt: new Date().toISOString() });
         await setDoc(followingDocRef, { uid, followedAt: new Date().toISOString() });
-        // Add karma +5 for new follower
-        await updateDoc(doc(db, "users", uid), { karma: increment(5) }).catch(() => {});
       }
       // Update authorCache if loaded
       if (authorCache[uid]) {
@@ -1345,7 +1395,7 @@ export default function ForumsPage() {
 - عدد المواضيع: ${pd.posts || 0}
 - تاريخ الانضمام: ${pd.joinDate || "غير محدد"}
 - متابعين: ${pd.followerCount || 0}
-- متابَعين: ${pd.followingCount || 0}
+- يتابعهم: ${pd.followingCount || 0}
 - الروابط: ${socialLinksStr}
 
 قواعد صارمة جداً:
@@ -1700,12 +1750,13 @@ export default function ForumsPage() {
     try {
       const profile = await fetchUserProfile(uid);
       const data: any = { role: profile.role, bio: profile.bio || "", bannerUrl: profile.bannerUrl || "", joinDate: profile.joinDate || "", isOnline: profile.isOnline || false, postCount: profile.posts || 0, socialLinks: profile.socialLinks || {}, followerCount: profile.followerCount || 0, followingCount: profile.followingCount || 0, favoriteGameIds: [] };
-      // Read karma and postCount directly from Firestore user doc for accuracy
+      // Read karma, xp, postCount directly from Firestore user doc for accuracy
       try {
         const uSnap = await getDoc(doc(db, "users", uid));
         if (uSnap.exists()) {
           const d = uSnap.data();
           if (d.karma !== undefined) data.karma = d.karma;
+          if (d.xp !== undefined) data.xp = d.xp;
           if (d.postCount !== undefined) data.postCount = d.postCount;
           if (d.commentCount !== undefined) data.commentCount = d.commentCount;
         }
@@ -1746,6 +1797,7 @@ export default function ForumsPage() {
         if (uSnap.exists()) {
           const d = uSnap.data();
           pd.karma = d.karma || 0;
+          pd.xp = d.xp || 0;
           pd.commentCount = d.commentCount || 0;
         }
       } catch {}
@@ -1797,34 +1849,90 @@ export default function ForumsPage() {
 
   // Close dropdowns on outside click (use click, not mousedown, so item clicks fire first)
   useEffect(() => { const handler = (e: MouseEvent) => { if (sortDropdownOpen) setSortDropdownOpen(false); if (sortOrderDropdownOpen) setSortOrderDropdownOpen(false); if (typeDropdownOpen) setTypeDropdownOpen(false); }; if (sortDropdownOpen || sortOrderDropdownOpen || typeDropdownOpen) setTimeout(() => document.addEventListener("click", handler), 10); return () => document.removeEventListener("click", handler); }, [sortDropdownOpen, sortOrderDropdownOpen, typeDropdownOpen]);
-  const handleVote = (threadId: string, dir: "up" | "down") => {
+  const votingThreadRef = useRef<Set<string>>(new Set());
+  const handleVote = async (threadId: string, dir: "up" | "down") => {
+    if (!user || votingThreadRef.current.has(threadId)) return;
     const prev = userVotes[threadId];
     // Find community for this thread
     const thread = threads.find(t => t.id === threadId) || allThreads.find(t => t.id === threadId);
     const threadCommunity = thread?.community || selectedCommunity;
     const isRealDoc = threadId && !threadId.includes("-");
+    // Prevent self-voting
+    if (thread?.authorUid && thread.authorUid === user.uid) return;
+    // Determine new state and delta
+    let delta: number;
+    let isRemoving: boolean;
     if (prev === dir) {
-      // Remove vote - decrement Firebase
+      // Same direction → toggle off
+      delta = dir === "up" ? -1 : 1;
+      isRemoving = true;
       setUserVotes(p => { const n = { ...p }; delete n[threadId]; return n; });
-      if (isRealDoc) {
-        try {
-          const delta = prev === "up" ? -1 : 1;
-          voteThread(threadCommunity, threadId, delta);
-        } catch {}
-      }
-      setThreads(p => p.map(th => th.id === threadId ? { ...th, votes: (th.votes || 0) + (prev === "up" ? -1 : 1) } : th));
-      return;
+    } else if (prev) {
+      // Opposite direction → just remove current vote (go neutral)
+      delta = prev === "up" ? -1 : 1;
+      isRemoving = true;
+      setUserVotes(p => { const n = { ...p }; delete n[threadId]; return n; });
+    } else {
+      // No vote → apply new vote
+      delta = dir === "up" ? 1 : -1;
+      isRemoving = false;
+      setUserVotes(p => ({ ...p, [threadId]: dir }));
     }
-    // New vote or change vote
-    setUserVotes(p => ({ ...p, [threadId]: dir }));
-    let delta = dir === "up" ? 1 : -1;
-    if (prev) delta = prev === "up" ? -2 : 2;
-    if (isRealDoc) {
-      try { voteThread(threadCommunity, threadId, delta); } catch {}
-    }
+    // Update state immediately
     setThreads(p => p.map(th => th.id === threadId ? { ...th, votes: (th.votes || 0) + delta } : th));
+    votingThreadRef.current.add(threadId);
+    if (isRealDoc) {
+      try {
+        // Get voter's data for trust-based weight
+        const voterSnap = await getDoc(doc(db, "users", user.uid)).catch(() => null);
+        const voterData = voterSnap?.exists() ? {
+          accountAgeDays: Math.max(0, Math.floor((Date.now() - (voterSnap.data().createdAt?.toDate?.()?.getTime?.() || voterSnap.data().joinDate?.toDate?.()?.getTime?.() || Date.now())) / 86400000)),
+          karma: voterSnap.data().karma || 0,
+          postCount: voterSnap.data().postCount || 0,
+        } : { accountAgeDays: 999, karma: 999, postCount: 999 };
+        voteThread(threadCommunity, threadId, delta);
+        // Apply صيت change to author — use transaction for atomicity + idempotency
+        if (thread?.authorUid) {
+          const contentVotes = (thread.votes || 0) + delta;
+          if (isRemoving) {
+            // Removing vote → read stored saitGain from vote doc to exactly reverse it
+            const voteSnap = await getDoc(doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid)).catch(() => null);
+            const storedGain = voteSnap?.exists() ? (voteSnap.data().saitGain || 0) : 0;
+            console.log("[SAIT] ForumsPage REMOVE", { threadId, voterUid: user.uid, previousVote: prev, delta, storedGain, reputationDelta: -storedGain });
+            if (storedGain !== 0) {
+              await updateDoc(doc(db, "users", thread.authorUid), { karma: increment(-storedGain) }).catch(() => {});
+            }
+            // Delete vote doc
+            await deleteDoc(doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid)).catch(() => {});
+          } else {
+            // Adding new vote → use transaction to prevent double-counting
+            const saitGain = calcSaitGain(Math.abs(contentVotes), dir === "up" ? 1 : -1, voterData);
+            console.log("[SAIT] ForumsPage ADD", { threadId, voterUid: user.uid, previousVote: prev, dir, saitGain, contentVotes });
+            await runTransaction(db, async (transaction) => {
+              const voteDocRef = doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid);
+              const voteDoc = await transaction.get(voteDocRef);
+              // Idempotency: if vote doc already exists with same dir, skip karma update
+              if (voteDoc.exists() && voteDoc.data().dir === (dir === "up" ? 1 : -1)) {
+                console.log("[SAIT] ForumsPage SKIP (vote already exists)", { threadId, voterUid: user.uid });
+                return;
+              }
+              // Write vote doc + update karma atomically
+              transaction.set(voteDocRef, { dir: dir === "up" ? 1 : -1, votedAt: new Date().toISOString(), saitGain });
+              if (saitGain !== 0) {
+                const authorRef = doc(db, "users", thread.authorUid);
+                const authorDoc = await transaction.get(authorRef);
+                const currentKarma = authorDoc.exists() ? (authorDoc.data().karma || 0) : 0;
+                transaction.update(authorRef, { karma: currentKarma + saitGain });
+              }
+            });
+            console.log("[SAIT] ForumsPage DONE", { threadId, voterUid: user.uid, saitGain });
+          }
+        }
+      } catch {}
+    }
+    votingThreadRef.current.delete(threadId);
   };
-  const handleCreateThread = async () => { if (!newTitle.trim()) return; setCreating(true); setCreateBlur(true); try { const tagsArr = newTags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 5); const threadData = { title: newTitle.trim(), body: newBody.trim(), authorName, authorUid, authorPhoto, community: newCommunity, pinned: false, locked: false, solved: false, replyCount: 0, views: 0, votes: 0, createdAt: new Date().toISOString(), tags: tagsArr, type: newType }; const docId = await createThread(newCommunity, threadData); if (newCommunity === selectedCommunity) setThreads(prev => [{ id: docId, ...threadData }, ...prev]); setNewTitle(""); setNewBody(""); setNewTags(""); setNewType("discussion"); setCreating(false); setTimeout(() => { setViewMode("list"); setTimeout(() => setCreateBlur(false), 100); }, 500); } catch { setCreateBlur(false); setCreating(false); } };
+  const handleCreateThread = async () => { if (!newTitle.trim()) return; setCreating(true); setCreateBlur(true); try { const tagsArr = newTags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 5); const threadData = { title: newTitle.trim(), body: newBody.trim(), authorName, authorUid, authorPhoto, community: newCommunity, pinned: false, locked: false, solved: false, replyCount: 0, views: 0, votes: 0, createdAt: new Date().toISOString(), tags: tagsArr, type: newType }; const docId = await createThread(newCommunity, threadData); if (newCommunity === selectedCommunity) setThreads(prev => [{ id: docId, ...threadData }, ...prev]); if (authorUid) await updateDoc(doc(db, "users", authorUid), { xp: increment(5), postCount: increment(1) }).catch(() => {}); setNewTitle(""); setNewBody(""); setNewTags(""); setNewType("discussion"); setCreating(false); setTimeout(() => { setViewMode("list"); setTimeout(() => setCreateBlur(false), 100); }, 500); } catch { setCreateBlur(false); setCreating(false); } };
   const handleReply = async (threadId: string) => { if (!replyText.trim()) return; try { const rd = { text: replyText.trim(), authorName, authorUid, authorPhoto, createdAt: new Date().toISOString(), votes: 0, ...(quotedThreadId ? { quotedThreadId } : {}) }; await addReply(selectedCommunity, threadId, rd); setReplies(prev => ({ ...prev, [threadId]: [...(prev[threadId] || []), { id: "temp-" + Date.now(), ...rd }] })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: th.replyCount + 1, lastReplyAt: new Date().toISOString(), lastReplyBy: authorName } : th)); setReplyText(""); setReplyingTo(null); setQuotedThreadId(null); setTimeout(() => replyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {} };
   const handleDeleteReply = async (threadId: string, replyId: string) => { try { await deleteReplyHelper(selectedCommunity, threadId, replyId); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).filter(r => r.id !== replyId) })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: Math.max(0, th.replyCount - 1) } : th)); setMenuOpen(null); } catch {} };
   const handleEditReply = async (threadId: string, replyId: string) => { if (!editText.trim()) return; try { await updateReply(selectedCommunity, threadId, replyId, editText.trim()); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).map(r => r.id === replyId ? { ...r, text: editText.trim(), edited: true } : r) })); setEditingReply(null); setEditText(""); setMenuOpen(null); } catch {} };
@@ -1965,7 +2073,7 @@ export default function ForumsPage() {
 
 
   const filteredThreads = threads.filter(th => { if (typeFilter !== "all" && th.type !== typeFilter) return false; if (searchQuery.trim()) { const q = searchQuery.toLowerCase(); if (!th.title.toLowerCase().includes(q) && !th.body?.toLowerCase().includes(q) && !th.tags?.some(t => t.toLowerCase().includes(q))) return false; } if (timeFilter !== "all") { const now = Date.now(); const cutoff = timeFilter === "today" ? now - 86400000 : timeFilter === "week" ? now - 86400000 * 7 : now - 86400000 * 30; if (new Date(th.createdAt).getTime() < cutoff) return false; } return true; });
-  const sortedThreads = [...filteredThreads].sort((a, b) => { if (sortMode === "pinned") return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0); if (sortMode === "popular") return (b.replyCount || 0) - (a.replyCount || 0); if (sortMode === "unsolved") return (a.solved ? 0 : 1) - (b.solved ? 0 : 1); if (sortMode === "views") return (b.views || 0) - (a.views || 0); const timeDiff = (b.createdAt || "").localeCompare(a.createdAt || ""); return threadSort === "oldest" ? -timeDiff : timeDiff; });
+  const sortedThreads = [...filteredThreads].sort((a, b) => { if (sortMode === "pinned") return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0); if (sortMode === "popular") return (b.replyCount || 0) - (a.replyCount || 0); if (sortMode === "unsolved") return (a.solved ? 0 : 1) - (b.solved ? 0 : 1); if (sortMode === "views") return (b.views || 0) - (a.views || 0); if (sortMode === "hot") return hotRank(b.votes || 0, b.replyCount || 0, b.createdAt) - hotRank(a.votes || 0, a.replyCount || 0, a.createdAt); const timeDiff = (b.createdAt || "").localeCompare(a.createdAt || ""); return threadSort === "oldest" ? -timeDiff : timeDiff; });
   const pinnedThreads = sortedThreads.filter(t => t.pinned); const regularThreads = sortedThreads.filter(t => !t.pinned);
   const activeThread = activeThreadId ? (threads.find(t => t.id === activeThreadId) || allThreads.find(t => t.id === activeThreadId)) : null;
   const activeReplies = activeThreadId ? (replies[activeThreadId] || []) : [];
@@ -2112,13 +2220,13 @@ export default function ForumsPage() {
             <div className="text-[11px] font-bold text-nf-dim uppercase tracking-wider px-2 mb-1.5">تصفح</div>
             <div className="space-y-0.5">
               {[
-                { icon: Home, label: "الرئيسية", id: "home", active: viewMode === "list" },
-                { icon: Flame, label: "الأكثر شعبية", id: "popular", active: sortMode === "popular" && viewMode === "list" },
+                { icon: Home, label: "الرئيسية", id: "home", active: viewMode === "list" && sortMode === "hot" },
+                { icon: Flame, label: "ساخن", id: "hot", active: sortMode === "hot" && viewMode === "list" },
+                { icon: TrendingUp, label: "الأكثر شعبية", id: "popular", active: sortMode === "popular" && viewMode === "list" },
                 { icon: Clock, label: "الأحدث", id: "new", active: sortMode === "latest" && viewMode === "list" },
-                { icon: TrendingUp, label: "الأعلى تصويت", id: "top", active: false },
                 { icon: CheckCircle2, label: "غير محلول", id: "unsolved", active: sortMode === "unsolved" && viewMode === "list" },
               ].map(item => (
-                <button key={item.id} onClick={() => { backToList(); if (item.id === "popular") setSortMode("popular"); else if (item.id === "unsolved") setSortMode("unsolved"); else if (item.id === "new") setSortMode("latest"); else if (item.id === "top") setSortMode("views"); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all", item.active ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text")}>
+                <button key={item.id} onClick={() => { backToList(); if (item.id === "hot" || item.id === "home") setSortMode("hot"); else if (item.id === "popular") setSortMode("popular"); else if (item.id === "unsolved") setSortMode("unsolved"); else if (item.id === "new") setSortMode("latest"); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all", item.active ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text")}>
                   <item.icon size={16} className={cn("shrink-0", item.active ? "text-nf-accent" : "text-nf-dim")} /><span>{item.label}</span>
                 </button>
               ))}
@@ -2271,11 +2379,11 @@ export default function ForumsPage() {
                     {/* Stats bar - flat */}
                     <div className="flex items-center gap-1.5 px-6 pb-4 flex-wrap">
                       {[
-                        { label: "كارما", value: profileData.karma ?? profileData.threads?.reduce((s, t) => s + (t.votes || 0), 0) ?? 0, icon: Star },
+                        { label: "صيت", value: Math.round(profileData.karma ?? profileData.threads?.reduce((s, t) => s + (t.votes || 0), 0) ?? 0), icon: Star },
                         { label: "مواضيع", value: profileData.threads?.length || 0, icon: MessageCircle },
                         { label: "تعليقات", value: profileData.commentCount || 0, icon: MessageSquare },
-                        { label: "متابعين", value: profileData.followerCount || 0, icon: Users },
-                        { label: "متابَعين", value: profileData.followingCount || 0, icon: User },
+                        { label: "يتابعونه", value: profileData.followerCount || 0, icon: Users },
+                        { label: "يتابعهم", value: profileData.followingCount || 0, icon: User },
                       ].map((stat, i) => { const SI = stat.icon; return (
                         <span key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-nf-secondary text-[11px] text-nf-dim font-medium">
                           <SI size={11} className="text-nf-accent" />
@@ -2459,11 +2567,11 @@ export default function ForumsPage() {
                               {authorCache[activeThread.authorUid]?.bio && <p className="text-[11px] text-nf-dim leading-[1.7] mb-2.5 line-clamp-2">{authorCache[activeThread.authorUid].bio}</p>}
                               {/* Stats row */}
                               <div className="flex items-center gap-4 mb-2.5 border-t border-nf-border/40 pt-2.5 text-[11px]">
-                                <span className="text-nf-dim flex items-center gap-1.5">{rankBadge(authorCache[activeThread.authorUid]?.karma ?? 0, "md")}<span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.karma ?? 0}</span> نقطة</span>
+                                <span className="text-nf-dim flex items-center gap-1.5">{levelBadge(authorCache[activeThread.authorUid]?.xp ?? 0, "md")}<span className="font-bold text-nf-text text-[13px]">{Math.round(authorCache[activeThread.authorUid]?.karma ?? 0)}</span> صيت</span>
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.postCount ?? sortedThreads.filter(t => t.authorUid === activeThread.authorUid).length}</span> موضوع</span>
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.commentCount ?? activeReplies.filter(r => r.authorUid === activeThread.authorUid).length}</span> رد</span>
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.followerCount ?? "—"}</span> متابِع</span>
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.followingCount ?? "—"}</span> متابَع</span>
+                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.followerCount ?? "—"}</span> يتابعونه</span>
+                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.followingCount ?? "—"}</span> يتابعهم</span>
                                 <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{allThreads.filter(t => t.authorUid === activeThread.authorUid).reduce((s, t) => s + (t.views || 0), 0)}</span> مشاهدة</span>
                               </div>
                               {/* Join date */}
@@ -2743,11 +2851,11 @@ export default function ForumsPage() {
                                   {authorCache[reply.authorUid]?.bio && <p className="text-[10px] text-nf-dim leading-[1.6] mb-2 line-clamp-2">{authorCache[reply.authorUid].bio}</p>}
                                   {/* Stats row */}
                                   <div className="flex items-center gap-3 mb-2 border-t border-nf-border/40 pt-2 text-[10px]">
-                                    <span className="text-nf-dim flex items-center gap-1.5">{rankBadge(authorCache[reply.authorUid]?.karma ?? 0, "sm")}<span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.karma ?? "—"}</span> نقطة</span>
+                                    <span className="text-nf-dim flex items-center gap-1.5">{levelBadge(authorCache[reply.authorUid]?.xp ?? 0, "sm")}<span className="font-bold text-nf-text text-[12px]">{Math.round(authorCache[reply.authorUid]?.karma ?? 0)}</span> صيت</span>
                                     <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.postCount ?? sortedThreads.filter(t => t.authorUid === reply.authorUid).length}</span> موضوع</span>
                                     <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.commentCount ?? activeReplies.filter(r => r.authorUid === reply.authorUid).length}</span> رد</span>
-                                    <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.followerCount ?? "—"}</span> متابِع</span>
-                                    <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.followingCount ?? "—"}</span> متابَع</span>
+                                    <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.followerCount ?? "—"}</span> يتابعونه</span>
+                                    <span className="text-nf-dim"><span className="font-bold text-nf-text text-[12px]">{authorCache[reply.authorUid]?.followingCount ?? "—"}</span> يتابعهم</span>
                                   </div>
                                   {/* Join date */}
                                   {authorCache[reply.authorUid]?.joinDate && <div className="flex items-center gap-1.5 mb-1.5 text-[9px] text-nf-dim"><Calendar size={9} className="text-nf-accent" /> انضم {formatDate(authorCache[reply.authorUid].joinDate!)}</div>}
@@ -3437,14 +3545,14 @@ export default function ForumsPage() {
                                           )}
                                           <div className="flex items-center gap-2 mt-3 flex-wrap">
                                             {[
-                                              { label: "رتبة", value: myProfileData?.karma || 0, icon: Flame, rank: getRank(myProfileData?.karma || 0) },
+                                              { label: "رتبة", value: myProfileData?.xp || 0, icon: Flame, rank: getLevel(myProfileData?.xp || 0) },
                                               { label: "مواضيع", value: myProfileData?.posts || 0, icon: MessageCircle },
                                               { label: "تعليقات", value: myProfileData?.commentCount || 0, icon: MessageSquare },
-                                              { label: "متابعين", value: myProfileData?.followerCount || 0, icon: Users },
-                                              { label: "متابَعين", value: myProfileData?.followingCount || 0, icon: User },
+                                              { label: "يتابعونه", value: myProfileData?.followerCount || 0, icon: Users },
+                                              { label: "يتابعهم", value: myProfileData?.followingCount || 0, icon: User },
                                             ].map((stat, i) => { const SI = stat.icon; return (
                                               <span key={i} className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-nf-secondary/40 text-[9px] text-nf-dim/50 font-medium">
-                                                {(stat as any).rank ? rankBadge(stat.value, "sm") : <><SI size={9} className="text-nf-accent/50" /><span className="font-bold text-nf-text">{stat.value}</span> {stat.label}</>}
+                                                {(stat as any).rank ? levelBadge(stat.value, "sm") : <><SI size={9} className="text-nf-accent/50" /><span className="font-bold text-nf-text">{stat.value}</span> {stat.label}</>}
                                               </span>
                                             ); })}
                                             {myProfileData?.joinDate && <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-nf-secondary/40 text-[9px] text-nf-dim/50 font-medium"><Calendar size={9} className="text-nf-accent/50" /> انضم {timeAgo(myProfileData.joinDate)}</span>}
@@ -3763,7 +3871,7 @@ export default function ForumsPage() {
 - عدد المواضيع: ${pd.posts || 0}
 - تاريخ الانضمام: ${pd.joinDate || "غير محدد"}
 - متابعين: ${pd.followerCount || 0}
-- متابَعين: ${pd.followingCount || 0}
+- يتابعهم: ${pd.followingCount || 0}
 - الروابط: ${socialLinksStr}
 
 قواعد صارمة جداً:
@@ -4240,6 +4348,7 @@ export default function ForumsPage() {
                   {/* Tabs + Dropdowns */}
                   <div className="flex items-center gap-1.5 mb-4 flex-wrap">
                     {[
+                      { id: "hot" as const, l: "ساخن", icon: Flame },
                       { id: "latest" as const, l: "الأحدث", icon: Clock },
                       { id: "popular" as const, l: "الأكثر ردود", icon: MessageSquare },
                       { id: "views" as const, l: "المشاهدات", icon: Eye },
@@ -4472,8 +4581,8 @@ export default function ForumsPage() {
                     <p className="text-nf-dim/65">عند مشاركتك في المنتدى سيكون بروفايلك مرئيا لباقي الاعضاء. يتضمن بروفايلك اسمك وصورتك ودورك ورتبتك وعدد المنشورات والتعليقات ونقاطك ورقم المتابعين والمتابَعين وتاريخ الانضمام والالعاب المفضلة لديك ان وجدت وروابط التواصل الاجتماعي ان اضفتها. يمكنك في اي وقت تعديل هذه المعلومات من اعدادات البروفايل الخاصة بك. بعض الاحصائيات مثل عدد المنشورات والتعليقات ونقاطك يتم تحديثها تلقائيا بناء على نشاطك الفعلي في المجتمع. لا يمكنك اخفاء بياناتك الاساسية لكن يمكنك التحكم في ما تشاركه اضافيا مثل الروابط والالعاب.</p>
                   </div>
                   <div className="border-r-2 border-nf-accent/25 pr-4">
-                    <p className="text-[13px] font-black text-nf-text mb-1">نظام الرتب</p>
-                    <p className="text-nf-dim/65">NorthFall يعتمد نظام رتب فريد يعكس مدى نشاطك وتفاعلك في المجتمع. كل فعل تقوم فيه يكسبك نقاطا: نشر موضوع يعطيك 3 نقاط وكتابة رد تعطيك نقطتين وكل صوت ايجابي على محتواك يضيف نقطة وكل متابع جديد يضيف 5 نقاط. اما التصويت السلبي فينقص نقطتين من نقاطك. رتبتك تتطور مع نقاطك: مبتدئ من الصفر ثم متمرس عند 50 نقطة ونشيط عند 200 ومتقدم عند 750 ومحترف عند 2500 وخبير عند 7500 وبطل عند 25000 واسطورة عند 100000 نقطة. الرتب ليست مجرد اسم بل هي مقياس حقيقي لمساهمتك في بناء المجتمع. الاعضاء ذوو الرتب العالية يحصلون على مكانة مميزة وقد يحصلون على صلاحيات اضافية في المستقبل مثل القدرة على الاشراف على مجتمعات معينة او المشاركة في برامج حصرية. نظام الرتب مصمم ليكون عادلا ويكافئ الجهد الحقيقي وليس مجرد الكمية. لا يمكن شراء الرتبة او الحصول عليها بطرق غير مشروعة. رتبك تظهر بجانب اسمك في كل مكان في التطبيق والمنتدى وهي تعكس مكانتك الحقيقية في المجتمع.</p>
+                    <p className="text-[13px] font-black text-nf-text mb-1">نظام الصيت والنقاط</p>
+                    <p className="text-nf-dim/65">NorthFall يعتمد نظامين مستقلين: الصيت والنقاط. الصيت يعكس سمعة المستخدم الحقيقية ويأتي فقط من تصويت الناس على محتواك: كل تصويت ايجابي يزيد صيتك وكل تصويت سلبي ينقصه. لكن الصيت لا يزداد بشكل خطي — كلما زاد صيتك تقل قيمة كل صوت جديد لمنع التضخيم. اما النقاط فتأتي فقط من نشر المحتوى: كل منشور او موضوع جديد يعطيك 5 نقاط. رتبتك تتحدد بالنقاط وليس بالصيت: مبتدئ من الصفر ثم متمرس عند 50 نقطة ونشيط عند 200 ومتقدم عند 750 ومحترف عند 2500 وخبير عند 7500 وبطل عند 25000 واسطورة عند 100000 نقطة. الصيت مقياس لجودة محتواك والنقاط مقياس لانتاجك. لا يمكنك التصويت لنفسك. ترتيب المواضيع في الصفحة الرئيسية يعتمد على سرعة التفاعل وعدد الاصوات ووقت النشر وليس فقط على عدد الاصوات لضمان فرصة عادلة للمواضيع الجديدة.</p>
                   </div>
                   <div className="border-r-2 border-nf-accent/25 pr-4">
                     <p className="text-[13px] font-black text-nf-text mb-1">المجتمعات والالعاب</p>

@@ -448,7 +448,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                             )}
                             <div className="flex-1 min-w-0 text-right">
                               <p className="text-[13px] font-bold text-white"><Highlight text={r.name} query={searchQuery} /></p>
-                              <span className="text-[11px] text-nf-dim">u/{r.name}{r.karma ? ` · ${r.karma} ${t("search.karmaCount")}` : ""}</span>
+                              <span className="text-[11px] text-nf-dim">u/{r.name}{r.karma ? ` · ${Math.max(0, Math.round(r.karma))} ${t("search.karmaCount")}` : ""}</span>
                             </div>
                             <User size={14} className="text-nf-dim shrink-0" />
                           </button>
