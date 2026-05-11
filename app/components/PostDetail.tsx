@@ -458,7 +458,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           accountAgeDays: Math.max(0, Math.floor((Date.now() - (voterSnap.data().createdAt?.toDate?.()?.getTime?.() || voterSnap.data().joinDate?.toDate?.()?.getTime?.() || Date.now())) / 86400000)),
           karma: voterSnap.data().karma || 0,
           postCount: voterSnap.data().postCount || 0,
-        } : { accountAgeDays: 999, karma: 999, postCount: 999 };
+        } : { accountAgeDays: 0, karma: 0, postCount: 0 };
         const isRemoving = newVote === 0;
         if (isRemoving) {
           // Removing vote → read stored saitGain from vote doc to exactly reverse it

@@ -1888,7 +1888,7 @@ export default function ForumsPage() {
           accountAgeDays: Math.max(0, Math.floor((Date.now() - (voterSnap.data().createdAt?.toDate?.()?.getTime?.() || voterSnap.data().joinDate?.toDate?.()?.getTime?.() || Date.now())) / 86400000)),
           karma: voterSnap.data().karma || 0,
           postCount: voterSnap.data().postCount || 0,
-        } : { accountAgeDays: 999, karma: 999, postCount: 999 };
+        } : { accountAgeDays: 0, karma: 0, postCount: 0 };
         voteThread(threadCommunity, threadId, delta);
         // Apply صيت change to author — use transaction for atomicity + idempotency
         if (thread?.authorUid) {
