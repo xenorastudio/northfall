@@ -455,10 +455,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         // Get voter's data for trust-based weight
         const voterSnap = await getDoc(doc(db, "users", user.uid)).catch(() => null);
         const voterData = voterSnap?.exists() ? {
-          accountAgeDays: Math.max(0, Math.floor((Date.now() - (voterSnap.data().createdAt?.toDate?.()?.getTime?.() || voterSnap.data().joinDate?.toDate?.()?.getTime?.() || Date.now())) / 86400000)),
-          karma: voterSnap.data().karma || 0,
-          postCount: voterSnap.data().postCount || 0,
-        } : { accountAgeDays: 0, karma: 0, postCount: 0 };
+          xp: voterSnap.data().xp || 0,
+        } : { xp: 0 };
         console.log("[SAIT] PostDetail voterData", { voterUid: user.uid, voterData, authorUid: post.authorUid });
         const isRemoving = newVote === 0;
         if (isRemoving) {
@@ -566,8 +564,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       });
       console.log("[PostDetail] Comment saved with ID:", commentRef.id);
       await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
-      // Update user comment count
-      await updateDoc(doc(db, "users", user.uid), { commentCount: increment(1) }).catch(() => {});
+      // Update user comment count + XP
+      await updateDoc(doc(db, "users", user.uid), { commentCount: increment(1), xp: increment(2) }).catch(() => {});
       console.log("[PostDetail] Comment count updated");
       setCommentText("");
       setReplyTo(null);

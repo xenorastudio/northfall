@@ -1,40 +1,20 @@
 // ─── Ranking System: صيت (Reputation) + XP (Points) ─────────────────
 //
 // صيت: from votes only, with diminishing returns based on content vote count
-// XP: from posting only (+5 per post)
+// XP: from activity only — posting (+5), replying (+2), commenting (+2)
 //
-// Trust: gradual — based on time + real engagement + activity (not just posts)
+// voterWeight: based on XP only — XP < 50 → 0.3, XP ≥ 50 → 1.0
 
 export interface VoterData {
-  accountAgeDays: number;  // days since account creation
-  karma: number;           // صيت received from others (proof of real engagement)
-  postCount: number;       // number of posts (activity level)
+  xp: number;  // activity points — determines voter trust
 }
 
-/** Calculate voter weight based on composite trust score (0.3 → 1.0) */
+/** Calculate voter weight based on XP (0.3 → 1.0) */
 export function calcVoterWeight(data: VoterData): number {
-  // Age factor (0→1): account must be at least 14 days old to start building trust
-  const ageFactor = data.accountAgeDays < 14 ? 0
-    : data.accountAgeDays < 60 ? ((data.accountAgeDays - 14) / 46) * 0.5
-    : data.accountAgeDays < 180 ? 0.5 + ((data.accountAgeDays - 60) / 120) * 0.3
-    : 0.8 + Math.min((data.accountAgeDays - 180) / 180, 1) * 0.2;
-
-  // صيت factor (0→1): must have at least 10 صيت from others to start
-  const saitFactor = data.karma < 10 ? 0
-    : data.karma < 100 ? ((data.karma - 10) / 90) * 0.5
-    : data.karma < 500 ? 0.5 + ((data.karma - 100) / 400) * 0.3
-    : 0.8 + Math.min((data.karma - 500) / 500, 1) * 0.2;
-
-  // Activity factor (0→1): must have at least 5 posts
-  const activityFactor = data.postCount < 5 ? 0
-    : data.postCount < 25 ? ((data.postCount - 5) / 20) * 0.5
-    : data.postCount < 100 ? 0.5 + ((data.postCount - 25) / 75) * 0.3
-    : 0.8 + Math.min((data.postCount - 100) / 100, 1) * 0.2;
-
-  // Composite trust: age 40% + صيت 40% + activity 20%
-  const trustScore = ageFactor * 0.4 + saitFactor * 0.4 + activityFactor * 0.2;
-  // Weight range: 0.3 (brand new) → 1.0 (fully trusted)
-  return 0.3 + 0.7 * trustScore;
+  // Simple XP-based trust: new accounts (XP < 50) have weak votes
+  // Active accounts (XP ≥ 50) have full-weight votes
+  // This prevents spam/new account manipulation
+  return data.xp < 50 ? 0.3 : 1.0;
 }
 
 /** Calculate صيت gain from a vote, with diminishing returns and trust-based weight */

@@ -255,10 +255,8 @@ export default function PostCard({
         // Get voter's data for trust-based weight
         const voterSnap = await getDoc(doc(db, "users", user.uid)).catch(() => null);
         const voterData = voterSnap?.exists() ? {
-          accountAgeDays: Math.max(0, Math.floor((Date.now() - (voterSnap.data().createdAt?.toDate?.()?.getTime?.() || voterSnap.data().joinDate?.toDate?.()?.getTime?.() || Date.now())) / 86400000)),
-          karma: voterSnap.data().karma || 0,
-          postCount: voterSnap.data().postCount || 0,
-        } : { accountAgeDays: 0, karma: 0, postCount: 0 };
+          xp: voterSnap.data().xp || 0,
+        } : { xp: 0 };
         console.log("[SAIT] PostCard voterData", { voterUid: user.uid, voterData, authorUid });
         const isRemoving = newVote === 0;
         if (isRemoving) {
