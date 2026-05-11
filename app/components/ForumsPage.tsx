@@ -1910,19 +1910,19 @@ export default function ForumsPage() {
             try {
               await runTransaction(db, async (transaction) => {
                 const voteDocRef = doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid);
+                const authorRef = doc(db, "users", thread.authorUid);
+                // ALL reads FIRST (Firestore requirement)
                 const voteDoc = await transaction.get(voteDocRef);
+                const authorDoc = await transaction.get(authorRef);
                 // Idempotency: if vote doc already exists with same dir, skip karma update
                 if (voteDoc.exists() && voteDoc.data().dir === (dir === "up" ? 1 : -1)) {
                   console.log("[SAIT] ForumsPage SKIP (vote already exists)", { threadId, voterUid: user.uid });
                   return;
                 }
-                // Write vote doc + update karma atomically
+                // ALL writes AFTER reads
                 transaction.set(voteDocRef, { dir: dir === "up" ? 1 : -1, votedAt: new Date().toISOString(), saitGain });
                 if (saitGain !== 0) {
-                  const authorRef = doc(db, "users", thread.authorUid);
-                  const authorDoc = await transaction.get(authorRef);
                   const currentKarma = authorDoc.exists() ? (authorDoc.data().karma || 0) : 0;
-                  // Use set with merge — works even if author doc doesn't exist yet
                   transaction.set(authorRef, { karma: currentKarma + saitGain }, { merge: true });
                 }
               });

@@ -277,19 +277,19 @@ export default function PostCard({
           try {
             await runTransaction(db, async (transaction) => {
               const voteDocRef = doc(db, "posts", postId, "votes", user.uid);
+              const authorRef = doc(db, "users", authorUid);
+              // ALL reads FIRST (Firestore requirement)
               const voteDoc = await transaction.get(voteDocRef);
+              const authorDoc = await transaction.get(authorRef);
               // Idempotency: if vote doc already exists with same dir, skip karma update
               if (voteDoc.exists() && voteDoc.data().dir === newVote) {
                 console.log("[SAIT] PostCard SKIP (vote already exists)", { postId, voterUid: user.uid });
                 return;
               }
-              // Write vote doc + update karma atomically
+              // ALL writes AFTER reads
               transaction.set(voteDocRef, { dir: newVote, votedAt: new Date().toISOString(), saitGain });
               if (saitGain !== 0) {
-                const authorRef = doc(db, "users", authorUid);
-                const authorDoc = await transaction.get(authorRef);
                 const currentKarma = authorDoc.exists() ? (authorDoc.data().karma || 0) : 0;
-                // Use set with merge — works even if author doc doesn't exist yet
                 transaction.set(authorRef, { karma: currentKarma + saitGain }, { merge: true });
               }
             });
