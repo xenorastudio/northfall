@@ -35,14 +35,14 @@ export function calcSaitGain(contentVotes: number, voteDir: 1 | -1, voterData: V
   // 100+ votes: still meaningful (0.25) — viral posts keep real value
   const multiplier = contentVotes < 10 ? 1 : contentVotes < 100 ? 0.6 : 0.25;
   const raw = multiplier * voterWeight;
-  // Round to nearest integer
-  // Minimum 1 for upvotes — every real vote must have impact
-  // Downvotes can be 0 (low-trust accounts can't damage reputation much)
-  const rounded = Math.round(raw);
+  // Round to 2 decimal places for clean storage, but DON'T force minimum 1
+  // Low-trust voters give small sait (0.1, 0.25, etc.) — this is intentional
+  // UI rounds for display, but internal value stays precise
+  const rounded = Math.round(raw * 100) / 100;
   if (voteDir === -1) {
     return -rounded;
   }
-  return Math.max(1, rounded);
+  return rounded;
 }
 
 /** Get level info from XP (activity points) — determines rank */
