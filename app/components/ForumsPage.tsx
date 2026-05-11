@@ -1031,8 +1031,8 @@ export default function ForumsPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchResultsRef = useRef<HTMLDivElement>(null);
   const [profileUid, setProfileUid] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; forumKarma?: number; xp?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; threads?: ForumThread[]; followerCount?: number; followingCount?: number; isOnline?: boolean; favoriteGameIds?: string[] } | null>(null);
-  const [authorCache, setAuthorCache] = useState<Record<string, { bannerUrl?: string; bio?: string; role?: string; joinDate?: string; isOnline?: boolean; followerCount?: number; followingCount?: number; karma?: number; forumKarma?: number; xp?: number; postCount?: number; commentCount?: number; socialLinks?: Record<string, string>; favoriteGameIds?: string[] }>>({});
+  const [profileData, setProfileData] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; karma?: number; forumKarma?: number; xp?: number; forumXp?: number; commentCount?: number; joinDate?: string; bannerUrl?: string; socialLinks?: Record<string, string>; threads?: ForumThread[]; followerCount?: number; followingCount?: number; isOnline?: boolean; favoriteGameIds?: string[] } | null>(null);
+  const [authorCache, setAuthorCache] = useState<Record<string, { bannerUrl?: string; bio?: string; role?: string; joinDate?: string; isOnline?: boolean; followerCount?: number; followingCount?: number; karma?: number; forumKarma?: number; xp?: number; forumXp?: number; postCount?: number; commentCount?: number; socialLinks?: Record<string, string>; favoriteGameIds?: string[] }>>({});
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [editBio, setEditBio] = useState("");
   const [editBannerUrl, setEditBannerUrl] = useState("");
@@ -1798,6 +1798,7 @@ export default function ForumsPage() {
           pd.karma = d.karma || 0;
           pd.forumKarma = d.forumKarma || 0;
           pd.xp = d.xp || 0;
+          pd.forumXp = d.forumXp || 0;
           pd.commentCount = d.commentCount || 0;
         }
       } catch {}
@@ -1886,7 +1887,7 @@ export default function ForumsPage() {
         // Get voter's data for trust-based weight
         const voterSnap = await getDoc(doc(db, "users", user.uid)).catch(() => null);
         const voterData = voterSnap?.exists() ? {
-          xp: voterSnap.data().xp || 0,
+          xp: voterSnap.data().forumXp || 0,
         } : { xp: 0 };
         voteThread(threadCommunity, threadId, delta);
         // Apply صيت change to author — use transaction for atomicity + idempotency
@@ -1935,8 +1936,8 @@ export default function ForumsPage() {
     }
     votingThreadRef.current.delete(threadId);
   };
-  const handleCreateThread = async () => { if (!newTitle.trim()) return; setCreating(true); setCreateBlur(true); try { const tagsArr = newTags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 5); const threadData = { title: newTitle.trim(), body: newBody.trim(), authorName, authorUid, authorPhoto, community: newCommunity, pinned: false, locked: false, solved: false, replyCount: 0, views: 0, votes: 0, createdAt: new Date().toISOString(), tags: tagsArr, type: newType }; const docId = await createThread(newCommunity, threadData); if (newCommunity === selectedCommunity) setThreads(prev => [{ id: docId, ...threadData }, ...prev]); if (authorUid) await updateDoc(doc(db, "users", authorUid), { xp: increment(5), postCount: increment(1) }).catch(() => {}); setNewTitle(""); setNewBody(""); setNewTags(""); setNewType("discussion"); setCreating(false); setTimeout(() => { setViewMode("list"); setTimeout(() => setCreateBlur(false), 100); }, 500); } catch { setCreateBlur(false); setCreating(false); } };
-  const handleReply = async (threadId: string) => { if (!replyText.trim()) return; try { const rd = { text: replyText.trim(), authorName, authorUid, authorPhoto, createdAt: new Date().toISOString(), votes: 0, ...(quotedThreadId ? { quotedThreadId } : {}) }; await addReply(selectedCommunity, threadId, rd); if (authorUid) await updateDoc(doc(db, "users", authorUid), { xp: increment(1) }).catch(() => {}); setReplies(prev => ({ ...prev, [threadId]: [...(prev[threadId] || []), { id: "temp-" + Date.now(), ...rd }] })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: th.replyCount + 1, lastReplyAt: new Date().toISOString(), lastReplyBy: authorName } : th)); setReplyText(""); setReplyingTo(null); setQuotedThreadId(null); setTimeout(() => replyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {} };
+  const handleCreateThread = async () => { if (!newTitle.trim()) return; setCreating(true); setCreateBlur(true); try { const tagsArr = newTags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 5); const threadData = { title: newTitle.trim(), body: newBody.trim(), authorName, authorUid, authorPhoto, community: newCommunity, pinned: false, locked: false, solved: false, replyCount: 0, views: 0, votes: 0, createdAt: new Date().toISOString(), tags: tagsArr, type: newType }; const docId = await createThread(newCommunity, threadData); if (newCommunity === selectedCommunity) setThreads(prev => [{ id: docId, ...threadData }, ...prev]); if (authorUid) await updateDoc(doc(db, "users", authorUid), { forumXp: increment(5), postCount: increment(1) }).catch(() => {}); setNewTitle(""); setNewBody(""); setNewTags(""); setNewType("discussion"); setCreating(false); setTimeout(() => { setViewMode("list"); setTimeout(() => setCreateBlur(false), 100); }, 500); } catch { setCreateBlur(false); setCreating(false); } };
+  const handleReply = async (threadId: string) => { if (!replyText.trim()) return; try { const rd = { text: replyText.trim(), authorName, authorUid, authorPhoto, createdAt: new Date().toISOString(), votes: 0, ...(quotedThreadId ? { quotedThreadId } : {}) }; await addReply(selectedCommunity, threadId, rd); if (authorUid) await updateDoc(doc(db, "users", authorUid), { forumXp: increment(1) }).catch(() => {}); setReplies(prev => ({ ...prev, [threadId]: [...(prev[threadId] || []), { id: "temp-" + Date.now(), ...rd }] })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: th.replyCount + 1, lastReplyAt: new Date().toISOString(), lastReplyBy: authorName } : th)); setReplyText(""); setReplyingTo(null); setQuotedThreadId(null); setTimeout(() => replyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {} };
   const handleDeleteReply = async (threadId: string, replyId: string) => { try { await deleteReplyHelper(selectedCommunity, threadId, replyId); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).filter(r => r.id !== replyId) })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: Math.max(0, th.replyCount - 1) } : th)); setMenuOpen(null); } catch {} };
   const handleEditReply = async (threadId: string, replyId: string) => { if (!editText.trim()) return; try { await updateReply(selectedCommunity, threadId, replyId, editText.trim()); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).map(r => r.id === replyId ? { ...r, text: editText.trim(), edited: true } : r) })); setEditingReply(null); setEditText(""); setMenuOpen(null); } catch {} };
 
@@ -2383,7 +2384,7 @@ export default function ForumsPage() {
                     <div className="flex items-center gap-1.5 px-6 pb-4 flex-wrap">
                       {[
                         { label: "صيت", value: Math.max(0, Math.round(profileData.forumKarma || 0)), icon: Star },
-                        { label: "XP", value: profileData.xp || 0, icon: Zap },
+                        { label: "XP", value: profileData.forumXp || 0, icon: Zap },
                         { label: "مواضيع", value: profileData.threads?.length || 0, icon: MessageCircle },
                         { label: "تعليقات", value: profileData.commentCount || 0, icon: MessageSquare },
                         { label: "يتابعونه", value: profileData.followerCount || 0, icon: Users },
