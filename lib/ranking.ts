@@ -3,7 +3,7 @@
 // صيت: from votes only, with diminishing returns based on content vote count
 //   - App صيت (karma): from post votes
 //   - Forum صيت (forumKarma): from thread votes
-// XP: from activity only — posting (+5), replying (+1), commenting (+1)
+// XP: from activity only — posting (+3), replying (+1), commenting (+1)
 //
 // voterWeight: 5-tier XP-based system (harder to reach full trust)
 //   XP 0-30:    0.1  (مبتدئ — almost no influence)

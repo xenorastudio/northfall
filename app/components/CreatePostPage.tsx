@@ -275,17 +275,15 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
           authorName: user.displayName || "مستخدم",
           authorPhoto: user.photoURL || "",
           authorUid: user.uid,
-          votes: 1,
+          votes: 0,
           commentCount: 0,
           createdAt: new Date().toISOString(),
           ...(quotedPostId ? { quotedPostId } : {}),
         });
-        // Save author's auto-upvote
-        await setDoc(doc(db, "posts", postRef.id, "votes", user.uid), { dir: 1, votedAt: new Date().toISOString() });
         // Update user stats
         await updateDoc(doc(db, "users", user.uid), {
           postCount: increment(1),
-          karma: increment(3),
+          xp: increment(3),
         }).catch(() => {});
       }
       // Clear draft after publish
