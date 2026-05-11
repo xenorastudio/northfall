@@ -93,6 +93,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   });
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [userKarma, setUserKarma] = useState(0);
+  const [userXp, setUserXp] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -130,7 +131,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   useEffect(() => {
     if (!user) { setUserKarma(0); return; }
     const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
-      if (snap.exists()) setUserKarma(snap.data().karma || 0);
+      if (snap.exists()) { setUserKarma(snap.data().karma || 0); setUserXp(snap.data().xp || 0); }
     }, () => {});
     return () => unsub();
   }, [user]);
@@ -557,7 +558,8 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       </div>
                     </div>
                     <div className="flex items-center gap-3 mt-2">
-                      <span className="text-[10px] text-nf-dim"><span className="text-white font-bold">{Math.max(0, Math.round(userKarma))}</span> {t("pp.karma")}</span>
+                      <span className="text-[10px] text-nf-dim"><span className="text-white font-bold">{Math.max(0, Math.round(userKarma))}</span> صيت</span>
+                      <span className="text-[10px] text-nf-dim"><span className="text-amber-400 font-bold">{userXp}</span> XP</span>
                       <span className="text-[10px] text-green-400 flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />متصل</span>
                     </div>
                   </div>

@@ -305,6 +305,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
         <div className="flex flex-wrap gap-1 mb-2">
           {(() => { const r = getLevel(data.xp || 0); return <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${r.bg} ${r.color} border ${r.border}`}>{r.name}</span>; })()}
           <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{Math.max(0, Math.round(data.karma || 0))}</span> صيت</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-amber-400 font-bold">{data.xp || 0}</span> XP</span>
           <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.postCount || 0}</span> منشور</span>
           <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.commentCount || 0}</span> تعليق</span>
           <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><Users size={7} /><span className="text-white font-bold">{data.followerCount || 0}</span> يتابعونه</span>

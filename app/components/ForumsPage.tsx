@@ -2382,6 +2382,7 @@ export default function ForumsPage() {
                     <div className="flex items-center gap-1.5 px-6 pb-4 flex-wrap">
                       {[
                         { label: "صيت", value: Math.max(0, Math.round(profileData.karma || 0)), icon: Star },
+                        { label: "XP", value: profileData.xp || 0, icon: Zap },
                         { label: "مواضيع", value: profileData.threads?.length || 0, icon: MessageCircle },
                         { label: "تعليقات", value: profileData.commentCount || 0, icon: MessageSquare },
                         { label: "يتابعونه", value: profileData.followerCount || 0, icon: Users },

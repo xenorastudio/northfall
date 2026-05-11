@@ -489,6 +489,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       <div className="flex items-center gap-1 px-2 mb-3 text-[11px] flex-wrap">
         <span className={cn("px-2 py-0.5 rounded-md flex items-center gap-1", level.bg, level.color)}><level.icon size={10} /><span className="font-bold">{level.name}</span></span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-white">{Math.max(0, Math.round(karma))}</span> صيت</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><Zap size={10} className="inline ml-0.5 text-amber-400" /><span className="font-bold text-white">{xp}</span> XP</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{postCount || posts.length}</span> {t("pp.postCount")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followerCount}</span> {t("gen.followers")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followingCount}</span> {t("gen.followingCount")}</span>
