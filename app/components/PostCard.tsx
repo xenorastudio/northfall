@@ -259,6 +259,7 @@ export default function PostCard({
           karma: voterSnap.data().karma || 0,
           postCount: voterSnap.data().postCount || 0,
         } : { accountAgeDays: 0, karma: 0, postCount: 0 };
+        console.log("[SAIT] PostCard voterData", { voterUid: user.uid, voterData, authorUid });
         const isRemoving = newVote === 0;
         if (isRemoving) {
           // Removing vote → read stored saitGain from vote doc to exactly reverse it
@@ -266,31 +267,36 @@ export default function PostCard({
           const storedGain = voteSnap?.exists() ? (voteSnap.data().saitGain || 0) : 0;
           console.log("[SAIT] PostCard REMOVE", { postId, voterUid: user.uid, previousVote: currentVote, nextVote: newVote, storedGain, reputationDelta: -storedGain });
           if (storedGain !== 0) {
-            await updateDoc(doc(db, "users", authorUid), { karma: increment(-storedGain) }).catch(() => {});
+            await updateDoc(doc(db, "users", authorUid), { karma: increment(-storedGain) }).catch((e) => { console.error("[SAIT] PostCard REMOVE error", e); });
           }
           await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
         } else {
           // Adding new vote → use transaction to prevent double-counting
           const saitGain = calcSaitGain(Math.abs(voteCount + diff), newVote as 1 | -1, voterData);
           console.log("[SAIT] PostCard ADD", { postId, voterUid: user.uid, previousVote: currentVote, nextVote: newVote, saitGain, contentVotes: voteCount + diff });
-          await runTransaction(db, async (transaction) => {
-            const voteDocRef = doc(db, "posts", postId, "votes", user.uid);
-            const voteDoc = await transaction.get(voteDocRef);
-            // Idempotency: if vote doc already exists with same dir, skip karma update
-            if (voteDoc.exists() && voteDoc.data().dir === newVote) {
-              console.log("[SAIT] PostCard SKIP (vote already exists)", { postId, voterUid: user.uid });
-              return;
-            }
-            // Write vote doc + update karma atomically
-            transaction.set(voteDocRef, { dir: newVote, votedAt: new Date().toISOString(), saitGain });
-            if (saitGain !== 0) {
-              const authorRef = doc(db, "users", authorUid);
-              const authorDoc = await transaction.get(authorRef);
-              const currentKarma = authorDoc.exists() ? (authorDoc.data().karma || 0) : 0;
-              transaction.update(authorRef, { karma: currentKarma + saitGain });
-            }
-          });
-          console.log("[SAIT] PostCard DONE", { postId, voterUid: user.uid, saitGain });
+          try {
+            await runTransaction(db, async (transaction) => {
+              const voteDocRef = doc(db, "posts", postId, "votes", user.uid);
+              const voteDoc = await transaction.get(voteDocRef);
+              // Idempotency: if vote doc already exists with same dir, skip karma update
+              if (voteDoc.exists() && voteDoc.data().dir === newVote) {
+                console.log("[SAIT] PostCard SKIP (vote already exists)", { postId, voterUid: user.uid });
+                return;
+              }
+              // Write vote doc + update karma atomically
+              transaction.set(voteDocRef, { dir: newVote, votedAt: new Date().toISOString(), saitGain });
+              if (saitGain !== 0) {
+                const authorRef = doc(db, "users", authorUid);
+                const authorDoc = await transaction.get(authorRef);
+                const currentKarma = authorDoc.exists() ? (authorDoc.data().karma || 0) : 0;
+                // Use set with merge — works even if author doc doesn't exist yet
+                transaction.set(authorRef, { karma: currentKarma + saitGain }, { merge: true });
+              }
+            });
+            console.log("[SAIT] PostCard DONE", { postId, voterUid: user.uid, saitGain });
+          } catch (txErr) {
+            console.error("[SAIT] PostCard TRANSACTION FAILED", txErr);
+          }
           return; // vote doc already saved in transaction
         }
       }

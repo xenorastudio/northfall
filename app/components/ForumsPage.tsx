@@ -1899,7 +1899,7 @@ export default function ForumsPage() {
             const storedGain = voteSnap?.exists() ? (voteSnap.data().saitGain || 0) : 0;
             console.log("[SAIT] ForumsPage REMOVE", { threadId, voterUid: user.uid, previousVote: prev, delta, storedGain, reputationDelta: -storedGain });
             if (storedGain !== 0) {
-              await updateDoc(doc(db, "users", thread.authorUid), { karma: increment(-storedGain) }).catch(() => {});
+              await updateDoc(doc(db, "users", thread.authorUid), { karma: increment(-storedGain) }).catch((e) => { console.error("[SAIT] ForumsPage REMOVE error", e); });
             }
             // Delete vote doc
             await deleteDoc(doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid)).catch(() => {});
@@ -1907,24 +1907,29 @@ export default function ForumsPage() {
             // Adding new vote → use transaction to prevent double-counting
             const saitGain = calcSaitGain(Math.abs(contentVotes), dir === "up" ? 1 : -1, voterData);
             console.log("[SAIT] ForumsPage ADD", { threadId, voterUid: user.uid, previousVote: prev, dir, saitGain, contentVotes });
-            await runTransaction(db, async (transaction) => {
-              const voteDocRef = doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid);
-              const voteDoc = await transaction.get(voteDocRef);
-              // Idempotency: if vote doc already exists with same dir, skip karma update
-              if (voteDoc.exists() && voteDoc.data().dir === (dir === "up" ? 1 : -1)) {
-                console.log("[SAIT] ForumsPage SKIP (vote already exists)", { threadId, voterUid: user.uid });
-                return;
-              }
-              // Write vote doc + update karma atomically
-              transaction.set(voteDocRef, { dir: dir === "up" ? 1 : -1, votedAt: new Date().toISOString(), saitGain });
-              if (saitGain !== 0) {
-                const authorRef = doc(db, "users", thread.authorUid);
-                const authorDoc = await transaction.get(authorRef);
-                const currentKarma = authorDoc.exists() ? (authorDoc.data().karma || 0) : 0;
-                transaction.update(authorRef, { karma: currentKarma + saitGain });
-              }
-            });
-            console.log("[SAIT] ForumsPage DONE", { threadId, voterUid: user.uid, saitGain });
+            try {
+              await runTransaction(db, async (transaction) => {
+                const voteDocRef = doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid);
+                const voteDoc = await transaction.get(voteDocRef);
+                // Idempotency: if vote doc already exists with same dir, skip karma update
+                if (voteDoc.exists() && voteDoc.data().dir === (dir === "up" ? 1 : -1)) {
+                  console.log("[SAIT] ForumsPage SKIP (vote already exists)", { threadId, voterUid: user.uid });
+                  return;
+                }
+                // Write vote doc + update karma atomically
+                transaction.set(voteDocRef, { dir: dir === "up" ? 1 : -1, votedAt: new Date().toISOString(), saitGain });
+                if (saitGain !== 0) {
+                  const authorRef = doc(db, "users", thread.authorUid);
+                  const authorDoc = await transaction.get(authorRef);
+                  const currentKarma = authorDoc.exists() ? (authorDoc.data().karma || 0) : 0;
+                  // Use set with merge — works even if author doc doesn't exist yet
+                  transaction.set(authorRef, { karma: currentKarma + saitGain }, { merge: true });
+                }
+              });
+              console.log("[SAIT] ForumsPage DONE", { threadId, voterUid: user.uid, saitGain });
+            } catch (txErr) {
+              console.error("[SAIT] ForumsPage TRANSACTION FAILED", txErr);
+            }
           }
         }
       } catch {}
