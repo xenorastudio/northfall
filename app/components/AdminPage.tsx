@@ -38,6 +38,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [purgeConfirm, setPurgeConfirm] = useState("");
   const [purging, setPurging] = useState(false);
+  const [recalcSait, setRecalcSait] = useState(false);
 
   const isAdmin = user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1";
 
@@ -210,6 +211,49 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
             <h1 className="text-sm font-bold text-white">لوحة الإشراف</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={async () => {
+              setRecalcSait(true);
+              try {
+                // Reset all users' karma to 0
+                const usersSnap = await getDocs(collection(db, "users"));
+                for (const u of usersSnap.docs) {
+                  await updateDoc(doc(db, "users", u.id), { karma: 0 });
+                }
+                // Recalculate karma from all vote docs in posts
+                const postsSnap = await getDocs(collection(db, "posts"));
+                for (const p of postsSnap.docs) {
+                  const authorUid = p.data().authorUid;
+                  if (!authorUid) continue;
+                  const votesSnap = await getDocs(collection(db, "posts", p.id, "votes"));
+                  for (const v of votesSnap.docs) {
+                    const saitGain = v.data().saitGain || 0;
+                    if (saitGain !== 0) {
+                      await updateDoc(doc(db, "users", authorUid), { karma: (await getDoc(doc(db, "users", authorUid))).data()?.karma + saitGain });
+                    }
+                  }
+                }
+                // Recalculate karma from all vote docs in forums
+                for (const comm of knownCommunities) {
+                  const threadsSnap = await getDocs(collection(db, "forums", comm, "threads"));
+                  for (const t of threadsSnap.docs) {
+                    const authorUid = t.data().authorUid;
+                    if (!authorUid) continue;
+                    const votesSnap = await getDocs(collection(db, "forums", comm, "threads", t.id, "votes"));
+                    for (const v of votesSnap.docs) {
+                      const saitGain = v.data().saitGain || 0;
+                      if (saitGain !== 0) {
+                        await updateDoc(doc(db, "users", authorUid), { karma: (await getDoc(doc(db, "users", authorUid))).data()?.karma + saitGain });
+                      }
+                    }
+                  }
+                }
+                showToast("تم إعادة حساب الصيت بنجاح");
+              } catch { showToast("حدث خطأ أثناء إعادة الحساب"); }
+              setRecalcSait(false);
+            }} disabled={recalcSait} className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-all disabled:opacity-50">
+              {recalcSait ? <div className="w-3 h-3 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" /> : <RefreshCw size={12} />}
+              إعادة حساب الصيت
+            </button>
             <button onClick={() => setPurgeOpen(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-all">
               <Trash2 size={12} />
               حذف كل البيانات
