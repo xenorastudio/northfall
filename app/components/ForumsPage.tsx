@@ -1766,8 +1766,7 @@ export default function ForumsPage() {
         if (gSnap.exists()) data.favoriteGameIds = gSnap.data().ids || [];
       } catch {}
       if (data.karma === undefined) {
-        const userThreads = allThreads.filter(t => t.authorUid === uid);
-        data.karma = userThreads.reduce((s: number, t: any) => s + (t.votes || 0), 0);
+        data.karma = 0;
       }
       setAuthorCache(prev => ({ ...prev, [uid]: data }));
     } catch {}
@@ -2379,7 +2378,7 @@ export default function ForumsPage() {
                     {/* Stats bar - flat */}
                     <div className="flex items-center gap-1.5 px-6 pb-4 flex-wrap">
                       {[
-                        { label: "صيت", value: Math.round(profileData.karma ?? profileData.threads?.reduce((s, t) => s + (t.votes || 0), 0) ?? 0), icon: Star },
+                        { label: "صيت", value: Math.max(0, Math.round(profileData.karma || 0)), icon: Star },
                         { label: "مواضيع", value: profileData.threads?.length || 0, icon: MessageCircle },
                         { label: "تعليقات", value: profileData.commentCount || 0, icon: MessageSquare },
                         { label: "يتابعونه", value: profileData.followerCount || 0, icon: Users },

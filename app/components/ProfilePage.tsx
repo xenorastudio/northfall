@@ -265,13 +265,12 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
         const snap = await getDocs(q);
         const p = snap.docs.map((d) => ({ id: d.id, ...d.data() } as any)).sort((a: any, b: any) => (b.createdAt || "").localeCompare(a.createdAt || ""));
         setPosts(p);
-        setKarma(p.reduce((sum: number, post: any) => sum + (post.votes || 0), 0));
-        // Override with Firestore karma and postCount if available (more accurate)
+        // Karma comes ONLY from Firestore user doc — never sum post votes (that's not sait)
         try {
           const uSnap = await getDoc(doc(db, "users", targetUid!));
           if (uSnap.exists()) {
             const ud = uSnap.data();
-            if (ud.karma !== undefined) setKarma(ud.karma);
+            setKarma(ud.karma || 0);
             if (ud.xp !== undefined) setXp(ud.xp);
             if (ud.postCount !== undefined) setPostCount(ud.postCount);
           }
