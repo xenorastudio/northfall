@@ -1,20 +1,28 @@
 // ─── Ranking System: صيت (Reputation) + XP (Points) ─────────────────
 //
 // صيت: from votes only, with diminishing returns based on content vote count
-// XP: from activity only — posting (+5), replying (+2), commenting (+2)
+//   - App صيت (karma): from post votes
+//   - Forum صيت (forumKarma): from thread votes
+// XP: from activity only — posting (+5), replying (+1), commenting (+1)
 //
-// voterWeight: based on XP only — XP < 50 → 0.3, XP ≥ 50 → 1.0
+// voterWeight: 5-tier XP-based system (harder to reach full trust)
+//   XP 0-30:    0.1  (مبتدئ — almost no influence)
+//   XP 30-100:  0.25 (متمرس — weak influence)
+//   XP 100-300: 0.5  (نشيط — moderate influence)
+//   XP 300-700: 0.75 (متقدم — strong influence)
+//   XP 700+:    1.0  (محترف+ — full trust)
 
 export interface VoterData {
   xp: number;  // activity points — determines voter trust
 }
 
-/** Calculate voter weight based on XP (0.3 → 1.0) */
+/** Calculate voter weight based on XP (5 tiers: 0.1 → 1.0) */
 export function calcVoterWeight(data: VoterData): number {
-  // Simple XP-based trust: new accounts (XP < 50) have weak votes
-  // Active accounts (XP ≥ 50) have full-weight votes
-  // This prevents spam/new account manipulation
-  return data.xp < 50 ? 0.3 : 1.0;
+  if (data.xp < 30) return 0.1;     // مبتدئ — brand new, almost no influence
+  if (data.xp < 100) return 0.25;   // متمرس — still weak
+  if (data.xp < 300) return 0.5;    // نشيط — moderate
+  if (data.xp < 700) return 0.75;   // متقدم — strong
+  return 1.0;                        // محترف+ — full trust
 }
 
 /** Calculate صيت gain from a vote, with diminishing returns and trust-based weight */
@@ -27,9 +35,9 @@ export function calcSaitGain(contentVotes: number, voteDir: 1 | -1, voterData: V
   // 100+ votes: still meaningful (0.25) — viral posts keep real value
   const multiplier = contentVotes < 10 ? 1 : contentVotes < 100 ? 0.6 : 0.25;
   const raw = multiplier * voterWeight;
-  // Round to nearest integer to prevent floating-point accumulation in Firestore
-  // Minimum 1 so every vote has at least some impact
-  const rounded = Math.max(1, Math.round(raw));
+  // Round to nearest integer — low-trust voters may give 0 sait
+  // This is intentional: brand new accounts shouldn't inflate reputation
+  const rounded = Math.round(raw);
   if (voteDir === -1) {
     return -rounded;
   }

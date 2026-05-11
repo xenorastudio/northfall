@@ -214,12 +214,12 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
             <button onClick={async () => {
               setRecalcSait(true);
               try {
-                // Reset all users' karma to 0
+                // Reset all users' karma and forumKarma to 0
                 const usersSnap = await getDocs(collection(db, "users"));
                 for (const u of usersSnap.docs) {
-                  await updateDoc(doc(db, "users", u.id), { karma: 0 });
+                  await updateDoc(doc(db, "users", u.id), { karma: 0, forumKarma: 0 });
                 }
-                // Recalculate karma from all vote docs in posts
+                // Recalculate app karma from all vote docs in posts
                 const postsSnap = await getDocs(collection(db, "posts"));
                 for (const p of postsSnap.docs) {
                   const authorUid = p.data().authorUid;
@@ -232,7 +232,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
                     }
                   }
                 }
-                // Recalculate karma from all vote docs in forums
+                // Recalculate forum karma from all vote docs in forums
                 for (const comm of knownCommunities) {
                   const threadsSnap = await getDocs(collection(db, "forums", comm, "threads"));
                   for (const t of threadsSnap.docs) {
@@ -242,7 +242,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
                     for (const v of votesSnap.docs) {
                       const saitGain = v.data().saitGain || 0;
                       if (saitGain !== 0) {
-                        await updateDoc(doc(db, "users", authorUid), { karma: (await getDoc(doc(db, "users", authorUid))).data()?.karma + saitGain });
+                        await updateDoc(doc(db, "users", authorUid), { forumKarma: (await getDoc(doc(db, "users", authorUid))).data()?.forumKarma + saitGain });
                       }
                     }
                   }

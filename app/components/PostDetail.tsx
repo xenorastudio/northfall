@@ -565,7 +565,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       console.log("[PostDetail] Comment saved with ID:", commentRef.id);
       await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
       // Update user comment count + XP
-      await updateDoc(doc(db, "users", user.uid), { commentCount: increment(1), xp: increment(2) }).catch(() => {});
+      await updateDoc(doc(db, "users", user.uid), { commentCount: increment(1), xp: increment(1) }).catch(() => {});
       console.log("[PostDetail] Comment count updated");
       setCommentText("");
       setReplyTo(null);
