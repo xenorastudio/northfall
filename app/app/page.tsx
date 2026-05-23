@@ -714,7 +714,7 @@ function AppContent() {
                 </div>
               )}
 
-              {view === "custom-feed" && (
+              {view === "custom-feed" && user && (
                 <div key="custom-feed" className="animate-in fade-in duration-150">
                   <CustomFeedPage
                     editFeed={editingCustomFeed}

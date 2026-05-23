@@ -59,10 +59,16 @@ export default function CustomFeedPage({ editFeed, onBack, onSaved, onDeleted }:
 
   const save = async () => {
     if (!user || !name.trim() || !selected.length) return;
+    // Security: only owner can save
+    if (editFeed && (editFeed as any).ownerUid && (editFeed as any).ownerUid !== user.uid) return;
     setSaving(true);
     try {
       const id = editFeed?.id || `feed_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-      const data: CustomFeed = { id, name: name.trim(), communities: selected, isPrivate, showOnProfile, createdAt: editFeed?.createdAt || new Date().toISOString() };
+      const data: CustomFeed = {
+        id, name: name.trim(), communities: selected, isPrivate, showOnProfile,
+        createdAt: editFeed?.createdAt || new Date().toISOString(),
+        ownerUid: user.uid,
+      } as CustomFeed;
       await setDoc(doc(db, "users", user.uid, "customFeeds", id), { ...data, updatedAt: serverTimestamp() });
       onSaved(data);
     } catch (e) { console.error(e); } finally { setSaving(false); }
@@ -70,6 +76,8 @@ export default function CustomFeedPage({ editFeed, onBack, onSaved, onDeleted }:
 
   const del = async () => {
     if (!user || !editFeed) return;
+    // Security: only owner can delete
+    if ((editFeed as any).ownerUid && (editFeed as any).ownerUid !== user.uid) return;
     await deleteDoc(doc(db, "users", user.uid, "customFeeds", editFeed.id)).catch(() => {});
     onDeleted?.(editFeed.id);
   };
