@@ -330,10 +330,9 @@ function TopPickCard({ game }: { game: Game }) {
 }
 
 function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: boolean; onFav: () => void; layout: "grid" | "list"; index: number }) {
-  const [hovered, setHovered] = useState(false);
-  const [dominantColor, setDominantColor] = useState("rgb(30,30,40)");
+  const [dominantColor, setDominantColor] = useState("rgb(20,20,25)");
   const [imgLoaded, setImgLoaded] = useState(false);
-  const tRef = useRef<NodeJS.Timeout | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -343,53 +342,7 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
     }
   }, [game.cover]);
 
-  const onEnter = () => { tRef.current = setTimeout(() => setHovered(true), 120); };
-  const onLeave = () => { if (tRef.current) clearTimeout(tRef.current); setHovered(false); };
-
   const ratingColor = game.rating >= 4.5 ? "text-emerald-400" : game.rating >= 4.0 ? "text-amber-400" : "text-white/40";
-  const ratingLabel = game.rating >= 4.7 ? "ممتاز" : game.rating >= 4.3 ? "ممتاز جدا" : game.rating >= 4.0 ? "جيد جدا" : game.rating >= 3.5 ? "جيد" : "مقبول";
-
-  const dropInfo = (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="absolute top-full right-0 left-0 z-40 mt-1.5"
-    >
-      <div className="rounded-2xl p-4 shadow-2xl shadow-black/80 border border-white/[0.08] bg-black/85 backdrop-blur-2xl">
-        <p className="text-[11px] text-white/60 leading-relaxed mb-3">{game.description}</p>
-        <div className="flex items-center gap-3 mb-3 text-[9px]">
-          <span className={cn("flex items-center gap-1 font-bold", ratingColor)}>
-            <Star size={9} fill="currentColor" /> {game.rating}
-            <span className="font-normal text-white/25">{ratingLabel}</span>
-          </span>
-          <span className="flex items-center gap-1 text-white/40"><Calendar size={9} /> {game.releaseYear}</span>
-          <span className="flex items-center gap-1 text-white/40"><Users size={9} /> {game.players}</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5 mb-2.5">
-          {game.genre.map(g => (
-            <span key={g} className={`text-[8px] px-2 py-0.5 rounded-lg font-semibold border ${getGenreClass(g)}`}>{g}</span>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1.5 mb-2.5">
-          {game.platforms.map(p => (
-            <span key={p} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/[0.04] text-white/40 font-semibold border border-white/[0.04]">{platformShort[p] || p}</span>
-          ))}
-        </div>
-        <div className="h-px bg-white/[0.06] my-2.5" />
-        <div className="flex items-center justify-between text-[9px] text-white/30">
-          <span className="flex items-center gap-1"><Tag size={9} /> {game.developer}</span>
-          <span>{game.publisher}</span>
-        </div>
-        {game.steamUrl && (
-          <a href={game.steamUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-2.5 text-[9px] text-white/50 hover:text-white/80 transition-colors bg-white/[0.04] px-2.5 py-1 rounded-lg border border-white/[0.06]">
-            <ExternalLink size={8} /> صفحة Steam
-          </a>
-        )}
-      </div>
-    </motion.div>
-  );
 
   if (layout === "list") {
     return (
@@ -397,44 +350,37 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.25, delay: Math.min(index * 0.02, 0.4) }}
-        onMouseEnter={onEnter} onMouseLeave={onLeave}
-        className="group relative flex items-center gap-3 p-2.5 rounded-xl bg-nf-secondary/5 hover:bg-nf-secondary/20 transition-all cursor-pointer border border-transparent hover:border-nf-border hover:shadow-lg hover:shadow-black/20"
+        className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-nf-secondary/20 transition-all cursor-pointer border border-transparent hover:border-nf-border-2"
       >
         <div className="relative overflow-hidden rounded-lg shrink-0">
-          <img src={game.cover} alt={game.name} {...imgProtect} className={cn("w-12 h-16 object-cover select-none transition-all duration-300", !imgLoaded && "bg-nf-secondary/20 animate-pulse")} onLoad={() => setImgLoaded(true)} />
-          <div className="absolute top-0.5 right-0.5">
-            <span className="text-[6px] px-1 py-0.5 rounded-md bg-black/60 backdrop-blur-sm text-white/50 font-bold">{game.genre[0]}</span>
-          </div>
+          <img src={game.cover} alt={game.name} {...imgProtect} className={cn("w-12 h-16 object-cover select-none", !imgLoaded && "bg-nf-secondary/20 animate-pulse")} onLoad={() => setImgLoaded(true)} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-bold text-nf-text truncate">{game.name}</p>
-          <p className="text-[9px] text-nf-dim/60 mt-0.5">{game.publisher} · {game.developer}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className={cn("flex items-center gap-0.5", ratingColor)}>
-              <Star size={8} fill="currentColor" /><span className="text-[8px] font-bold">{game.rating}</span>
-              <span className="text-[7px] text-white/25">{ratingLabel}</span>
-            </span>
-            <span className="text-[8px] text-nf-dim/40">{game.releaseYear}</span>
-            <span className="text-[8px] text-nf-dim/30">·</span>
-            <span className="text-[8px] text-nf-dim/40">{game.players}</span>
-          </div>
-          <div className="flex items-center gap-1 mt-1">
-            {game.genre.slice(0, 3).map(g => (<span key={g} className={`text-[7px] px-1.5 py-0.5 rounded-md font-semibold border ${getGenreClass(g)}`}>{g}</span>))}
-            <span className="text-[7px] text-nf-dim/20 mx-0.5">|</span>
-            {game.platforms.slice(0, 3).map(p => (<span key={p} className="text-[7px] px-1 py-0.5 rounded bg-nf-secondary border border-nf-border-2 text-nf-dim font-semibold">{platformShort[p] || p}</span>))}
+          <p className="text-[13px] font-semibold text-nf-text truncate">{game.name}</p>
+          <p className="text-[10px] text-nf-dim mt-0.5">{game.developer} · {game.releaseYear}</p>
+          <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map(s => (
+                <div key={s} className={cn("w-1.5 h-1.5 rounded-sm", s <= Math.round(game.rating) ? "bg-emerald-400" : "bg-nf-border-2")} />
+              ))}
+            </div>
+            <span className="text-[10px] text-emerald-400 font-medium">{game.rating}</span>
+            <span className="text-nf-dim/30">·</span>
+            {game.genre.slice(0, 2).map(g => (
+              <span key={g} className="text-[9px] text-nf-dim">{g}</span>
+            ))}
           </div>
         </div>
-        <div className="flex flex-col items-center gap-1.5 shrink-0">
-          <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("p-1 rounded-md transition-all", isFav ? "text-red-400" : "text-nf-dim/30 hover:text-red-400")}>
-            <Heart size={13} fill={isFav ? "currentColor" : "none"} />
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={cn("p-1.5 rounded-lg transition-all", isFav ? "text-red-400" : "text-nf-dim/30 hover:text-red-400")}>
+            <Heart size={14} fill={isFav ? "currentColor" : "none"} />
           </button>
           {game.steamUrl && (
-            <a href={game.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-1 rounded-md text-nf-dim/30 hover:text-nf-accent transition-colors">
-              <ExternalLink size={11} />
+            <a href={game.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-1.5 rounded-lg text-nf-dim/30 hover:text-nf-accent transition-colors">
+              <ExternalLink size={13} />
             </a>
           )}
         </div>
-        <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
       </motion.div>
     );
   }
@@ -444,62 +390,51 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.6) }}
-      onMouseEnter={onEnter} onMouseLeave={onLeave}
+      onMouseEnter={() => setShowInfo(true)}
+      onMouseLeave={() => setShowInfo(false)}
       className="group relative text-right"
     >
       {/* Glow */}
-      <div
-        className="game-card-glow"
-        style={{ boxShadow: `0 0 45px 12px ${dominantColor}75`, background: dominantColor }}
-      >
+      <div className="game-card-glow" style={{ boxShadow: `0 0 45px 12px ${dominantColor}75`, background: dominantColor }}>
         <img src={game.cover} alt="" className="w-full h-full object-cover opacity-60" />
       </div>
 
       {/* Card */}
-      <div
-        className="relative z-10 overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.05] group-hover:ring-white/[0.18] transition-all duration-400 cursor-pointer"
-        style={{ boxShadow: hovered ? `0 16px 60px -10px ${dominantColor}95, 0 0 0 1px ${dominantColor}35` : "none" }}
-      >
-        {/* Cover image */}
-        <img
-          src={game.cover} alt={game.name} {...imgProtect}
+      <div className="relative z-10 overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.05] group-hover:ring-white/[0.18] transition-all duration-400 cursor-pointer"
+        style={{ boxShadow: showInfo ? `0 16px 60px -10px ${dominantColor}95` : "none" }}>
+        {/* Cover */}
+        <img src={game.cover} alt={game.name} {...imgProtect}
           className={cn("w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06] select-none pointer-events-none", !imgLoaded && "bg-nf-secondary/20 animate-pulse")}
-          onLoad={() => setImgLoaded(true)}
-        />
+          onLoad={() => setImgLoaded(true)} />
 
-        {/* Steam-style slide-up info on hover */}
-        <div className={cn(
-          "absolute inset-x-0 bottom-0 transition-all duration-300 ease-out",
-          hovered ? "translate-y-0" : "translate-y-0"
-        )}>
-          {/* Always visible: name + rating */}
-          <div className="bg-gradient-to-t from-black/98 via-black/75 to-transparent px-2.5 pb-2.5 pt-10">
-            <p className="text-[12px] text-white font-bold truncate leading-tight">{game.name}</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <div className="flex items-center gap-0.5">
+        {/* Bottom info — always visible name, hover shows more */}
+        <div className="absolute inset-x-0 bottom-0">
+          {/* Always: name + rating */}
+          <div className="bg-gradient-to-t from-black/98 via-black/70 to-transparent px-2.5 pb-2.5 pt-10">
+            <p className="text-[12px] text-white font-semibold truncate leading-tight">{game.name}</p>
+            <div className="flex items-center gap-1 mt-1">
+              <div className="flex gap-0.5">
                 {[1,2,3,4,5].map(s => (
-                  <div key={s} className={cn("w-1.5 h-1.5 rounded-full", s <= Math.round(game.rating) ? "bg-emerald-400" : "bg-white/15")} />
+                  <div key={s} className={cn("w-1.5 h-1.5 rounded-sm", s <= Math.round(game.rating) ? "bg-emerald-400" : "bg-white/15")} />
                 ))}
               </div>
-              <span className={cn("text-[9px] font-bold", ratingColor)}>{game.rating}</span>
-              <span className="text-[8px] text-white/25">·</span>
+              <span className="text-[9px] text-emerald-400 font-medium mr-0.5">{game.rating}</span>
+              <span className="text-white/20 text-[8px]">·</span>
               <span className="text-[8px] text-white/35">{game.releaseYear}</span>
             </div>
           </div>
 
-          {/* Hover: extra info slides up */}
-          <div className={cn(
-            "bg-black/95 px-2.5 pb-2.5 overflow-hidden transition-all duration-300 ease-out",
-            hovered ? "max-h-[80px] opacity-100" : "max-h-0 opacity-0"
-          )}>
+          {/* Hover: description + genre */}
+          <div className={cn("bg-black/95 px-2.5 overflow-hidden transition-all duration-250 ease-out",
+            showInfo ? "max-h-[72px] pb-2.5 opacity-100" : "max-h-0 pb-0 opacity-0")}>
             <p className="text-[9px] text-white/50 leading-relaxed line-clamp-2 mb-1.5">{game.description}</p>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex items-center gap-1 flex-wrap">
               {game.genre.slice(0, 2).map(g => (
-                <span key={g} className={`text-[7px] px-1.5 py-0.5 rounded-md font-semibold border ${getGenreClass(g)}`}>{g}</span>
+                <span key={g} className="text-[7px] px-1.5 py-0.5 rounded text-white/60 border border-white/12 bg-white/6">{g}</span>
               ))}
               {game.steamUrl && (
                 <a href={game.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                  className="mr-auto text-[7px] px-1.5 py-0.5 rounded-md bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/20 hover:bg-[#66c0f4]/10 transition-colors flex items-center gap-0.5">
+                  className="mr-auto text-[7px] px-1.5 py-0.5 rounded text-white/50 border border-white/12 bg-white/6 hover:text-white transition-colors flex items-center gap-0.5">
                   <ExternalLink size={7} /> Steam
                 </a>
               )}
@@ -510,23 +445,18 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
         {/* Top badges */}
         <div className="absolute top-1.5 right-1.5 flex flex-col gap-1">
           {game.releaseYear >= 2023 && (
-            <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-emerald-500/25 backdrop-blur-md text-emerald-400 font-bold border border-emerald-500/25">جديد</span>
+            <span className="text-[7px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/20">جديد</span>
           )}
           {game.rating >= 4.8 && (
-            <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-amber-500/25 backdrop-blur-md text-amber-400 font-bold border border-amber-500/25">⭐ مميز</span>
+            <span className="text-[7px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold border border-amber-500/20">⭐</span>
           )}
         </div>
 
-        {/* Fav button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onFav(); }}
-          className={cn(
-            "absolute top-1.5 left-1.5 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200",
-            isFav
-              ? "bg-red-500 text-white shadow-lg shadow-red-500/40 scale-100"
-              : "bg-black/50 backdrop-blur-sm text-white/40 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
-          )}
-        >
+        {/* Fav */}
+        <button onClick={(e) => { e.stopPropagation(); onFav(); }}
+          className={cn("absolute top-1.5 left-1.5 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200",
+            isFav ? "bg-red-500 text-white shadow-lg shadow-red-500/40"
+                   : "bg-black/50 text-white/40 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100")}>
           <Heart size={12} fill={isFav ? "currentColor" : "none"} />
         </button>
       </div>
