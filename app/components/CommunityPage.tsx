@@ -19,9 +19,10 @@ interface CommunityPageProps {
   onPostClick?: (id: string) => void;
   onJoinToggle?: (name: string, joined: boolean) => void;
   onDashboardClick?: (name: string) => void;
+  onMembersClick?: (name: string) => void;
 }
 
-export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick, onPostClick, onJoinToggle, onDashboardClick }: CommunityPageProps) {
+export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick, onPostClick, onJoinToggle, onDashboardClick, onMembersClick }: CommunityPageProps) {
   const { user } = useAuth();
   const { t } = useI18n();
   const [posts, setPosts] = useState<any[]>([]);
@@ -206,7 +207,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
               </button>
             )}
             {isOwner && (
-              <button onClick={() => setShowMembersPanel(true)}
+              <button onClick={() => onMembersClick?.(name)}
                 className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-nf-border-2 bg-nf-secondary text-nf-dim hover:text-nf-accent hover:border-nf-accent transition-all flex items-center gap-1.5">
                 <UserCog size={11} /> الأعضاء
               </button>
@@ -427,10 +428,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
         </div>
       </div>
 
-      {/* Members management panel */}
-      {showMembersPanel && (
-        <CommunityMembersPanel communityName={name} onClose={() => setShowMembersPanel(false)} />
-      )}
+      {/* Members management panel removed — now a full page */}
     </motion.div>
   );
 }

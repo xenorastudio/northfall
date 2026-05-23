@@ -14,6 +14,8 @@ import CreateCommunityPage from "../components/CreateCommunityPage";
 import EditCommunityPage from "../components/EditCommunityPage";
 import CommunityDashboard from "../components/CommunityDashboard";
 import CustomFeedModal, { type CustomFeed } from "../components/CustomFeedModal";
+import CustomFeedPage from "../components/CustomFeedPage";
+import CommunityMembersPage from "../components/CommunityMembersPage";
 import ManageCommunitiesPage from "../components/ManageCommunitiesPage";
 import { useToast } from "../components/ToastProvider";
 import { DataProvider, useData } from "../components/DataProvider";
@@ -36,7 +38,7 @@ import { db } from "@/lib/firebase";
 // framer-motion removed for performance
 import { cn } from "@/lib/utils";
 
-type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "edit-community" | "community-dashboard" | "manage-communities";
+type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "edit-community" | "community-dashboard" | "manage-communities" | "custom-feed" | "members";
 
 interface Post {
   id: string;
@@ -84,7 +86,7 @@ function AppContent() {
       window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
       return;
     }
-      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "edit-community", "community-dashboard"].includes(v)) {
+      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "edit-community", "community-dashboard", "manage-communities", "custom-feed", "members"].includes(v)) {
       setView(v as View);
       const c = params.get("community"); if (c) setSelectedCommunity(c);
       const p = params.get("postId"); if (p) setSelectedPostId(p);
@@ -135,7 +137,7 @@ function AppContent() {
         window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
         return;
       }
-    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "edit-community", "community-dashboard"].includes(v)) {
+    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "edit-community", "community-dashboard", "manage-communities", "custom-feed", "members"].includes(v)) {
         setView(v);
         const c = params.get("community"); if (c) setSelectedCommunity(c);
         const p = params.get("postId"); if (p) setSelectedPostId(p);
@@ -176,6 +178,12 @@ function AppContent() {
   const [activeCustomFeed, setActiveCustomFeed] = useState<CustomFeed | null>(null);
   const [showCustomFeedModal, setShowCustomFeedModal] = useState(false);
   const [editingCustomFeed, setEditingCustomFeed] = useState<CustomFeed | null>(null);
+  const [membersCommunity, setMembersCommunity] = useState<string>("");
+
+  const openMembers = (name: string) => {
+    setMembersCommunity(name);
+    navigateTo("members", { community: name });
+  };
 
   // Load custom feeds from Firestore (real-time)
   useEffect(() => {
@@ -434,15 +442,15 @@ function AppContent() {
         customFeeds={customFeeds}
         activeCustomFeedId={activeCustomFeed?.id ?? null}
         onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))}
-        onCreateCustomFeed={() => requireAuth(() => { setEditingCustomFeed(null); setShowCustomFeedModal(true); })}
-        onEditCustomFeed={(feed) => requireAuth(() => { setEditingCustomFeed(feed); setShowCustomFeedModal(true); })}
+        onCreateCustomFeed={() => requireAuth(() => { setEditingCustomFeed(null); navigateTo("custom-feed"); })}
+        onEditCustomFeed={(feed) => requireAuth(() => { setEditingCustomFeed(feed); navigateTo("custom-feed"); })}
       />
 
       <div className="md:ml-[260px] min-h-screen flex justify-center" style={{ paddingTop: "var(--nav-total-height)" }}>
         <div className="w-full max-w-[1280px] px-3 md:px-6 py-3 md:py-5 pb-20 md:pb-5 flex gap-8 justify-center items-start" style={{ direction: "rtl" }}>
           <div className={cn("hidden lg:block self-stretch", view === "community" && "hidden")}><SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={view === "community" ? selectedCommunity : undefined} /></div>
 
-          <div className={cn("flex-1", view === "feed" ? "max-w-[680px]" : view === "create-community" ? "max-w-[1150px]" : view === "community" ? "max-w-[1000px]" : "max-w-[1100px]")} style={{ direction: "rtl" }}>
+          <div className={cn("flex-1", view === "feed" ? "max-w-[680px]" : view === "create-community" ? "max-w-[1150px]" : view === "community" ? "max-w-[1000px]" : view === "custom-feed" ? "max-w-[1100px]" : view === "members" ? "max-w-[1100px]" : "max-w-[1100px]")} style={{ direction: "rtl" }}>
             <div>
               {view === "feed" && (
                 <div key="feed" className="animate-in fade-in duration-150">
@@ -474,7 +482,7 @@ function AppContent() {
                           </div>
                         </div>
                         <button
-                          onClick={() => { setEditingCustomFeed(activeCustomFeed); setShowCustomFeedModal(true); }}
+                        onClick={() => { setEditingCustomFeed(activeCustomFeed); navigateTo("custom-feed"); }}
                           className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors shrink-0"
                           title="تعديل الفيد"
                         >
@@ -595,7 +603,7 @@ function AppContent() {
 
               {view === "community" && selectedCommunity && (
                 <div key="community" className="animate-in fade-in duration-150">
-                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} onDashboardClick={(name) => openCommunityDashboard(name)} />
+                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} onDashboardClick={(name) => openCommunityDashboard(name)} onMembersClick={openMembers} />
                 </div>
               )}
 
@@ -702,28 +710,39 @@ function AppContent() {
                   />
                 </div>
               )}
+
+              {view === "custom-feed" && (
+                <div key="custom-feed" className="animate-in fade-in duration-150">
+                  <CustomFeedPage
+                    editFeed={editingCustomFeed}
+                    onBack={() => { setEditingCustomFeed(null); backToFeed(); }}
+                    onSaved={(feed) => {
+                      if (activeCustomFeed?.id === feed.id) setActiveCustomFeed(feed);
+                      setEditingCustomFeed(null);
+                      backToFeed();
+                    }}
+                    onDeleted={(id) => {
+                      if (activeCustomFeed?.id === id) clearCustomFeed();
+                      else backToFeed();
+                    }}
+                  />
+                </div>
+              )}
+
+              {view === "members" && membersCommunity && (
+                <div key="members" className="animate-in fade-in duration-150">
+                  <CommunityMembersPage
+                    communityName={membersCommunity}
+                    onBack={() => { openCommunity(membersCommunity); }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
-
-      {/* Custom Feed Modal */}
-      <CustomFeedModal
-        open={showCustomFeedModal}
-        onClose={() => { setShowCustomFeedModal(false); setEditingCustomFeed(null); }}
-        editFeed={editingCustomFeed}
-        onSaved={(feed) => {
-          // If we just created/edited the active feed, update it
-          if (activeCustomFeed?.id === feed.id) {
-            setActiveCustomFeed(feed);
-          }
-        }}
-        onDeleted={(id) => {
-          if (activeCustomFeed?.id === id) clearCustomFeed();
-        }}
-      />
 
 
 
