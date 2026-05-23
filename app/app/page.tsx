@@ -19,6 +19,7 @@ import CustomFeedPage from "../components/CustomFeedPage";
 import CommunityMembersPage from "../components/CommunityMembersPage";
 import ManageCommunitiesPage from "../components/ManageCommunitiesPage";
 import InviteAcceptDialog from "../components/InviteAcceptDialog";
+import FeedWelcome from "../components/FeedWelcome";
 import { useToast } from "../components/ToastProvider";
 import { DataProvider, useData } from "../components/DataProvider";
 import { lazy, Suspense } from "react";
@@ -617,6 +618,16 @@ function AppContent() {
                       <button onClick={() => fetchPosts(true)} className="w-full py-3 rounded-lg text-xs font-bold text-nf-dim hover:text-nf-accent hover:bg-nf-accent/5 transition-colors">
                         {t("gen.loadMore") || "تحميل المزيد"}
                       </button>
+                    )}
+
+                    {/* Welcome/discovery cards when feed is empty or few posts */}
+                    {!loading && !activeCustomFeed && feedMode === "all" && posts.length < 8 && (
+                      <FeedWelcome
+                        onCommunityClick={(name) => { clearCustomFeed(); openCommunity(name); }}
+                        onCreatePost={openCreate}
+                        onGamesClick={() => navigateTo("games")}
+                        onForumsClick={() => window.open("/forum", "_blank")}
+                      />
                     )}
                   </div>
                 </div>
