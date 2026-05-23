@@ -113,14 +113,26 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
   const changeRole = async (uid: string, newRole: "admin"|"moderator"|"member") => {
     if (!canManage) return;
     setSavingUid(uid);
+    // Optimistic update first
+    setMembers(prev =>
+      prev.map(m => m.uid === uid ? { ...m, role: newRole } : m)
+        .sort((a, b) => (ROLE_ORDER[a.role] ?? 3) - (ROLE_ORDER[b.role] ?? 3))
+    );
     try {
-      await setDoc(doc(db, "communities", communityName, "members", uid), { role: newRole }, { merge: true });
-      setMembers(prev =>
-        prev.map(m => m.uid === uid ? { ...m, role: newRole } : m)
-          .sort((a, b) => (ROLE_ORDER[a.role] ?? 3) - (ROLE_ORDER[b.role] ?? 3))
+      await setDoc(
+        doc(db, "communities", communityName, "members", uid),
+        { role: newRole },
+        { merge: true }
       );
-    } catch (e) { console.error("changeRole error:", e); }
+    } catch (e) {
+      console.error("changeRole failed:", e);
+      // Revert on error
+      setMembers(prev =>
+        prev.map(m => m.uid === uid ? { ...m, role: m.role } : m)
+      );
+    }
     setSavingUid(null);
+    // Keep expanded open after role change
   };
 
   const removeMember = async (uid: string) => {
@@ -213,6 +225,7 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
                 const isOpen = expanded === m.uid;
                 const meta = ROLE_META[m.role];
                 const perms = PERMISSIONS[m.role as keyof typeof PERMISSIONS] || [];
+                // canExpand: owner can manage anyone except themselves, admin can manage members/moderators
                 const canExpand = canManage && !isOwner && !isMe;
 
                 return (
@@ -270,16 +283,17 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
                               const rm = ROLE_META[role];
                               const isCurrent = m.role === role;
                               return (
-                                <button key={role} onClick={() => changeRole(m.uid, role)}
-                                  disabled={savingUid === m.uid}
+                                <button key={role}
+                                  onClick={(e) => { e.stopPropagation(); changeRole(m.uid, role); }}
+                                  disabled={savingUid === m.uid || isCurrent}
                                   className={cn(
-                                    "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-all border",
+                                    "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[13px] font-medium transition-all border",
                                     isCurrent
-                                      ? `${rm.color} bg-nf-secondary border-nf-border-2`
-                                      : "text-nf-dim border-transparent hover:bg-nf-secondary hover:text-nf-muted"
+                                      ? `${rm.color} bg-nf-secondary border-nf-border-2 cursor-default`
+                                      : "text-nf-dim border-nf-border-2/50 hover:bg-nf-secondary hover:text-nf-muted hover:border-nf-border-2"
                                   )}>
-                                  {isCurrent && <Check size={11} />}
-                                  {rm.label}
+                                  {isCurrent && <Check size={12} />}
+                                  {savingUid === m.uid && !isCurrent ? "..." : rm.label}
                                 </button>
                               );
                             })}
