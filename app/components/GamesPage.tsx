@@ -697,66 +697,67 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {/* Hero Banner — Steam style flat */}
+      {/* Hero Banner — full cover like Steam */}
       {heroGame && !genreFilter && !platformFilter && activeTab === "all" && (
         <motion.div key={heroGame.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
-          className="relative rounded-xl overflow-hidden mb-5 cursor-pointer"
-          style={{ background: "#1b2838" }}
+          className="relative rounded-xl overflow-hidden mb-5 cursor-pointer group"
           onClick={() => { if (heroGame.steamUrl) window.open(heroGame.steamUrl, "_blank"); }}>
-          <div className="flex h-[200px] sm:h-[260px]">
-            {/* Left: cover */}
-            <div className="w-[140px] sm:w-[180px] shrink-0 overflow-hidden">
-              <img src={heroGame.cover} alt={heroGame.name}
-                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 select-none pointer-events-none" />
-            </div>
-            {/* Right: info */}
-            <div className="flex-1 flex flex-col justify-between p-4 sm:p-5" style={{ background: "linear-gradient(135deg, #1b2838 0%, #2a475e 100%)" }}>
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[9px] font-bold text-[#66c0f4] uppercase tracking-wider">مميز</span>
-                  <span className="text-[9px] text-white/30">·</span>
-                  <span className="text-[9px] text-white/40">{heroGame.releaseYear}</span>
-                </div>
-                <h2 className="text-[18px] sm:text-[22px] font-bold text-white mb-2 leading-tight">{heroGame.name}</h2>
-                <p className="text-[11px] text-white/55 leading-relaxed line-clamp-3 mb-3">{heroGame.description}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {heroGame.genre.slice(0, 3).map(g => (
-                    <span key={g} className="text-[9px] px-2 py-0.5 rounded text-[#66c0f4] border border-[#66c0f4]/25 bg-[#66c0f4]/8">{g}</span>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
-                    <div className="flex gap-0.5">
-                      {[1,2,3,4,5].map(s => (
-                        <div key={s} className={cn("w-2 h-2 rounded-sm", s <= Math.round(heroGame.rating) ? "bg-[#66c0f4]" : "bg-white/15")} />
-                      ))}
+          {/* Full background image */}
+          <div className="relative h-[220px] sm:h-[280px]">
+            <img src={heroGame.cover} alt={heroGame.name}
+              className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.02] select-none pointer-events-none" />
+            {/* Dark overlay — full coverage */}
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.92) 100%)" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to left, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
+
+            {/* Content */}
+            <div className="absolute bottom-0 right-0 left-0 p-4 sm:p-5">
+              <div className="flex items-end justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-[20px] sm:text-[26px] font-bold text-white mb-1.5 leading-tight drop-shadow-lg">{heroGame.name}</h2>
+                  <p className="text-[11px] text-white/60 leading-relaxed line-clamp-2 mb-2.5 max-w-[500px]">{heroGame.description}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Rating dots */}
+                    <div className="flex items-center gap-1">
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(s => (
+                          <div key={s} className={cn("w-2 h-2 rounded-sm", s <= Math.round(heroGame.rating) ? "bg-emerald-400" : "bg-white/20")} />
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-emerald-400 font-bold mr-1">{heroGame.rating}</span>
                     </div>
-                    <span className="text-[10px] text-[#66c0f4] font-bold mr-1">{heroGame.rating}</span>
-                  </div>
-                  <div className="flex gap-1">
-                    {heroGame.platforms.slice(0, 3).map(p => (
-                      <span key={p} className="text-[8px] px-1.5 py-0.5 rounded bg-white/8 text-white/40 border border-white/10">{platformShort[p] || p}</span>
+                    <span className="text-white/25">·</span>
+                    <span className="text-[10px] text-white/50">{heroGame.releaseYear}</span>
+                    <span className="text-white/25">·</span>
+                    {heroGame.genre.slice(0, 2).map(g => (
+                      <span key={g} className="text-[9px] px-2 py-0.5 rounded text-white/70 border border-white/15 bg-white/8">{g}</span>
                     ))}
                   </div>
                 </div>
-                {heroGame.steamUrl && (
-                  <a href={heroGame.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-medium text-white/70 hover:text-white transition-colors border border-white/15 hover:border-white/30"
-                    style={{ background: "rgba(255,255,255,0.06)" }}>
-                    <ExternalLink size={10} /> Steam
-                  </a>
-                )}
+                {/* Actions */}
+                <div className="flex flex-col gap-2 shrink-0">
+                  {heroGame.steamUrl && (
+                    <a href={heroGame.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-all border border-white/20 hover:border-white/40 bg-white/8 hover:bg-white/12">
+                      <ExternalLink size={11} /> Steam
+                    </a>
+                  )}
+                  <div className="flex gap-1">
+                    {heroGame.platforms.slice(0, 3).map(p => (
+                      <span key={p} className="text-[8px] px-1.5 py-1 rounded bg-white/8 text-white/40 border border-white/10">{platformShort[p] || p}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          {/* Dots */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1">
-            {featured.map((_, i) => (
-              <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }}
-                className={cn("rounded-full transition-all", i === heroIdx ? "w-4 h-1.5 bg-[#66c0f4]" : "w-1.5 h-1.5 bg-white/25 hover:bg-white/50")} />
-            ))}
+
+            {/* Dots */}
+            <div className="absolute top-3 left-3 flex items-center gap-1.5">
+              {featured.map((_, i) => (
+                <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }}
+                  className={cn("rounded-full transition-all", i === heroIdx ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/30 hover:bg-white/60")} />
+              ))}
+            </div>
           </div>
         </motion.div>
       )}
