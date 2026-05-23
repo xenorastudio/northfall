@@ -25,7 +25,15 @@ export default function CommunityDashboard({ communityName: rawName, onBack, onE
         if (!snap.exists()) { showToast("المجتمع غير موجود", "error"); onBack(); return; }
         const data = snap.data();
         setMeta(data);
-        if (user?.uid !== data.creatorUid) { showToast("أنت لست مؤسس هذا المجتمع", "error"); onBack(); return; }
+        // Allow owner AND staff (admin/moderator) to access dashboard
+        const isOwner = user?.uid === data.creatorUid;
+        if (!isOwner) {
+          const memberSnap = await getDoc(doc(db, "communities", communityName, "members", user!.uid)).catch(() => null);
+          const role = memberSnap?.data()?.role;
+          if (role !== "admin" && role !== "moderator") {
+            showToast("ليس لديك صلاحية للوصول", "error"); onBack(); return;
+          }
+        }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     }

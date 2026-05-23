@@ -1,37 +1,43 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Users, Shield, Crown, UserMinus, UserPlus, Search, Check, Copy, Link2, ChevronDown, FileText, Eye, MessageSquare, Settings } from "lucide-react";
+import { Users, Shield, Crown, UserMinus, UserPlus, Search, Check, Copy, Link2, ChevronDown, Eye } from "lucide-react";
 
-interface Member { uid: string; name: string; photo: string; role: "owner"|"admin"|"moderator"|"member"; joinedAt: string; }
+interface Member {
+  uid: string; name: string; photo: string;
+  role: "owner"|"admin"|"moderator"|"member";
+  joinedAt: string;
+  permissions?: Record<string, boolean>;
+  showInModerators?: boolean;
+}
 
 const ROLE_ORDER = { owner: 0, admin: 1, moderator: 2, member: 3 };
 
-const PERMISSIONS = {
-  admin: [
-    { icon: FileText,     label: "إدارة المنشورات",  desc: "حذف وتثبيت وإخفاء المنشورات" },
-    { icon: Users,        label: "إدارة الأعضاء",    desc: "إزالة الأعضاء وتغيير صلاحياتهم" },
-    { icon: Settings,     label: "إعدادات المجتمع",  desc: "تعديل وصف وقوانين المجتمع" },
-    { icon: MessageSquare,label: "إدارة التعليقات",  desc: "حذف التعليقات المخالفة" },
-    { icon: Eye,          label: "مراجعة البلاغات",  desc: "مراجعة والرد على بلاغات الأعضاء" },
-  ],
-  moderator: [
-    { icon: FileText,     label: "إدارة المنشورات",  desc: "حذف وتثبيت وإخفاء المنشورات" },
-    { icon: MessageSquare,label: "إدارة التعليقات",  desc: "حذف التعليقات المخالفة" },
-    { icon: Eye,          label: "مراجعة البلاغات",  desc: "مراجعة والرد على بلاغات الأعضاء" },
-  ],
-  member: [] as { icon: typeof FileText; label: string; desc: string }[],
+// All available permissions
+const ALL_PERMISSIONS = [
+  { id: "managePosts",    label: "إدارة المنشورات",   desc: "حذف وتثبيت وإخفاء المنشورات" },
+  { id: "manageComments", label: "إدارة التعليقات",   desc: "حذف التعليقات المخالفة" },
+  { id: "manageMembers",  label: "إدارة الأعضاء",     desc: "إزالة الأعضاء من المجتمع" },
+  { id: "manageSettings", label: "إعدادات المجتمع",   desc: "تعديل وصف وقوانين المجتمع" },
+  { id: "reviewReports",  label: "مراجعة البلاغات",   desc: "مراجعة والرد على بلاغات الأعضاء" },
+];
+
+// Default permissions per role
+const DEFAULT_PERMS = {
+  admin:     { managePosts: true, manageComments: true, manageMembers: true, manageSettings: true, reviewReports: true },
+  moderator: { managePosts: true, manageComments: true, manageMembers: false, manageSettings: false, reviewReports: true },
+  member:    { managePosts: false, manageComments: false, manageMembers: false, manageSettings: false, reviewReports: false },
 };
 
 const ROLE_META = {
-  owner:     { label: "مالك", color: "text-amber-500",  dot: "bg-amber-500",  icon: Crown   },
-  admin:     { label: "مشرف", color: "text-red-400",    dot: "bg-red-400",    icon: Shield  },
-  moderator: { label: "ناظم", color: "text-blue-400",   dot: "bg-blue-400",   icon: Shield  },
-  member:    { label: "عضو",  color: "text-nf-dim",     dot: "bg-nf-dim/40",  icon: Users   },
+  owner:     { label: "مالك",  color: "text-amber-500", dot: "bg-amber-500",  icon: Crown  },
+  admin:     { label: "مشرف",  color: "text-red-400",   dot: "bg-red-400",    icon: Shield },
+  moderator: { label: "ناظم",  color: "text-blue-400",  dot: "bg-blue-400",   icon: Shield },
+  member:    { label: "عضو",   color: "text-nf-dim",    dot: "bg-nf-dim/40",  icon: Users  },
 };
 
 export default function CommunityMembersPage({ communityName, onBack }: { communityName: string; onBack: () => void }) {
@@ -43,7 +49,7 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
   const [myRole, setMyRole] = useState<Member["role"]>("member");
   const [isCreator, setIsCreator] = useState(false);
   const [expanded, setExpanded] = useState<string|null>(null);
-  const [savingUid, setSavingUid] = useState<string|null>(null);
+  const [saving, setSaving] = useState<string|null>(null);
   const [inviteLink, setInviteLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [following, setFollowing] = useState<Member[]>([]);
@@ -76,11 +82,12 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
             if (uSnap?.exists()) { name = uSnap.data().displayName || ""; photo = uSnap.data().photoURL || ""; }
           }
           const role: Member["role"] = d.id === creatorUid ? "owner" : (data.role || "member");
-          list.push({ uid: d.id, name: name || d.id.slice(0, 8), photo, role, joinedAt: data.joinedAt || "" });
+          const permissions = data.permissions || DEFAULT_PERMS[role as keyof typeof DEFAULT_PERMS] || DEFAULT_PERMS.member;
+          list.push({ uid: d.id, name: name || d.id.slice(0, 8), photo, role, joinedAt: data.joinedAt || "", permissions, showInModerators: data.showInModerators ?? (role !== "member") });
         }
         if (iAmCreator && !list.find(m => m.uid === user!.uid)) {
           const uSnap = await getDoc(doc(db, "users", user!.uid)).catch(() => null);
-          list.push({ uid: user!.uid, name: uSnap?.data()?.displayName || user!.displayName || "أنت", photo: uSnap?.data()?.photoURL || user!.photoURL || "", role: "owner", joinedAt: new Date().toISOString() });
+          list.push({ uid: user!.uid, name: uSnap?.data()?.displayName || user!.displayName || "أنت", photo: uSnap?.data()?.photoURL || user!.photoURL || "", role: "owner", joinedAt: new Date().toISOString(), permissions: DEFAULT_PERMS.admin, showInModerators: true });
         }
         list.sort((a, b) => (ROLE_ORDER[a.role] ?? 3) - (ROLE_ORDER[b.role] ?? 3));
         setMembers(list);
@@ -110,28 +117,30 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
 
   const canManage = isCreator || myRole === "owner" || myRole === "admin";
 
-  const changeRole = async (uid: string, newRole: "admin"|"moderator"|"member") => {
+  const saveMember = async (uid: string, updates: Partial<Member>) => {
     if (!canManage) return;
-    setSavingUid(uid);
-    // Optimistic update — keep expanded open
-    setMembers(prev =>
-      prev.map(m => m.uid === uid ? { ...m, role: newRole } : m)
-        .sort((a, b) => (ROLE_ORDER[a.role] ?? 3) - (ROLE_ORDER[b.role] ?? 3))
-    );
-    // Keep the panel expanded after role change
-    setExpanded(uid);
+    setSaving(uid);
     try {
-      await setDoc(
-        doc(db, "communities", communityName, "members", uid),
-        { role: newRole },
-        { merge: true }
-      );
-    } catch (e) {
-      console.error("changeRole failed:", e);
-      // Revert on error — reload members
-      window.location.reload();
-    }
-    setSavingUid(null);
+      await setDoc(doc(db, "communities", communityName, "members", uid), updates, { merge: true });
+      setMembers(prev => prev.map(m => m.uid === uid ? { ...m, ...updates } : m).sort((a, b) => (ROLE_ORDER[a.role] ?? 3) - (ROLE_ORDER[b.role] ?? 3)));
+      setExpanded(uid);
+    } catch (e) { console.error(e); }
+    setSaving(null);
+  };
+
+  const togglePermission = (uid: string, permId: string, current: boolean) => {
+    const m = members.find(x => x.uid === uid);
+    if (!m) return;
+    const newPerms = { ...(m.permissions || {}), [permId]: !current };
+    // Determine role from permissions
+    const hasAll = ALL_PERMISSIONS.every(p => newPerms[p.id]);
+    const hasNone = ALL_PERMISSIONS.every(p => !newPerms[p.id]);
+    const newRole: Member["role"] = hasAll ? "admin" : hasNone ? "member" : "moderator";
+    saveMember(uid, { permissions: newPerms, role: newRole });
+  };
+
+  const toggleShowInModerators = (uid: string, current: boolean) => {
+    saveMember(uid, { showInModerators: !current });
   };
 
   const removeMember = async (uid: string) => {
@@ -164,8 +173,7 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
 
   return (
     <div className="w-full max-w-[720px]" style={{ direction: "rtl" }}>
-
-      {/* ── Tabs ── */}
+      {/* Tabs */}
       <div className="flex border-b border-nf-border-2/30 mb-6">
         {[
           { id: "members" as const, label: "الأعضاء", count: members.length },
@@ -185,26 +193,19 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
         ))}
       </div>
 
-      {/* ── Members tab ── */}
+      {/* Members tab */}
       {tab === "members" && (
         <div>
-          {/* Search */}
           <div className="relative mb-5">
             <Search size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-nf-dim pointer-events-none" />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="ابحث عن عضو..."
-              className="w-full bg-nf-secondary/50 border border-nf-border-2/50 rounded-xl pr-10 pl-4 py-2.5 text-[13px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 focus:bg-nf-secondary transition-all" />
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث عن عضو..."
+              className="w-full bg-nf-secondary/50 border border-nf-border-2/50 rounded-xl pr-10 pl-4 py-2.5 text-[13px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-all" />
           </div>
 
           {loading ? (
-            <div className="space-y-px">
-              {[1,2,3].map(i => <div key={i} className="h-[60px] bg-nf-secondary/20 animate-pulse" style={{ animationDelay: `${i*80}ms` }} />)}
-            </div>
+            <div className="space-y-px">{[1,2,3].map(i => <div key={i} className="h-[60px] bg-nf-secondary/20 animate-pulse rounded-lg" />)}</div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-20 text-nf-dim">
-              <Users size={24} className="mx-auto mb-3 opacity-20" />
-              <p className="text-[14px]">لا توجد نتائج</p>
-            </div>
+            <div className="text-center py-20 text-nf-dim"><Users size={24} className="mx-auto mb-3 opacity-20" /><p className="text-[14px]">لا توجد نتائج</p></div>
           ) : (
             <div>
               {filtered.map((m, idx) => {
@@ -212,109 +213,90 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
                 const isOwner = m.role === "owner";
                 const isOpen = expanded === m.uid;
                 const meta = ROLE_META[m.role];
-                const perms = PERMISSIONS[m.role as keyof typeof PERMISSIONS] || [];
-                // canExpand: owner can manage anyone except themselves, admin can manage members/moderators
                 const canExpand = canManage && !isOwner && !isMe;
+                const perms = m.permissions || DEFAULT_PERMS[m.role as keyof typeof DEFAULT_PERMS] || DEFAULT_PERMS.member;
 
                 return (
                   <div key={m.uid}>
-                    {/* Divider */}
                     {idx > 0 && <div className="h-px bg-nf-border-2/20 mx-1" />}
 
-                    {/* Member row */}
-                    <div
-                      className={cn("flex items-center gap-3.5 px-2 py-3.5 rounded-lg transition-colors",
-                        canExpand ? "cursor-pointer hover:bg-nf-secondary/30" : "",
-                        isOpen && "bg-nf-secondary/20")}
-                      onClick={() => canExpand && setExpanded(isOpen ? null : m.uid)}
-                    >
-                      {/* Avatar */}
+                    {/* Row */}
+                    <div className={cn("flex items-center gap-3.5 px-2 py-3.5 rounded-lg transition-colors",
+                      canExpand ? "cursor-pointer hover:bg-nf-secondary/30" : "",
+                      isOpen && "bg-nf-secondary/20")}
+                      onClick={() => canExpand && setExpanded(isOpen ? null : m.uid)}>
                       {m.photo
                         ? <img src={m.photo} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
                         : <div className="w-9 h-9 rounded-full bg-nf-secondary flex items-center justify-center text-[13px] font-semibold text-nf-muted shrink-0">{m.name[0]?.toUpperCase()}</div>
                       }
-
-                      {/* Name */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-[14px] font-medium text-nf-text truncate">{m.name}</span>
                           {isMe && <span className="text-[11px] text-nf-dim">(أنت)</span>}
                         </div>
-                        {m.joinedAt && (
-                          <p className="text-[11px] text-nf-dim mt-0.5">
-                            انضم {new Date(m.joinedAt).toLocaleDateString("ar-SA", { month: "short", year: "numeric" })}
-                          </p>
-                        )}
+                        {m.joinedAt && <p className="text-[11px] text-nf-dim mt-0.5">انضم {new Date(m.joinedAt).toLocaleDateString("ar-SA", { month: "short", year: "numeric" })}</p>}
                       </div>
-
-                      {/* Role */}
                       <div className={cn("flex items-center gap-1.5 text-[12px] font-medium shrink-0", meta.color)}>
                         <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", meta.dot)} />
                         {meta.label}
                       </div>
-
-                      {/* Arrow */}
-                      {canExpand && (
-                        <ChevronDown size={14} className={cn("text-nf-dim/50 shrink-0 transition-transform duration-200", isOpen && "rotate-180")} />
-                      )}
+                      {canExpand && <ChevronDown size={14} className={cn("text-nf-dim/50 shrink-0 transition-transform duration-200", isOpen && "rotate-180")} />}
                     </div>
 
-                    {/* ── Expanded panel ── */}
+                    {/* Expanded */}
                     {isOpen && canExpand && (
-                      <div className="mx-2 mb-3 rounded-xl bg-nf-secondary/20 border border-nf-border-2/30 overflow-hidden">
+                      <div className="mx-2 mb-3 rounded-xl bg-nf-secondary/15 border border-nf-border-2/25 overflow-hidden">
 
-                        {/* Role selector */}
+                        {/* Permissions toggles */}
                         <div className="px-4 pt-4 pb-3">
-                          <p className="text-[11px] font-semibold text-nf-dim uppercase tracking-wider mb-3">الصلاحية</p>
-                          <div className="flex gap-2">
-                            {(["admin", "moderator", "member"] as const).map(role => {
-                              const rm = ROLE_META[role];
-                              const isCurrent = m.role === role;
+                          <p className="text-[11px] font-semibold text-nf-dim uppercase tracking-wider mb-3">الصلاحيات</p>
+                          <div className="space-y-2.5">
+                            {ALL_PERMISSIONS.map(p => {
+                              const isOn = !!(perms as any)[p.id];
                               return (
-                                <button key={role}
-                                  onClick={(e) => { e.stopPropagation(); changeRole(m.uid, role); }}
-                                  disabled={savingUid === m.uid || isCurrent}
-                                  className={cn(
-                                    "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[13px] font-medium transition-all border",
-                                    isCurrent
-                                      ? `${rm.color} bg-nf-secondary border-nf-border-2 cursor-default`
-                                      : "text-nf-dim border-nf-border-2/50 hover:bg-nf-secondary hover:text-nf-muted hover:border-nf-border-2"
-                                  )}>
-                                  {isCurrent && <Check size={12} />}
-                                  {savingUid === m.uid && !isCurrent ? "..." : rm.label}
-                                </button>
+                                <div key={p.id} className="flex items-center justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[13px] font-medium text-nf-text">{p.label}</p>
+                                    <p className="text-[11px] text-nf-dim">{p.desc}</p>
+                                  </div>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); togglePermission(m.uid, p.id, isOn); }}
+                                    disabled={saving === m.uid}
+                                    className={cn("relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0",
+                                      isOn ? "bg-nf-accent" : "bg-nf-secondary border border-nf-border-2")}>
+                                    <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200",
+                                      isOn ? "right-0.5" : "left-0.5")} />
+                                  </button>
+                                </div>
                               );
                             })}
                           </div>
                         </div>
 
-                        {/* Permissions */}
-                        {perms.length > 0 && (
-                          <div className="border-t border-nf-border-2/20 px-4 py-3">
-                            <p className="text-[11px] font-semibold text-nf-dim uppercase tracking-wider mb-2.5">
-                              ما يستطيع {meta.label} فعله
-                            </p>
-                            <div className="space-y-2">
-                              {perms.map((p, i) => (
-                                <div key={i} className="flex items-center gap-2.5">
-                                  <Check size={12} className="text-nf-accent/60 shrink-0" />
-                                  <span className="text-[12px] text-nf-muted">{p.label}</span>
-                                  <span className="text-[11px] text-nf-dim/60 truncate">— {p.desc}</span>
-                                </div>
-                              ))}
+                        {/* Show in moderators toggle */}
+                        <div className="border-t border-nf-border-2/20 px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-medium text-nf-text flex items-center gap-1.5">
+                                <Eye size={13} className="text-nf-accent" />
+                                إظهار في قائمة المشرفين
+                              </p>
+                              <p className="text-[11px] text-nf-dim">يظهر اسمه في sidebar المجتمع</p>
                             </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleShowInModerators(m.uid, m.showInModerators ?? false); }}
+                              disabled={saving === m.uid}
+                              className={cn("relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0",
+                                m.showInModerators ? "bg-nf-accent" : "bg-nf-secondary border border-nf-border-2")}>
+                              <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200",
+                                m.showInModerators ? "right-0.5" : "left-0.5")} />
+                            </button>
                           </div>
-                        )}
-
-                        {m.role === "member" && (
-                          <div className="border-t border-nf-border-2/20 px-4 py-3">
-                            <p className="text-[12px] text-nf-dim">لا توجد صلاحيات إضافية</p>
-                          </div>
-                        )}
+                        </div>
 
                         {/* Remove */}
                         <div className="border-t border-nf-border-2/20 px-4 py-3">
-                          <button onClick={() => removeMember(m.uid)}
+                          <button onClick={(e) => { e.stopPropagation(); removeMember(m.uid); }}
                             className="flex items-center gap-2 text-[12px] text-red-400/80 hover:text-red-400 transition-colors">
                             <UserMinus size={13} />
                             إزالة من المجتمع
@@ -330,26 +312,20 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
         </div>
       )}
 
-      {/* ── Invite tab ── */}
+      {/* Invite tab */}
       {tab === "invite" && (
         <div className="space-y-6">
-
-          {/* Invite link */}
           <div>
             <p className="text-[13px] font-semibold text-nf-text mb-2">رابط الدعوة</p>
             <div className="flex items-center gap-2">
-              <input readOnly value={inviteLink}
-                className="flex-1 bg-nf-secondary/50 border border-nf-border-2/50 rounded-xl px-3.5 py-2.5 text-[11px] text-nf-dim font-mono outline-none truncate" />
-              <button onClick={copyLink}
-                className={cn("flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-medium border transition-all shrink-0",
-                  copied ? "text-green-400 border-green-400/30" : "text-nf-muted border-nf-border-2/50 hover:text-nf-text hover:border-nf-border-2")}>
+              <input readOnly value={inviteLink} className="flex-1 bg-nf-secondary/50 border border-nf-border-2/50 rounded-xl px-3.5 py-2.5 text-[11px] text-nf-dim font-mono outline-none truncate" />
+              <button onClick={copyLink} className={cn("flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-medium border transition-all shrink-0",
+                copied ? "text-green-400 border-green-400/30" : "text-nf-muted border-nf-border-2/50 hover:text-nf-text hover:border-nf-border-2")}>
                 {copied ? <><Check size={12} /> تم</> : <><Copy size={12} /> نسخ</>}
               </button>
             </div>
             <p className="text-[11px] text-nf-dim mt-1.5">الدعوة تُرسل كإشعار — الشخص يقبل أو يرفض</p>
           </div>
-
-          {/* Following */}
           <div>
             <p className="text-[13px] font-semibold text-nf-text mb-3">ادعُ من تتابعهم</p>
             {loadingFollowing ? (
@@ -369,8 +345,7 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
                         <p className="flex-1 text-[14px] font-medium text-nf-text truncate">{f.name}</p>
                         <button onClick={() => !sent && inviteUser(f)} disabled={sent || invitingUid === f.uid}
                           className={cn("px-4 py-1.5 rounded-full text-[12px] font-medium transition-all shrink-0 border",
-                            sent ? "text-nf-dim border-nf-border-2/40 cursor-default"
-                                 : "text-nf-accent border-nf-accent/30 hover:bg-nf-accent/10 disabled:opacity-50")}>
+                            sent ? "text-nf-dim border-nf-border-2/40 cursor-default" : "text-nf-accent border-nf-accent/30 hover:bg-nf-accent/10 disabled:opacity-50")}>
                           {sent ? "✓ أُرسلت" : invitingUid === f.uid ? "..." : "دعوة"}
                         </button>
                       </div>

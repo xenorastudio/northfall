@@ -73,6 +73,9 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
           const data = d.data();
           const role = d.id === creatorUid ? "owner" : (data.role || "member");
           if (role === "owner" || role === "admin" || role === "moderator") {
+            // Only show if showInModerators is true (owner always shows)
+            const showInMods = role === "owner" ? true : (data.showInModerators !== false);
+            if (!showInMods) continue;
             let uName = data.displayName || "";
             let uPhoto = data.photoURL || "";
             if (!uName) {
