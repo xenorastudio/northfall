@@ -154,72 +154,53 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
       {/* Custom Feeds */}
       {user && (
         <div className="flex flex-col gap-px mb-2">
-          <div className="flex items-center justify-between px-3.5 py-2 pb-1">
+          <div className="px-3.5 py-2 pb-1">
             <span className="text-[10px] font-bold text-nf-dim uppercase tracking-wider">فيدات مخصصة</span>
-            <button
-              onClick={onCreateCustomFeed}
-              className="p-1 rounded text-nf-dim hover:text-nf-accent transition-colors"
-              title="إنشاء فيد جديد"
-            >
-              <Plus size={12} />
-            </button>
           </div>
 
           {customFeeds && customFeeds.length > 0 ? (
             customFeeds.map((feed) => {
               const isActive = activeCustomFeedId === feed.id;
               return (
-                <div key={feed.id} className="relative flex items-center mx-2">
+                <div key={feed.id} className="relative flex items-center mx-2 group/feed">
                   <button
                     onClick={() => onCustomFeedClick?.(feed)}
                     className={cn(
-                      "flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors duration-150 pr-8",
+                      "flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors duration-150",
                       isActive ? "bg-nf-hover text-nf-text" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
                     )}
                   >
-                    <div className="w-5 h-5 rounded-full bg-nf-accent/15 flex items-center justify-center shrink-0">
-                      <Rss size={10} className="text-nf-accent" />
-                    </div>
+                    <Rss size={14} className={cn("shrink-0", isActive ? "text-nf-accent opacity-100" : "opacity-40")} />
                     <span className="truncate flex-1 text-right">{feed.name}</span>
-                    <span className="text-[9px] font-medium text-nf-dim shrink-0">
-                      {feed.communities.length}
-                    </span>
+                    <span className="text-[9px] text-nf-dim shrink-0">{feed.communities.length}</span>
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); onEditCustomFeed?.(feed); }}
-                    className="absolute left-1 top-1/2 -translate-y-1/2 p-1 rounded text-nf-dim hover:text-nf-accent transition-colors opacity-0 hover:opacity-100 focus:opacity-100 [.group:hover_&]:opacity-100"
+                    className="absolute left-1 top-1/2 -translate-y-1/2 p-1 rounded text-nf-dim opacity-0 group-hover/feed:opacity-100 hover:text-nf-accent transition-all"
                     title="تعديل"
-                    style={{ pointerEvents: "auto" }}
                   >
                     <Pencil size={10} />
                   </button>
                 </div>
               );
             })
-          ) : (
-            <button
-              onClick={onCreateCustomFeed}
-              className="flex items-center gap-2 mx-2 px-2.5 py-2 rounded-lg text-[11px] text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-colors"
-            >
-              <Plus size={12} />
-              <span>إنشاء فيد مخصص</span>
-            </button>
-          )}
+          ) : null}
+
+          <button
+            onClick={onCreateCustomFeed}
+            className="flex items-center gap-2 mx-2 px-2.5 py-1.5 rounded-lg text-[11px] text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-colors"
+          >
+            <Plus size={11} className="opacity-50" />
+            <span>إنشاء فيد مخصص</span>
+          </button>
         </div>
       )}
 
       {/* My Communities */}
       {user && (createdComms.length > 0 || joinedComms.length > 0) && (
         <div className="flex flex-col gap-px mb-2">
-          <div className="flex items-center justify-between px-3.5 py-2 pb-1">
+          <div className="px-3.5 py-2 pb-1">
             <span className="text-[10px] font-bold text-nf-dim uppercase tracking-wider">مجتمعاتي</span>
-            <button
-              onClick={() => onNavClick("manage-communities")}
-              className="p-1 rounded text-nf-dim hover:text-nf-accent transition-colors"
-              title="إدارة المجتمعات"
-            >
-              <Settings size={11} />
-            </button>
           </div>
           {createdComms.map((c) => (
             <div key={c.name} className="flex items-center mx-2 group">

@@ -124,6 +124,9 @@ function AppContent() {
       "create-community": "إنشاء مجتمع جديد",
       "edit-community": "تعديل مجتمع",
       "community-dashboard": "لوحة تحكم المجتمع",
+      "manage-communities": "إدارة مجتمعاتي",
+      "custom-feed": "فيد مخصص",
+      "members": "إدارة الأعضاء",
     };
     document.title = (titleMap[newView] || "Northfall") + " — Northfall";
   };
@@ -439,7 +442,7 @@ function AppContent() {
         activeNav={view === "feed" ? (activeCustomFeed ? "" : sortMode === "hot" ? "hot" : sortMode === "new" ? "new" : sortMode === "top" ? "top" : "home") : view === "profile" ? "profile" : view === "settings" ? "settings" : view === "notifs" ? "notifs" : view === "games" ? "games" : view === "community" ? selectedCommunity : ""}
         onCreateCommunity={() => requireAuth(() => navigateTo("create-community"))}
         onDashboardClick={(name) => openCommunityDashboard(name)}
-        customFeeds={customFeeds}
+        customFeeds={user ? customFeeds : []}
         activeCustomFeedId={activeCustomFeed?.id ?? null}
         onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))}
         onCreateCustomFeed={() => requireAuth(() => { setEditingCustomFeed(null); navigateTo("custom-feed"); })}

@@ -146,6 +146,9 @@
     line-height: 1.7;
     letter-spacing: -0.01em;
     overscroll-behavior-y: contain;
+    font-feature-settings: "kern" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
