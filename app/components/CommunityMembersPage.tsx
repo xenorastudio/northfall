@@ -363,7 +363,7 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
 
           {/* Following */}
           <div>
-            <p className="text-[13px] font-semibold text-nf-text mb-3">دعوة من المتابَعين</p>
+            <p className="text-[13px] font-semibold text-nf-text mb-3">ادعُ من تتابعهم</p>
             {loadingFollowing ? (
               <div className="space-y-px">{[1,2,3].map(i => <div key={i} className="h-14 bg-nf-secondary/20 animate-pulse rounded-lg" />)}</div>
             ) : following.length === 0 ? (

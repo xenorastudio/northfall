@@ -17,6 +17,7 @@ import CustomFeedModal, { type CustomFeed } from "../components/CustomFeedModal"
 import CustomFeedPage from "../components/CustomFeedPage";
 import CommunityMembersPage from "../components/CommunityMembersPage";
 import ManageCommunitiesPage from "../components/ManageCommunitiesPage";
+import InviteAcceptDialog from "../components/InviteAcceptDialog";
 import { useToast } from "../components/ToastProvider";
 import { DataProvider, useData } from "../components/DataProvider";
 import { lazy, Suspense } from "react";
@@ -82,6 +83,15 @@ function AppContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get("view");
+
+    // Handle invite link
+    const inviteToken = params.get("invite");
+    const inviteCommunity = params.get("c");
+    if (inviteToken && inviteCommunity) {
+      setInvitePending({ token: inviteToken, community: inviteCommunity });
+      return;
+    }
+
     if (v === "thread") {
       window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
       return;
@@ -92,7 +102,6 @@ function AppContent() {
       const p = params.get("postId"); if (p) setSelectedPostId(p);
       const u = params.get("uid"); if (u) setViewingUid(u);
       const e = params.get("editPostId"); if (e) { setEditPostId(e); setView("edit"); }
-      // Set tab title on direct URL load
       const titles: Record<string, string> = { feed: "Northfall", community: c ? `n/${c}` : "مجتمع", profile: "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف", games: "ألعاب", seo: "أدوات SEO", "create-community": "إنشاء مجتمع جديد", "edit-community": "تعديل مجتمع", "community-dashboard": "لوحة تحكم المجتمع" };
       document.title = (titles[v] || "Northfall") + " — Northfall";
     }
@@ -182,6 +191,7 @@ function AppContent() {
   const [showCustomFeedModal, setShowCustomFeedModal] = useState(false);
   const [editingCustomFeed, setEditingCustomFeed] = useState<CustomFeed | null>(null);
   const [membersCommunity, setMembersCommunity] = useState<string>("");
+  const [invitePending, setInvitePending] = useState<{ token: string; community: string } | null>(null);
 
   const openMembers = (name: string) => {
     setMembersCommunity(name);
@@ -746,6 +756,27 @@ function AppContent() {
       </div>
 
       <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
+
+      {/* Invite Accept Dialog */}
+      {invitePending && (
+        <InviteAcceptDialog
+          community={invitePending.community}
+          onAccept={async () => {
+            if (!user) { setShowLogin(true); return; }
+            try {
+              const { setDoc, doc: fsDoc } = await import("firebase/firestore");
+              await setDoc(fsDoc(db, "communities", invitePending.community, "members", user.uid), { uid: user.uid, joinedAt: new Date().toISOString(), role: "member" });
+              await setDoc(fsDoc(db, "users", user.uid, "communities", invitePending.community), { name: invitePending.community, joinedAt: new Date().toISOString() });
+              setInvitePending(null);
+              window.history.replaceState({}, "", "/app");
+              openCommunity(invitePending.community);
+            } catch (e) { console.error(e); }
+          }}
+          onDecline={() => { setInvitePending(null); window.history.replaceState({}, "", "/app"); }}
+          requireLogin={!user}
+          onLogin={() => setShowLogin(true)}
+        />
+      )}
 
 
 
