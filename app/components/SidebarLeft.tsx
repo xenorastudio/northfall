@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Flame, Sparkles, TrendingUp, User, Bookmark, Bell, Settings, HelpCircle, Shield, Plus, Search, MessageSquare, Gamepad2, X, Rss, Pencil, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
+import { Home, Flame, Clock, TrendingUp, User, Bookmark, Bell, Settings, HelpCircle, Shield, Plus, Search, MessageSquare, Gamepad2, X, Rss, Pencil, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -123,7 +123,7 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
   }, [darkMode]);  const browseItemsInner = [
     { icon: Home, labelKey: "sb.home", id: "home" },
     { icon: Flame, labelKey: "sb.popular", id: "hot" },
-    { icon: Sparkles, labelKey: "fs.new", id: "new" },
+    { icon: Clock, labelKey: "fs.new", id: "new" },
     { icon: TrendingUp, labelKey: "fs.top", id: "top" },
     { icon: MessageSquare, labelKey: "المنتدى", id: "forums" },
     { icon: Gamepad2, labelKey: "ألعاب", id: "games" },

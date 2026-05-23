@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, addDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
@@ -114,9 +114,12 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
     if (!canManage) return;
     setSavingUid(uid);
     try {
-      await updateDoc(doc(db, "communities", communityName, "members", uid), { role: newRole });
-      setMembers(prev => prev.map(m => m.uid === uid ? { ...m, role: newRole } : m).sort((a, b) => (ROLE_ORDER[a.role] ?? 3) - (ROLE_ORDER[b.role] ?? 3)));
-    } catch {}
+      await setDoc(doc(db, "communities", communityName, "members", uid), { role: newRole }, { merge: true });
+      setMembers(prev =>
+        prev.map(m => m.uid === uid ? { ...m, role: newRole } : m)
+          .sort((a, b) => (ROLE_ORDER[a.role] ?? 3) - (ROLE_ORDER[b.role] ?? 3))
+      );
+    } catch (e) { console.error("changeRole error:", e); }
     setSavingUid(null);
   };
 
