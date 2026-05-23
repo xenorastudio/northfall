@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users, MessageSquare, LogIn, Clock, TrendingUp, Search, X, Shield, Tag, Link2, Plus, Copy, Check, UserCog, ChevronDown } from "lucide-react";
+import { Users, MessageSquare, LogIn, Clock, TrendingUp, Search, X, Shield, Tag, Link2, Plus, Copy, Check, UserCog, ChevronDown, Crown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, deleteDoc, getCountFromServer, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -39,6 +39,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   const [showInvitePanel, setShowInvitePanel] = useState(false);
   const [showMembersPanel, setShowMembersPanel] = useState(false);
   const [expandedRule, setExpandedRule] = useState<number | null>(null);
+  const [moderators, setModerators] = useState<{ uid: string; name: string; photo: string; role: string }[]>([]);
   // Sidebar hide on scroll down, show on scroll up
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -58,6 +59,37 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
     getDoc(doc(db, "communities", name)).then(snap => {
       if (snap.exists()) setDbMeta(snap.data());
     }).catch(() => {});
+  }, [name]);
+
+  // Fetch moderators (owner + admin + moderator)
+  useEffect(() => {
+    (async () => {
+      try {
+        const commSnap = await getDoc(doc(db, "communities", name)).catch(() => null);
+        const creatorUid = commSnap?.data()?.creatorUid || "";
+        const snap = await getDocs(collection(db, "communities", name, "members"));
+        const list: { uid: string; name: string; photo: string; role: string }[] = [];
+        for (const d of snap.docs) {
+          const data = d.data();
+          const role = d.id === creatorUid ? "owner" : (data.role || "member");
+          if (role === "owner" || role === "admin" || role === "moderator") {
+            let uName = data.displayName || "";
+            let uPhoto = data.photoURL || "";
+            if (!uName) {
+              const uSnap = await getDoc(doc(db, "users", d.id)).catch(() => null);
+              if (uSnap?.exists()) { uName = uSnap.data().displayName || ""; uPhoto = uSnap.data().photoURL || ""; }
+            }
+            list.push({ uid: d.id, name: uName || d.id.slice(0, 8), photo: uPhoto, role });
+          }
+        }
+        // Sort: owner first
+        list.sort((a, b) => {
+          const order: Record<string, number> = { owner: 0, admin: 1, moderator: 2 };
+          return (order[a.role] ?? 3) - (order[b.role] ?? 3);
+        });
+        setModerators(list);
+      } catch {}
+    })();
   }, [name]);
 
   const meta = dbMeta || { img: "", banner: "", desc: "", shortDesc: "", rules: [], tags: [], bookmarks: [], stats: [] };
@@ -421,6 +453,35 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
                     className="flex items-center gap-2 py-2 text-[11px] text-nf-accent hover:text-nf-text transition-colors border-b border-nf-border-2/20 last:border-0">
                     <Link2 size={10} className="shrink-0" /> {b.label}
                   </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Moderators */}
+          {moderators.length > 0 && (
+            <div className="bg-nf-card border border-nf-border-2/50 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-nf-border-2/30 flex items-center gap-2">
+                <Shield size={13} className="text-nf-accent" />
+                <p className="text-[12px] font-bold text-nf-text">المشرفون</p>
+              </div>
+              <div className="divide-y divide-nf-border-2/15">
+                {moderators.map(m => (
+                  <div key={m.uid} className="flex items-center gap-2.5 px-4 py-2.5">
+                    {m.photo
+                      ? <img src={m.photo} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
+                      : <div className="w-7 h-7 rounded-full bg-nf-secondary flex items-center justify-center text-[10px] font-bold text-nf-muted shrink-0">{m.name[0]?.toUpperCase()}</div>
+                    }
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium text-nf-text truncate">u/{m.name}</p>
+                      <p className="text-[10px] text-nf-dim">
+                        {m.role === "owner" ? "صانع المجتمع" : m.role === "admin" ? "مشرف" : "ناظم"}
+                      </p>
+                    </div>
+                    {m.role === "owner" && <Crown size={11} className="text-amber-500 shrink-0" />}
+                    {m.role === "admin" && <Shield size={11} className="text-red-400 shrink-0" />}
+                    {m.role === "moderator" && <Shield size={11} className="text-blue-400 shrink-0" />}
+                  </div>
                 ))}
               </div>
             </div>
