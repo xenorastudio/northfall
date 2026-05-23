@@ -447,55 +447,89 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
       onMouseEnter={onEnter} onMouseLeave={onLeave}
       className="group relative text-right"
     >
-      <div 
+      {/* Glow */}
+      <div
         className="game-card-glow"
-        style={{ 
-          boxShadow: `0 0 45px 12px ${dominantColor}75`,
-          background: dominantColor 
-        }}
+        style={{ boxShadow: `0 0 45px 12px ${dominantColor}75`, background: dominantColor }}
       >
         <img src={game.cover} alt="" className="w-full h-full object-cover opacity-60" />
       </div>
-      <div className="relative z-10 overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.04] group-hover:ring-white/[0.2] transition-all duration-500"
-        style={{ boxShadow: hovered ? `0 12px 50px -8px ${dominantColor}90, 0 0 0 1px ${dominantColor}30` : "none" }}
+
+      {/* Card */}
+      <div
+        className="relative z-10 overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.05] group-hover:ring-white/[0.18] transition-all duration-400 cursor-pointer"
+        style={{ boxShadow: hovered ? `0 16px 60px -10px ${dominantColor}95, 0 0 0 1px ${dominantColor}35` : "none" }}
       >
-        <img src={game.cover} alt={game.name} {...imgProtect} className={cn("w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05] select-none pointer-events-none", !imgLoaded && "bg-nf-secondary/20 animate-pulse")} onLoad={() => setImgLoaded(true)} />
-        {/* Bottom gradient with name + rating */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-2.5 pt-12">
-          <p className="text-[11px] text-white font-bold truncate drop-shadow-lg">{game.name}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Star size={8} className="text-amber-400" fill="currentColor" />
-            <span className="text-[8px] text-amber-400 font-bold">{game.rating}</span>
-            <span className="text-[7px] text-white/20">|</span>
-            <span className="text-[7px] text-white/30">{game.releaseYear}</span>
-            <span className="text-[7px] text-white/15">|</span>
-            <span className="text-[7px] text-white/30">{game.players}</span>
+        {/* Cover image */}
+        <img
+          src={game.cover} alt={game.name} {...imgProtect}
+          className={cn("w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06] select-none pointer-events-none", !imgLoaded && "bg-nf-secondary/20 animate-pulse")}
+          onLoad={() => setImgLoaded(true)}
+        />
+
+        {/* Steam-style slide-up info on hover */}
+        <div className={cn(
+          "absolute inset-x-0 bottom-0 transition-all duration-300 ease-out",
+          hovered ? "translate-y-0" : "translate-y-0"
+        )}>
+          {/* Always visible: name + rating */}
+          <div className="bg-gradient-to-t from-black/98 via-black/75 to-transparent px-2.5 pb-2.5 pt-10">
+            <p className="text-[12px] text-white font-bold truncate leading-tight">{game.name}</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex items-center gap-0.5">
+                {[1,2,3,4,5].map(s => (
+                  <div key={s} className={cn("w-1.5 h-1.5 rounded-full", s <= Math.round(game.rating) ? "bg-emerald-400" : "bg-white/15")} />
+                ))}
+              </div>
+              <span className={cn("text-[9px] font-bold", ratingColor)}>{game.rating}</span>
+              <span className="text-[8px] text-white/25">·</span>
+              <span className="text-[8px] text-white/35">{game.releaseYear}</span>
+            </div>
           </div>
-          {/* Platform badges row */}
-          <div className="flex items-center gap-0.5 mt-1">
-            {game.platforms.slice(0, 4).map(p => (<span key={p} className="text-[6px] px-1 py-0.5 rounded bg-white/[0.06] text-white/40 font-semibold">{platformShort[p] || p}</span>))}
+
+          {/* Hover: extra info slides up */}
+          <div className={cn(
+            "bg-black/95 px-2.5 pb-2.5 overflow-hidden transition-all duration-300 ease-out",
+            hovered ? "max-h-[80px] opacity-100" : "max-h-0 opacity-0"
+          )}>
+            <p className="text-[9px] text-white/50 leading-relaxed line-clamp-2 mb-1.5">{game.description}</p>
+            <div className="flex flex-wrap gap-1">
+              {game.genre.slice(0, 2).map(g => (
+                <span key={g} className={`text-[7px] px-1.5 py-0.5 rounded-md font-semibold border ${getGenreClass(g)}`}>{g}</span>
+              ))}
+              {game.steamUrl && (
+                <a href={game.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                  className="mr-auto text-[7px] px-1.5 py-0.5 rounded-md bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/20 hover:bg-[#66c0f4]/10 transition-colors flex items-center gap-0.5">
+                  <ExternalLink size={7} /> Steam
+                </a>
+              )}
+            </div>
           </div>
         </div>
-        {/* Genre badge */}
+
+        {/* Top badges */}
         <div className="absolute top-1.5 right-1.5 flex flex-col gap-1">
-          <span className={`text-[7px] px-1.5 py-0.5 rounded-md backdrop-blur-md font-bold border ${getGenreClass(game.genre[0])}`}>{game.genre[0]}</span>
           {game.releaseYear >= 2023 && (
-            <span className="text-[6px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 backdrop-blur-md text-emerald-400 font-bold border border-emerald-500/20">جديد</span>
+            <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-emerald-500/25 backdrop-blur-md text-emerald-400 font-bold border border-emerald-500/25">جديد</span>
+          )}
+          {game.rating >= 4.8 && (
+            <span className="text-[7px] px-1.5 py-0.5 rounded-md bg-amber-500/25 backdrop-blur-md text-amber-400 font-bold border border-amber-500/25">⭐ مميز</span>
           )}
         </div>
+
+        {/* Fav button */}
         <button
           onClick={(e) => { e.stopPropagation(); onFav(); }}
           className={cn(
-            "absolute top-1.5 left-1.5 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200",
+            "absolute top-1.5 left-1.5 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200",
             isFav
-              ? "bg-red-500 text-white shadow-lg shadow-red-500/30"
-              : "bg-black/40 backdrop-blur-sm text-white/50 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100"
+              ? "bg-red-500 text-white shadow-lg shadow-red-500/40 scale-100"
+              : "bg-black/50 backdrop-blur-sm text-white/40 hover:bg-red-500 hover:text-white opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
           )}
         >
-          <Heart size={11} fill={isFav ? "currentColor" : "none"} />
+          <Heart size={12} fill={isFav ? "currentColor" : "none"} />
         </button>
       </div>
-      <AnimatePresence>{hovered && dropInfo}</AnimatePresence>
     </motion.div>
   );
 }
@@ -663,39 +697,65 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {/* Hero Banner */}
+      {/* Hero Banner — Steam style flat */}
       {heroGame && !genreFilter && !platformFilter && activeTab === "all" && (
-        <motion.div key={heroGame.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="relative h-[160px] sm:h-[240px] rounded-2xl overflow-hidden mb-4 group cursor-pointer border border-nf-border-2 hover:border-nf-border transition-colors" onClick={() => { const g = heroGame; if (g.steamUrl) window.open(g.steamUrl, "_blank"); }}>
-          <img src={heroGame.cover} alt={heroGame.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05] select-none pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-l from-black/90 via-black/50 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-          <div className="absolute bottom-0 right-0 p-4 sm:p-6">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Flame size={11} className="text-orange-400" />
-              <span className="text-[8px] text-orange-400 font-bold uppercase tracking-wider">مميز اليوم</span>
+        <motion.div key={heroGame.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+          className="relative rounded-xl overflow-hidden mb-5 cursor-pointer"
+          style={{ background: "#1b2838" }}
+          onClick={() => { if (heroGame.steamUrl) window.open(heroGame.steamUrl, "_blank"); }}>
+          <div className="flex h-[200px] sm:h-[260px]">
+            {/* Left: cover */}
+            <div className="w-[140px] sm:w-[180px] shrink-0 overflow-hidden">
+              <img src={heroGame.cover} alt={heroGame.name}
+                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105 select-none pointer-events-none" />
             </div>
-            <h2 className="text-lg sm:text-2xl font-black text-white mb-1.5 drop-shadow-lg">{heroGame.name}</h2>
-            <div className="flex items-center gap-2 text-[10px] text-white/60">
-              <span className="flex items-center gap-0.5"><Star size={9} className="text-amber-400" fill="currentColor" /> <span className="text-amber-400 font-bold">{heroGame.rating}</span></span>
-              <span className="text-white/30">|</span>
-              <span>{heroGame.releaseYear}</span>
-              <span className="text-white/30">|</span>
-              <span className="px-1.5 py-0.5 rounded-md bg-white/10 text-white/70 font-semibold">{heroGame.genre[0]}</span>
-              <span className="text-white/30">|</span>
-              <span className="flex items-center gap-1">{heroGame.platforms.slice(0, 3).map(p => (<span key={p} className="text-[8px] px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-semibold">{platformShort[p] || p}</span>))}</span>
+            {/* Right: info */}
+            <div className="flex-1 flex flex-col justify-between p-4 sm:p-5" style={{ background: "linear-gradient(135deg, #1b2838 0%, #2a475e 100%)" }}>
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[9px] font-bold text-[#66c0f4] uppercase tracking-wider">مميز</span>
+                  <span className="text-[9px] text-white/30">·</span>
+                  <span className="text-[9px] text-white/40">{heroGame.releaseYear}</span>
+                </div>
+                <h2 className="text-[18px] sm:text-[22px] font-bold text-white mb-2 leading-tight">{heroGame.name}</h2>
+                <p className="text-[11px] text-white/55 leading-relaxed line-clamp-3 mb-3">{heroGame.description}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {heroGame.genre.slice(0, 3).map(g => (
+                    <span key={g} className="text-[9px] px-2 py-0.5 rounded text-[#66c0f4] border border-[#66c0f4]/25 bg-[#66c0f4]/8">{g}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(s => (
+                        <div key={s} className={cn("w-2 h-2 rounded-sm", s <= Math.round(heroGame.rating) ? "bg-[#66c0f4]" : "bg-white/15")} />
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-[#66c0f4] font-bold mr-1">{heroGame.rating}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {heroGame.platforms.slice(0, 3).map(p => (
+                      <span key={p} className="text-[8px] px-1.5 py-0.5 rounded bg-white/8 text-white/40 border border-white/10">{platformShort[p] || p}</span>
+                    ))}
+                  </div>
+                </div>
+                {heroGame.steamUrl && (
+                  <a href={heroGame.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-medium text-white/70 hover:text-white transition-colors border border-white/15 hover:border-white/30"
+                    style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <ExternalLink size={10} /> Steam
+                  </a>
+                )}
+              </div>
             </div>
-            {heroGame.steamUrl && (
-              <a href={heroGame.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="inline-flex items-center gap-1.5 mt-2.5 text-[9px] text-white/60 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm">
-                <ExternalLink size={9} /> صفحة Steam
-              </a>
-            )}
           </div>
-          {/* Hero dots + progress */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+          {/* Dots */}
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1">
             {featured.map((_, i) => (
-              <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }} className={cn("h-1 rounded-full transition-all overflow-hidden", i === heroIdx ? "bg-white/30 w-5" : "bg-white/30 w-1.5 hover:bg-white/50")}>
-                {i === heroIdx && <div className="h-full bg-white rounded-full animate-[heroProgress_5s_linear]" style={{ animation: "heroProgress 5s linear forwards" }} />}
-              </button>
+              <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }}
+                className={cn("rounded-full transition-all", i === heroIdx ? "w-4 h-1.5 bg-[#66c0f4]" : "w-1.5 h-1.5 bg-white/25 hover:bg-white/50")} />
             ))}
           </div>
         </motion.div>
@@ -842,7 +902,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
       {/* Grid / List */}
       <AnimatePresence mode="wait">
         {layout === "grid" ? (
-          <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+          <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {filtered.map((g, i) => (<GameCard key={g.id} game={g} isFav={favoriteIds.includes(g.id)} onFav={() => toggleFavorite(g.id)} layout="grid" index={i} />))}
           </motion.div>
         ) : (
