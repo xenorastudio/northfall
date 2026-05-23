@@ -3806,7 +3806,7 @@ ${modePrompts[aiMode] || ""}`;
                       <motion.div
                         initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
                         className="fixed z-[9999] flex items-center gap-1 bg-nf-card border border-nf-border/20 shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-xl px-2 py-1.5 pointer-events-none"
-                        style={{ top: selectionRect.top - 50, left: selectionRect.left + selectionRect.width / 2, transform: "translateX(-50%)" }}
+                        style={{ top: (selectionRect?.top ?? 0) - 50, left: (selectionRect?.left ?? 0) + (selectionRect?.width ?? 0) / 2, transform: "translateX(-50%)" }}
                       >
                         <button onMouseDown={(e) => { e.preventDefault(); aiChatSend(`اشرح لي هذا النص بالتفصيل:\n\n"${selectedText}"`); setSelectionRect(null); }} className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-nf-accent/10 hover:text-nf-accent text-nf-text rounded-lg text-[11px] font-bold transition-all whitespace-nowrap pointer-events-auto">
                           <Sparkles size={11} /> اشرح
@@ -4369,8 +4369,8 @@ ${modePrompts[aiMode] || ""}`;
                       {activeThread && showAiPanel && (
                         <div className="flex items-center gap-2 px-4 pt-3 pb-1">
                           <MessageSquare size={10} className="text-nf-accent/40 shrink-0" />
-                          <span className="text-[9px] text-nf-dim/40 truncate">سياق: {activeThread.title}</span>
-                          <button onClick={() => aiChatSend(`لخّص لي هذا الموضوع:\n\nالعنوان: ${activeThread.title}\nالمحتوى:\n${activeThread.body?.slice(0, 1500) || ""}`)} className="shrink-0 text-[8px] font-bold text-nf-accent/50 hover:text-nf-accent bg-nf-accent/5 hover:bg-nf-accent/10 px-2 py-0.5 rounded-md transition-colors border border-nf-accent/8">لخّص الموضوع</button>
+                          <span className="text-[9px] text-nf-dim/40 truncate">سياق: {activeThread?.title}</span>
+                          <button onClick={() => aiChatSend(`لخّص لي هذا الموضوع:\n\nالعنوان: ${activeThread?.title}\nالمحتوى:\n${activeThread?.body?.slice(0, 1500) || ""}`)} className="shrink-0 text-[8px] font-bold text-nf-accent/50 hover:text-nf-accent bg-nf-accent/5 hover:bg-nf-accent/10 px-2 py-0.5 rounded-md transition-colors border border-nf-accent/8">لخّص الموضوع</button>
                         </div>
                       )}
                       <textarea
