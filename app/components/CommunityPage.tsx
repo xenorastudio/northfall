@@ -98,6 +98,20 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   const isPrivate = meta.communityType === "private";
   const needsInvite = isPrivate || isRestricted;
 
+  // Check if current user is staff (owner/admin/moderator)
+  const [isStaff, setIsStaff] = useState(false);
+  useEffect(() => {
+    if (!user || isOwner) { setIsStaff(isOwner); return; }
+    import("firebase/firestore").then(({ getDoc, doc: fsDoc }) => {
+      getDoc(fsDoc(db, "communities", name, "members", user.uid)).then(s => {
+        if (s.exists()) {
+          const role = s.data().role;
+          setIsStaff(role === "admin" || role === "moderator");
+        }
+      }).catch(() => {});
+    });
+  }, [user?.uid, name, isOwner]);
+
   useEffect(() => {
     if (!user) { setJoined(false); return; }
     getDoc(doc(db, "communities", name, "members", user.uid)).then(s => setJoined(s.exists())).catch(() => {});
@@ -238,7 +252,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
                 <Plus size={11} /> دعوة
               </button>
             )}
-            {isOwner && (
+            {(isOwner || isStaff) && (
               <button onClick={() => onMembersClick?.(name)}
                 className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-nf-border-2 bg-nf-secondary text-nf-dim hover:text-nf-accent hover:border-nf-accent transition-all flex items-center gap-1.5">
                 <UserCog size={11} /> الأعضاء
