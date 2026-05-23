@@ -113,11 +113,13 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
   const changeRole = async (uid: string, newRole: "admin"|"moderator"|"member") => {
     if (!canManage) return;
     setSavingUid(uid);
-    // Optimistic update first
+    // Optimistic update — keep expanded open
     setMembers(prev =>
       prev.map(m => m.uid === uid ? { ...m, role: newRole } : m)
         .sort((a, b) => (ROLE_ORDER[a.role] ?? 3) - (ROLE_ORDER[b.role] ?? 3))
     );
+    // Keep the panel expanded after role change
+    setExpanded(uid);
     try {
       await setDoc(
         doc(db, "communities", communityName, "members", uid),
@@ -126,13 +128,10 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
       );
     } catch (e) {
       console.error("changeRole failed:", e);
-      // Revert on error
-      setMembers(prev =>
-        prev.map(m => m.uid === uid ? { ...m, role: m.role } : m)
-      );
+      // Revert on error — reload members
+      window.location.reload();
     }
     setSavingUid(null);
-    // Keep expanded open after role change
   };
 
   const removeMember = async (uid: string) => {

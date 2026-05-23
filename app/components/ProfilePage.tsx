@@ -327,7 +327,9 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
     getDocs(collection(db, "users", targetUid, "customFeeds")).then((snap) => {
       const feeds = snap.docs
         .map((d) => ({ id: d.id, ...d.data() } as CustomFeed))
-        .filter((f) => isOwn || f.showOnProfile !== false)
+        // For others: only show feeds that are NOT private AND showOnProfile is true
+        // For own profile: show all feeds
+        .filter((f) => isOwn ? true : (f.showOnProfile !== false && !f.isPrivate))
         .sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
       setProfileCustomFeeds(feeds);
     }).catch(() => {});
