@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Flame, Sparkles, TrendingUp, User, Bookmark, Bell, Settings, HelpCircle, Shield, Plus, Search, MessageSquare, Gamepad2, X, Rss, Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { Home, Flame, Sparkles, TrendingUp, User, Bookmark, Bell, Settings, HelpCircle, Shield, Plus, Search, MessageSquare, Gamepad2, X, Rss, Pencil, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -211,8 +211,15 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
       {/* My Communities */}
       {user && (createdComms.length > 0 || joinedComms.length > 0) && (
         <div className="flex flex-col gap-px mb-2">
-          <div className="text-[10px] font-bold text-nf-dim uppercase tracking-wider px-3.5 py-2 pb-1">
-            مجتمعاتي
+          <div className="flex items-center justify-between px-3.5 py-2 pb-1">
+            <span className="text-[10px] font-bold text-nf-dim uppercase tracking-wider">مجتمعاتي</span>
+            <button
+              onClick={() => onNavClick("manage-communities")}
+              className="p-1 rounded text-nf-dim hover:text-nf-accent transition-colors"
+              title="إدارة المجتمعات"
+            >
+              <Settings size={11} />
+            </button>
           </div>
           {createdComms.map((c) => (
             <div key={c.name} className="flex items-center mx-2 group">

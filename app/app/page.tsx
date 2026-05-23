@@ -14,6 +14,7 @@ import CreateCommunityPage from "../components/CreateCommunityPage";
 import EditCommunityPage from "../components/EditCommunityPage";
 import CommunityDashboard from "../components/CommunityDashboard";
 import CustomFeedModal, { type CustomFeed } from "../components/CustomFeedModal";
+import ManageCommunitiesPage from "../components/ManageCommunitiesPage";
 import { useToast } from "../components/ToastProvider";
 import { DataProvider, useData } from "../components/DataProvider";
 import { lazy, Suspense } from "react";
@@ -35,7 +36,7 @@ import { db } from "@/lib/firebase";
 // framer-motion removed for performance
 import { cn } from "@/lib/utils";
 
-type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "edit-community" | "community-dashboard";
+type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "edit-community" | "community-dashboard" | "manage-communities";
 
 interface Post {
   id: string;
@@ -422,6 +423,7 @@ function AppContent() {
           else if (id === "settings") navigateTo("settings");
           else if (id === "forums") window.open("/forum", "_blank");
           else if (id === "games") navigateTo("games");
+          else if (id === "manage-communities") requireAuth(() => navigateTo("manage-communities"));
           else if (id === "hot" || id === "new" || id === "top") { setSortMode(id); navigateTo("feed"); }
           else backToFeed();
         }}
@@ -687,6 +689,17 @@ function AppContent() {
               {view === "post" && (
                 <div key="post" className="animate-in fade-in duration-150">
                   <PostDetail postId={selectedPostId} onBack={backToFeed} onCommunityClick={openCommunity} onProfileClick={openProfile} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); backToFeed(); }} onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }} />
+                </div>
+              )}
+
+              {view === "manage-communities" && (
+                <div key="manage-communities" className="animate-in fade-in duration-150">
+                  <ManageCommunitiesPage
+                    onBack={backToFeed}
+                    onCommunityClick={(name) => { clearCustomFeed(); openCommunity(name); }}
+                    onCreateCommunity={() => requireAuth(() => navigateTo("create-community"))}
+                    onDashboardClick={openCommunityDashboard}
+                  />
                 </div>
               )}
             </div>
