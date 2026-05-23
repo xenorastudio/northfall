@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Search, Check, Rss, Trash2, Lock, Globe, Loader2, ChevronRight, Users } from "lucide-react";
+import { X, Search, Check, Rss, Trash2, Lock, Globe, Loader2, Users, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "./AuthProvider";
 import { db } from "@/lib/firebase";
@@ -48,7 +48,7 @@ export default function CustomFeedPage({ editFeed, onBack, onSaved, onDeleted }:
     } else {
       setName(""); setSelected([]); setIsPrivate(false); setShowOnProfile(true);
     }
-    setTimeout(() => nameRef.current?.focus(), 100);
+    setTimeout(() => nameRef.current?.focus(), 150);
   }, [editFeed]);
 
   const filtered = search.trim()
@@ -59,8 +59,6 @@ export default function CustomFeedPage({ editFeed, onBack, onSaved, onDeleted }:
 
   const save = async () => {
     if (!user || !name.trim() || !selected.length) return;
-    // Security: only owner can save
-    if (editFeed && (editFeed as any).ownerUid && (editFeed as any).ownerUid !== user.uid) return;
     setSaving(true);
     try {
       const id = editFeed?.id || `feed_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -76,8 +74,6 @@ export default function CustomFeedPage({ editFeed, onBack, onSaved, onDeleted }:
 
   const del = async () => {
     if (!user || !editFeed) return;
-    // Security: only owner can delete
-    if ((editFeed as any).ownerUid && (editFeed as any).ownerUid !== user.uid) return;
     await deleteDoc(doc(db, "users", user.uid, "customFeeds", editFeed.id)).catch(() => {});
     onDeleted?.(editFeed.id);
   };
@@ -85,73 +81,98 @@ export default function CustomFeedPage({ editFeed, onBack, onSaved, onDeleted }:
   const valid = name.trim().length > 0 && selected.length > 0;
 
   return (
-    <div className="w-full" style={{ direction: "rtl" }}>
-      {/* ── Header ── */}
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={onBack} className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors">
-          <ChevronRight size={18} />
-        </button>
-        <div className="w-9 h-9 rounded-xl bg-nf-accent/10 border border-nf-accent/20 flex items-center justify-center shrink-0">
-          <Rss size={16} className="text-nf-accent" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-[20px] font-black text-nf-text">{editFeed ? "تعديل الفيد" : "إنشاء فيد مخصص"}</h1>
-          <p className="text-[12px] text-nf-dim">اجمع مجتمعات في خلاصة واحدة بدون متابعة رسمية</p>
-        </div>
-        {editFeed && (
-          confirmDelete ? (
-            <div className="flex items-center gap-2">
-              <span className="text-[12px] text-nf-muted">حذف نهائياً؟</span>
-              <button onClick={del} className="px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 text-[12px] font-bold hover:bg-red-500/25 transition-colors">حذف</button>
-              <button onClick={() => setConfirmDelete(false)} className="px-3 py-1.5 rounded-lg bg-nf-secondary text-nf-muted text-[12px] font-bold hover:bg-nf-hover transition-colors">إلغاء</button>
+    // Centered modal overlay
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ direction: "rtl" }}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onBack} />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-[460px] max-h-[88vh] flex flex-col rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+        style={{ backgroundColor: "var(--bg-primary)", border: "1px solid var(--border-secondary)" }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 shrink-0"
+          style={{ borderBottom: "1px solid var(--border-secondary)" }}>
+          <div className="flex items-center gap-2.5">
+            <Rss size={16} className="text-nf-accent" />
+            <div>
+              <h2 className="text-[15px] font-bold text-nf-text">
+                {editFeed ? "تعديل الفيد" : "فيد مخصص جديد"}
+              </h2>
+              <p className="text-[11px] text-nf-dim">اجمع مجتمعات في خلاصة واحدة</p>
             </div>
-          ) : (
-            <button onClick={() => setConfirmDelete(true)} className="p-2 rounded-lg text-nf-dim hover:text-red-400 hover:bg-red-400/10 transition-colors">
-              <Trash2 size={16} />
-            </button>
-          )
-        )}
-      </div>
+          </div>
+          <button onClick={onBack} className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors">
+            <X size={16} />
+          </button>
+        </div>
 
-      {/* ── Two-column layout ── */}
-      <div className="flex gap-6 items-start">
+        {/* Info banner */}
+        <div className="mx-5 mt-4 px-3.5 py-2.5 rounded-xl bg-nf-secondary/40 flex items-start gap-2.5 shrink-0">
+          <Info size={13} className="text-nf-accent shrink-0 mt-0.5" />
+          <p className="text-[11px] text-nf-dim leading-relaxed">
+            الفيد المخصص يجمع منشورات مجتمعات مختارة في خلاصة واحدة — بدون متابعة رسمية لهم
+          </p>
+        </div>
 
-        {/* Right: community picker */}
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">اختر المجتمعات</p>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
-          <div className="relative mb-3">
-            <Search size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim pointer-events-none" />
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث عن أي مجتمع..."
-              className="w-full bg-nf-secondary border border-nf-border-2 rounded-xl pr-9 pl-8 py-2.5 text-[13px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
-            {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-nf-dim hover:text-nf-text"><X size={12} /></button>}
+          {/* Name */}
+          <div>
+            <label className="text-[11px] font-semibold text-nf-dim uppercase tracking-wider mb-1.5 block">اسم الفيد</label>
+            <input ref={nameRef} type="text" value={name} onChange={(e) => setName(e.target.value.slice(0, 40))}
+              placeholder="مثال: تطوير ألعاب" maxLength={40}
+              className="w-full bg-nf-secondary border border-nf-border-2 rounded-xl px-3.5 py-2.5 text-[13px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/50 transition-colors"
+              onKeyDown={(e) => { if (e.key === "Enter" && valid) save(); }} />
+            <div className="text-[10px] text-nf-dim mt-1 text-left">{name.length}/40</div>
           </div>
 
-          {filtered.length === 0 ? (
-            <div className="py-12 text-center text-[13px] text-nf-dim">لا توجد نتائج</div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {filtered.map((c) => {
+          {/* Selected chips */}
+          {selected.length > 0 && (
+            <div>
+              <label className="text-[11px] font-semibold text-nf-dim uppercase tracking-wider mb-2 block">
+                المختارة <span className="text-nf-accent">({selected.length})</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {selected.map((s) => {
+                  const c = allComms.find((x) => x.name === s);
+                  return (
+                    <button key={s} onClick={() => toggle(s)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-nf-accent/15 text-nf-accent border border-nf-accent/25 hover:bg-red-500/15 hover:text-red-400 hover:border-red-400/25 transition-all">
+                      {c?.img && <img src={c.img} alt="" className="w-3 h-3 rounded-full object-cover" />}
+                      n/{s} <X size={9} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Search communities */}
+          <div>
+            <label className="text-[11px] font-semibold text-nf-dim uppercase tracking-wider mb-2 block">اختر المجتمعات</label>
+            <div className="relative mb-2">
+              <Search size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim pointer-events-none" />
+              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="ابحث عن أي مجتمع..."
+                className="w-full bg-nf-secondary border border-nf-border-2 rounded-xl pr-8 pl-7 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
+              {search && <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-nf-dim hover:text-nf-text"><X size={11} /></button>}
+            </div>
+            <div className="max-h-[240px] overflow-y-auto rounded-xl border border-nf-border-2/40 bg-nf-secondary/10">
+              {filtered.length === 0 ? (
+                <div className="py-8 text-center text-[12px] text-nf-dim">لا توجد نتائج</div>
+              ) : filtered.map((c) => {
                 const sel = selected.includes(c.name);
                 return (
                   <button key={c.name} onClick={() => toggle(c.name)}
-                    className={cn(
-                      "flex items-center gap-2.5 px-3 py-3 rounded-xl border text-right transition-all duration-100",
-                      sel ? "border-nf-accent/40 bg-nf-accent/8" : "border-nf-border-2/40 hover:border-nf-border-2 hover:bg-nf-secondary/40"
-                    )}>
-                    {c.img ? (
-                      <img src={c.img} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-nf-secondary border border-nf-border-2/50 flex items-center justify-center text-[9px] text-nf-accent font-bold shrink-0">n/</div>
-                    )}
+                    className={cn("w-full flex items-center gap-3 px-3.5 py-2.5 text-right transition-colors border-b border-nf-border-2/15 last:border-0",
+                      sel ? "bg-nf-accent/8" : "hover:bg-nf-secondary/50")}>
+                    {c.img ? <img src={c.img} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
+                      : <div className="w-7 h-7 rounded-full bg-nf-secondary border border-nf-border-2/50 flex items-center justify-center text-[8px] text-nf-accent font-bold shrink-0">n/</div>}
                     <div className="flex-1 min-w-0">
                       <div className="text-[12px] text-nf-text font-medium truncate">n/{c.name}</div>
-                      {(c.members || 0) > 0 && (
-                        <div className="text-[10px] text-nf-dim flex items-center gap-0.5 mt-0.5">
-                          <Users size={8} />{c.members?.toLocaleString()}
-                        </div>
-                      )}
+                      {(c.members || 0) > 0 && <div className="text-[10px] text-nf-dim flex items-center gap-0.5"><Users size={8} />{c.members?.toLocaleString()}</div>}
                     </div>
                     <div className={cn("w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all",
                       sel ? "bg-nf-accent border-nf-accent" : "border-nf-border")}>
@@ -161,88 +182,66 @@ export default function CustomFeedPage({ editFeed, onBack, onSaved, onDeleted }:
                 );
               })}
             </div>
-          )}
-        </div>
-
-        {/* Left: settings panel */}
-        <div className="w-[300px] shrink-0 sticky top-[calc(var(--nav-total-height)+16px)] space-y-5">
-
-          {/* Name */}
-          <div>
-            <label className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-2 block">اسم الفيد</label>
-            <input ref={nameRef} type="text" value={name} onChange={(e) => setName(e.target.value.slice(0, 40))}
-              placeholder="مثال: تطوير ألعاب" maxLength={40}
-              className="w-full bg-nf-secondary border border-nf-border-2 rounded-xl px-3.5 py-2.5 text-[13px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/50 transition-colors"
-              onKeyDown={(e) => { if (e.key === "Enter" && valid) save(); }} />
-            <div className="text-[10px] text-nf-dim mt-1 text-left">{name.length}/40</div>
-          </div>
-
-          {/* Selected */}
-          <div>
-            <label className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-2 block">
-              المختارة {selected.length > 0 && <span className="text-nf-accent">({selected.length})</span>}
-            </label>
-            {selected.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-nf-border-2/40 py-6 text-center">
-                <p className="text-[12px] text-nf-dim">اختر مجتمعات من اليسار</p>
-              </div>
-            ) : (
-              <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
-                {selected.map((s) => {
-                  const c = allComms.find((x) => x.name === s);
-                  return (
-                    <div key={s} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-nf-secondary/50">
-                      {c?.img ? <img src={c.img} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                        : <div className="w-5 h-5 rounded-full bg-nf-accent/15 flex items-center justify-center text-[7px] text-nf-accent font-bold shrink-0">n/</div>}
-                      <span className="flex-1 text-[12px] text-nf-text truncate">n/{s}</span>
-                      <button onClick={() => toggle(s)} className="text-nf-dim hover:text-red-400 transition-colors shrink-0"><X size={11} /></button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* Privacy */}
-          <div className="space-y-0 rounded-xl border border-nf-border-2/50 overflow-hidden">
-            <div className="px-4 py-3 border-b border-nf-border-2/30">
-              <p className="text-[11px] font-bold text-nf-dim uppercase tracking-wider">الخصوصية</p>
-            </div>
+          <div className="rounded-xl border border-nf-border-2/50 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-nf-border-2/20">
               <div className="flex items-center gap-2.5">
-                <Lock size={14} className="text-nf-muted shrink-0" />
+                <Lock size={13} className="text-nf-muted shrink-0" />
                 <div>
-                  <div className="text-[13px] font-semibold text-nf-text">خاص</div>
+                  <div className="text-[13px] font-medium text-nf-text">خاص</div>
                   <div className="text-[11px] text-nf-dim">يظهر لك فقط</div>
                 </div>
               </div>
               <button onClick={() => setIsPrivate((p) => !p)}
-                className={cn("relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0", isPrivate ? "bg-nf-accent" : "bg-nf-secondary border border-nf-border-2")}>
-                <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200", isPrivate ? "right-0.5" : "left-0.5")} />
+                className={cn("relative w-10 h-5 rounded-full transition-colors duration-200 shrink-0", isPrivate ? "bg-nf-accent" : "bg-nf-secondary border border-nf-border-2")}>
+                <span className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200", isPrivate ? "right-0.5" : "left-0.5")} />
               </button>
             </div>
             <div className="flex items-center justify-between px-4 py-3.5">
               <div className="flex items-center gap-2.5">
-                <Globe size={14} className="text-nf-muted shrink-0" />
+                <Globe size={13} className="text-nf-muted shrink-0" />
                 <div>
-                  <div className="text-[13px] font-semibold text-nf-text">عرض في البروفايل</div>
+                  <div className="text-[13px] font-medium text-nf-text">عرض في البروفايل</div>
                   <div className="text-[11px] text-nf-dim">يظهر للآخرين في صفحتك</div>
                 </div>
               </div>
               <button onClick={() => setShowOnProfile((p) => !p)}
-                className={cn("relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0", showOnProfile ? "bg-nf-accent" : "bg-nf-secondary border border-nf-border-2")}>
-                <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200", showOnProfile ? "right-0.5" : "left-0.5")} />
+                className={cn("relative w-10 h-5 rounded-full transition-colors duration-200 shrink-0", showOnProfile ? "bg-nf-accent" : "bg-nf-secondary border border-nf-border-2")}>
+                <span className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200", showOnProfile ? "right-0.5" : "left-0.5")} />
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Save */}
-          <button onClick={save} disabled={!valid || saving}
-            className={cn("w-full py-3 rounded-xl text-[14px] font-bold transition-all flex items-center justify-center gap-2",
-              valid && !saving ? "bg-nf-accent text-white hover:opacity-90" : "bg-nf-secondary text-nf-dim cursor-not-allowed")}>
-            {saving && <Loader2 size={14} className="animate-spin" />}
-            {saving ? "جاري الحفظ..." : editFeed ? "حفظ التعديلات" : "إنشاء الفيد"}
-          </button>
+        {/* Footer */}
+        <div className="px-5 py-3.5 shrink-0 flex items-center gap-2"
+          style={{ borderTop: "1px solid var(--border-secondary)" }}>
+          {editFeed && !confirmDelete && (
+            <button onClick={() => setConfirmDelete(true)} className="p-2 rounded-lg text-nf-dim hover:text-red-400 hover:bg-red-400/10 transition-colors">
+              <Trash2 size={14} />
+            </button>
+          )}
+          {confirmDelete && (
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-[11px] text-nf-muted">حذف نهائياً؟</span>
+              <button onClick={del} className="px-2.5 py-1 rounded-lg bg-red-500/15 text-red-400 text-[11px] font-bold hover:bg-red-500/25 transition-colors">حذف</button>
+              <button onClick={() => setConfirmDelete(false)} className="px-2.5 py-1 rounded-lg bg-nf-secondary text-nf-muted text-[11px] font-bold hover:bg-nf-hover transition-colors">إلغاء</button>
+            </div>
+          )}
+          {!confirmDelete && (
+            <>
+              <div className="flex-1" />
+              <button onClick={onBack} className="px-4 py-2 rounded-xl text-[12px] font-medium text-nf-muted hover:bg-nf-hover transition-colors">إلغاء</button>
+              <button onClick={save} disabled={!valid || saving}
+                className={cn("px-5 py-2 rounded-xl text-[13px] font-bold transition-all flex items-center gap-2",
+                  valid && !saving ? "bg-nf-accent text-white hover:opacity-90" : "bg-nf-secondary text-nf-dim cursor-not-allowed")}>
+                {saving && <Loader2 size={13} className="animate-spin" />}
+                {saving ? "جاري الحفظ..." : editFeed ? "حفظ" : "إنشاء"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

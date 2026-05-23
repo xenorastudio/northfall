@@ -20,9 +20,10 @@ interface CommunityPageProps {
   onJoinToggle?: (name: string, joined: boolean) => void;
   onDashboardClick?: (name: string) => void;
   onMembersClick?: (name: string) => void;
+  onModPanelClick?: (name: string) => void;
 }
 
-export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick, onPostClick, onJoinToggle, onDashboardClick, onMembersClick }: CommunityPageProps) {
+export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick, onPostClick, onJoinToggle, onDashboardClick, onMembersClick, onModPanelClick }: CommunityPageProps) {
   const { user } = useAuth();
   const { t } = useI18n();
   const [posts, setPosts] = useState<any[]>([]);
@@ -261,6 +262,12 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
                 <UserCog size={11} /> الأعضاء
               </button>
             )}
+            {isStaff && !isOwner && (
+              <button onClick={() => onModPanelClick?.(name)}
+                className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-nf-border-2 bg-nf-secondary text-nf-dim hover:text-nf-accent hover:border-nf-accent transition-all flex items-center gap-1.5">
+                <Shield size={11} /> إشراف
+              </button>
+            )}
             <button onClick={toggleJoin}
               className={cn("px-4 py-1.5 rounded-full text-[12px] font-bold border transition-all",
                 joined ? "bg-transparent text-nf-muted border-nf-border-2 hover:border-red-400/50 hover:text-red-400"
@@ -310,8 +317,8 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
 
       {/* ── Main layout: posts + sidebar ── */}
       <div className="flex gap-5 items-start">
-        {/* Posts column */}
-        <div className="flex-1 min-w-0">
+        {/* Posts column — expands when sidebar hides */}
+        <div className="flex-1 min-w-0 transition-all duration-300">
           {/* Sort bar */}
           <div className="flex items-center gap-1.5 bg-nf-card border border-nf-border-2/50 rounded-xl px-2 py-1.5 mb-2">
             {([
@@ -368,8 +375,10 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
 
         {/* ── Sidebar ── */}
         <div className={cn(
-          "hidden lg:flex flex-col gap-3 w-[280px] shrink-0 sticky transition-all duration-300",
-          sidebarVisible ? "top-[calc(var(--nav-total-height)+12px)] opacity-100" : "top-[calc(var(--nav-total-height)+12px)] opacity-0 pointer-events-none translate-y-2"
+          "hidden lg:flex flex-col gap-3 shrink-0 sticky overflow-hidden transition-all duration-300 ease-in-out",
+          sidebarVisible
+            ? "w-[280px] opacity-100 top-[calc(var(--nav-total-height)+12px)]"
+            : "w-0 opacity-0 pointer-events-none top-[calc(var(--nav-total-height)+12px)]"
         )}>
           {/* About card */}
           <div className="bg-nf-card border border-nf-border-2/50 rounded-xl overflow-hidden">

@@ -7,13 +7,15 @@ service cloud.firestore {
     function isAdmin() {
       return isAuth() && (request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
     }
-    function isCommunityOwnerOrAdmin(communityId) {
-      let memberDoc = get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+    function isCommunityStaff(communityId) {
       let commDoc = get(/databases/$(database)/documents/communities/$(communityId));
+      let memberDoc = get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
       return isAuth() && (
         commDoc.data.creatorUid == request.auth.uid ||
-        (memberDoc.data.role == "owner") ||
-        (memberDoc.data.role == "admin")
+        memberDoc.data.role == "owner" ||
+        memberDoc.data.role == "admin" ||
+        memberDoc.data.role == "moderator" ||
+        memberDoc.data.permissions.managePosts == true
       );
     }
 
@@ -23,35 +25,45 @@ service cloud.firestore {
       allow write: if isAuth();
     }
 
-    // Community members — only owner/admin can change roles
+    // Posts — staff can delete/update any post in their community
+    match /posts/{postId} {
+      allow delete: if isAuth() && (
+        resource.data.authorUid == request.auth.uid ||
+        isAdmin() ||
+        isCommunityStaff(resource.data.community)
+      );
+      allow update: if isAuth() && (
+        resource.data.authorUid == request.auth.uid ||
+        isAdmin() ||
+        isCommunityStaff(resource.data.community)
+      );
+    }
+
+    // Comments — staff can delete
+    match /posts/{postId}/comments/{commentId} {
+      allow delete: if isAuth() && (
+        resource.data.authorUid == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // Community members
     match /communities/{communityId}/members/{memberId} {
       allow read: if true;
       allow create: if isAuth();
       allow update: if isAuth() && (
-        // User can update their own join data
         request.auth.uid == memberId ||
-        // Owner/admin can update any member's role
-        isCommunityOwnerOrAdmin(communityId) ||
+        isCommunityStaff(communityId) ||
         isAdmin()
       );
       allow delete: if isAuth() && (
         request.auth.uid == memberId ||
-        isCommunityOwnerOrAdmin(communityId) ||
+        isCommunityStaff(communityId) ||
         isAdmin()
       );
     }
 
-    // Only owner or admin can delete posts
-    match /posts/{postId} {
-      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-    }
-
-    // Only owner or admin can delete comments
-    match /posts/{postId}/comments/{commentId} {
-      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
-    }
-
-    // Only owner or admin can delete forum threads/replies
+    // Forum threads/replies
     match /forums/{forumId}/threads/{threadId} {
       allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
     }
@@ -59,12 +71,12 @@ service cloud.firestore {
       allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
     }
 
-    // Reports: only admins can read/update/delete
+    // Reports
     match /reports/{reportId} {
       allow read, update, delete: if isAdmin();
     }
 
-    // Custom feeds — only owner can read/write their own feeds
+    // Custom feeds — private to owner
     match /users/{userId}/customFeeds/{feedId} {
       allow read, write: if isAuth() && request.auth.uid == userId;
     }

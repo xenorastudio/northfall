@@ -13,6 +13,7 @@ import CreatePostPage from "../components/CreatePostPage";
 import CreateCommunityPage from "../components/CreateCommunityPage";
 import EditCommunityPage from "../components/EditCommunityPage";
 import CommunityDashboard from "../components/CommunityDashboard";
+import ModeratorPanel from "../components/ModeratorPanel";
 import CustomFeedModal, { type CustomFeed } from "../components/CustomFeedModal";
 import CustomFeedPage from "../components/CustomFeedPage";
 import CommunityMembersPage from "../components/CommunityMembersPage";
@@ -39,7 +40,7 @@ import { db } from "@/lib/firebase";
 // framer-motion removed for performance
 import { cn } from "@/lib/utils";
 
-type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "edit-community" | "community-dashboard" | "manage-communities" | "custom-feed" | "members";
+type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "edit-community" | "community-dashboard" | "manage-communities" | "members" | "mod-panel";
 
 interface Post {
   id: string;
@@ -189,13 +190,20 @@ function AppContent() {
   const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>([]);
   const [activeCustomFeed, setActiveCustomFeed] = useState<CustomFeed | null>(null);
   const [showCustomFeedModal, setShowCustomFeedModal] = useState(false);
+  const [showCustomFeedDrawer, setShowCustomFeedDrawer] = useState(false);
   const [editingCustomFeed, setEditingCustomFeed] = useState<CustomFeed | null>(null);
   const [membersCommunity, setMembersCommunity] = useState<string>("");
+  const [modPanelCommunity, setModPanelCommunity] = useState<string>("");
   const [invitePending, setInvitePending] = useState<{ token: string; community: string } | null>(null);
 
   const openMembers = (name: string) => {
     setMembersCommunity(name);
     navigateTo("members", { community: name });
+  };
+
+  const openModPanel = (name: string) => {
+    setModPanelCommunity(name);
+    navigateTo("mod-panel", { community: name });
   };
 
   // Load custom feeds from Firestore (real-time)
@@ -455,15 +463,15 @@ function AppContent() {
         customFeeds={user ? customFeeds : []}
         activeCustomFeedId={activeCustomFeed?.id ?? null}
         onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))}
-        onCreateCustomFeed={() => requireAuth(() => { setEditingCustomFeed(null); navigateTo("custom-feed"); })}
-        onEditCustomFeed={(feed) => requireAuth(() => { setEditingCustomFeed(feed); navigateTo("custom-feed"); })}
+        onCreateCustomFeed={() => requireAuth(() => { setEditingCustomFeed(null); setShowCustomFeedDrawer(true); })}
+        onEditCustomFeed={(feed) => requireAuth(() => { setEditingCustomFeed(feed); setShowCustomFeedDrawer(true); })}
       />
 
       <div className="md:ml-[260px] min-h-screen flex justify-center" style={{ paddingTop: "var(--nav-total-height)" }}>
         <div className="w-full max-w-[1280px] px-3 md:px-6 py-3 md:py-5 pb-20 md:pb-5 flex gap-8 justify-center items-start" style={{ direction: "rtl" }}>
           <div className={cn("hidden lg:block self-stretch", view === "community" && "hidden")}><SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={view === "community" ? selectedCommunity : undefined} /></div>
 
-          <div className={cn("flex-1", view === "feed" ? "max-w-[680px]" : view === "create-community" ? "max-w-[1150px]" : view === "community" ? "max-w-[1000px]" : view === "custom-feed" ? "max-w-[1100px]" : view === "members" ? "max-w-[1100px]" : "max-w-[1100px]")} style={{ direction: "rtl" }}>
+          <div className={cn("flex-1", view === "feed" ? "max-w-[680px]" : view === "create-community" ? "max-w-[1150px]" : view === "community" ? "max-w-[1000px]" : view === "members" ? "max-w-[1100px]" : "max-w-[1100px]")} style={{ direction: "rtl" }}>
             <div>
               {view === "feed" && (
                 <div key="feed" className="animate-in fade-in duration-150">
@@ -495,7 +503,7 @@ function AppContent() {
                           </div>
                         </div>
                         <button
-                        onClick={() => { setEditingCustomFeed(activeCustomFeed); navigateTo("custom-feed"); }}
+                        onClick={() => { setEditingCustomFeed(activeCustomFeed); setShowCustomFeedDrawer(true); }}
                           className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors shrink-0"
                           title="تعديل الفيد"
                         >
@@ -616,7 +624,7 @@ function AppContent() {
 
               {view === "community" && selectedCommunity && (
                 <div key="community" className="animate-in fade-in duration-150">
-                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} onDashboardClick={(name) => openCommunityDashboard(name)} onMembersClick={openMembers} />
+                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} onDashboardClick={(name) => openCommunityDashboard(name)} onMembersClick={openMembers} onModPanelClick={openModPanel} />
                 </div>
               )}
 
@@ -724,29 +732,21 @@ function AppContent() {
                 </div>
               )}
 
-              {view === "custom-feed" && user && (
-                <div key="custom-feed" className="animate-in fade-in duration-150">
-                  <CustomFeedPage
-                    editFeed={editingCustomFeed}
-                    onBack={() => { setEditingCustomFeed(null); backToFeed(); }}
-                    onSaved={(feed) => {
-                      if (activeCustomFeed?.id === feed.id) setActiveCustomFeed(feed);
-                      setEditingCustomFeed(null);
-                      backToFeed();
-                    }}
-                    onDeleted={(id) => {
-                      if (activeCustomFeed?.id === id) clearCustomFeed();
-                      else backToFeed();
-                    }}
-                  />
-                </div>
-              )}
-
               {view === "members" && membersCommunity && (
                 <div key="members" className="animate-in fade-in duration-150">
                   <CommunityMembersPage
                     communityName={membersCommunity}
                     onBack={() => { openCommunity(membersCommunity); }}
+                  />
+                </div>
+              )}
+
+              {view === "mod-panel" && modPanelCommunity && (
+                <div key="mod-panel" className="animate-in fade-in duration-150">
+                  <ModeratorPanel
+                    communityName={modPanelCommunity}
+                    onBack={() => { openCommunity(modPanelCommunity); }}
+                    onPostClick={openPost}
                   />
                 </div>
               )}
@@ -756,6 +756,24 @@ function AppContent() {
       </div>
 
       <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
+
+      {/* Custom Feed Drawer — overlay on top of everything */}
+      {showCustomFeedDrawer && user && (
+        <CustomFeedPage
+          editFeed={editingCustomFeed}
+          onBack={() => { setShowCustomFeedDrawer(false); setEditingCustomFeed(null); }}
+          onSaved={(feed) => {
+            if (activeCustomFeed?.id === feed.id) setActiveCustomFeed(feed);
+            setShowCustomFeedDrawer(false);
+            setEditingCustomFeed(null);
+          }}
+          onDeleted={(id) => {
+            if (activeCustomFeed?.id === id) clearCustomFeed();
+            setShowCustomFeedDrawer(false);
+            setEditingCustomFeed(null);
+          }}
+        />
+      )}
 
       {/* Invite Accept Dialog */}
       {invitePending && (
