@@ -79,9 +79,14 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
         const data = snap.data();
         
         if (user?.uid !== data.creatorUid) {
-          showToast("أنت لست مؤسس هذا المجتمع", "error");
-          onBack();
-          return;
+          // Check if user is admin/moderator
+          const memberSnap = await getDoc(doc(db, "communities", communityName, "members", user!.uid)).catch(() => null);
+          const role = memberSnap?.data()?.role;
+          if (role !== "admin" && role !== "moderator") {
+            showToast("ليس لديك صلاحية لتعديل هذا المجتمع", "error");
+            onBack();
+            return;
+          }
         }
         setIsCreator(true);
 

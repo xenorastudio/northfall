@@ -91,8 +91,25 @@ export default function PostCard({
   const myVoteRef = useRef(0);
   const votingRef = useRef(false);
   const [saved, setSaved] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
   const [fetchedQuotedPost, setFetchedQuotedPost] = useState<QuotedPostData | null>(null);
   const quotedPost = quotedPostProp || fetchedQuotedPost;
+
+  // Check if user is staff in this community
+  useEffect(() => {
+    if (!user || !community) return;
+    const commName = community.replace(/^n\//, "");
+    getDoc(doc(db, "communities", commName)).then(commSnap => {
+      if (commSnap.exists() && commSnap.data().creatorUid === user.uid) { setIsStaff(true); return; }
+      getDoc(doc(db, "communities", commName, "members", user.uid)).then(s => {
+        if (s.exists()) {
+          const role = s.data().role;
+          const perms = s.data().permissions || {};
+          setIsStaff(role === "admin" || role === "moderator" || perms.managePosts === true);
+        }
+      }).catch(() => {});
+    }).catch(() => {});
+  }, [user?.uid, community]);
 
   // Fetch quoted post if quotedPostId provided but no quotedPost prop
   useEffect(() => {
@@ -674,7 +691,7 @@ export default function PostCard({
                     <Pencil size={12} /> تعديل المنشور
                   </button>
                 )}
-                {user && authorUid === user.uid && onDeleteClick && (
+                {user && (authorUid === user.uid || isStaff) && onDeleteClick && (
                   <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onDeleteClick(postId || ""); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-red-400 hover:bg-red-400/10 transition-colors">
                     <Trash2 size={12} /> حذف المنشور
                   </button>
