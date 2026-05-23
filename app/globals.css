@@ -4,16 +4,16 @@
 
 @layer base {
   :root {
-    --bg-body: #1e1e20;
-    --bg-primary: #222224;
-    --bg-secondary: #2a2a2c;
+    --bg-body: #1a1a1c;
+    --bg-primary: #1e1e20;
+    --bg-secondary: #252527;
     --bg-nav: #1a1a1c;
-    --bg-card: #262628;
-    --bg-hover: rgba(255, 255, 255, 0.06);
-    --bg-input: #2a2a2c;
-    --border-primary: #3a3a3c;
-    --border-secondary: #333335;
-    --border-subtle: rgba(255, 255, 255, 0.08);
+    --bg-card: #222224;
+    --bg-hover: rgba(255, 255, 255, 0.05);
+    --bg-input: #252527;
+    --border-primary: #333335;
+    --border-secondary: #2e2e30;
+    --border-subtle: rgba(255, 255, 255, 0.06);
     --text-primary: #ffffff;
     --text-secondary: #d4d4d4;
     --text-muted: #878a8c;
