@@ -9,7 +9,7 @@ export default function PostComposer({ onFocus }: { onFocus?: () => void; onPost
   const { t } = useI18n();
 
   return (
-    <div className="bg-transparent border border-nf-border-2 rounded-lg mb-2.5 px-5 py-3 transition-colors duration-150 focus-within:bg-nf-hover focus-within:border-[rgba(255,255,255,0.04)]">
+    <div className="bg-nf-card border border-nf-border-2 rounded-lg mb-2.5 px-5 py-3 transition-all duration-300 hover:border-nf-accent/30">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-nf-secondary flex items-center justify-center shrink-0">
           {user?.photoURL ? (
@@ -22,12 +22,12 @@ export default function PostComposer({ onFocus }: { onFocus?: () => void; onPost
           type="text"
           placeholder={t("pc.createPlaceholder")}
           onFocus={(e) => { e.target.blur(); onFocus?.(); }}
-          className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-nf-dim cursor-pointer"
+          className="flex-1 !bg-transparent border-none outline-none text-sm text-nf-text placeholder:text-nf-dim cursor-pointer"
           readOnly
         />
         <div className="flex items-center gap-1">
-          <button onClick={onFocus} className="p-2 rounded-lg text-nf-muted hover:bg-nf-hover hover:text-white transition-colors"><Image size={18} /></button>
-          <button onClick={onFocus} className="p-2 rounded-lg text-nf-muted hover:bg-nf-hover hover:text-white transition-colors"><Link size={18} /></button>
+          <button onClick={onFocus} className="p-2 rounded-lg text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"><Image size={18} /></button>
+          <button onClick={onFocus} className="p-2 rounded-lg text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"><Link size={18} /></button>
         </div>
       </div>
     </div>

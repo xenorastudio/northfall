@@ -7,19 +7,124 @@
     --bg-body: #1e1e20;
     --bg-primary: #222224;
     --bg-secondary: #2a2a2c;
-    --bg-nav: #222224;
+    --bg-nav: #1a1a1c;
     --bg-card: #262628;
-    --bg-hover: rgba(255,255,255,0.06);
+    --bg-hover: rgba(255, 255, 255, 0.06);
     --bg-input: #2a2a2c;
     --border-primary: #3a3a3c;
     --border-secondary: #333335;
-    --border-subtle: rgba(255,255,255,0.08);
-    --text-primary: #fff;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --text-primary: #ffffff;
     --text-secondary: #d4d4d4;
     --text-muted: #878a8c;
-    --text-dim: #6a6d6f;
+    --text-dim: #8a8d8f;
     --accent: #a0a0a0;
     --radius: 0.5rem;
+
+    /* Top layout variable heights */
+    --banner-height: 0px;
+    --navbar-top: 0px;
+    --navbar-height: 48px;
+    --nav-total-height: 48px;
+    --forum-nav-total-height: 56px;
+  }
+  
+  html.light {
+    --bg-body: #F4F6F8;
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F0F2F5;
+    --bg-nav: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-hover: rgba(0, 0, 0, 0.05);
+    --bg-input: #F0F2F5;
+    --border-primary: #E2E5E9;
+    --border-secondary: #E8EAED;
+    --border-subtle: rgba(0, 0, 0, 0.06);
+    --text-primary: #111111;
+    --text-secondary: #2D3748;
+    --text-muted: #4A5568;
+    --text-dim: #718096;
+    --accent: #111111; /* Sleek Monochromatic Accent */
+  }
+
+  /* Light theme — fix dark hardcoded hover colors */
+  html.light .hover\:bg-\[\#2e2e30\]:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+  html.light .hover\:bg-\[\#1c1c22\]:hover {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+  }
+  html.light .hover\:bg-\[\#16161a\]:hover {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+  }
+  html.light .bg-\[\#2e2e30\] {
+    background-color: #F0F2F5 !important;
+  }
+  html.light .bg-\[\#16161a\] {
+    background-color: #F7F8FA !important;
+  }
+  html.light .bg-\[\#1c1c22\] {
+    background-color: #F0F2F5 !important;
+  }
+  /* Fix dark hardcoded backgrounds in thread cards */
+  html.light .bg-nf-card {
+    color: var(--text-primary);
+  }
+  /* Accent color for links & interactive elements — Sleek Black */
+  html.light .text-nf-accent {
+    color: #111111;
+  }
+  
+  /* Fix white-on-white text hover bugs globally */
+  html.light .hover\:text-white:hover,
+  html.light .hover\:text-white\/90:hover,
+  html.light .hover\:text-white\/80:hover {
+    color: var(--text-primary) !important;
+  }
+  html.light .group:hover .group-hover\:text-white,
+  html.light .group:hover .group-hover\:text-white\/90 {
+    color: var(--text-primary) !important;
+  }
+  
+  html.light .hover\:text-nf-text:hover {
+    color: #111111 !important;
+  }
+  /* Forum thread hover in light mode */
+  html.light .hover\:bg-nf-secondary\/40:hover {
+    background-color: rgba(0, 0, 0, 0.06) !important;
+  }
+  html.light .hover\:bg-nf-secondary\/30:hover {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+  }
+  html.light .hover\:bg-nf-secondary\/20:hover {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+  }
+  html.light .hover\:bg-nf-hover:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+  /* Fix dark quoted thread background */
+  html.light .border-nf-border-2\/40 {
+    border-color: rgba(0,0,0,0.1);
+  }
+  
+  /* Improve readability for light blue in light theme */
+  html.light .text-blue-400 {
+    color: #111111 !important;
+  }
+  html.light .mention-link {
+    color: #111111 !important;
+    text-decoration: underline;
+  }
+  html.light .mention-link:hover {
+    color: #444444 !important;
+  }
+
+  
+  html.has-donate-banner {
+    --banner-height: 40px;
+    --navbar-top: 40px;
+    --nav-total-height: 88px;
+    --forum-nav-total-height: 96px;
   }
 }
 
@@ -58,6 +163,25 @@
   /* Smooth transitions globally */
   button, a, input, textarea {
     transition: all 0.15s ease;
+  }
+  /* Prevent browser user-agent styles or autofills from leaking white background on inputs and textareas */
+  input[type="text"], input[type="url"], input[type="email"], input[type="password"], textarea, select {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+  /* Fix autocomplete/autofill yellow/white backgrounds in WebKit browsers */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text-primary) !important;
+    -webkit-box-shadow: 0 0 0px 1000px var(--bg-secondary) inset !important;
+    transition: background-color 5000s ease-in-out 0s;
   }
   /* Better selection color */
   ::selection {
@@ -156,177 +280,59 @@ html, body, * { scrollbar-width: none; }
 }
 
 /* Premium AI button — flat glassmorphism with animated glow, skewed shape */
+/* Premium AI button — flat glassmorphism, no glows or animations */
 .ai-btn {
-  --border-radius: 24px;
-  --padding: 4px;
-  --transition: 0.4s;
-  --button-color: #101010;
-  --highlight-color-hue: 290deg;
+  --border-radius: 20px;
+  --transition: 0.2s;
 
   user-select: none;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 0.5em 0.5em 0.5em 1.1em;
+  gap: 6px;
+  padding: 6px 14px;
   font-size: 12px;
-  font-weight: 400;
-  color: #fff5;
+  font-weight: 600;
+  color: var(--text-muted);
   text-decoration: none;
-  transform: skewX(-8deg);
-
-  background-color: var(--button-color);
-
-  box-shadow:
-    0px -1px 1px rgba(0, 0, 0, 0.02),
-    0px -2px 2px rgba(0, 0, 0, 0.03),
-    0px -4px 4px rgba(0, 0, 0, 0.05),
-    0px -8px 8px rgba(0, 0, 0, 0.06),
-    0px -16px 16px rgba(0, 0, 0, 0.08);
-
-  border: solid 1px #fff2;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   cursor: pointer;
   position: relative;
-  overflow: hidden;
-
-  transition:
-    box-shadow var(--transition),
-    border var(--transition),
-    background-color var(--transition);
-}
-.ai-btn::before {
-  content: "";
-  position: absolute;
-  top: calc(0px - var(--padding));
-  left: calc(0px - var(--padding));
-  width: calc(100% + var(--padding) * 2);
-  height: calc(100% + var(--padding) * 2);
-  border-radius: calc(var(--border-radius) + var(--padding));
-  pointer-events: none;
-  background-image: linear-gradient(0deg, #0004, #000a);
-  z-index: -1;
-  transition:
-    box-shadow var(--transition),
-    filter var(--transition);
-  box-shadow:
-    0 -8px 8px -6px #0000 inset,
-    0 -16px 16px -8px #00000000 inset,
-    1px 1px 1px #fff2,
-    2px 2px 2px #fff1,
-    -1px -1px 1px #0002,
-    -2px -2px 2px #0001;
-}
-.ai-btn::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  pointer-events: none;
-  background-image: linear-gradient(
-    0deg,
-    #fff,
-    hsl(var(--highlight-color-hue), 100%, 70%),
-    hsla(var(--highlight-color-hue), 100%, 70%, 50%),
-    8%,
-    transparent
-  );
-  background-position: 0 0;
-  opacity: 0;
-  transition:
-    opacity var(--transition),
-    filter var(--transition);
+  transition: all var(--transition);
 }
 
 .ai-btn-letter {
   position: relative;
   display: inline-block;
-  color: #fff5;
-  text-decoration: none;
-  transform: skewX(8deg);
-  animation: ai-letter-anim 2s ease-in-out infinite;
-  transition:
-    color var(--transition),
-    text-shadow var(--transition),
-    opacity var(--transition);
-}
-@keyframes ai-letter-anim {
-  50% {
-    text-shadow: 0 0 3px #fff8;
-    color: #fff;
-  }
+  color: var(--text-muted);
+  transition: color var(--transition);
 }
 
 .ai-btn-icon {
   flex-shrink: 0;
-  color: #e8e8e8;
-  transform: skewX(8deg);
-  animation: ai-flicker 2s linear infinite;
-  animation-delay: 0.5s;
-  filter: drop-shadow(0 0 2px #fff9);
-  transition:
-    color var(--transition),
-    filter var(--transition),
-    opacity var(--transition);
-}
-@keyframes ai-flicker {
-  50% { opacity: 0.3; }
+  color: var(--text-muted);
+  transition: color var(--transition);
 }
 
 /* Hover */
 .ai-btn:hover {
-  border: solid 1px hsla(var(--highlight-color-hue), 100%, 80%, 40%);
+  border-color: var(--accent-color);
+  background-color: var(--bg-hover);
 }
-.ai-btn:hover::before {
-  box-shadow:
-    0 -8px 8px -6px #fffa inset,
-    0 -16px 16px -8px hsla(var(--highlight-color-hue), 100%, 70%, 30%) inset,
-    1px 1px 1px #fff2,
-    2px 2px 2px #fff1,
-    -1px -1px 1px #0002,
-    -2px -2px 2px #0001;
-}
-.ai-btn:hover::after {
-  opacity: 1;
-  mask-image: linear-gradient(0deg, #fff, transparent);
-}
+.ai-btn:hover .ai-btn-letter,
 .ai-btn:hover .ai-btn-icon {
   color: #fff;
-  filter: drop-shadow(0 0 3px hsl(var(--highlight-color-hue), 100%, 70%))
-    drop-shadow(0 -4px 6px #0009);
-  animation: none;
 }
 
-/* Active (pressed) */
-.ai-btn:active {
-  border: solid 1px hsla(var(--highlight-color-hue), 100%, 80%, 70%);
-  background-color: hsla(var(--highlight-color-hue), 50%, 20%, 0.5);
+/* Active (pressed) / Active State */
+.ai-btn:active, .ai-btn-active {
+  border-color: var(--accent-color);
+  background-color: rgba(255, 255, 255, 0.06);
 }
-.ai-btn:active::after {
-  opacity: 1;
-  mask-image: linear-gradient(0deg, #fff, transparent);
-  filter: brightness(200%);
-}
-.ai-btn:active .ai-btn-letter {
-  text-shadow: 0 0 1px hsla(var(--highlight-color-hue), 100%, 90%, 90%);
-  animation: none;
+.ai-btn-active .ai-btn-letter,
+.ai-btn-active .ai-btn-icon {
   color: #fff;
-}
-
-/* Active/selected state (AI view is open) */
-.ai-btn-active {
-  border: solid 1px hsla(var(--highlight-color-hue), 100%, 80%, 40%);
-}
-.ai-btn-active::after {
-  opacity: 0.6;
-  mask-image: linear-gradient(0deg, #fff, transparent);
-  filter: brightness(100%);
-}
-.ai-btn-active .ai-btn-letter {
-  color: #fff;
-  text-shadow: 0 0 3px hsla(var(--highlight-color-hue), 100%, 70%, 50%);
 }
 .ai-glow {
   animation: glowPulse 2s ease-in-out infinite;
@@ -478,4 +484,87 @@ html, body, * { scrollbar-width: none; }
 }
 .animate-in.fade-in.zoom-in {
   animation: zoomIn 0.2s ease-out both;
+}
+
+/* Donation banner animations */
+@keyframes shimmerBg {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); opacity: 0.2; }
+  50% { transform: translateY(-6px); opacity: 0.5; }
+}
+
+.donation-shimmer {
+  animation: shimmerBg 3s ease-in-out infinite;
+  background-size: 200% 100%;
+}
+
+.donation-float {
+  animation: float 2.5s ease-in-out infinite;
+}
+
+/* ─── Cinematic Game Card Glow ─────────────────────────────────── */
+@keyframes cardGlowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1.14) translateY(2px); filter: blur(30px); }
+  50%       { opacity: 0.95; transform: scale(1.22) translateY(4px); filter: blur(38px); }
+}
+.game-card-glow {
+  position: absolute;
+  inset: 2px;
+  z-index: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.35; /* Beautiful subtle resting glow */
+  filter: blur(28px);
+  transform: scale(1.06);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s ease;
+}
+html.light .game-card-glow {
+  opacity: 0.22;
+  filter: blur(24px);
+}
+.group:hover .game-card-glow {
+  opacity: 0.95;
+  transform: scale(1.16);
+  filter: blur(32px);
+  animation: cardGlowPulse 3s ease-in-out infinite;
+}
+html.light .group:hover .game-card-glow {
+  opacity: 0.75;
+  filter: blur(28px);
+}
+
+/* ─── Light theme: thread card hover shadow ─────────────────────── */
+html.light .thread-card {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+html.light .thread-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+/* ─── Light theme quoted thread background ─────────────────────── */
+html.light .quoted-thread-bg {
+  background: #F7F8FA !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+html.light .quoted-thread-bg:hover {
+  background: #EDEEF0 !important;
+}
+
+/* ─── Light theme quoted thread hover sub-element background ────── */
+html.light .quoted-thread-hover-bg:hover {
+  background: #EDEEF0 !important;
+}
+
+/* ─── Hide Navbar When Image Lightbox is Open ────────────────── */
+html.lightbox-open nav,
+html.lightbox-open .fixed-nav,
+html.lightbox-open [role="navigation"] {
+  display: none !important;
 }

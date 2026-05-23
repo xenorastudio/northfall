@@ -16,10 +16,6 @@ const SITE_PAGES = [
   "https://www.northfall.blog/",
   "https://www.northfall.blog/app",
   "https://www.northfall.blog/forum",
-  "https://www.northfall.blog/community/Unity",
-  "https://www.northfall.blog/community/Unreal",
-  "https://www.northfall.blog/community/Godot",
-  "https://www.northfall.blog/community/Blender",
 ];
 
 const QUICK_LINKS = [

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Bell, User, ChevronDown, X, FileText, Users, Hash, TrendingUp, Clock, ArrowUp, MessageSquare, Sparkles, RotateCcw, Flame, Settings, LogOut, Bookmark, Shield, HelpCircle, Plus } from "lucide-react";
+import { Search, Bell, User, ChevronDown, X, FileText, Users, Hash, TrendingUp, Clock, ArrowUp, MessageSquare, Sparkles, RotateCcw, Flame, Settings, LogOut, Bookmark, Shield, HelpCircle, Plus, Sun, Moon } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { useData } from "./DataProvider";
 import { useState, useEffect, useRef } from "react";
@@ -12,14 +12,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useI18n } from "./I18nProvider";
 
-const knownCommunities = ["Unity", "Unreal", "Godot", "Blender", "عام"];
-
-const communityImages: Record<string, string> = {
-  Unity: "/assets/images/unitylogo.png",
-  Unreal: "/assets/images/unreallogo.svg",
-  Godot: "/assets/images/godotlogo.png",
-  Blender: "/assets/images/logoblender.png",
-};
 
 const sortOptions = [
   { id: "relevance" as const, icon: Sparkles, key: "search.sortRelevance" },
@@ -44,7 +36,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, idx)}
-      <mark className="bg-nf-accent/30 text-white rounded px-0.5">{text.slice(idx, idx + query.length)}</mark>
+      <mark className="bg-nf-accent/20 text-nf-accent rounded px-0.5 font-semibold">{text.slice(idx, idx + query.length)}</mark>
       {text.slice(idx + query.length)}
     </>
   );
@@ -63,7 +55,7 @@ function timeAgoShort(ts: any): string {
   } catch { return ""; }
 }
 
-export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick, onPostClick, onNotifsClick, onSettingsClick, onCreateClick, onAdminClick, onSeoClick }: {
+export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick, onPostClick, onNotifsClick, onSettingsClick, onCreateClick, onAdminClick, onSeoClick, topOffset = 40 }: {
   onProfileClick: (uid?: string) => void;
   onLoginClick: () => void;
   onCommunityClick?: (name: string) => void;
@@ -73,6 +65,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   onCreateClick?: () => void;
   onAdminClick?: () => void;
   onSeoClick?: () => void;
+  topOffset?: number;
 }) {
   const { user } = useAuth();
   const { t, lang } = useI18n();
@@ -125,7 +118,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   };
 
   // Real-time unread count (from DataProvider)
-  const { unreadCount } = useData();
+  const { unreadCount, communities: allComms } = useData();
 
   // Fetch real karma from Firestore
   useEffect(() => {
@@ -204,16 +197,16 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
           });
         }
 
-        // Community matches with member counts
-        const commNames = knownCommunities.filter(c => c.toLowerCase().includes(qLower));
-        const commMatches = await Promise.all(commNames.map(async c => {
-          let members = 0;
-          try {
-            const mSnap = await getCountFromServer(collection(db, "communityMembers", c, "members"));
-            members = mSnap.data().count;
-          } catch {}
-          return { id: `comm-${c}`, name: c, _type: "community" as const, members };
-        }));
+        // Community matches
+        const commMatches = allComms
+          .filter(c => c.name.toLowerCase().includes(qLower))
+          .map(c => ({
+            id: `comm-${c.name}`,
+            name: c.name,
+            img: c.img,
+            _type: "community" as const,
+            members: c.members || 0
+          }));
 
         // User matches
         const userMap = new Map<string, any>();
@@ -310,13 +303,13 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
     setSearchQuery("");
   };
 
-  const trendingTags = ["#Unity", "#Unreal", "#Godot", "#Blender", "#GameDev"];
+  const trendingTags = ["#GameDev", "#تطوير_ألعاب", "#برمجة"];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-12 bg-nf-nav/80 backdrop-blur-xl border-b border-nf-border-subtle z-[1001] flex items-center px-4" style={{ direction: "rtl" }}>
+    <nav className="fixed left-0 right-0 h-12 border-b border-nf-border z-[1001] flex items-center px-4 transition-top duration-300" style={{ direction: "rtl", top: "var(--navbar-top)", backgroundColor: "var(--bg-nav)", borderBottomColor: "var(--border-subtle)" }}>
       {/* Logo */}
       <Link href="/app" className="hidden md:flex w-[260px] items-center shrink-0 gap-2" aria-label="NorthFall - الصفحة الرئيسية">
-        <span className="font-inter text-[15px] font-bold text-white tracking-tight">NorthFall</span>
+        <span className="font-inter text-[15px] font-bold text-nf-text tracking-tight">NorthFall</span>
       </Link>
 
       {/* Search */}
@@ -325,7 +318,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
           "group flex items-center h-10 rounded-xl px-4 gap-2.5 transition-all border",
           showDropdown
             ? "bg-nf-primary border-nf-border rounded-b-none shadow-lg shadow-black/20"
-            : "bg-nf-secondary/60 border-nf-border-2/50 hover:bg-nf-secondary focus-within:bg-nf-primary focus-within:border-nf-accent/30 focus-within:shadow-lg focus-within:shadow-black/20"
+            : "bg-nf-secondary border-nf-border-2 hover:bg-nf-secondary focus-within:bg-nf-primary focus-within:border-nf-accent focus-within:shadow-lg focus-within:shadow-black/20"
         )}>
           <Search size={16} className={cn("shrink-0 transition-colors", showDropdown ? "text-nf-accent" : "text-nf-dim group-focus-within:text-nf-accent")} />
           <input
@@ -336,11 +329,11 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
             onFocus={() => setShowDropdown(true)}
             onKeyDown={handleKeyDown}
             placeholder={t("nav.search")}
-            className="flex-1 bg-transparent border-none outline-none text-[14px] text-white placeholder:text-nf-dim/70 py-1"
+            className="flex-1 !bg-transparent border-none outline-none text-[14px] text-nf-text placeholder:text-nf-dim/70 py-1"
           />
           {searching && <div className="w-4 h-4 border-2 border-nf-accent/30 border-t-nf-accent rounded-full animate-spin shrink-0" />}
           {searchQuery && (
-            <button onClick={() => { setSearchQuery(""); inputRef.current?.focus(); }} className="text-nf-dim hover:text-white transition-colors shrink-0 p-0.5">
+            <button onClick={() => { setSearchQuery(""); inputRef.current?.focus(); }} className="text-nf-dim hover:text-nf-text transition-colors shrink-0 p-0.5">
               <X size={14} />
             </button>
           )}
@@ -397,7 +390,8 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       {searchHistory.map((h, i) => (
                         <button key={h} onClick={() => setSearchQuery(h)}
                           className={cn("flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[13px] transition-colors",
-                            selectedIdx === i ? "bg-nf-hover text-white" : "text-nf-muted hover:bg-nf-hover")}>
+                            selectedIdx === i ? "bg-nf-hover text-nf-text font-semibold" : "text-nf-muted hover:bg-nf-hover")}
+                        >
                           <Clock size={13} className="text-nf-dim shrink-0" />
                           <span className="flex-1 text-right truncate">{h}</span>
                         </button>
@@ -424,7 +418,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       <div className="px-3 pt-1.5 pb-0.5"><span className="text-[11px] font-bold text-nf-dim uppercase tracking-wider">{t("search.communities")}</span></div>
                       {searchResults.filter(r => r._type === "community").map((r: any) => {
                         const globalIdx = searchResults.indexOf(r);
-                        const img = communityImages[r.name];
+                        const img = r.img || allComms.find(c => c.name.toLowerCase() === (r.name || "").toLowerCase())?.img || "";
                         return (
                           <button key={r.id} onClick={() => handleResultClick(r)} onMouseEnter={() => setSelectedIdx(globalIdx)}
                             className={cn("flex items-center gap-3 w-full px-3 py-2.5 transition-colors", selectedIdx === globalIdx ? "bg-nf-hover" : "hover:bg-nf-hover/50")}>
@@ -434,7 +428,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                               <div className="w-9 h-9 rounded-lg bg-nf-accent/10 flex items-center justify-center shrink-0 border border-nf-border-2"><Hash size={14} className="text-nf-accent" /></div>
                             )}
                             <div className="flex-1 min-w-0 text-right">
-                              <p className="text-[13px] font-bold text-white"><Highlight text={`n/${r.name}`} query={searchQuery} /></p>
+                              <p className="text-[13px] font-bold text-nf-text"><Highlight text={`n/${r.name}`} query={searchQuery} /></p>
                               <span className="text-[11px] text-nf-dim"><Users size={10} className="inline ml-0.5" /> {r.members || 0} {t("search.memberCount")}</span>
                             </div>
                             <ChevronDown size={14} className="text-nf-dim -rotate-90 shrink-0" />
@@ -458,7 +452,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                               <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center text-sm font-bold text-blue-400 shrink-0 border border-nf-border-2">{(r.name || "U")[0]}</div>
                             )}
                             <div className="flex-1 min-w-0 text-right">
-                              <p className="text-[13px] font-bold text-white"><Highlight text={r.name} query={searchQuery} /></p>
+                              <p className="text-[13px] font-bold text-nf-text"><Highlight text={r.name} query={searchQuery} /></p>
                               <span className="text-[11px] text-nf-dim">u/{r.name}{r.karma ? ` · ${Math.max(0, Math.round(r.karma))} ${t("search.karmaCount")}` : ""}</span>
                             </div>
                             <User size={14} className="text-nf-dim shrink-0" />
@@ -473,7 +467,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       <div className="px-3 pt-2 pb-0.5"><span className="text-[11px] font-bold text-nf-dim uppercase tracking-wider">{t("search.posts")}</span></div>
                       {searchResults.filter(r => r._type === "post").map((r: any) => {
                         const globalIdx = searchResults.indexOf(r);
-                        const commImg = communityImages[r.community];
+                        const commImg = allComms.find(c => c.name.toLowerCase() === (r.community || "").toLowerCase())?.img || "";
                         return (
                           <button key={r.id} onClick={() => handleResultClick(r)} onMouseEnter={() => setSelectedIdx(globalIdx)}
                             className={cn("flex items-start gap-3 w-full px-3 py-2.5 transition-colors", selectedIdx === globalIdx ? "bg-nf-hover" : "hover:bg-nf-hover/50")}>
@@ -485,7 +479,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                               <div className="w-9 h-9 rounded-lg bg-nf-secondary flex items-center justify-center shrink-0 border border-nf-border-2"><FileText size={14} className="text-nf-dim" /></div>
                             )}
                             <div className="flex-1 min-w-0 text-right">
-                              <p className="text-[13px] font-bold text-white leading-snug"><Highlight text={r.title} query={searchQuery} /></p>
+                              <p className="text-[13px] font-bold text-nf-text leading-snug"><Highlight text={r.title} query={searchQuery} /></p>
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                 {r.community && <span className="text-[11px] text-nf-accent bg-nf-accent/10 px-2 py-0.5 rounded">n/{r.community}</span>}
                                 <span className="text-[11px] text-nf-dim">{r.authorName || t("gen.user")}</span>
@@ -524,11 +518,14 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
 
       {/* Actions - icons then account on far right */}
       <div className="md:w-[260px] flex items-center justify-end gap-1.5 shrink-0" style={{ direction: "ltr" }}>
-        <button onClick={onNotifsClick} className="w-8 h-8 flex items-center justify-center rounded-lg text-nf-dim hover:bg-nf-hover hover:text-white transition-colors relative">
+        <button onClick={toggleTheme} className="w-8 h-8 flex items-center justify-center rounded-lg text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-colors" title={darkMode ? "الوضع المضيء" : "الوضع الداكن"}>
+          {darkMode ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
+        <button onClick={onNotifsClick} className="w-8 h-8 flex items-center justify-center rounded-lg text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-colors relative">
           <Bell size={15} />
           {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center px-0.5">{unreadCount > 9 ? "9+" : unreadCount}</span>}
         </button>
-        <button onClick={onCreateClick} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">
+        <button onClick={onCreateClick} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-all duration-200">
           <Plus size={12} /> {t("pc.createPlaceholder")}
         </button>
         {user ? (
@@ -553,12 +550,12 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                         <div className="w-10 h-10 rounded-full bg-nf-secondary flex items-center justify-center border border-nf-border-2"><User size={18} className="text-nf-muted" /></div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-bold text-white truncate flex items-center gap-1">{user.displayName || t("gen.user")}{(user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] inline" />}</p>
+                        <p className="text-[13px] font-bold text-nf-text truncate flex items-center gap-1">{user.displayName || t("gen.user")}{(user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] inline" />}</p>
                         <p className="text-[10px] text-nf-dim truncate">{user.email || ""}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 mt-2">
-                      <span className="text-[10px] text-nf-dim"><span className="text-white font-bold">{Math.max(0, Math.round(userKarma))}</span> صيت</span>
+                      <span className="text-[10px] text-nf-dim"><span className="text-nf-text font-bold">{Math.max(0, Math.round(userKarma))}</span> صيت</span>
                       <span className="text-[10px] text-nf-dim"><span className="text-amber-400 font-bold">{userXp}</span> XP</span>
                       <span className="text-[10px] text-green-400 flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />متصل</span>
                     </div>
@@ -575,7 +572,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       ...(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" ? [{ icon: Search, label: "أدوات SEO", action: () => { onSeoClick?.(); setShowUserMenu(false); } }] : []),
                       { icon: HelpCircle, label: t("sb.help"), action: () => { setShowUserMenu(false); } },
                     ].map((item, i) => (
-                      <button key={i} onClick={item.action} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+                      <button key={i} onClick={item.action} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
                         <item.icon size={14} className="shrink-0 text-nf-dim" />
                         <span>{item.label}</span>
                       </button>

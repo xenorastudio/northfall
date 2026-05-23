@@ -53,7 +53,14 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
       const q2 = query(collection(db, "reports"), orderBy("createdAt", "desc"), limit(200));
       const snap = await getDocs(q2);
       setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch { showToast("خطأ في التحميل"); }
+    } catch {
+      try {
+        const snap = await getDocs(collection(db, "reports"));
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        docs.sort((a: any, b: any) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+        setReports(docs.slice(0, 200));
+      } catch { showToast("خطأ في تحميل البلاغات"); }
+    }
     setLoading(false);
   };
 
@@ -72,8 +79,6 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
     try { await setDoc(doc(db, "system", "maintenance"), { active: newVal }); showToast(newVal ? "تم تفعيل وضع الصيانة" : "تم إطفاء وضع الصيانة"); } catch { showToast("خطأ"); }
   };
 
-  const knownCommunities = ["Unity", "Unreal", "Godot", "Blender", "عام"];
-
   const purgeAllData = async () => {
     if (purgeConfirm !== "حذف الكل") { showToast("اكتب " + '"حذف الكل"' + " للتأكيد"); return; }
     setPurging(true);
@@ -89,13 +94,14 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
       }
       showToast("تم حذف المنشورات");
 
-      // 2. Delete all forum threads + replies + votes
-      for (const comm of knownCommunities) {
-        const threadsSnap = await getDocs(collection(db, "forums", comm, "threads")).catch(() => ({ docs: [] as any[] }));
+      // 2. Delete all forum threads + replies + votes (including user-created communities)
+      const allCommsSnap = await getDocs(collection(db, "forums"));
+      for (const commDoc of allCommsSnap.docs) {
+        const threadsSnap = await getDocs(collection(db, "forums", commDoc.id, "threads")).catch(() => ({ docs: [] as any[] }));
         for (const th of threadsSnap.docs) {
-          const repliesSnap = await getDocs(collection(db, "forums", comm, "threads", th.id, "replies")).catch(() => ({ docs: [] as any[] }));
+          const repliesSnap = await getDocs(collection(db, "forums", commDoc.id, "threads", th.id, "replies")).catch(() => ({ docs: [] as any[] }));
           for (const r of repliesSnap.docs) await deleteDoc(r.ref).catch(() => {});
-          const tVotesSnap = await getDocs(collection(db, "forums", comm, "threads", th.id, "votes")).catch(() => ({ docs: [] as any[] }));
+          const tVotesSnap = await getDocs(collection(db, "forums", commDoc.id, "threads", th.id, "votes")).catch(() => ({ docs: [] as any[] }));
           for (const v of tVotesSnap.docs) await deleteDoc(v.ref).catch(() => {});
           await deleteDoc(th.ref).catch(() => {});
         }
@@ -119,11 +125,12 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
       for (const r of reportsSnap.docs) await deleteDoc(r.ref).catch(() => {});
       showToast("تم حذف البلاغات");
 
-      // 5. Delete communities + members
-      for (const comm of knownCommunities) {
-        const membersSnap = await getDocs(collection(db, "communities", comm, "members")).catch(() => ({ docs: [] as any[] }));
+      // 5. Delete ALL communities + members (not just hardcoded ones)
+      const communitiesSnap = await getDocs(collection(db, "communities"));
+      for (const commDoc of communitiesSnap.docs) {
+        const membersSnap = await getDocs(collection(db, "communities", commDoc.id, "members")).catch(() => ({ docs: [] as any[] }));
         for (const m of membersSnap.docs) await deleteDoc(m.ref).catch(() => {});
-        await deleteDoc(doc(db, "communities", comm)).catch(() => {});
+        await deleteDoc(commDoc.ref).catch(() => {});
       }
       showToast("تم حذف المجتمعات");
 
@@ -139,7 +146,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <Shield size={40} className="text-nf-dim mb-3" />
       <p className="text-sm font-semibold text-nf-muted">غير مصرح بالدخول</p>
-      <button onClick={onBack} className="mt-3 px-4 py-1.5 rounded-lg border border-nf-border text-xs text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">العودة</button>
+      <button onClick={onBack} className="mt-3 px-4 py-1.5 rounded-lg border border-nf-border text-xs text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">العودة</button>
     </div>
   );
 
@@ -204,11 +211,11 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-nf-primary/95 backdrop-blur-sm border-b border-nf-border-2">
+      <div className="sticky z-30 bg-nf-primary/95 backdrop-blur-sm border-b border-nf-border-2" style={{ top: "var(--nav-total-height)" }}>
         <div className="flex items-center justify-between px-4 h-12">
           <div className="flex items-center gap-2">
             <Shield size={18} className="text-nf-accent" />
-            <h1 className="text-sm font-bold text-white">لوحة الإشراف</h1>
+            <h1 className="text-sm font-bold text-nf-text">لوحة الإشراف</h1>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={async () => {
@@ -228,21 +235,28 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
                   for (const v of votesSnap.docs) {
                     const saitGain = v.data().saitGain || 0;
                     if (saitGain !== 0) {
-                      await updateDoc(doc(db, "users", authorUid), { karma: (await getDoc(doc(db, "users", authorUid))).data()?.karma + saitGain });
+                      const userSnap = await getDoc(doc(db, "users", authorUid));
+                      if (userSnap.exists()) {
+                        await updateDoc(doc(db, "users", authorUid), { karma: (userSnap.data().karma ?? 0) + saitGain });
+                      }
                     }
                   }
                 }
                 // Recalculate forum karma from all vote docs in forums
-                for (const comm of knownCommunities) {
-                  const threadsSnap = await getDocs(collection(db, "forums", comm, "threads"));
+                const allForumComms = await getDocs(collection(db, "forums")).catch(() => ({ docs: [] as any[] }));
+                for (const commDoc of allForumComms.docs) {
+                  const threadsSnap = await getDocs(collection(db, "forums", commDoc.id, "threads")).catch(() => ({ docs: [] as any[] }));
                   for (const t of threadsSnap.docs) {
                     const authorUid = t.data().authorUid;
                     if (!authorUid) continue;
-                    const votesSnap = await getDocs(collection(db, "forums", comm, "threads", t.id, "votes"));
+                    const votesSnap = await getDocs(collection(db, "forums", commDoc.id, "threads", t.id, "votes")).catch(() => ({ docs: [] as any[] }));
                     for (const v of votesSnap.docs) {
                       const saitGain = v.data().saitGain || 0;
                       if (saitGain !== 0) {
-                        await updateDoc(doc(db, "users", authorUid), { forumKarma: (await getDoc(doc(db, "users", authorUid))).data()?.forumKarma + saitGain });
+                        const userSnap = await getDoc(doc(db, "users", authorUid));
+                        if (userSnap.exists()) {
+                          await updateDoc(doc(db, "users", authorUid), { forumKarma: (userSnap.data().forumKarma ?? 0) + saitGain });
+                        }
                       }
                     }
                   }
@@ -258,11 +272,11 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
               <Trash2 size={12} />
               حذف كل البيانات
             </button>
-            <button onClick={toggleMaintenance} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all", maintenanceOn ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-white/5 text-nf-dim border border-white/10 hover:text-white")}>
+            <button onClick={toggleMaintenance} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all", maintenanceOn ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-nf-secondary text-nf-dim border border-nf-border hover:text-nf-text")}>
               <Wrench size={12} />
               {maintenanceOn ? "الصيانة شغّالة" : "فعّل صيانة"}
             </button>
-            <button onClick={onBack} className="flex items-center gap-1 px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+            <button onClick={onBack} className="flex items-center gap-1 px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
               <ArrowRight size={12} />
               العودة للموقع
             </button>
@@ -273,7 +287,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
       <div className="max-w-[1000px] mx-auto p-5">
         {/* Title + Stats */}
         <div className="flex items-baseline justify-between mb-4 pb-3 border-b border-nf-border-2">
-          <div className="text-lg font-bold text-white">البلاغات</div>
+          <div className="text-lg font-bold text-nf-text">البلاغات</div>
           <div className="flex gap-5 text-[13px]">
             <span className="text-nf-accent">بانتظار <strong>{pendingCount}</strong></span>
             <span className="text-nf-muted">تمت <strong>{reviewedCount}</strong></span>
@@ -297,7 +311,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
           <div className="relative">
             <Search size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nf-dim" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث..."
-              className="w-[200px] bg-nf-input border border-nf-border-2 rounded-lg pr-8 pl-3 py-1.5 text-xs text-white placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
+              className="w-[200px] bg-nf-input border border-nf-border-2 rounded-lg pr-8 pl-3 py-1.5 text-xs text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
           </div>
           <span className="text-[11px] text-nf-dim mr-2">{filtered.length} بلاغ</span>
           <button onClick={loadReports} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-nf-border-2 text-[11px] font-semibold text-nf-dim hover:text-nf-muted hover:border-nf-border transition-colors">
@@ -342,7 +356,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
                     )}
                   </div>
                   {r.reason && (
-                    <p onClick={() => setDetailId(r.id)} className="text-[13px] text-nf-text leading-snug line-clamp-2 cursor-pointer hover:text-white transition-colors">
+                    <p onClick={() => setDetailId(r.id)} className="text-[13px] text-nf-text leading-snug line-clamp-2 cursor-pointer hover:text-nf-text transition-colors">
                       {r.reason}
                     </p>
                   )}
@@ -426,8 +440,8 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border-2">
-                <h3 className="text-sm font-bold text-white">تفاصيل البلاغ</h3>
-                <button onClick={() => setDetailId(null)} className="p-1 rounded-lg text-nf-dim hover:text-white hover:bg-nf-hover transition-colors">
+                <h3 className="text-sm font-bold text-nf-text">تفاصيل البلاغ</h3>
+                <button onClick={() => setDetailId(null)} className="p-1 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors">
                   <X size={16} />
                 </button>
               </div>
@@ -533,7 +547,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
                   <Trash2 size={16} className="text-red-400" />
                   <h3 className="text-sm font-bold text-red-400">حذف كل البيانات</h3>
                 </div>
-                <button onClick={() => { if (!purging) setPurgeOpen(false); }} className="p-1 rounded-lg text-nf-dim hover:text-white hover:bg-nf-hover transition-colors">
+                <button onClick={() => { if (!purging) setPurgeOpen(false); }} className="p-1 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors">
                   <X size={16} />
                 </button>
               </div>
@@ -549,7 +563,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
                     onChange={e => setPurgeConfirm(e.target.value)}
                     disabled={purging}
                     placeholder='حذف الكل'
-                    className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-sm text-white placeholder:text-nf-dim outline-none focus:border-red-500/40 transition-colors"
+                    className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-sm text-nf-text placeholder:text-nf-dim outline-none focus:border-red-500/40 transition-colors"
                     dir="rtl"
                   />
                 </div>
@@ -577,7 +591,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
                   <button
                     onClick={() => { setPurgeOpen(false); setPurgeConfirm(""); }}
                     disabled={purging}
-                    className="flex-1 py-2 rounded-lg border border-nf-border text-xs font-semibold text-nf-dim hover:bg-nf-hover hover:text-white transition-colors disabled:opacity-50"
+                    className="flex-1 py-2 rounded-lg border border-nf-border text-xs font-semibold text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-colors disabled:opacity-50"
                   >
                     إلغاء
                   </button>
@@ -597,7 +611,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="px-4 py-2 rounded-lg bg-nf-secondary border border-nf-border text-[12px] font-semibold text-white shadow-lg"
+              className="px-4 py-2 rounded-lg bg-nf-secondary border border-nf-border text-[12px] font-semibold text-nf-text shadow-lg"
             >
               {msg}
             </motion.div>

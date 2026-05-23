@@ -93,17 +93,17 @@ export default function ReportModal({
                 <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
                   <span className="text-green-400 text-2xl">&#10003;</span>
                 </div>
-                <p className="text-white font-bold text-sm">تم إرسال البلاغ</p>
+                <p className="text-nf-text font-bold text-sm">تم إرسال البلاغ</p>
                 <p className="text-xs text-nf-muted mt-1">شكراً لمساعدتنا في الحفاظ على المجتمع آمناً</p>
               </div>
             ) : (
               <>
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border-2">
-                  <button onClick={handleClose} className="text-nf-muted hover:text-white p-1"><X size={16} /></button>
+                  <button onClick={handleClose} className="text-nf-muted hover:text-nf-text p-1"><X size={16} /></button>
                   <div className="text-center">
                     <div className="text-[10px] text-nf-dim">الخطوة {step} من 2</div>
-                    <div className="text-sm font-bold text-white">إبلاغ عن {typeLabel}</div>
+                    <div className="text-sm font-bold text-nf-text">إبلاغ عن {typeLabel}</div>
                   </div>
                   <div className="w-6" />
                 </div>
@@ -128,7 +128,7 @@ export default function ReportModal({
                             <cat.icon size={16} className="text-nf-muted" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-white">{cat.title}</div>
+                            <div className="text-sm font-medium text-nf-text">{cat.title}</div>
                             <div className="text-[11px] text-nf-dim">{cat.desc}</div>
                           </div>
                           <ChevronLeft size={14} className="text-nf-dim shrink-0" />
@@ -152,7 +152,7 @@ export default function ReportModal({
                                 <Icon size={16} className="text-[#ff4444]" />
                               </div>
                               <div>
-                                <div className="text-sm font-medium text-white">{cat.title}</div>
+                                <div className="text-sm font-medium text-nf-text">{cat.title}</div>
                                 <div className="text-[11px] text-nf-dim">{cat.desc}</div>
                               </div>
                             </>
@@ -165,12 +165,12 @@ export default function ReportModal({
                       onChange={(e) => setReportText(e.target.value)}
                       placeholder="اكتب تفاصيل إضافية (اختياري)..."
                       rows={3}
-                      className="w-full bg-transparent border border-nf-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-nf-dim outline-none resize-none focus:border-nf-accent transition-colors mb-4"
+                      className="w-full bg-transparent border border-nf-border rounded-lg px-3 py-2 text-sm text-nf-text placeholder:text-nf-dim outline-none resize-none focus:border-nf-accent transition-colors mb-4"
                     />
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setStep(1)}
-                        className="flex-1 px-4 py-2 rounded-lg border border-nf-border text-xs font-semibold text-nf-muted hover:bg-nf-hover hover:text-white transition-colors"
+                        className="flex-1 px-4 py-2 rounded-lg border border-nf-border text-xs font-semibold text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"
                       >
                         رجوع
                       </button>

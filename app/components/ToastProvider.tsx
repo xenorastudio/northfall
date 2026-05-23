@@ -52,7 +52,7 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
               className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-nf-primary/95 border border-nf-border-2 shadow-xl shadow-black/30 backdrop-blur-sm pointer-events-auto"
             >
               <span className="shrink-0">{iconMap[t.type] || iconMap.success}</span>
-              <span className="text-[13px] text-white font-medium">{t.message}</span>
+              <span className="text-[13px] text-nf-text font-medium">{t.message}</span>
             </motion.div>
           ))}
         </AnimatePresence>

@@ -50,13 +50,13 @@ function TranslationLangSelector() {
         <ChevronDown size={12} className={cn("shrink-0 transition-transform opacity-40", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-white/10 shadow-xl shadow-black/40 overflow-hidden" style={{ backgroundColor: "rgba(18,18,20,0.92)", backdropFilter: "blur(20px) saturate(1.2)" }}>
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-nf-border-2 shadow-xl overflow-hidden" style={{ backgroundColor: "var(--bg-primary)" }}>
           <div className="py-0.5 max-h-[240px] overflow-y-auto">
             {TRANSLATE_LANGS.map(l => (
-              <button key={l.id} onClick={() => { setLang(l.id); localStorage.setItem("nf-ai-translate-lang", l.id); setOpen(false); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-semibold transition-all", lang === l.id ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-white/5")}>
+              <button key={l.id} onClick={() => { setLang(l.id); localStorage.setItem("nf-ai-translate-lang", l.id); setOpen(false); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-semibold transition-all", lang === l.id ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-hover")}>
                 <span className="text-lg leading-none">{l.flag}</span>
-                <span className="flex-1 text-right">{l.label}</span>
-                <span className="text-[9px] opacity-40">{l.sub}</span>
+                <span className="flex-1 text-right text-nf-text">{l.label}</span>
+                <span className="text-[9px] opacity-40 text-nf-dim">{l.sub}</span>
                 {lang === l.id && <Check size={10} className="text-nf-accent shrink-0" />}
               </button>
             ))}
@@ -88,7 +88,7 @@ function SettingRow({ label, sub, children }: { label: string; sub?: string; chi
   return (
     <div className="flex items-center justify-between py-3">
       <div className="min-w-0">
-        <p className="text-[12px] text-white font-medium">{label}</p>
+        <p className="text-[12px] text-nf-text font-medium">{label}</p>
         {sub && <p className="text-[10px] text-nf-dim mt-0.5">{sub}</p>}
       </div>
       {children}
@@ -348,11 +348,11 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-nf-dim hover:text-white text-[12px] transition-colors">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-nf-dim hover:text-nf-text text-[12px] transition-colors">
             {lang === "ar" ? <ArrowRight size={16} /> : <ArrowRight size={16} className="rotate-180" />}
             {t("sp.back")}
           </button>
-          <span className="text-[15px] font-bold text-white">{t("sp.settings")}</span>
+          <span className="text-[15px] font-bold text-nf-text">{t("sp.settings")}</span>
         </div>
         <button onClick={saveAll} className="h-8 px-5 rounded-lg bg-nf-accent/15 text-nf-accent text-[11px] font-bold hover:bg-nf-accent/25 transition-colors flex items-center gap-1.5">
           <Check size={12} />{t("gen.saveChanges")}
@@ -367,7 +367,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
             return (
               <button key={s.id} onClick={() => setActiveSection(s.id)}
                 className={cn("flex items-center gap-2 sm:w-full px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-colors shrink-0",
-                  activeSection === s.id ? "bg-nf-accent/10 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>
+                  activeSection === s.id ? "bg-nf-accent/10 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-nf-text")}>
                 <Icon size={13} />
                 <span>{s.label}</span>
               </button>
@@ -387,14 +387,14 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
             <div className="space-y-4">
               <div className="p-4">
                 <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">{t("sp.accountInfo")}</h3>
-                {/* Banner Preview */}
-                <div className="relative h-[80px] rounded-lg overflow-hidden mb-3">
-                  <img src={bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-nf-primary/90 to-transparent" />
+                  {/* Banner Preview */}
+                  <div className="relative h-[80px] rounded-lg overflow-hidden mb-3 bg-nf-secondary/30">
+                    {bannerUrl ? <img src={bannerUrl} alt="" className="w-full h-full object-cover" /> : null}
+                    <div className="absolute inset-0 bg-gradient-to-t from-nf-primary/90 to-transparent" />
                 </div>
                 <div className="mb-3">
                   <label className="text-[10px] text-nf-dim mb-1 block">رابط البانر</label>
-                  <input type="url" value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} placeholder="https://example.com/banner.jpg" className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-white placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
+                  <input type="url" value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} placeholder="https://example.com/banner.jpg" className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
                 </div>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="relative">
@@ -403,7 +403,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-white truncate">{displayName || t("gen.user")}</p>
+                    <p className="text-[13px] font-bold text-nf-text truncate">{displayName || t("gen.user")}</p>
                     <p className="text-[10px] text-nf-dim truncate">{user?.email || ""}</p>
                     <p className="text-[10px] text-green-400 flex items-center gap-0.5 mt-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />متصل</p>
                   </div>
@@ -411,15 +411,15 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                 <div className="space-y-3">
                   <div>
                     <label className="text-[10px] text-nf-dim mb-1 block">رابط الصورة الشخصية</label>
-                    <input type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-white placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
+                    <input type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
                   </div>
                   <div>
                     <label className="text-[10px] text-nf-dim mb-1 block">{t("sp.displayName")}</label>
-                    <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-white outline-none focus:border-nf-accent/40 transition-colors" />
+                    <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text outline-none focus:border-nf-accent/40 transition-colors" />
                   </div>
                   <div>
                     <label className="text-[10px] text-nf-dim mb-1 block">{t("sp.bio")}</label>
-                    <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={200} rows={2} placeholder={t("sp.bioPlaceholder")} className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-white placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors resize-none" />
+                    <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={200} rows={2} placeholder={t("sp.bioPlaceholder")} className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors resize-none" />
                     <span className="text-[9px] text-nf-dim">{bio.length}/200</span>
                   </div>
                 </div>
@@ -434,10 +434,10 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                     return (
                       <div key={f.id} className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-nf-secondary/50 text-nf-muted">
-                          <IconComp />
+                           <IconComp />
                         </div>
                         <input type="url" value={socialLinks[f.id] || ""} onChange={(e) => updateSocial(f.id, e.target.value)} placeholder={f.placeholder}
-                          className="flex-1 bg-nf-input border border-nf-border-2 rounded-lg px-3 py-1.5 text-[11px] text-white placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
+                          className="flex-1 bg-nf-input border border-nf-border-2 rounded-lg px-3 py-1.5 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
                       </div>
                     );
                   })}
@@ -448,7 +448,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                 <h3 className="text-[11px] font-bold text-red-400 uppercase tracking-wider mb-2">منطقة الخطر</h3>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[11px] text-white font-medium">حذف الحساب</p>
+                    <p className="text-[11px] text-nf-text font-medium">حذف الحساب</p>
                     <p className="text-[9px] text-nf-dim">هذا الإجراء لا يمكن التراجع عنه</p>
                   </div>
                   <button onClick={() => setShowDeleteConfirm(true)} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-400 bg-red-400/5 border border-red-400/20 hover:bg-red-400/10 transition-colors">حذف</button>
@@ -520,7 +520,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                 <p className="text-[9px] text-nf-dim mb-2">بياناتك</p>
                 <div className="flex items-center justify-between py-2">
                   <div>
-                    <span className="text-[11px] text-white font-medium">تحميل بياناتك</span>
+                    <span className="text-[11px] text-nf-text font-medium">تحميل بياناتك</span>
                     <p className="text-[9px] text-nf-dim">تصدير جميع بياناتك كملف JSON</p>
                   </div>
                   <button onClick={handleDownloadData} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-nf-accent bg-nf-accent/5 border border-nf-accent/20 hover:bg-nf-accent/10 transition-colors">تحميل</button>
@@ -580,7 +580,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                 <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">مفتاح API</label>
                 <p className="text-[8px] text-nf-dim/40 mb-2">مفتاح الدخول — احصل عليه مجاناً من موقع المزود</p>
                 <div className="relative">
-                  <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder="sk-..." className="w-full bg-nf-secondary/30 rounded-lg px-4 py-2.5 text-[11px] text-white placeholder:text-nf-dim/30 outline-none focus:ring-1 focus:ring-nf-accent/20 font-mono border border-nf-border/10 focus:border-nf-accent/20 transition-all" dir="ltr" />
+                  <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder="sk-..." className="w-full bg-nf-secondary/30 rounded-lg px-4 py-2.5 text-[11px] text-nf-text placeholder:text-nf-dim/30 outline-none focus:ring-1 focus:ring-nf-accent/20 font-mono border border-nf-border/10 focus:border-nf-accent/20 transition-all" dir="ltr" />
                   <Key size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-nf-dim/25" />
                 </div>
               </div>
@@ -611,7 +611,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                     lang === l.id ? "bg-nf-accent/10 border border-nf-accent/30" : "border border-transparent hover:bg-nf-hover")}>
                   <span className="text-lg">{l.flag}</span>
                   <div className="flex-1 text-right">
-                    <p className={cn("text-[12px] font-semibold", lang === l.id ? "text-nf-accent" : "text-white")}>{l.label}</p>
+                    <p className={cn("text-[12px] font-semibold", lang === l.id ? "text-nf-accent" : "text-nf-text")}>{l.label}</p>
                     <p className="text-[10px] text-nf-dim">{l.sub}</p>
                   </div>
                   {lang === l.id && <Check size={14} className="text-nf-accent shrink-0" />}
@@ -650,7 +650,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                   <AlertTriangle size={20} className="text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">حذف الحساب نهائياً</h3>
+                  <h3 className="text-sm font-bold text-nf-text">حذف الحساب نهائياً</h3>
                   <p className="text-[10px] text-nf-dim">هذا الإجراء لا يمكن التراجع عنه</p>
                 </div>
               </div>
@@ -671,7 +671,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                   للتأكيد، اكتب: <span className="text-red-400 font-bold font-mono">{user?.displayName || ""}DELETE</span>
                 </label>
                 <input type="text" value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)} placeholder={`${user?.displayName || ""}DELETE`}
-                  className="w-full bg-nf-input border border-red-400/20 rounded-lg px-3 py-2.5 text-[12px] text-white placeholder:text-nf-dim outline-none focus:border-red-400/40 transition-colors font-mono" />
+                  className="w-full bg-nf-input border border-red-400/20 rounded-lg px-3 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-red-400/40 transition-colors font-mono" />
               </div>
 
               <div className="flex items-center gap-2">
@@ -683,7 +683,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                   {deleting ? "جاري الحذف..." : "تأكيد الحذف النهائي"}
                 </button>
                 <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirm(""); }}
-                  className="px-4 py-2 rounded-lg text-[11px] font-medium text-nf-muted hover:text-white border border-nf-border hover:bg-nf-hover transition-colors">
+                  className="px-4 py-2 rounded-lg text-[11px] font-medium text-nf-muted hover:text-nf-text border border-nf-border hover:bg-nf-hover transition-colors">
                   إلغاء
                 </button>
               </div>

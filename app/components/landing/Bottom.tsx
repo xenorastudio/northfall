@@ -5,19 +5,19 @@ export function Testimonials() {
     {
       quote: "NorthFall gave the Arab game dev scene a home. No more building in silence.",
       author: "Ahmad K.",
-      role: "Unity Developer",
+      role: "مطور ألعاب",
       color: "bg-white text-black",
     },
     {
-      quote: "Finally a platform where I can discuss Unreal Engine in Arabic with people who get it.",
+      quote: "This platform is everything I needed. Arabic-first, built for devs.",
       author: "Sara M.",
-      role: "Unreal Engine Artist",
+      role: "فنانة ألعاب",
       color: "bg-yellow-500 text-black",
     },
     {
-      quote: "The Godot community here helped me ship my first game. Real support, real people.",
+      quote: "The community here helped me ship my first game. Real support, real people.",
       author: "Kareem R.",
-      role: "Indie Game Dev",
+      role: "مطور ألعاب مستقل",
       color: "bg-emerald-500 text-black",
     },
   ];

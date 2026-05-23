@@ -18,13 +18,6 @@ interface PostData {
   createdAt: string;
 }
 
-const communityImages: Record<string, string> = {
-  Unity: "/assets/images/unitylogo.png",
-  Unreal: "/assets/images/unreallogo.svg",
-  Godot: "/assets/images/godotlogo.png",
-  Blender: "/assets/images/logoblender.png",
-};
-
 function getTimeAgo(timestamp: string) {
   if (!timestamp) return "";
   const date = new Date(timestamp);
@@ -88,7 +81,17 @@ export default function EmbedPage() {
 
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
   const postUrl = `${siteUrl}/app?view=post&postId=${postId}`;
-  const commImg = communityImages[post.community] || "";
+  const [commImg, setCommImg] = useState("");
+
+  useEffect(() => {
+    if (!post?.community) return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "communities", post.community));
+        if (snap.exists()) setCommImg(snap.data().img || "");
+      } catch {}
+    })();
+  }, [post?.community]);
 
   return (
     <div style={{ background: "#181818", color: "#e0e0e0", fontFamily: "Cairo, sans-serif", direction: "rtl" }}>

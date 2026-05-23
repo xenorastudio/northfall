@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { collection, getDocs, query, limit, where, doc, getDoc, onSnapshot } from "firebase/firestore";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { collection, query, where, limit, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 
@@ -10,6 +10,7 @@ interface CachedCommunity {
   label: string;
   img: string;
   members: number;
+  creatorUid?: string;
 }
 
 interface CachedData {
@@ -30,12 +31,8 @@ const DataContext = createContext<CachedData>({
   refreshUnread: () => {},
 });
 
-const COMMUNITY_IMAGES: Record<string, string> = {
-  Unity: "/assets/images/unitylogo.png",
-  Unreal: "/assets/images/unreallogo.svg",
-  Godot: "/assets/images/godotlogo.png",
-  Blender: "/assets/images/logoblender.png",
-};
+const EXCLUDED_NAMES_LOWER = new Set(["unity", "unreal", "godot", "blender"]);
+function isExcluded(name: string) { return EXCLUDED_NAMES_LOWER.has(name.toLowerCase()); }
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -43,77 +40,65 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [joinedCommunities, setJoinedCommunities] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const unsubRef = useRef<(() => void) | null>(null);
 
-  // Fetch all communities (cached, rarely changes)
-  const refreshCommunities = useCallback(async () => {
-    try {
-      const snap = await getDocs(collection(db, "communities"));
-      const items = snap.docs.map((d) => {
-        const data = d.data();
-        return {
-          name: data.name || d.id,
-          label: `n/${data.name || d.id}`,
-          img: COMMUNITY_IMAGES[data.name || d.id] || data.img || "",
-          members: data.memberCount || 0,
-        };
-      });
-      setCommunities(items.length > 0 ? items : Object.keys(COMMUNITY_IMAGES).map((name) => ({
-        name, label: `n/${name}`, img: COMMUNITY_IMAGES[name], members: 0,
-      })));
-    } catch {
-      // Fallback to static list
-      setCommunities(Object.keys(COMMUNITY_IMAGES).map((name) => ({
-        name, label: `n/${name}`, img: COMMUNITY_IMAGES[name], members: 0,
-      })));
-    }
+  useEffect(() => {
+    let active = true;
+    const unsub = onSnapshot(collection(db, "communities"), (snap) => {
+      if (!active) return;
+      setCommunities(snap.docs
+        .map((d) => {
+          const data = d.data();
+          const name = data.name || d.id;
+          return { name, label: `n/${name}`, img: data.img || "", members: data.memberCount || 0, creatorUid: data.creatorUid || undefined, showInForum: data.showInForum !== false };
+        })
+        .filter((c) => !isExcluded(c.name) && c.showInForum)
+      );
+      setLoading(false);
+    }, () => {
+      if (active) { setCommunities([]); setLoading(false); }
+    });
+    return () => { active = false; unsub(); };
   }, []);
 
-  // Fetch joined communities for current user
-  const refreshJoined = useCallback(async () => {
+  useEffect(() => {
     if (!user) { setJoinedCommunities([]); return; }
-    try {
-      const snap = await getDocs(collection(db, "users", user.uid, "communities"));
+    const unsub = onSnapshot(collection(db, "users", user.uid, "communities"), (snap) => {
       setJoinedCommunities(snap.docs.map((d) => d.data().name || d.id));
-    } catch {
-      setJoinedCommunities([]);
-    }
+    }, () => setJoinedCommunities([]));
+    return () => unsub();
   }, [user]);
 
-  // Real-time unread count (replaces polling in SidebarLeft + Navbar)
   useEffect(() => {
     if (!user) { setUnreadCount(0); return; }
     try {
       const q2 = query(collection(db, "users", user.uid, "notifications"), where("read", "==", false), limit(99));
-      const unsub = onSnapshot(q2, (snap) => {
-        setUnreadCount(snap.size);
-      }, () => {});
-      unsubRef.current = unsub;
-      return () => { unsub(); unsubRef.current = null; };
+      const unsub = onSnapshot(q2, (snap) => { setUnreadCount(snap.size); }, () => {});
+      return () => unsub();
     } catch {}
   }, [user]);
 
-  // Initial load
-  useEffect(() => {
-    Promise.all([refreshCommunities(), refreshJoined()]).finally(() => setLoading(false));
-  }, [refreshCommunities, refreshJoined]);
-
-  // Refresh joined when user changes
-  useEffect(() => { refreshJoined(); }, [user, refreshJoined]);
-
-  const refreshUnread = useCallback(() => {
-    // onSnapshot handles this automatically
+  const refreshCommunities = useCallback(async () => {
+    try {
+      const { getDocs } = await import("firebase/firestore");
+      const snap = await getDocs(collection(db, "communities"));
+      setCommunities(snap.docs
+        .map((d) => {
+          const data = d.data();
+          const name = data.name || d.id;
+          return { name, label: `n/${name}`, img: data.img || "", members: data.memberCount || 0, creatorUid: data.creatorUid || undefined, showInForum: data.showInForum !== false };
+        })
+        .filter((c) => !isExcluded(c.name) && c.showInForum)
+      );
+      setLoading(false);
+    } catch (error) {
+      console.error("Error refreshing communities:", error);
+    }
   }, []);
 
+  const refreshUnread = useCallback(() => {}, []);
+
   return (
-    <DataContext.Provider value={{
-      communities,
-      joinedCommunities,
-      unreadCount,
-      loading,
-      refreshCommunities,
-      refreshUnread,
-    }}>
+    <DataContext.Provider value={{ communities, joinedCommunities, unreadCount, loading, refreshCommunities, refreshUnread }}>
       {children}
     </DataContext.Provider>
   );

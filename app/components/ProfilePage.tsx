@@ -1,16 +1,17 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield, Gamepad2, Calendar, Tag, ExternalLink } from "lucide-react";
+import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield, Gamepad2, Calendar, Tag, ExternalLink, Rss, Lock, Globe } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, getCountFromServer } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, getCountFromServer, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getLevel } from "@/lib/ranking";
 import PostCard from "./PostCard";
 import { GAMES } from "./GamesPage";
 import { cn } from "@/lib/utils";
+import type { CustomFeed } from "./CustomFeedModal";
 
 const profileColorCache: Record<string, string> = {};
 function extractProfileColor(src: string): Promise<string> {
@@ -91,6 +92,7 @@ const tabs = [
   { icon: FileText, labelKey: "pp.posts", id: "posts" },
   { icon: MessageSquare, labelKey: "pp.comments", id: "comments" },
   { icon: Bookmark, labelKey: "pp.saved", id: "saved" },
+  { icon: Rss, labelKey: "فيدات", id: "feeds" },
   { icon: Gamepad2, labelKey: "ألعابي", id: "games" },
   { icon: Award, labelKey: "pp.awards", id: "awards" },
 ];
@@ -116,7 +118,7 @@ function timeAgo(ts: any, t: (k: string) => string): string {
   } catch { return t("gen.now"); }
 }
 
-export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSettingsClick, onAdminClick, onPostClick }: { uid?: string; onEditClick?: (id: string) => void; onDeleteClick?: (id: string) => void; onSettingsClick?: () => void; onAdminClick?: () => void; onPostClick?: (id: string) => void }) {
+export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSettingsClick, onAdminClick, onPostClick, onCustomFeedClick }: { uid?: string; onEditClick?: (id: string) => void; onDeleteClick?: (id: string) => void; onSettingsClick?: () => void; onAdminClick?: () => void; onPostClick?: (id: string) => void; onCustomFeedClick?: (feed: CustomFeed) => void }) {
   const { user } = useAuth();
   const { t } = useI18n();
   const targetUid = (typeof uid === "string" && uid) || user?.uid || "";
@@ -138,6 +140,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [followingCount, setFollowingCount] = useState(0);
   const [copiedId, setCopiedId] = useState("");
   const [isOnline, setIsOnline] = useState(false);
+  const [profileCustomFeeds, setProfileCustomFeeds] = useState<CustomFeed[]>([]);
 
   const getLevelWithIcon = (xp: number) => {
     const base = getLevel(xp);
@@ -318,6 +321,18 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
     }).catch(() => {});
   }, [targetUid]);
 
+  // Fetch custom feeds for profile tab
+  useEffect(() => {
+    if (!targetUid || activeTab !== "feeds") return;
+    getDocs(collection(db, "users", targetUid, "customFeeds")).then((snap) => {
+      const feeds = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as CustomFeed))
+        .filter((f) => isOwn || f.showOnProfile !== false)
+        .sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+      setProfileCustomFeeds(feeds);
+    }).catch(() => {});
+  }, [targetUid, activeTab, isOwn]);
+
   // Fetch saved posts (parallel with Promise.all)
   useEffect(() => {
     if (!user || !isOwn || activeTab !== "saved") return;
@@ -392,16 +407,18 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
       {/* Banner */}
-      <div className="relative h-[80px] sm:h-[120px] rounded-lg overflow-hidden mb-3">
-        <img src={profileData?.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-nf-primary/90 to-transparent" />
+      <div className={`relative overflow-hidden mb-3 rounded-lg ${profileData?.bannerUrl ? 'h-[80px] sm:h-[120px]' : 'h-0'}`}>
+        {profileData?.bannerUrl ? (
+          <img src={profileData.bannerUrl} alt="" className="w-full h-full object-cover" />
+        ) : null}
+        {profileData?.bannerUrl && <div className="absolute inset-0 bg-gradient-to-t from-nf-primary/90 to-transparent" />}
         {isOwn && (
           <button onClick={onSettingsClick} className="absolute bottom-3 left-3 p-2 rounded-lg bg-black/40 text-white/70 hover:text-white transition-colors">
             <Camera size={16} />
           </button>
         )}
       </div>
-
+      
       {/* Header */}
       <div className="flex items-start gap-3 sm:gap-4 px-2 -mt-4 sm:-mt-6 relative z-10 mb-4">
         <div className="relative shrink-0">
@@ -413,14 +430,14 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             </div>
           )}
           {isOwn && (
-            <button onClick={onSettingsClick} className="absolute -bottom-1 -left-1 p-1 rounded-full bg-nf-secondary border border-nf-border text-nf-muted hover:text-white">
+            <button onClick={onSettingsClick} className="absolute -bottom-1 -left-1 p-1 rounded-full bg-nf-secondary border border-nf-border text-nf-muted hover:text-nf-text">
               <Camera size={12} />
             </button>
           )}
         </div>
         <div className="flex-1 min-w-0 pt-1 sm:pt-2">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <h1 className="text-lg sm:text-xl font-bold text-white truncate">{displayName}</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-nf-text truncate">{displayName}</h1>
             {(targetUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && (
               <span className="relative inline-flex items-center justify-center shrink-0">
                 <span className="absolute inset-0 rounded-full bg-blue-400/20 animate-pulse" />
@@ -429,7 +446,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             )}
             {isOwn ? (
               <div className="flex items-center gap-2">
-                <button onClick={onSettingsClick} className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+                <button onClick={onSettingsClick} className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
                   <Pencil size={12} />
                   <span className="hidden sm:inline">{t("pp.edit")}</span>
                 </button>
@@ -445,7 +462,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 className={cn(
                   "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold border transition-all",
                   isFollowing
-                    ? "bg-nf-secondary text-nf-muted border-nf-border hover:bg-nf-hover hover:text-white"
+                    ? "bg-nf-secondary text-nf-muted border-nf-border hover:bg-nf-hover hover:text-nf-text"
                     : "bg-nf-accent text-white border-nf-accent hover:bg-nf-accent/80"
                 )}
               >
@@ -488,14 +505,14 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       {/* Stats */}
       <div className="flex items-center gap-1 px-2 mb-3 text-[11px] flex-wrap">
         <span className={cn("px-2 py-0.5 rounded-md flex items-center gap-1", level.bg, level.color)}><level.icon size={10} /><span className="font-bold">{level.name}</span></span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-white">{Math.max(0, Math.round(karma))}</span> صيت</span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><Zap size={10} className="inline ml-0.5 text-amber-400" /><span className="font-bold text-white">{xp}</span> XP</span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{postCount || posts.length}</span> {t("pp.postCount")}</span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followerCount}</span> {t("gen.followers")}</span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{followingCount}</span> {t("gen.followingCount")}</span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-white">{commentCount}</span> تعليقات</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-nf-text">{Math.max(0, Math.round(karma))}</span> صيت</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><Zap size={10} className="inline ml-0.5 text-amber-400" /><span className="font-bold text-nf-text">{xp}</span> XP</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-nf-text">{postCount || posts.length}</span> {t("pp.postCount")}</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-nf-text">{followerCount}</span> {t("gen.followers")}</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-nf-text">{followingCount}</span> {t("gen.followingCount")}</span>
+        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-nf-text">{commentCount}</span> تعليقات</span>
         {favoriteGameIds.length > 0 && (
-          <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><Gamepad2 size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-white">{favoriteGameIds.length}</span> ألعاب</span>
+          <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><Gamepad2 size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-nf-text">{favoriteGameIds.length}</span> ألعاب</span>
         )}
         <span className={cn("px-2 py-0.5 rounded-md flex items-center gap-1", isOnline ? "bg-green-400/10 text-green-400" : "bg-nf-secondary/40 text-nf-dim")}>
           <span className={cn("w-1.5 h-1.5 rounded-full inline-block", isOnline ? "bg-green-400" : "bg-nf-dim")} />
@@ -513,8 +530,8 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             className={cn(
               "flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors shrink-0",
               activeTab === tab.id
-                ? "text-white border-nf-accent"
-                : "text-nf-muted border-transparent hover:text-white hover:border-nf-border"
+                ? "text-nf-text border-nf-accent"
+                : "text-nf-muted border-transparent hover:text-nf-text hover:border-nf-border"
             )}
           >
             <tab.icon size={15} />
@@ -661,11 +678,60 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
           </div>
         )}
 
-        {activeTab === "games" && (
+        {activeTab === "feeds" && (
           <div className="py-4">
+            {profileCustomFeeds.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-14 h-14 rounded-2xl bg-nf-accent/10 border border-nf-accent/20 flex items-center justify-center mx-auto mb-3">
+                  <Rss size={22} className="text-nf-accent/50" />
+                </div>
+                <p className="text-[13px] font-bold text-nf-text mb-1">
+                  {isOwn ? "لا توجد فيدات مخصصة بعد" : "لا توجد فيدات عامة"}
+                </p>
+                <p className="text-[11px] text-nf-dim">
+                  {isOwn ? "أنشئ فيداً لتجميع مجتمعات في خلاصة واحدة" : "لم يشارك هذا المستخدم أي فيدات"}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {profileCustomFeeds.map((feed) => (
+                  <button
+                    key={feed.id}
+                    onClick={() => onCustomFeedClick?.(feed)}
+                    className="flex items-start gap-3 p-4 rounded-xl border border-nf-border-2/50 bg-nf-secondary/20 hover:bg-nf-secondary/40 hover:border-nf-accent/25 transition-all text-right group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-nf-accent/10 border border-nf-accent/20 flex items-center justify-center shrink-0 group-hover:bg-nf-accent/15 transition-colors">
+                      <Rss size={16} className="text-nf-accent" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[13px] font-bold text-nf-text truncate">{feed.name}</span>
+                        {feed.isPrivate && <Lock size={10} className="text-nf-dim shrink-0" />}
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {feed.communities.slice(0, 3).map((c) => (
+                          <span key={c} className="text-[10px] text-nf-dim bg-nf-secondary/80 px-1.5 py-0.5 rounded-md border border-nf-border-2/30">n/{c}</span>
+                        ))}
+                        {feed.communities.length > 3 && (
+                          <span className="text-[10px] text-nf-dim bg-nf-secondary/80 px-1.5 py-0.5 rounded-md border border-nf-border-2/30">+{feed.communities.length - 3}</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-nf-dim flex items-center gap-1">
+                        <Users size={9} />
+                        {feed.communities.length} مجتمع
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "games" && (          <div className="py-4">
             {favoriteGameIds.length > 0 ? (
               <div>
-                <p className="text-xs text-white/40 mb-3 font-black tracking-tight">ألعابي المفضلة</p>
+                <p className="text-xs text-nf-dim mb-3 font-black tracking-tight">ألعابي المفضلة</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {GAMES.filter(g => favoriteGameIds.includes(g.id)).map(g => (
                     <ProfileGameCard key={g.id} game={g} />

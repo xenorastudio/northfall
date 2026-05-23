@@ -219,6 +219,7 @@ export function renderFormattedBody(text: string): React.ReactNode[] {
         result.push(
           <div key={`table-${i}`} className="my-2 overflow-x-auto rounded-lg border border-nf-border-2">
             <table className="w-full text-[11px]">
+              <tbody>
               {tableRows.map((row, ri) => (
                 <tr key={ri} className={ri === 0 ? "bg-nf-secondary/30" : "border-t border-nf-border-2/50"}>
                   {Array.from({ length: maxCols }).map((_, ci) => {
@@ -230,6 +231,7 @@ export function renderFormattedBody(text: string): React.ReactNode[] {
                   })}
                 </tr>
               ))}
+              </tbody>
             </table>
           </div>
         );

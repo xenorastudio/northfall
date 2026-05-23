@@ -398,7 +398,7 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.25, delay: Math.min(index * 0.02, 0.4) }}
         onMouseEnter={onEnter} onMouseLeave={onLeave}
-        className="group relative flex items-center gap-3 p-2.5 rounded-xl bg-nf-secondary/5 hover:bg-nf-secondary/20 transition-all cursor-pointer border border-transparent hover:border-white/5 hover:shadow-lg hover:shadow-black/20"
+        className="group relative flex items-center gap-3 p-2.5 rounded-xl bg-nf-secondary/5 hover:bg-nf-secondary/20 transition-all cursor-pointer border border-transparent hover:border-nf-border hover:shadow-lg hover:shadow-black/20"
       >
         <div className="relative overflow-hidden rounded-lg shrink-0">
           <img src={game.cover} alt={game.name} {...imgProtect} className={cn("w-12 h-16 object-cover select-none transition-all duration-300", !imgLoaded && "bg-nf-secondary/20 animate-pulse")} onLoad={() => setImgLoaded(true)} />
@@ -407,7 +407,7 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-bold text-white truncate">{game.name}</p>
+          <p className="text-[12px] font-bold text-nf-text truncate">{game.name}</p>
           <p className="text-[9px] text-nf-dim/60 mt-0.5">{game.publisher} · {game.developer}</p>
           <div className="flex items-center gap-2 mt-1">
             <span className={cn("flex items-center gap-0.5", ratingColor)}>
@@ -421,7 +421,7 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
           <div className="flex items-center gap-1 mt-1">
             {game.genre.slice(0, 3).map(g => (<span key={g} className={`text-[7px] px-1.5 py-0.5 rounded-md font-semibold border ${getGenreClass(g)}`}>{g}</span>))}
             <span className="text-[7px] text-nf-dim/20 mx-0.5">|</span>
-            {game.platforms.slice(0, 3).map(p => (<span key={p} className="text-[7px] px-1 py-0.5 rounded bg-white/[0.04] text-white/30 font-semibold">{platformShort[p] || p}</span>))}
+            {game.platforms.slice(0, 3).map(p => (<span key={p} className="text-[7px] px-1 py-0.5 rounded bg-nf-secondary border border-nf-border-2 text-nf-dim font-semibold">{platformShort[p] || p}</span>))}
           </div>
         </div>
         <div className="flex flex-col items-center gap-1.5 shrink-0">
@@ -447,9 +447,18 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
       onMouseEnter={onEnter} onMouseLeave={onLeave}
       className="group relative text-right"
     >
-      {/* Glow behind card */}
-      <div className="absolute -inset-6 rounded-3xl opacity-25 group-hover:opacity-100 transition-opacity duration-500 blur-[40px] pointer-events-none" style={{ background: dominantColor }} />
-      <div className="relative overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.04] group-hover:ring-white/[0.12] transition-all duration-300 group-hover:shadow-lg group-hover:shadow-black/30">
+      <div 
+        className="game-card-glow"
+        style={{ 
+          boxShadow: `0 0 45px 12px ${dominantColor}75`,
+          background: dominantColor 
+        }}
+      >
+        <img src={game.cover} alt="" className="w-full h-full object-cover opacity-60" />
+      </div>
+      <div className="relative z-10 overflow-hidden rounded-xl bg-black ring-1 ring-white/[0.04] group-hover:ring-white/[0.2] transition-all duration-500"
+        style={{ boxShadow: hovered ? `0 12px 50px -8px ${dominantColor}90, 0 0 0 1px ${dominantColor}30` : "none" }}
+      >
         <img src={game.cover} alt={game.name} {...imgProtect} className={cn("w-full aspect-[3/4] object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05] select-none pointer-events-none", !imgLoaded && "bg-nf-secondary/20 animate-pulse")} onLoad={() => setImgLoaded(true)} />
         {/* Bottom gradient with name + rating */}
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-2.5 pt-12">
@@ -623,21 +632,21 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
-          <button onClick={onBack} className="p-2 rounded-xl text-nf-dim hover:text-white hover:bg-white/5 transition-colors border border-white/5 hover:border-white/10"><ArrowLeft size={16} /></button>
+          <button onClick={onBack} className="p-2 rounded-xl text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors border border-nf-border-2"><ArrowLeft size={16} /></button>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">مكتبة الألعاب</h1>
+            <h1 className="text-lg sm:text-xl font-black text-nf-text tracking-tight">مكتبة الألعاب</h1>
             <p className="text-[9px] text-nf-dim/50">اكتشف ألعابك المفضلة وتابعها</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className={cn("p-1.5 rounded-lg text-nf-dim hover:text-white transition-colors border", layout === "grid" ? "bg-nf-secondary/20 border-white/5" : "bg-nf-accent/10 border-nf-accent/20 text-nf-accent")}>
+          <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className={cn("p-1.5 rounded-lg text-nf-dim hover:text-nf-text transition-colors border", layout === "grid" ? "bg-nf-secondary/20 border-nf-border-2" : "bg-nf-accent/10 border-nf-accent/20 text-nf-accent")}>
             {layout === "grid" ? <LayoutList size={14} /> : <Grid3X3 size={14} />}
           </button>
         </div>
       </div>
 
       {/* Stats Bar */}
-      <div className="flex items-center gap-3 mb-4 p-2.5 rounded-xl bg-nf-secondary/5 border border-white/[0.03]">
+      <div className="flex items-center gap-3 mb-4 p-2.5 rounded-xl bg-nf-secondary/5 border border-nf-border-2">
         <div className="flex items-center gap-1.5">
           <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold border border-nf-accent/20">{GAMES.length} لعبة</span>
         </div>
@@ -656,12 +665,10 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
       {/* Hero Banner */}
       {heroGame && !genreFilter && !platformFilter && activeTab === "all" && (
-        <motion.div key={heroGame.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="relative h-[160px] sm:h-[240px] rounded-2xl overflow-hidden mb-4 group cursor-pointer border border-white/5 hover:border-white/10 transition-colors" onClick={() => { const g = heroGame; if (g.steamUrl) window.open(g.steamUrl, "_blank"); }}>
+        <motion.div key={heroGame.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="relative h-[160px] sm:h-[240px] rounded-2xl overflow-hidden mb-4 group cursor-pointer border border-nf-border-2 hover:border-nf-border transition-colors" onClick={() => { const g = heroGame; if (g.steamUrl) window.open(g.steamUrl, "_blank"); }}>
           <img src={heroGame.cover} alt={heroGame.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05] select-none pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-l from-black/90 via-black/50 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-          {/* Animated glow */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" style={{ background: `radial-gradient(ellipse at 30% 80%, ${(() => { const c = colorCache[heroGame.cover]; return c || "rgba(100,50,200,0.15)"; })()}, transparent 70%)` }} />
           <div className="absolute bottom-0 right-0 p-4 sm:p-6">
             <div className="flex items-center gap-1.5 mb-2">
               <Flame size={11} className="text-orange-400" />
@@ -703,8 +710,8 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
               <span className="text-[8px] text-nf-dim/40">الأعلى تقييماً</span>
             </div>
             <div className="flex items-center gap-1">
-              <button onClick={() => topPicksRef.current?.scrollBy({ left: -200, behavior: "smooth" })} className="p-1 rounded-md bg-white/5 text-nf-dim hover:text-white transition-colors border border-white/5"><ChevronRight size={12} /></button>
-              <button onClick={() => topPicksRef.current?.scrollBy({ left: 200, behavior: "smooth" })} className="p-1 rounded-md bg-white/5 text-nf-dim hover:text-white transition-colors border border-white/5"><ChevronLeft size={12} /></button>
+              <button onClick={() => topPicksRef.current?.scrollBy({ left: -200, behavior: "smooth" })} className="p-1 rounded-md bg-nf-secondary/20 text-nf-dim hover:text-nf-text transition-colors border border-nf-border-2"><ChevronRight size={12} /></button>
+              <button onClick={() => topPicksRef.current?.scrollBy({ left: 200, behavior: "smooth" })} className="p-1 rounded-md bg-nf-secondary/20 text-nf-dim hover:text-nf-text transition-colors border border-nf-border-2"><ChevronLeft size={12} /></button>
             </div>
           </div>
           <div ref={topPicksRef} className="flex gap-2.5 overflow-x-auto scrollbar-none pb-1">
@@ -727,17 +734,17 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
         ].map(tab => {
           const count = tab.id === "all" ? GAMES.length : tab.id === "followed" ? favoriteIds.length : tab.id === "trending" ? GAMES.filter(g => g.rating >= 4.5).length : tab.id === "new" ? GAMES.filter(g => g.releaseYear >= 2022).length : tab.id === "best" ? GAMES.filter(g => g.rating >= 4.7).length : GAMES.filter(g => g.rating >= 4.3 && g.releaseYear >= 2020).length;
           return (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border", activeTab === tab.id ? "bg-nf-accent/15 text-nf-accent border-nf-accent/25" : "bg-nf-secondary/10 text-nf-dim hover:text-white border-white/5 hover:border-white/10")}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border", activeTab === tab.id ? "bg-nf-accent/15 text-nf-accent border-nf-accent/25" : "bg-nf-secondary/10 text-nf-dim hover:text-nf-text border-nf-border-2 hover:border-nf-border")}>
             {tab.icon} {tab.label} <span className={cn("text-[8px]", activeTab === tab.id ? "text-nf-accent/50" : "text-nf-dim/30")}>{count}</span>
           </button>
         );})}
         {/* عشوائي + المفضلة جنب التابات */}
-        <div className="h-4 w-px bg-white/10 mx-1 shrink-0" />
-        <button onClick={pickRandomGame} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border bg-nf-secondary/10 text-nf-dim hover:text-white border-white/5 hover:border-white/10")} title="لعبة عشوائية">
+        <div className="h-4 w-px bg-nf-border-2 mx-1 shrink-0" />
+        <button onClick={pickRandomGame} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border bg-nf-secondary/10 text-nf-dim hover:text-nf-text border-nf-border-2 hover:border-nf-border")} title="لعبة عشوائية">
           <Dice5 size={10} /> عشوائي
         </button>
         {favoriteIds.length > 0 && (
-          <button onClick={() => setShowFavOnly(!showFavOnly)} onContextMenu={e => { e.preventDefault(); setShowFavList(true); }} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border", showFavOnly ? "bg-nf-accent/15 text-nf-accent border-nf-accent/25" : "bg-nf-secondary/10 text-nf-dim hover:text-white border-white/5 hover:border-white/10")} title="انقر بزر يمين لعرض المفضلة">
+          <button onClick={() => setShowFavOnly(!showFavOnly)} onContextMenu={e => { e.preventDefault(); setShowFavList(true); }} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border", showFavOnly ? "bg-nf-accent/15 text-nf-accent border-nf-accent/25" : "bg-nf-secondary/10 text-nf-dim hover:text-nf-text border-nf-border-2 hover:border-nf-border")} title="انقر بزر يمين لعرض المفضلة">
             <Heart size={10} fill={showFavOnly ? "currentColor" : "none"} /> {favoriteIds.length}/20
           </button>
         )}
@@ -746,11 +753,11 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
       {/* Search */}
       <div className="relative mb-3">
         <Search size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim/50" />
-        <input ref={searchRef} type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، مطور، أو نوع..." className="w-full bg-nf-secondary/15 rounded-xl pr-9 pl-16 py-2 text-[11px] text-nf-text placeholder:text-nf-dim/40 outline-none focus:ring-1 focus:ring-nf-accent/20 transition-all border border-white/5 focus:border-nf-accent/25" />
+        <input ref={searchRef} type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث عن لعبة، ناشر، مطور، أو نوع..." className="w-full bg-nf-secondary/15 rounded-xl pr-9 pl-16 py-2 text-[11px] text-nf-text placeholder:text-nf-dim/40 outline-none focus:ring-1 focus:ring-nf-accent/20 transition-all border border-nf-border-2 focus:border-nf-accent/25" />
         {searchQuery && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
             <span className="text-[9px] text-nf-accent/60 font-bold">{filtered.length}</span>
-            <button onClick={() => setSearchQuery("")} className="p-0.5 rounded-md text-nf-dim/50 hover:text-white transition-colors bg-white/5">
+            <button onClick={() => setSearchQuery("")} className="p-0.5 rounded-md text-nf-dim/50 hover:text-nf-text transition-colors bg-nf-secondary border border-nf-border-2">
               <X size={10} />
             </button>
           </div>
@@ -764,15 +771,15 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         {/* Genre Dropdown */}
         <div ref={genreDropRef} className="relative">
-          <button onClick={() => { setShowGenreDrop(!showGenreDrop); setShowPlatformDrop(false); setShowSortDrop(false); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border", genreFilter ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-white border-white/5")}>
+          <button onClick={() => { setShowGenreDrop(!showGenreDrop); setShowPlatformDrop(false); setShowSortDrop(false); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border", genreFilter ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-text border-nf-border-2")}>
             <Filter size={10} /> {genreFilter || "النوع"} <ChevronDown size={10} className={cn("transition-transform", showGenreDrop && "rotate-180")} />
           </button>
           <AnimatePresence>
             {showGenreDrop && (
               <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.12 }} className="absolute top-full mt-1 right-0 bg-nf-primary border border-nf-border-2 rounded-xl p-1.5 shadow-xl z-50 max-h-[240px] overflow-y-auto min-w-[140px]">
-                <button onClick={() => { setGenreFilter(null); setShowGenreDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", !genreFilter ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>الكل</button>
+                <button onClick={() => { setGenreFilter(null); setShowGenreDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", !genreFilter ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-nf-text")}>الكل</button>
                 {allGenres.map(g => (
-                  <button key={g} onClick={() => { setGenreFilter(genreFilter === g ? null : g); setShowGenreDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", genreFilter === g ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>{g}</button>
+                  <button key={g} onClick={() => { setGenreFilter(genreFilter === g ? null : g); setShowGenreDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", genreFilter === g ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-nf-text")}>{g}</button>
                 ))}
               </motion.div>
             )}
@@ -781,15 +788,15 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
         {/* Platform Dropdown */}
         <div ref={platformDropRef} className="relative">
-          <button onClick={() => { setShowPlatformDrop(!showPlatformDrop); setShowGenreDrop(false); setShowSortDrop(false); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border", platformFilter ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-white border-white/5")}>
+          <button onClick={() => { setShowPlatformDrop(!showPlatformDrop); setShowGenreDrop(false); setShowSortDrop(false); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border", platformFilter ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30" : "bg-nf-secondary/20 text-nf-dim hover:text-nf-text border-nf-border-2")}>
             <Monitor size={10} /> {platformFilter || "المنصة"} <ChevronDown size={10} className={cn("transition-transform", showPlatformDrop && "rotate-180")} />
           </button>
           <AnimatePresence>
             {showPlatformDrop && (
               <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.12 }} className="absolute top-full mt-1 right-0 bg-nf-primary border border-nf-border-2 rounded-xl p-1.5 shadow-xl z-50 min-w-[120px]">
-                <button onClick={() => { setPlatformFilter(null); setShowPlatformDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", !platformFilter ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>الكل</button>
+                <button onClick={() => { setPlatformFilter(null); setShowPlatformDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", !platformFilter ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-nf-text")}>الكل</button>
                 {allPlatforms.map(p => (
-                  <button key={p} onClick={() => { setPlatformFilter(platformFilter === p ? null : p); setShowPlatformDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", platformFilter === p ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>{p}</button>
+                  <button key={p} onClick={() => { setPlatformFilter(platformFilter === p ? null : p); setShowPlatformDrop(false); }} className={cn("w-full text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", platformFilter === p ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-nf-text")}>{p}</button>
                 ))}
               </motion.div>
             )}
@@ -798,14 +805,14 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
         {/* Sort Dropdown */}
         <div ref={sortDropRef} className="relative">
-          <button onClick={() => { setShowSortDrop(!showSortDrop); setShowGenreDrop(false); setShowPlatformDrop(false); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border bg-nf-secondary/20 text-nf-dim hover:text-white border-white/5">
+          <button onClick={() => { setShowSortDrop(!showSortDrop); setShowGenreDrop(false); setShowPlatformDrop(false); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border bg-nf-secondary/20 text-nf-dim hover:text-nf-text border-nf-border-2">
             {sortOptions.find(s => s.id === sortBy)?.icon} {sortOptions.find(s => s.id === sortBy)?.label} <ChevronDown size={10} className={cn("transition-transform", showSortDrop && "rotate-180")} />
           </button>
           <AnimatePresence>
             {showSortDrop && (
               <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.12 }} className="absolute top-full mt-1 right-0 bg-nf-primary border border-nf-border-2 rounded-xl p-1.5 shadow-xl z-50 min-w-[120px]">
                 {sortOptions.map(s => (
-                  <button key={s.id} onClick={() => { setSortBy(s.id); setShowSortDrop(false); }} className={cn("w-full flex items-center gap-2 text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", sortBy === s.id ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-white")}>{s.icon} {s.label}</button>
+                  <button key={s.id} onClick={() => { setSortBy(s.id); setShowSortDrop(false); }} className={cn("w-full flex items-center gap-2 text-right px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors", sortBy === s.id ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-nf-text")}>{s.icon} {s.label}</button>
                 ))}
               </motion.div>
             )}
@@ -847,7 +854,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
       {filtered.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16">
-          <div className="w-16 h-16 rounded-2xl bg-nf-secondary/20 flex items-center justify-center mx-auto mb-3 border border-white/5"><Gamepad2 size={28} className="text-nf-dim/30" /></div>
+          <div className="w-16 h-16 rounded-2xl bg-nf-secondary/20 flex items-center justify-center mx-auto mb-3 border border-nf-border-2"><Gamepad2 size={28} className="text-nf-dim/30" /></div>
           <p className="text-[13px] text-nf-dim font-bold">لا توجد نتائج</p>
           <p className="text-[10px] text-nf-dim/40 mt-1 mb-4">جرّب تغيير الفلاتر أو البحث بكلمات أخرى</p>
           <button onClick={() => { setSearchQuery(""); setGenreFilter(null); setPlatformFilter(null); setActiveTab("all"); }} className="px-4 py-2 rounded-xl bg-nf-accent/10 text-nf-accent text-[11px] font-bold hover:bg-nf-accent/20 transition-colors border border-nf-accent/20">مسح الفلاتر</button>
@@ -867,17 +874,17 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
               <div className="p-4 -mt-4 relative">
-                <h3 className="text-sm font-bold text-white mb-1">{randomGame.name}</h3>
+                <h3 className="text-sm font-bold text-nf-text mb-1">{randomGame.name}</h3>
                 <p className="text-[10px] text-nf-dim/60 leading-relaxed mb-3">{randomGame.description}</p>
                 <div className="flex items-center gap-3 mb-3 text-[9px]">
-                  <span className={cn("flex items-center gap-1 font-bold", randomGame.rating >= 4.5 ? "text-emerald-400" : randomGame.rating >= 4.0 ? "text-amber-400" : "text-white/40")}>
+                  <span className={cn("flex items-center gap-1 font-bold", randomGame.rating >= 4.5 ? "text-emerald-400" : randomGame.rating >= 4.0 ? "text-amber-400" : "text-nf-dim")}>
                     <Star size={9} fill="currentColor" /> {randomGame.rating}
                   </span>
-                  <span className="flex items-center gap-1 text-white/40"><Calendar size={9} /> {randomGame.releaseYear}</span>
-                  <span className="flex items-center gap-1 text-white/40"><Users size={9} /> {randomGame.players}</span>
+                  <span className="flex items-center gap-1 text-nf-dim"><Calendar size={9} /> {randomGame.releaseYear}</span>
+                  <span className="flex items-center gap-1 text-nf-dim"><Users size={9} /> {randomGame.players}</span>
                 </div>
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {randomGame.genre.map(g => (<span key={g} className="text-[8px] px-2 py-0.5 rounded-lg bg-white/[0.06] text-white/70 font-semibold">{g}</span>))}
+                  {randomGame.genre.map(g => (<span key={g} className="text-[8px] px-2 py-0.5 rounded-lg bg-nf-secondary border border-nf-border-2 text-nf-text font-semibold">{g}</span>))}
                 </div>
                 <div className="flex items-center gap-2">
                   {randomGame.steamUrl && (
@@ -900,7 +907,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowFavModal(false)}>
             <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }} className="bg-nf-primary border border-white/10 rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-3"><Heart size={24} className="text-red-400" /></div>
-              <h3 className="text-sm font-bold text-white mb-1.5">وصلت للحد الأقصى</h3>
+              <h3 className="text-sm font-bold text-nf-text mb-1.5">وصلت للحد الأقصى</h3>
               <p className="text-[11px] text-nf-muted mb-4">يمكنك اختيار 20 لعبة فقط. أزل واحدة أولاً ثم أضف الجديدة.</p>
               <button onClick={() => setShowFavModal(false)} className="px-5 py-2 rounded-xl bg-nf-accent text-white text-[12px] font-bold hover:bg-nf-accent/80 transition-colors">فهمت</button>
             </motion.div>
@@ -914,7 +921,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowFavList(false)}>
             <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 10 }} transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }} className="bg-nf-primary border border-white/10 rounded-2xl p-4 max-w-sm w-full shadow-2xl max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2"><Heart size={14} className="text-red-400" fill="currentColor" /> المفضلة ({favoriteIds.length}/20)</h3>
+                <h3 className="text-sm font-bold text-nf-text flex items-center gap-2"><Heart size={14} className="text-red-400" fill="currentColor" /> المفضلة ({favoriteIds.length}/20)</h3>
                 <button onClick={() => setShowFavList(false)} className="p-1 rounded-lg text-nf-dim hover:text-white transition-colors"><X size={14} /></button>
               </div>
               <div className="flex-1 overflow-y-auto scrollbar-none space-y-1.5">
@@ -922,10 +929,10 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
                   const g = GAMES.find(g => g.id === id);
                   if (!g) return null;
                   return (
-                    <div key={id} className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors border border-white/[0.04]">
+                    <div key={id} className="flex items-center gap-2.5 p-2 rounded-xl bg-nf-secondary/10 hover:bg-nf-hover transition-colors border border-nf-border-2">
                       <img src={g.cover} alt={g.name} className="w-8 h-10 rounded-md object-cover select-none" draggable={false} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] text-white font-bold truncate">{g.name}</p>
+                        <p className="text-[11px] text-nf-text font-bold truncate">{g.name}</p>
                         <p className="text-[8px] text-nf-dim/50">{g.genre[0]} · {g.releaseYear}</p>
                       </div>
                       <div className="flex items-center gap-1">

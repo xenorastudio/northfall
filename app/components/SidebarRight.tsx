@@ -6,99 +6,77 @@ import { db } from "@/lib/firebase";
 import { Flame, TrendingUp, Bookmark, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { useI18n } from "./I18nProvider";
+import { useData } from "./DataProvider";
 
-const trendingCommunities = [
-  { name: "n/Unity", img: "/assets/images/unitylogo.png", desc: "تعلّم Unity وشارك مشاريعك مع مطورين عرب" },
-  { name: "n/Unreal", img: "/assets/images/unreallogo.svg", desc: "محرك الألعاب الأقوى — تعلّم UE5 وشارك مشاريعك" },
-  { name: "n/Godot", img: "/assets/images/godotlogo.png", desc: "المحرك المفتوح — اعمل لعبتك بلا قيود" },
-  { name: "n/Blender", img: "/assets/images/logoblender.png", desc: "من النمذجة للأنيميشن — كل شي بيتعمل بـ Blender" },
-];
 
-const communityMeta: Record<string, { desc: string; creator: string; rules: string[]; mods: string[]; tags: string[]; bookmarks: { label: string; url: string }[] }> = {
-  Unity: {
-    desc: "مكانك لو حابب تتعلم Unity وتشارك مشاريعك مع مطورين عرب.\nتواصل، اسأل، واطلع شغلك للعالم.",
-    creator: "bn6vKOGvIeUdF91P0fzMEbFZfGr2",
-    rules: ["احترام الجميع، لا للتحرش أو التنمر", "المحتوى يجب أن يكون متعلق بـ Unity", "لا سبام أو إعلانات غير مصرح بها", "شارك الكود والمشاريع بمصادر موثوقة", "لا تكرر المنشورات"],
-    mods: ["bn6vKOGvIeUdF91P0fzMEbFZfGr2"],
-    tags: ["Unity", "GameDev", "C#", "3D", "2D", "AR/VR"],
-    bookmarks: [
-      { label: "Unity Documentation", url: "https://docs.unity3d.com/" },
-      { label: "Unity Learn", url: "https://learn.unity.com/" },
-      { label: "Unity Asset Store", url: "https://assetstore.unity.com/" },
-      { label: "Unity Forum", url: "https://forum.unity.com/" },
-      { label: "Unity Discord", url: "https://discord.gg/unity" },
-    ],
-  },
-  Godot: {
-    desc: "المحرك المفتوح اللي بيسمح لك تعمل لعبتك بلا قيود.\nمن 2D لـ 3D — تعال شارك تجربتك وساعد غيرك يبدأ.",
-    creator: "bn6vKOGvIeUdF91P0fzMEbFZfGr2",
-    rules: ["احترام الجميع", "المحتوى متعلق بـ Godot", "لا سبام أو روابط مشبوهة", "شارك تجاربك ومشاريعك", "ساعد المبتدئين"],
-    mods: ["bn6vKOGvIeUdF91P0fzMEbFZfGr2"],
-    tags: ["Godot", "OpenSource", "GDScript", "2D", "3D"],
-    bookmarks: [
-      { label: "Godot Documentation", url: "https://docs.godotengine.org/" },
-      { label: "Godot Q&A", url: "https://godotengine.org/qa/" },
-      { label: "Godot Assets", url: "https://godotengine.org/asset-library/" },
-      { label: "Godot Discord", url: "https://discord.gg/godot" },
-    ],
-  },
-  Blender: {
-    desc: "من النمذجة للأنيميشن للرندر — كل شي بيتعمل بـ Blender.\nاعرض أعمالك وتعلم تقنيات جديدة مع مجتمع يفهمك.",
-    creator: "bn6vKOGvIeUdF91P0fzMEbFZfGr2",
-    rules: ["احترام الجميع", "المحتوى متعلق بـ Blender", "لا سبام أو إعلانات", "شارك أعمالك الفنية", "اذكر المصدر عند نقل المحتوى"],
-    mods: ["bn6vKOGvIeUdF91P0fzMEbFZfGr2"],
-    tags: ["Blender", "3D", "Modeling", "Animation", "Rendering"],
-    bookmarks: [
-      { label: "Blender Documentation", url: "https://docs.blender.org/" },
-      { label: "Blender Artists", url: "https://blenderartists.org/" },
-      { label: "Blender Market", url: "https://blendermarket.com/" },
-      { label: "Blender Discord", url: "https://discord.gg/blender" },
-    ],
-  },
-  Unreal: {
-    desc: "محرك الألعاب الأقوى — من AAA لمستقلة.\nتعلم UE5، شارك مشاريعك، واساعد غيرك يبدأ.",
-    creator: "bn6vKOGvIeUdF91P0fzMEbFZfGr2",
-    rules: ["احترام الجميع، لا للتحرش أو التنمر", "المحتوى يجب أن يكون متعلق بـ Unreal Engine", "لا سبام أو إعلانات غير مصرح بها", "شارك الكود والمشاريع بمصادر موثوقة", "لا تكرر المنشورات"],
-    mods: ["bn6vKOGvIeUdF91P0fzMEbFZfGr2"],
-    tags: ["Unreal", "UE5", "Blueprints", "C++", "3D", "Nanite", "Lumen", "Niagara"],
-    bookmarks: [
-      { label: "Unreal Documentation", url: "https://docs.unrealengine.com/" },
-      { label: "Unreal Marketplace", url: "https://www.unrealengine.com/marketplace" },
-      { label: "Unreal Forums", url: "https://forums.unrealengine.com/" },
-      { label: "Unreal Discord", url: "https://discord.gg/unreal" },
-    ],
-  },
-};
 
 export default function SidebarRight({ onCommunityClick, onPostClick, communityName }: { onCommunityClick: (name: string) => void; onPostClick: (id: string) => void; communityName?: string }) {
   const { t, lang } = useI18n();
   const [recentPosts, setRecentPosts] = useState<any[]>([]);
   const [creatorPhoto, setCreatorPhoto] = useState("");
   const [creatorName, setCreatorName] = useState("");
+  const [dbMeta, setDbMeta] = useState<any>(null);
+  const { communities: allComms } = useData();
+  const [expandedRuleIndex, setExpandedRuleIndex] = useState<number | null>(null);
+  const displayComms = allComms.map(c => ({ name: c.label, img: c.img, desc: "" }));
 
-  const meta = communityName ? communityMeta[communityName] : null;
+  useEffect(() => {
+    setExpandedRuleIndex(null);
+    if (!communityName) {
+      setDbMeta(null);
+      return;
+    }
+    const cName = communityName;
+    async function fetchMeta() {
+      try {
+        const docRef = doc(db, "communities", cName);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          setDbMeta(snap.data());
+        } else {
+          setDbMeta(null);
+        }
+      } catch (e) {
+        console.error("Error fetching community sidebar meta:", e);
+        setDbMeta(null);
+      }
+    }
+    fetchMeta();
+  }, [communityName]);
+
+  const meta = dbMeta;
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(5));
     const unsub = onSnapshot(q, (snap) => {
-      setRecentPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setRecentPosts(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
     }, () => {});
     return () => unsub();
   }, []);
 
   useEffect(() => {
-    if (!meta?.creator) { setCreatorPhoto(""); setCreatorName(""); return; }
+    const creatorId = meta?.creatorUid || meta?.creator;
+    if (!creatorId) { setCreatorPhoto(""); setCreatorName(""); return; }
     async function fetchCreator() {
       try {
-        const s = await getDoc(doc(db, "users", meta!.creator));
-        if (s.exists()) { setCreatorPhoto(s.data().photoURL || ""); setCreatorName(s.data().displayName || t("sr.communityCreator")); }
-      } catch {}
+        const s = await getDoc(doc(db, "users", creatorId));
+        if (s.exists()) { 
+          setCreatorPhoto(s.data().photoURL || ""); 
+          setCreatorName(s.data().displayName || t("sr.communityCreator")); 
+        } else {
+          setCreatorPhoto("");
+          setCreatorName(meta.creatorName || t("sr.communityCreator"));
+        }
+      } catch {
+        setCreatorPhoto("");
+        setCreatorName(meta.creatorName || t("sr.communityCreator"));
+      }
     }
     fetchCreator();
-  }, [meta?.creator]);
+  }, [meta?.creator, meta?.creatorUid, t]);
 
   return (
-    <aside className="w-[280px] shrink-0 sticky top-[76px] max-h-[calc(100vh-96px)] overflow-y-auto">
+    <aside className="w-[280px] shrink-0 sticky overflow-y-auto" style={{ top: "calc(var(--nav-total-height) + 16px)", maxHeight: "calc(100vh - var(--nav-total-height) - 32px)" }}>
       {/* Recent Posts */}
       <div className="bg-nf-primary border border-nf-border-2 rounded-lg overflow-hidden mb-3">
         <div className="flex items-center gap-1.5 px-3.5 py-3 pb-2 border-b border-nf-border-2">
@@ -109,7 +87,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
           <div className="p-3 text-center text-xs text-nf-dim">{t("sr.noPosts")}</div>
         ) : (
           <div className="py-1">
-            {recentPosts.map((post, i) => (
+            {recentPosts.map((post: any, i: number) => (
               <motion.a
                 key={post.id}
                 href="#"
@@ -127,7 +105,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-white truncate leading-snug">{post.title}</p>
+                  <p className="text-xs font-medium text-nf-text truncate leading-snug">{post.title}</p>
                   <span className="text-[10px] text-nf-dim">n/{post.community || t("gen.general")} · {post.authorName || t("gen.user")}</span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] text-nf-dim">{post.votes || 0} {t("sr.upvote")}</span>
@@ -157,21 +135,60 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
             </div>
           </div>
 
+          {/* Stats */}
+          {meta.stats?.length > 0 && (
+            <div className="bg-nf-primary border border-nf-border-2 rounded-lg overflow-hidden mb-3">
+              <div className="px-3.5 py-2.5 border-b border-nf-border-2">
+                <span className="text-[11px] font-bold text-nf-muted uppercase tracking-wide">{t("sr.stats")}</span>
+              </div>
+              <div className="px-3.5 py-2 space-y-1.5">
+                {meta.stats.map((s: any, i: number) => (
+                  <div key={i} className="flex justify-between text-[11px]">
+                    <span className="text-nf-dim">{s.label}</span>
+                    <span className="text-nf-text font-bold">{s.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Rules */}
           {meta.rules.length > 0 && (
             <div className="bg-nf-primary border border-nf-border-2 rounded-lg overflow-hidden mb-3">
-              <div className="px-3.5 py-2.5 border-b border-nf-border-2">
+              <div className="px-3.5 py-2.5 border-b border-nf-border-2 flex items-center justify-between">
                 <span className="text-[11px] font-bold text-nf-muted uppercase tracking-wide">{t("sr.rules")}</span>
+                <span className="text-[9px] text-nf-dim bg-nf-secondary/40 px-1.5 py-0.5 rounded">قواعد تفصيلية</span>
               </div>
-              <div className="px-3.5 py-2.5">
-                <ol className="flex flex-col gap-1.5">
-                  {meta.rules.map((rule, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-xs">
-                      <span className="text-nf-dim font-bold shrink-0">{i + 1}.</span>
-                      <span className="text-nf-muted leading-relaxed">{rule}</span>
-                    </li>
-                  ))}
-                </ol>
+              <div className="px-3.5 py-2">
+                <div className="flex flex-col gap-1">
+                  {meta.rules.map((rule: string, i: number) => {
+                    const [title, detail] = rule.includes(" || ") ? rule.split(" || ") : [rule, ""];
+                    const isExpanded = expandedRuleIndex === i;
+                    return (
+                      <div key={i} className="border-b border-white/5 last:border-b-0 py-2">
+                        <button 
+                          onClick={() => detail && setExpandedRuleIndex(isExpanded ? null : i)}
+                          className={`w-full flex items-start gap-2 text-right transition-all outline-none ${
+                            detail ? "cursor-pointer text-nf-text hover:text-nf-accent" : "cursor-default text-nf-muted"
+                          }`}
+                        >
+                          <span className="text-nf-dim font-bold shrink-0 text-xs">{i + 1}.</span>
+                          <span className="flex-1 font-bold text-xs leading-relaxed">{title}</span>
+                          {detail && (
+                            <span className="text-nf-dim text-[10px] self-center shrink-0">
+                              {isExpanded ? "▲" : "▼"}
+                            </span>
+                          )}
+                        </button>
+                        {detail && isExpanded && (
+                          <div className="text-[11px] text-nf-dim mt-1.5 mr-4 leading-relaxed whitespace-pre-wrap animate-in fade-in slide-in-from-top-1 duration-200">
+                            {detail}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -189,8 +206,8 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
                   <div className="w-6 h-6 rounded-full bg-nf-secondary flex items-center justify-center text-[9px] text-nf-accent font-bold">C</div>
                 )}
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold text-white truncate">u/{creatorName || t("sr.creator")}</div>
-                  <div className="text-[10px] text-nf-accent">{t("sr.creator")}</div>
+                  <div className="text-xs font-semibold text-nf-text truncate">u/{creatorName || t("sr.creator")}</div>
+                  <span className="text-[9px] text-nf-accent bg-nf-accent/10 px-2 py-0.5 rounded font-bold">{t("sr.creator")}</span>
                 </div>
               </div>
             </div>
@@ -203,7 +220,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
                 <span className="text-[11px] font-bold text-nf-muted uppercase tracking-wide">{t("sr.tags")}</span>
               </div>
               <div className="px-3 py-2 flex flex-wrap gap-1">
-                {meta.tags.map((tag) => (
+                {meta.tags.map((tag: string) => (
                   <span key={tag} className="px-2 py-0.5 rounded-full bg-nf-accent/10 text-[10px] font-medium text-nf-accent hover:bg-nf-accent/20 transition-colors cursor-pointer">
                     {tag}
                   </span>
@@ -220,11 +237,11 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
                 <span className="text-[11px] font-bold text-nf-muted uppercase tracking-wide">Community Bookmarks</span>
               </div>
               <div className="py-0.5">
-                {meta.bookmarks.map((bm, i) => (
+                {meta.bookmarks.map((bm: any, i: number) => (
                   <a key={i} href={bm.url} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 px-3.5 py-1.5 hover:bg-nf-hover transition-colors group">
                     <ExternalLink size={11} className="shrink-0 text-nf-dim group-hover:text-nf-accent transition-colors" />
-                    <span className="text-[11px] text-nf-muted group-hover:text-white truncate flex-1">{bm.label}</span>
+                    <span className="text-[11px] text-nf-muted group-hover:text-nf-text truncate flex-1">{bm.label}</span>
                   </a>
                 ))}
               </div>
@@ -237,10 +254,10 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
           <div className="bg-nf-primary border border-nf-border-2 rounded-lg overflow-hidden mb-3">
             <div className="flex items-center gap-1.5 px-3.5 py-3 pb-2 border-b border-nf-border-2">
               <TrendingUp size={12} className="text-nf-accent" />
-              <span className="text-[11px] font-bold text-nf-muted uppercase tracking-wide">{t("sr.trendingCommunities")}</span>
+              <span className="text-[11px] font-bold text-nf-muted uppercase tracking-wide">{t("sr.displayComms")}</span>
             </div>
             <div className="py-1">
-              {trendingCommunities.map((c, i) => (
+              {displayComms.map((c, i) => (
                 <motion.button
                   key={c.name}
                   onClick={() => onCommunityClick(c.name.replace("n/", ""))}
@@ -251,7 +268,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
                 >
                   <img src={c.img} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-nf-border-2" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-white truncate">{c.name}</p>
+                    <p className="text-[11px] font-bold text-nf-text truncate">{c.name}</p>
                     <p className="text-[9px] text-nf-dim truncate">{c.desc}</p>
                   </div>
                 </motion.button>
@@ -270,7 +287,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
                 t("sr.rule2"),
                 t("sr.rule3"),
                 t("sr.rule4"),
-              ].map((rule, i) => (
+              ].map((rule: string, i: number) => (
                 <div key={i} className="flex items-start gap-2 text-[11px] text-nf-muted">
                   <span className="w-4 h-4 rounded-full bg-nf-secondary flex items-center justify-center text-[9px] font-bold text-nf-dim shrink-0 mt-0.5">{i + 1}</span>
                   {rule}
@@ -288,7 +305,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
           <span className="text-[11px] font-bold text-nf-muted uppercase tracking-wide">{t("sr.trending")}</span>
         </div>
         <div className="py-1">
-          {trendingCommunities.map((c) => (
+          {displayComms.map((c) => (
             <a
               key={c.name}
               href="#"
@@ -297,7 +314,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
             >
               <img src={c.img} alt="" className="w-7 h-7 rounded-full" />
               <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-sm font-bold text-white truncate">{c.name}</span>
+                <span className="text-sm font-bold text-nf-text truncate">{c.name}</span>
                 <span className="text-[11px] text-nf-dim truncate">{c.desc}</span>
               </div>
               <button className="px-3.5 py-1 border border-nf-border rounded-full text-[11px] font-bold text-nf-muted hover:bg-nf-hover transition-colors duration-150">
@@ -311,11 +328,11 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
       {/* Footer */}
       <div className="text-center px-4 py-2">
         <div className="flex items-center justify-center gap-1 text-[11px] text-nf-muted flex-wrap">
-          <a href="#" className="hover:text-white">{t("sr.privacy")}</a>
+          <a href="#" className="hover:text-nf-text">{t("sr.privacy")}</a>
           <span className="text-nf-dim">·</span>
-          <a href="#" className="hover:text-white">{t("sr.terms")}</a>
+          <a href="#" className="hover:text-nf-text">{t("sr.terms")}</a>
           <span className="text-nf-dim">·</span>
-          <a href="#" className="hover:text-white">{t("sr.help")}</a>
+          <a href="#" className="hover:text-nf-text">{t("sr.help")}</a>
         </div>
         <p className="text-[11px] text-nf-dim mt-1">© 2026 NorthFall. {t("gen.allRightsReserved")}</p>
       </div>

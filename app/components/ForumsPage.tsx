@@ -9,7 +9,7 @@ import {
   Edit3, Copy, MessageCircle, Bold, Italic, Code, Image, Video,
   ArrowLeft, ArrowUp, ThumbsUp, ThumbsDown, Share2, Reply, Home, Star,
   HelpCircle, Lightbulb, Bug, Sparkles, BookOpen, Menu, Calendar, MessageCirclePlus,
-  LogIn, Settings, Bell, TrendingUp, Shield, Award, BarChart3, Users, Activity, RotateCcw, ChevronDown, Check,
+  LogIn, Settings, Bell, TrendingUp, Shield, Award, Trophy, BarChart3, Users, Activity, RotateCcw, ChevronDown, Check,
   FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft, Quote, Gamepad2
 } from "lucide-react";
 import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where, writeBatch, runTransaction } from "firebase/firestore";
@@ -29,6 +29,7 @@ import { GAMES } from "./GamesPage";
 import ShareModal from "./ShareModal";
 import ReportModal from "./ReportModal";
 import ReactMarkdown from "react-markdown";
+import ImageLightbox from "./ImageLightbox";
 
 const AI_PROMPT = `أنت مساعد NorthFall — مساعد ذكي احترافي لمنصة مجتمعية عربية متخصصة في تطوير الألعاب والمحتوى الرقمي.
 
@@ -43,12 +44,8 @@ const AI_PROMPT = `أنت مساعد NorthFall — مساعد ذكي احترا�
 * التصميم: داكن (dark theme)، ألوان أساسية: accent (#7c3aed بنفسجي)، secondary، dim
 * تدعم RTL (عربي) بالكامل
 
-المجتمعات المتاحة (5 مجتمعات):
-1. Unity — لتطوير الألعاب بمحرك Unity، يشمل C# وShader وAsset Store
-2. Unreal — لتطوير الألعاب بمحرك Unreal Engine، يشمل Blueprint وC++ وNanite/Lumen
-3. Godot — لتطوير الألعاب بمحرك Godot، يشمل GDScript وC# والـ Nodes
-4. Blender — للنمذجة والأنيميشن والرندر، يشمل Modeling وSculpting وEEVEE/Cycles
-5. عام — للنقاشات العامة عن الألعاب والتقنية والإبداع
+المجتمعات: كل مجتمع يركز على موضوع معين (محركات الألعاب، البرمجة، التصميم، إلخ). كل مجتمع له مشرفين وقوانينه الخاصة.
+- عام — للنقاشات العامة عن الألعاب والتقنية والإبداع
 
 أنواع المواضيع (6 أنواع):
 * نقاش (discussion) — نقاش مفتوح
@@ -178,11 +175,7 @@ const AI_PROMPT = `أنت مساعد NorthFall — مساعد ذكي احترا�
 تقديم أفضل إجابة ممكنة، بشكل احترافي، واضح، ومفيد فعلاً للمستخدم. أنت تعرف NorthFall أفضل من أي حد — استخدم هالمعرفة لمساعدة المستخدمين.`;
 
 const allCommunities = [
-  { name: "Unity", img: "/assets/images/unitylogo.png", banner: "/assets/images/bannerunity.png", desc: "مكانك لو حابب تتعلم Unity وتشارك مشاريعك مع مطورين عرب.\nتواصل، اسأل، واطلع شغلك للعالم.", shortDesc: "تطوير ألعاب بيونتي — شارك تجاربك وأسئلتك", members: 0, threads: 0, replies: 0, founded: "2026", rules: ["احترام الجميع، لا للتحرش أو التنمر", "المحتوى يجب أن يكون متعلق بـ Unity", "لا سبام أو إعلانات غير مصرح بها", "شارك الكود والمشاريع بمصادر موثوقة", "لا تكرر المنشورات"], mods: [{ name: "NorthFall", role: "صانع المجتمع" }], tags: ["Unity", "GameDev", "C#", "3D", "2D", "AR/VR"], bookmarks: [{ label: "Unity Documentation", url: "https://docs.unity3d.com" }, { label: "Unity Learn", url: "https://learn.unity.com" }, { label: "Unity Asset Store", url: "https://assetstore.unity.com" }, { label: "Unity Forum", url: "https://forum.unity.com" }, { label: "Unity Discord", url: "https://discord.gg/unity" }] },
-  { name: "Unreal", img: "/assets/images/unreallogo.svg", banner: "/assets/images/bannerunity.png", desc: "مجتمع مطوري Unreal Engine — تعلم Blueprints وC++\nواصل رحلتك في صناعة الألعاب مع مجتمع عربي داعم.", shortDesc: "تطوير ألعاب بأنريل — Blueprints وC++", members: 0, threads: 0, replies: 0, founded: "2026", rules: ["احترام الجميع، لا للتحرش أو التنمر", "المحتوى يجب أن يكون متعلق بـ Unreal Engine", "لا سبام أو إعلانات غير مصرح بها", "شارك مصادرك ومشاريعك بروابط موثوقة", "لا تكرر المنشورات"], mods: [{ name: "NorthFall", role: "صانع المجتمع" }], tags: ["Unreal", "Blueprints", "C++", "Nanite", "Lumen", "UE5"], bookmarks: [{ label: "Unreal Documentation", url: "https://docs.unrealengine.com" }, { label: "Unreal Learn", url: "https://learn.unrealengine.com" }, { label: "Unreal Marketplace", url: "https://www.unrealengine.com/marketplace" }, { label: "Unreal Forums", url: "https://forums.unrealengine.com" }] },
-  { name: "Godot", img: "/assets/images/godotlogo.png", banner: "/assets/images/bannerunity.png", desc: "مجتمع المحرك المفتوح المصدر Godot — من البداية للاحتراف\nاكتشف قوة GDScript وC# في بيئة مجانية بالكامل.", shortDesc: "المحرك المفتوح المصدر — GDScript وC#", members: 0, threads: 0, replies: 0, founded: "2026", rules: ["احترام الجميع، لا للتحرش أو التنمر", "المحتوى يجب أن يكون متعلق بـ Godot", "لا سبام أو إعلانات غير مصرح بها", "شارك الكود المصدري whenever possible", "لا تكرر المنشورات"], mods: [{ name: "NorthFall", role: "صانع المجتمع" }], tags: ["Godot", "GDScript", "OpenSource", "2D", "3D", "Indie"], bookmarks: [{ label: "Godot Documentation", url: "https://docs.godotengine.org" }, { label: "Godot Learn", url: "https://docs.godotengine.org/en/stable/getting_started/introduction/index.html" }, { label: "Godot Asset Library", url: "https://godotengine.org/asset-library" }, { label: "Godot Discord", url: "https://discord.gg/godotengine" }] },
-  { name: "Blender", img: "/assets/images/logoblender.png", banner: "/assets/images/bannerunity.png", desc: "مجتمع Blender العربي — نمذجة، رسم، وتحريك ثلاثي الأبعاد\nمن البداية للمشاريع الاحترافية مع مجتمع مبدعين.", shortDesc: "نمذجة ورسم وتحريك ثلاثي الأبعاد", members: 0, threads: 0, replies: 0, founded: "2026", rules: ["احترام الجميع، لا للتحرش أو التنمر", "المحتوى يجب أن يكون متعلق بـ Blender", "لا سبام أو إعلانات غير مصرح بها", "شارك ملفات Blender بمصادر موثوقة", "لا تكرر المنشورات"], mods: [{ name: "NorthFall", role: "صانع المجتمع" }], tags: ["Blender", "3D", "Modeling", "Animation", "Sculpting", "Eevee"], bookmarks: [{ label: "Blender Documentation", url: "https://docs.blender.org" }, { label: "Blender Tutorials", url: "https://www.blender.org/support/tutorials/" }, { label: "Blender Market", url: "https://blendermarket.com" }, { label: "Blender Artists", url: "https://blenderartists.org" }] },
-  { name: "عام", img: "", banner: "/assets/images/bannerunity.png", desc: "نقاشات عامة حول تطوير الألعاب والبرمجة والمشاريع التقنية\nمكانك للتبادل المعرفي وبناء مجتمع مطورين عرب أقوى.", shortDesc: "نقاشات عامة حول تطوير الألعاب والبرمجة", members: 0, threads: 0, replies: 0, founded: "2026", rules: ["احترام الجميع، لا للتحرش أو التنمر", "المحتوى يجب أن يكون متعلق بتطوير الألعاب أو البرمجة", "لا سبام أو إعلانات غير مصرح بها", "شارك بفائدة وأضف قيمة للنقاش", "لا تكرر المنشورات"], mods: [{ name: "NorthFall", role: "صانع المجتمع" }], tags: ["GameDev", "Programming", "عربي", "Indie", "تعلم", "مشاريع"], bookmarks: [{ label: "GameDev Stack", url: "https://gamedev.stackexchange.com" }, { label: "Itch.io", url: "https://itch.io" }, { label: "Game Jolt", url: "https://gamejolt.com" }] },
+  { name: "عام", img: "", banner: "", desc: "نقاشات عامة حول تطوير الألعاب والبرمجة والمشاريع التقنية\nمكانك للتبادل المعرفي وبناء مجتمع مطورين عرب أقوى.", shortDesc: "نقاشات عامة حول تطوير الألعاب والبرمجة", members: 0, threads: 0, replies: 0, founded: "2026", rules: ["احترام الجميع، لا للتحرش أو التنمر", "المحتوى يجب أن يكون متعلق بتطوير الألعاب أو البرمجة", "لا سبام أو إعلانات غير مصرح بها", "شارك بفائدة وأضف قيمة للنقاش", "لا تكرر المنشورات"], mods: [{ name: "NorthFall", role: "صانع المجتمع" }], tags: ["GameDev", "Programming", "عربي", "Indie", "تعلم", "مشاريع"], bookmarks: [{ label: "GameDev Stack", url: "https://gamedev.stackexchange.com" }, { label: "Itch.io", url: "https://itch.io" }, { label: "Game Jolt", url: "https://gamejolt.com" }] },
 ];
 
 const threadTypes = [
@@ -406,7 +399,7 @@ function CodeBlockWithCopy({ code, lang }: { code: string; lang: string }) {
   );
 }
 
-function renderBody(text: string, onMentionClick?: (name: string) => void) {
+function renderBody(text: string, onMentionClick?: (name: string) => void, onImageClick?: (src: string, alt: string) => void) {
   const elements: React.JSX.Element[] = [];
 
   // Step 1: Extract code blocks from ORIGINAL text first (preserve whitespace)
@@ -482,12 +475,16 @@ function renderBody(text: string, onMentionClick?: (name: string) => void) {
       const imgName = decodeURIComponent(url.split('/').pop() || "صورة").split('?')[0];
       return <div key={`img-${idx}`} className="my-4 group relative block">
         <img src={url} alt={imgName} className="max-w-[720px] rounded-xl max-h-[420px] object-contain cursor-pointer hover:brightness-90 transition-all" onClick={() => {
-          const overlay = document.createElement('div');
-          overlay.className = 'fixed inset-0 z-[99999] bg-black/90 flex items-center justify-center cursor-zoom-out';
-          overlay.onclick = () => overlay.remove();
-          const img = document.createElement('img');
-          img.src = url; img.className = 'max-w-[95vw] max-h-[95vh] object-contain rounded-lg';
-          overlay.appendChild(img); document.body.appendChild(overlay);
+          if (onImageClick) {
+            onImageClick(url, imgName);
+          } else {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 z-[99999] bg-black/90 flex items-center justify-center cursor-zoom-out';
+            overlay.onclick = () => overlay.remove();
+            const img = document.createElement('img');
+            img.src = url; img.className = 'max-w-[95vw] max-h-[95vh] object-contain rounded-lg';
+            overlay.appendChild(img); document.body.appendChild(overlay);
+          }
         }} />
         <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/70 text-[10px] text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">{imgName}</div>
       </div>;
@@ -716,62 +713,266 @@ function renderBody(text: string, onMentionClick?: (name: string) => void) {
 }
 
 function UserHoverCard({ name, photo, uid, children }: { name: string; photo?: string; uid: string; children: React.ReactNode }) {
-  const [profile, setProfile] = useState<{ name: string; photo?: string; role: string; bio?: string; posts?: number; joinDate?: string; karma?: number; xp?: number; followers?: number; following?: number; isOnline?: boolean } | null>(null);
-  const [show, setShow] = useState(false); const [loaded, setLoaded] = useState(false); const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const loadProfile = useCallback(async () => { if (loaded) return; try { const snap = await getDoc(doc(db, "users", uid)); if (snap.exists()) { const d = snap.data(); setProfile({ name: d.displayName || name, photo: d.photoURL || photo, role: d.role || "عضو", bio: d.bio, posts: d.postCount, joinDate: d.createdAt, karma: d.karma || 0, xp: d.xp || 0, isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false }); } else setProfile({ name, photo, role: "عضو" }); setLoaded(true); } catch { setProfile({ name, photo, role: "عضو" }); setLoaded(true); } }, [uid, name, photo, loaded]);
-  const handleEnter = () => { timeoutRef.current = setTimeout(() => { setShow(true); loadProfile(); }, 350); };
-  const handleLeave = () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); timeoutRef.current = setTimeout(() => setShow(false), 200); };
-  useEffect(() => { return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }; }, []);
+  const [profile, setProfile] = useState<{
+    name: string;
+    photo?: string;
+    role: string;
+    bio?: string;
+    posts?: number;
+    joinDate?: string;
+    karma?: number;
+    xp?: number;
+    commentCount?: number;
+    isOnline?: boolean;
+    bannerUrl?: string;
+    favoriteGameIds?: string[];
+  } | null>(null);
+  const [show, setShow] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const loadProfile = useCallback(async () => {
+    if (loaded) return;
+    try {
+      const snap = await getDoc(doc(db, "users", uid));
+      let pData: any = { name, photo, role: "عضو", posts: 0, karma: 0, xp: 0, commentCount: 0 };
+      if (snap.exists()) {
+        const d = snap.data();
+        let joinDateStr = "";
+        if (d.createdAt) {
+          try {
+            const ts: any = d.createdAt;
+            const date = ts.toDate ? ts.toDate() : new Date(ts);
+            joinDateStr = date.toLocaleDateString("ar-SA", { year: "numeric", month: "long" });
+          } catch {
+            joinDateStr = String(d.createdAt);
+          }
+        }
+        pData = {
+          name: d.displayName || name,
+          photo: d.photoURL || photo,
+          role: d.role || "عضو",
+          bio: d.bio,
+          posts: d.postCount || 0,
+          joinDate: joinDateStr || d.createdAt,
+          karma: d.karma || 0,
+          xp: d.xp || 0,
+          commentCount: d.commentCount || 0,
+          bannerUrl: d.bannerUrl || "",
+          isOnline: d.lastSeen ? (Date.now() - new Date(d.lastSeen).getTime()) < 600000 : false,
+        };
+      }
+      
+      // Load favorites
+      try {
+        const favSnap = await getDoc(doc(db, "users", uid, "games", "favorites"));
+        if (favSnap.exists()) {
+          pData.favoriteGameIds = favSnap.data().ids || [];
+        }
+      } catch (e) {
+        console.error("Error fetching games:", e);
+      }
+
+      setProfile(pData);
+      setLoaded(true);
+    } catch (e) {
+      console.error(e);
+      setProfile({ name, photo, role: "عضو" });
+      setLoaded(true);
+    }
+  }, [uid, name, photo, loaded]);
+
+  const handleEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setShow(true);
+      loadProfile();
+    }, 350);
+  };
+
+  const handleLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setShow(false), 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const favGames = profile?.favoriteGameIds
+    ? GAMES.filter((g) => profile.favoriteGameIds!.includes(g.id))
+    : [];
+
+  const lvlInfo = profile ? getLevel(profile.xp || 0) : null;
+
   return (
     <span className="relative inline-block" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
       {children}
-      <AnimatePresence>{show && profile && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.12 }} className="absolute z-50 bottom-full mb-2 right-0 w-[340px] bg-nf-card rounded-xl overflow-hidden border border-nf-border shadow-xl shadow-black/30" onMouseEnter={() => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }} onMouseLeave={handleLeave}>
-          {/* Banner */}
-          <div className="relative h-[60px] overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-l from-nf-accent/20 via-nf-secondary to-nf-accent/10" />
-            <div className="absolute inset-0 bg-gradient-to-t from-nf-card to-transparent" />
-          </div>
-          {/* Main info */}
-          <div className="px-5 -mt-6 relative z-10 pb-4">
-            <div className="flex items-end gap-3 mb-3">
-              {profile.photo ? <img src={profile.photo} alt="" className="w-14 h-14 rounded-full object-cover border-3 border-nf-card" /> : <div className="w-14 h-14 rounded-full bg-nf-muted flex items-center justify-center text-white text-[22px] font-bold border-3 border-nf-card">{(profile.name || "م")[0]}</div>}
-              <div className="flex-1 min-w-0 pb-0.5">
-                <div className="flex items-center gap-2">
-                  <p className="text-[15px] font-bold text-nf-text truncate inline-flex items-center gap-1.5">{profile.name}{(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[16px] h-[16px] inline" />}</p>
-                  {profile.isOnline && <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />}
+      <AnimatePresence>
+        {show && profile && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-full right-0 mt-2 w-[390px] bg-nf-card/95 backdrop-blur-xl border border-nf-border rounded-2xl shadow-2xl overflow-hidden z-[9999] pointer-events-auto text-right font-sans"
+            dir="rtl"
+          >
+            {/* Banner */}
+            <div className="relative h-[110px] overflow-hidden">
+              {profile.bannerUrl ? (
+                <>
+                  <img src={profile.bannerUrl} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-nf-card via-nf-card/40 to-transparent" />
+                </>
+              ) : (
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-nf-card to-transparent" />
+              )}
+            </div>
+
+            {/* Main info */}
+            <div className="px-5 pb-5 relative z-10 -mt-10">
+              <div className="flex items-end justify-between mb-4">
+                <div className="relative">
+                  {profile.photo ? (
+                    <img
+                      src={profile.photo}
+                      alt=""
+                      className="w-20 h-20 rounded-full object-cover border-4 border-nf-card shadow-xl"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-nf-secondary flex items-center justify-center text-nf-text text-3xl font-bold border-4 border-nf-card shadow-xl">
+                      {(profile.name || "م")[0]}
+                    </div>
+                  )}
+                  {profile.isOnline && (
+                    <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-nf-card shrink-0" />
+                  )}
                 </div>
-                <p className="text-[11px] text-nf-accent font-medium">@{profile.name}</p>
+                
+                {/* Role and Join date */}
+                <div className="flex flex-col items-end gap-1.5 font-sans">
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wider shadow-sm",
+                    profile.role === "مشرف" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
+                    profile.role === "إداري" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
+                    "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                  )}>
+                    {profile.role}
+                  </span>
+                  {profile.joinDate && (
+                    <span className="text-[10px] text-nf-dim flex items-center gap-1 font-sans">
+                      <Calendar size={11} className="text-indigo-400" />
+                      انضم {profile.joinDate}
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Name and bio */}
+              <div className="mb-4 text-right">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-lg font-bold text-nf-text tracking-tight flex items-center gap-1.5">
+                    {profile.name}
+                    {uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" && (
+                      <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[18px] h-[18px] inline shrink-0" />
+                    )}
+                  </h4>
+                  {profile.isOnline && <span className="text-[10px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">متصل الآن</span>}
+                </div>
+                <p className="text-xs text-nf-accent font-mono mt-0.5">@{profile.name}</p>
+                {profile.bio && (
+                  <p className="text-xs text-nf-text-2 leading-relaxed mt-2 line-clamp-2 bg-nf-secondary/40 p-2 rounded-lg border border-nf-border-2/30 text-right">
+                    {profile.bio}
+                  </p>
+                )}
+              </div>
+
+              {/* Stats Grid 2x2 */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {/* Level / XP */}
+                <div className="bg-nf-secondary/50 border border-nf-border-2/40 rounded-xl p-2.5 flex items-center gap-3 transition-colors hover:bg-nf-secondary/80">
+                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+                    <Trophy size={16} />
+                  </div>
+                  <div className="text-right flex-1 min-w-0">
+                    <div className="text-[10px] text-nf-dim">المستوى (الرتبة)</div>
+                    <div className="text-xs font-bold text-nf-text mt-0.5 truncate">
+                      {lvlInfo?.name} <span className="text-[9px] text-amber-400 font-normal">({profile.xp || 0} XP)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Karma / Sait */}
+                <div className="bg-nf-secondary/50 border border-nf-border-2/40 rounded-xl p-2.5 flex items-center gap-3 transition-colors hover:bg-nf-secondary/80">
+                  <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400">
+                    <Flame size={16} />
+                  </div>
+                  <div className="text-right flex-1 min-w-0">
+                    <div className="text-[10px] text-nf-dim">الصيت والتأثير</div>
+                    <div className="text-xs font-bold text-nf-text mt-0.5 truncate">
+                      {Math.round(profile.karma || 0)} <span className="text-[10px] text-nf-dim font-normal">نقطة</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Posts */}
+                <div className="bg-nf-secondary/50 border border-nf-border-2/40 rounded-xl p-2.5 flex items-center gap-3 transition-colors hover:bg-nf-secondary/80">
+                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+                    <MessageSquare size={16} />
+                  </div>
+                  <div className="text-right flex-1 min-w-0">
+                    <div className="text-[10px] text-nf-dim">المواضيع المنشورة</div>
+                    <div className="text-xs font-bold text-nf-text mt-0.5 truncate">
+                      {profile.posts || 0} <span className="text-[10px] text-nf-dim font-normal">موضوع</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments */}
+                <div className="bg-nf-secondary/50 border border-nf-border-2/40 rounded-xl p-2.5 flex items-center gap-3 transition-colors hover:bg-nf-secondary/80">
+                  <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
+                    <MessageCircle size={16} />
+                  </div>
+                  <div className="text-right flex-1 min-w-0">
+                    <div className="text-[10px] text-nf-dim">الردود والتعليقات</div>
+                    <div className="text-xs font-bold text-nf-text mt-0.5 truncate">
+                      {profile.commentCount || 0} <span className="text-[10px] text-nf-dim font-normal">رد</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Steam-style favorite games cover row */}
+              {favGames.length > 0 && (
+                <div className="border-t border-nf-border pt-3.5 text-right">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Gamepad2 size={12} className="text-indigo-400" />
+                    <span className="text-[11px] font-bold text-nf-text-2">الألعاب المفضلة</span>
+                  </div>
+                  <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-white/10 justify-start">
+                    {favGames.map((g) => (
+                      <div key={g.id} className="relative group shrink-0">
+                        <img
+                          src={g.cover}
+                          alt={g.name}
+                          className="w-14 h-20 rounded-md object-cover border border-nf-border shadow-md transition-all duration-300 group-hover:scale-105 group-hover:border-indigo-500/50"
+                        />
+                        {/* Tooltip for game title */}
+                        <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-1 hidden group-hover:block bg-nf-primary text-nf-text text-[9px] px-1.5 py-0.5 rounded border border-nf-border whitespace-nowrap z-20 pointer-events-none">
+                          {g.name} ({g.releaseYear})
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            {profile.bio && <p className="text-[12px] text-nf-dim leading-[1.7] mb-3 line-clamp-2">{profile.bio}</p>}
-            {/* Stats grid */}
-            <div className="grid grid-cols-4 gap-1.5 mb-3 text-center">
-              <div className="bg-nf-secondary/60 rounded-lg p-2">
-                <div className="text-[13px] font-bold text-nf-text">{profile.posts || 0}</div>
-                <div className="text-[9px] text-nf-dim">موضوع</div>
-              </div>
-              <div className="bg-nf-secondary/60 rounded-lg p-2">
-                <div className="text-[13px] font-bold text-nf-text">{Math.round(profile.karma || 0)}</div>
-                <div className="text-[9px] text-nf-dim">صيت</div>
-              </div>
-              <div className="bg-nf-secondary/60 rounded-lg p-2">
-                <div className="text-[13px] font-bold text-nf-text">{profile.followers || 0}</div>
-                <div className="text-[9px] text-nf-dim">يتابعونه</div>
-              </div>
-              <div className="bg-nf-secondary/60 rounded-lg p-2">
-                <div className="text-[13px] font-bold text-nf-text">{profile.following || 0}</div>
-                <div className="text-[9px] text-nf-dim">يتابعهم</div>
-              </div>
-            </div>
-            {/* Role + join date */}
-            <div className="flex items-center justify-between text-[11px] text-nf-dim font-medium border-t border-nf-border/50 pt-2.5">
-              <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-bold", profile.role === "مشرف" ? "bg-nf-accent/10 text-nf-accent" : profile.role === "إداري" ? "bg-red-400/10 text-red-400" : "bg-nf-secondary text-nf-dim")}>{profile.role}</span>
-              {profile.joinDate && <span className="flex items-center gap-1"><Calendar size={10} className="text-nf-accent" /> انضم {timeAgo(profile.joinDate)}</span>}
-            </div>
-          </div>
-        </motion.div>
-      )}</AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </span>
   );
 }
@@ -784,6 +985,9 @@ export default function ForumsPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [lightboxImg, setLightboxImg] = useState<{ src: string; urls: string[]; idx: number } | null>(null);
+  const defaultComms = allCommunities.filter(c => c.name === "عام");
+  const [mergedCommunities, setMergedCommunities] = useState(defaultComms);
 
   // URL-based navigation for forum
   const getForumUrl = (newView: ViewMode, extra: Record<string, string> = {}) => {
@@ -829,6 +1033,37 @@ export default function ForumsPage() {
     }
   }, []);
 
+  // Load all communities from Firestore and merge with "عام"
+  useEffect(() => {
+    async function loadDynamicComms() {
+      try {
+        const { getDocs: gd, collection: cl } = await import("firebase/firestore");
+        const commsSnap = await gd(cl(db, "communities"));
+        const added: typeof allCommunities = [];
+        for (const d of commsSnap.docs) {
+          const data = d.data();
+          const name = data.name || d.id;
+          if (defaultComms.some(c => c.name === name)) continue;
+          if (data.showInForum === false) continue;
+          added.push({
+            name,
+            img: data.img || "",
+            banner: data.banner || "",
+            desc: data.desc || "",
+            shortDesc: data.shortDesc || "",
+            members: 0, threads: 0, replies: 0, founded: "",
+            rules: data.rules || [],
+            mods: [{ name: data.creatorName || data.creatorUid || "المؤسس", role: "مؤسس", photo: data.creatorPhoto || "" }] as any[],
+            tags: data.tags || [],
+            bookmarks: data.bookmarks || [],
+          });
+        }
+        setMergedCommunities([...defaultComms, ...added]);
+      } catch (e) { console.error("Error loading communities:", e); }
+    }
+    loadDynamicComms();
+  }, []);
+
   // Handle browser back/forward
   useEffect(() => {
     const onPopState = () => {
@@ -859,6 +1094,7 @@ export default function ForumsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [savedThreads, setSavedThreads] = useState<Set<string>>(new Set());
+  const [savedThreadsData, setSavedThreadsData] = useState<Record<string, ForumThread>>({});
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [editingReply, setEditingReply] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -903,7 +1139,7 @@ export default function ForumsPage() {
       if (!pd.posts || pd.posts === 0) {
         let actualCount = 0;
         try {
-          for (const comm of allCommunities) {
+          for (const comm of mergedCommunities) {
             try { const tq = query(collection(db, "forums", comm.name, "threads"), where("authorUid", "==", user.uid)); const ts = await getDocs(tq); actualCount += ts.size; } catch {}
           }
         } catch {}
@@ -976,6 +1212,7 @@ export default function ForumsPage() {
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiProvider, setAiProvider] = useState<"chatgpt" | "gemini" | "claude" | "deepseek" | "groq" | "mistral" | "chatanywhere">("chatanywhere");
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const [showAiPanel, setShowAiPanel] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiConnected, setAiConnected] = useState<"unknown" | "testing" | "ok" | "fail">("unknown");
   const [aiMode, setAiMode] = useState<"pro" | "creative" | "casual" | "code">("pro");
@@ -1043,7 +1280,7 @@ export default function ForumsPage() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [sharePostId, setSharePostId] = useState("");
   const [sharePostTitle, setSharePostTitle] = useState("");
-  const [communityViewData, setCommunityViewData] = useState<typeof allCommunities[0] | null>(null);
+  const [communityViewData, setCommunityViewData] = useState<typeof mergedCommunities[0] | null>(null);
   const [communityThreadCount, setCommunityThreadCount] = useState(0);
   const [communityReplyCount, setCommunityReplyCount] = useState(0);
   const [onlineUsers, setOnlineUsers] = useState<{ uid: string; name: string; photo?: string; role?: string }[]>([]);
@@ -1057,8 +1294,122 @@ export default function ForumsPage() {
   const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 2000); };
 
   // Persist saved threads
-  useEffect(() => { try { const s = localStorage.getItem("nf-saved-threads"); if (s) setSavedThreads(new Set(JSON.parse(s))); } catch {} }, []);
-  useEffect(() => { if (savedThreads.size > 0) localStorage.setItem("nf-saved-threads", JSON.stringify([...savedThreads])); }, [savedThreads]);
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem("nf-saved-threads");
+      if (s) {
+        setSavedThreads(new Set(JSON.parse(s)));
+      }
+      const sd = localStorage.getItem("nf-saved-threads-data");
+      if (sd) {
+        setSavedThreadsData(JSON.parse(sd));
+      }
+    } catch (e) {
+      console.error("Error reading saved threads:", e);
+    }
+  }, []);
+
+  // Real-time synchronization of saved threads with Firestore if logged in
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    async function syncFirestoreBookmarks() {
+      try {
+        const querySnapshot = await getDocs(collection(db, "users", user!.uid, "savedThreads"));
+        if (!active) return;
+
+        const fsSaved = new Set<string>();
+        const fsSavedData: Record<string, ForumThread> = {};
+
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data() as any;
+          fsSaved.add(docSnap.id);
+          fsSavedData[docSnap.id] = {
+            id: docSnap.id,
+            title: data.title || "",
+            body: data.body || "",
+            authorName: data.authorName || "",
+            authorPhoto: data.authorPhoto || "",
+            authorUid: data.authorUid || "",
+            community: data.community || "",
+            createdAt: data.createdAt || new Date().toISOString(),
+            replyCount: data.replyCount || 0,
+            views: data.views || 0,
+            votes: data.votes || 0,
+            type: data.type || "discussion",
+            tags: data.tags || [],
+            pinned: data.pinned || false,
+            locked: data.locked || false,
+          } as ForumThread;
+        });
+
+        // Merge Firestore bookmarks into local state
+        setSavedThreads(prev => {
+          const merged = new Set([...prev, ...fsSaved]);
+          try { localStorage.setItem("nf-saved-threads", JSON.stringify([...merged])); } catch {}
+          return merged;
+        });
+
+        setSavedThreadsData(prev => {
+          const mergedData = { ...prev, ...fsSavedData };
+          try { localStorage.setItem("nf-saved-threads-data", JSON.stringify(mergedData)); } catch {}
+          return mergedData;
+        });
+      } catch (e) {
+        console.error("Failed to sync bookmarks from Firestore:", e);
+      }
+    }
+
+    syncFirestoreBookmarks();
+    return () => { active = false; };
+  }, [user]);
+
+  const toggleSaveThread = async (thread: ForumThread) => {
+    const threadId = thread.id;
+    const isSaved = savedThreads.has(threadId);
+
+    // Update state Set
+    const nextSaved = new Set(savedThreads);
+    const nextSavedData = { ...savedThreadsData };
+
+    if (isSaved) {
+      nextSaved.delete(threadId);
+      delete nextSavedData[threadId];
+      showToast("تم إزالة الحفظ");
+    } else {
+      nextSaved.add(threadId);
+      nextSavedData[threadId] = thread;
+      showToast("تم الحفظ ✓");
+    }
+
+    setSavedThreads(nextSaved);
+    setSavedThreadsData(nextSavedData);
+
+    // Persist to localStorage
+    try {
+      localStorage.setItem("nf-saved-threads", JSON.stringify([...nextSaved]));
+      localStorage.setItem("nf-saved-threads-data", JSON.stringify(nextSavedData));
+    } catch (e) {
+      console.error("Error persisting saved threads:", e);
+    }
+
+    // Persist to Firestore if logged in
+    if (user) {
+      try {
+        const savedDocRef = doc(db, "users", user.uid, "savedThreads", threadId);
+        if (isSaved) {
+          await deleteDoc(savedDocRef);
+        } else {
+          await setDoc(savedDocRef, {
+            ...thread,
+            savedAt: new Date().toISOString()
+          });
+        }
+      } catch (e) {
+        console.error("Error updating Firestore bookmark:", e);
+      }
+    }
+  };
 
   // Fetch joined communities from Firebase
   useEffect(() => {
@@ -1067,7 +1418,7 @@ export default function ForumsPage() {
       try {
         const snap = await getDocs(collection(db, "users", user!.uid, "communities"));
         const commImgMap: Record<string, string> = {};
-        allCommunities.forEach(c => { commImgMap[c.name] = c.img || ""; });
+        mergedCommunities.forEach(c => { commImgMap[c.name] = c.img || ""; });
         const items = snap.docs.map(d => {
           const name = d.data().name || d.id;
           return { name, img: commImgMap[name] || "" };
@@ -1140,7 +1491,7 @@ export default function ForumsPage() {
 - هدفك: مساعدة المستخدمين في كل شيء يخص المنصة والمحتوى والبرمجة والتقنية
 
 معرفتك بالموقع:
-- المجتمعات: Unity، Unreal، Godot، Blender، عام
+- المجتمعات: عام + مجتمعات مخصصة لمحركات الألعاب والبرمجة والتصميم
 - كل مجتمع فيه مواضيع وردود مع تصويت
 - المستخدم يقدر: إنشاء موضوع، الرد، التصويت، الحفظ، المتابعة، تعديل بروفايله، الإبلاغ
 - البروفايل: اسم، صورة، بانر، نبذة، روابط (X/YouTube/GitHub/Steam/Discord/موقع)، مواضيع، متابعين، دور
@@ -1160,10 +1511,8 @@ export default function ForumsPage() {
 - ساعد المستخدم الجديد خطوة بخطوة — كن صبور وواضح
 
 معرفتك التقنية العميقة:
-- Unity: MonoBehaviour، Coroutines، ScriptableObjects، ECS/DOTS، Shader Graph، URP/HDRP، NavMesh، Animator، Timeline، Cinemachine، Addressables، UI Toolkit، Input System، 2D/3D physics، Particle System، Post Processing
-- Unreal: Blueprints، UMG، Material Editor، Niagara، Lumen، Nanite، World Partition، GAS، Enhanced Input، MetaHuman، Sequencer، C++ macros
-- Godot: Nodes، Signals، GDScript، Scenes، ShaderLanguage، TileMap، NavigationRegion، AnimationPlayer، GDExtension، C#
-- Blender: Modeling، Sculpting، UV، Shader Nodes، Geometry Nodes، Rigging، Animation، Compositing، Grease Pencil، Eevee/Cycles
+- محركات الألعاب: Unity (C#، MonoBehaviour، ScriptableObjects، Shader Graph، URP/HDRP)، Unreal Engine (Blueprints، C++، Niagara، Lumen، Nanite)، Godot (GDScript، Nodes، Signals، GDExtension)
+- التصميم ثلاثي الأبعاد: Blender (Modeling، Sculpting، Geometry Nodes، Shader Nodes، Animation، Rigging، Eevee/Cycles)
 - البرمجة: C#، C++، GDScript، Python، JavaScript، Rust، design patterns، SOLID، data structures
 - Game Design: Level design، balancing، progression، UI/UX، narrative، procedural generation، networking
 - Graphics: Shaders (HLSL، GLSL)، PBR، rendering، optimization، LOD
@@ -1336,28 +1685,26 @@ export default function ForumsPage() {
   // Dynamic system prompt with user context
   const getAISystemPrompt = () => {
     const userName = user?.displayName || "مستخدم";
+    const currentCommunity = selectedCommunity || "عام";
+    const threadCount = threads.length;
+    const communityList = mergedCommunities.map(c => c.name).join("، ");
+    const currentThread = activeThread ? `الموضوع الحالي: "${activeThread.title}" في مجتمع ${activeThread.community}` : "";
     const modePrompts: Record<string, string> = {
-      pro: `\n\n[وضع احترافي مفعّل]
-أنت الآن في وضع احترافي. التزم بهذه القواعد بالإضافة للقواعد الأساسية:
-- نظّم ردك بعناوين Markdown وقوائم
-- استخدم الجداول للمقارنات
-- فصّل الإجابة أكثر من المعتاد`,
-      creative: `\n\n[وضع إبداعي مفعّل]
-أنت الآن في وضع إبداعي. غيّر شخصيتك قليلاً:
-- استخدم أسلوب مشوّق وقصصي أحياناً
-- استخدم تشبيهات من عالم الألعاب والتقنية`,
-      casual: `\n\n[وضع عفوي مفعّل]
-أنت الآن في وضع عفوي. التزم بالتالي:
-- ردود قصيرة جداً ومباشرة
-- لغة يومية بسيطة
-- لا تستخدم Markdown المعقد`,
-      code: `\n\n[وضع مبرمج مفعّل]
-أنت الآن في وضع البرمجة:
-- ركز على كتابة الأكواد وحل المشاكل البرمجية
-- اشرح الكود بوضوح
-- اقترح أفضل الممارسات (Best Practices)`,
+      pro: `\n\nوضع احترافي: ردود تقنية عميقة، كود كامل، أمثلة عملية.`,
+      creative: `\n\nوضع إبداعي: أفكار جديدة، تصاميم مبتكرة، حلول غير تقليدية.`,
+      casual: `\n\nوضع عفوي: محادثة طبيعية، لهجة ودية، بدون تعقيد.`,
+      coder: `\n\nوضع مبرمج: ركز على الكود والتقنية، اكتب كود كامل قابل للتشغيل.`,
     };
-    return `${AI_PROMPT}\n\nالمستخدم الحالي اسمه: ${userName}.${modePrompts[aiMode] || ""}`;
+    return `${AI_PROMPT}
+
+## السياق الحالي للمستخدم
+- الاسم: ${userName}
+- المجتمع المفتوح: ${currentCommunity}
+- عدد المواضيع المرئية: ${threadCount}
+- المجتمعات المتاحة: ${communityList}
+${currentThread}
+- الوقت: ${new Date().toLocaleString("ar-SA")}
+${modePrompts[aiMode] || ""}`;
   };
 
   const aiChatSend = async (overrideInput?: string | React.FormEvent) => {
@@ -1563,8 +1910,8 @@ export default function ForumsPage() {
   }, [aiMessages]);
   // Single animation loop using ref — avoids useEffect cleanup clearing timers
   useEffect(() => {
-    // Only run animation loop when in AI view and there are messages that need typing animation
-    if (viewMode !== "ai") return;
+    // Only run animation loop when AI panel is open and there are messages that need typing animation
+    if (!showAiPanel) return;
     const hasActiveTyping = aiMessages.some(m => m.role === "assistant" && !m.isTyping && m.content && (aiTypingProgress[m.id] ?? 0) < m.content.length);
     if (!hasActiveTyping) return;
     let active = true;
@@ -1588,8 +1935,8 @@ export default function ForumsPage() {
     };
     const id = setTimeout(tick, 30);
     return () => { active = false; clearTimeout(id); };
-  }, [viewMode, aiMessages, aiTypingProgress]);
-  useEffect(() => { if (viewMode === "ai") aiChatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages, aiTypingProgress]);
+  }, [showAiPanel, aiMessages, aiTypingProgress]);
+  useEffect(() => { if (showAiPanel) aiChatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages, aiTypingProgress]);
   useEffect(() => { if (!aiGenerating) return; const id = setInterval(() => setAiTypingPhase(p => (p + 1) % 3), 2000); return () => clearInterval(id); }, [aiGenerating]);
   useEffect(() => { const h = (e: MouseEvent) => { if (aiModelDropdownRef.current && !aiModelDropdownRef.current.contains(e.target as Node)) setAiModelDropdown(false); if (aiModeDropdownRef.current && !aiModeDropdownRef.current.contains(e.target as Node)) setAiModeDropdown(false); }; document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h); }, []);
 
@@ -1684,7 +2031,7 @@ export default function ForumsPage() {
   const allSearchableThreads = [...threads, ...allThreads.filter(at => !threads.some(t => t.id === at.id))];
   const threadMatches = allSearchableThreads.filter(t => t.title.toLowerCase().includes(qLower) || t.body?.toLowerCase().includes(qLower) || t.tags?.some(tag => tag.toLowerCase().includes(qLower)) || t.authorName.toLowerCase().includes(qLower) || t.community.toLowerCase().includes(qLower)).map(t => ({ ...t, _type: "thread" as const }));
   // Community matches
-  const commMatches = allCommunities.filter(c => c.name.toLowerCase().includes(qLower) || c.desc.toLowerCase().includes(qLower)).map(c => ({ ...c, _type: "community" as const }));
+  const commMatches = mergedCommunities.filter(c => c.name.toLowerCase().includes(qLower) || c.desc.toLowerCase().includes(qLower)).map(c => ({ ...c, _type: "community" as const }));
   // User matches from Firebase users collection
   const userMap = new Map<string, any>();
   try {
@@ -1718,7 +2065,7 @@ export default function ForumsPage() {
   // Keyboard navigation for search
   const handleSearchKeyDown = (e: React.KeyboardEvent) => { if (!showSearchDropdown) { if (e.key === "ArrowDown" && (searchHistory.length > 0 || searchResults.length > 0)) setShowSearchDropdown(true); return; } const total = searchResults.length || searchHistory.length; if (e.key === "ArrowDown") { e.preventDefault(); setSelectedSearchIdx(i => Math.min(i + 1, total - 1)); } else if (e.key === "ArrowUp") { e.preventDefault(); setSelectedSearchIdx(i => Math.max(i - 1, -1)); } else if (e.key === "Enter" && selectedSearchIdx >= 0) { e.preventDefault(); const item = searchResults[selectedSearchIdx]; if (item) handleSearchResultClick(item); } else if (e.key === "Escape") { setShowSearchDropdown(false); searchInputRef.current?.blur(); } };
 
-  const handleSearchResultClick = (r: any) => { addSearchHistory(searchQuery); if (r._type === "thread") { if (r.community && r.community !== selectedCommunity) setSelectedCommunity(r.community); openThread(r.id); } else if (r._type === "community") { openCommunity(allCommunities.find(c => c.name === r.name) || { name: r.name, img: r.img || "", banner: "", desc: "", shortDesc: "", members: r.members || 0, threads: 0, replies: 0, founded: "", rules: [], mods: [], tags: [], bookmarks: [] }); } else if (r._type === "user") openProfile(r.uid, r.name, r.photo); else if (r._type === "reply") openThread(r.threadId || activeThreadId || ""); setShowSearchDropdown(false); };
+  const handleSearchResultClick = (r: any) => { addSearchHistory(searchQuery); if (r._type === "thread") { if (r.community && r.community !== selectedCommunity) setSelectedCommunity(r.community); openThread(r.id); } else if (r._type === "community") { openCommunity(mergedCommunities.find(c => c.name === r.name) || { name: r.name, img: r.img || "", banner: "", desc: "", shortDesc: "", members: r.members || 0, threads: 0, replies: 0, founded: "", rules: [], mods: [], tags: [], bookmarks: [] }); } else if (r._type === "user") openProfile(r.uid, r.name, r.photo); else if (r._type === "reply") openThread(r.threadId || activeThreadId || ""); setShowSearchDropdown(false); };
 
   // Cmd+K shortcut
   useEffect(() => { const handler = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); searchInputRef.current?.focus(); } }; window.addEventListener("keydown", handler); return () => window.removeEventListener("keydown", handler); }, []);
@@ -1742,7 +2089,7 @@ export default function ForumsPage() {
   useEffect(() => { async function load() { setLoading(true); try { const data = await fetchCommunityThreads(selectedCommunity); setThreads(data); } catch { setThreads([]); } finally { setLoading(false); } } load(); }, [selectedCommunity]);
 
   // Fetch all threads from all communities for sidebar
-  useEffect(() => { async function load() { try { const data = await fetchAllCommunityThreads(allCommunities, 5); setAllThreads(data); } catch {} } load(); }, []);
+  useEffect(() => { async function load() { try { const data = await fetchAllCommunityThreads(mergedCommunities, 5); setAllThreads(data); } catch {} } load(); }, [mergedCommunities]);
 
   // Lazy-load author data for hover cards
   const fetchAuthorCache = async (uid: string) => {
@@ -1807,7 +2154,7 @@ export default function ForumsPage() {
         if (gSnap.exists()) pd.favoriteGameIds = gSnap.data().ids || [];
       } catch {}
       // Fetch user threads from Firestore
-      const userThreads = await fetchUserThreads(uid, allCommunities, 10);
+      const userThreads = await fetchUserThreads(uid, mergedCommunities, 10);
       // Fallback: use allThreads if Firestore returned nothing
       if (userThreads.length === 0) {
         const fromAll = allThreads.filter(t => t.authorUid === uid);
@@ -1824,23 +2171,52 @@ export default function ForumsPage() {
 
   const fetchReplies = async (threadId: string) => { try { const data = await fetchRepliesHelper(selectedCommunity, threadId); setReplies(prev => ({ ...prev, [threadId]: data })); } catch {} };
   const fetchRepliesForCommunity = async (threadId: string, community: string) => { try { const data = await fetchRepliesHelper(community, threadId); setReplies(prev => ({ ...prev, [threadId]: data })); } catch {} };
+
+  const findThreadById = (id: string): ForumThread | undefined => {
+    if (!id) return undefined;
+    const lists = [threads, allThreads, profileData?.threads || []];
+    for (const list of lists) {
+      if (!list) continue;
+      const direct = list.find(t => t.id === id);
+      if (direct) return direct;
+      const match = list.find(t => {
+        const prefix = t.community + "-";
+        const thRawId = t.id.startsWith(prefix) ? t.id.slice(prefix.length) : t.id;
+        const inputRawId = id.startsWith(prefix) ? id.slice(prefix.length) : id;
+        return thRawId === inputRawId;
+      });
+      if (match) return match;
+    }
+    return undefined;
+  };
+
   const openThread = (threadId: string) => {
-    const thread = threads.find(t => t.id === threadId) || allThreads.find(t => t.id === threadId);
-    setActiveThreadId(threadId); navigateForum("thread", { threadId, community: thread?.community || selectedCommunity, threadTitle: thread?.title || "" });
+    const thread = findThreadById(threadId);
     const threadCommunity = thread?.community || selectedCommunity;
-    fetchRepliesForCommunity(threadId, threadCommunity);
+    // Strip community prefix from threadId if it was added by fetchAllCommunityThreads (e.g. "Unity-abc123" → "abc123")
+    const rawThreadId = thread
+      ? (threadId.startsWith(threadCommunity + "-") ? threadId.slice(threadCommunity.length + 1) : threadId)
+      : threadId;
+    setActiveThreadId(rawThreadId);
+    navigateForum("thread", { threadId: rawThreadId, community: threadCommunity, threadTitle: thread?.title || "" });
+    fetchRepliesForCommunity(rawThreadId, threadCommunity);
     // Save to read history
     if (thread) {
       const entry = { community: threadCommunity, title: thread.title, time: Date.now() };
-      setLastReadHistory(prev => { const n = { ...prev, [threadId]: entry }; try { localStorage.setItem("forum_readHistory", JSON.stringify(n)); } catch {} return n; });
+      setLastReadHistory(prev => { const n = { ...prev, [rawThreadId]: entry }; try { localStorage.setItem("forum_readHistory", JSON.stringify(n)); } catch {} return n; });
     }
     // Only update views once per session
-    if (!viewedThreads.has(threadId)) {
-      setViewedThreads(prev => new Set(prev).add(threadId));
-      if (threadId && !threadId.includes("-")) {
-        try { incrementViews(threadCommunity, threadId); } catch {}
+    if (!viewedThreads.has(rawThreadId)) {
+      setViewedThreads(prev => new Set(prev).add(rawThreadId));
+      const isRealDoc = rawThreadId && !rawThreadId.includes("mock") && !rawThreadId.includes("temp");
+      if (isRealDoc) {
+        try { incrementViews(threadCommunity, rawThreadId); } catch {}
       }
-      setThreads(prev => prev.map(th => th.id === threadId ? { ...th, views: (th.views || 0) + 1 } : th));
+      setThreads(prev => prev.map(th => {
+        const prefix = threadCommunity + "-";
+        const thRawId = th.id.startsWith(prefix) ? th.id.slice(prefix.length) : th.id;
+        return thRawId === rawThreadId ? { ...th, views: (th.views || 0) + 1 } : th;
+      }));
     }
   };
   const backToList = () => { navigateForum("list", { community: selectedCommunity }); setActiveThreadId(null); setMenuOpen(null); setEditingReply(null); setReplyingTo(null); setProfileUid(null); setProfileData(null); };
@@ -1854,12 +2230,54 @@ export default function ForumsPage() {
   const handleVote = async (threadId: string, dir: "up" | "down") => {
     if (!user || votingThreadRef.current.has(threadId)) return;
     const prev = userVotes[threadId];
-    // Find community for this thread
-    const thread = threads.find(t => t.id === threadId) || allThreads.find(t => t.id === threadId);
-    const threadCommunity = thread?.community || selectedCommunity;
-    const isRealDoc = threadId && !threadId.includes("-");
+
+    // Check if threadId is a reply
+    let isReply = false;
+    let replyObj: any = null;
+    let parentThreadId: string | null = null;
+    for (const [pId, replyList] of Object.entries(replies)) {
+      const found = replyList.find(r => r.id === threadId);
+      if (found) {
+        replyObj = found;
+        parentThreadId = pId;
+        isReply = true;
+        break;
+      }
+    }
+
+    let thread: ForumThread | undefined = undefined;
+    let threadCommunity = selectedCommunity;
+    let authorUid = "";
+    let authorNameStr = "";
+    let votesCount = 0;
+
+    if (isReply) {
+      if (!replyObj || !parentThreadId) return;
+      authorUid = replyObj.authorUid;
+      authorNameStr = replyObj.authorName;
+      votesCount = replyObj.votes || 0;
+      // Find parent thread's community
+      const parentThread = findThreadById(parentThreadId);
+      threadCommunity = parentThread?.community || selectedCommunity;
+    } else {
+      thread = findThreadById(threadId);
+      if (!thread) return;
+      threadCommunity = thread.community || selectedCommunity;
+      authorUid = thread.authorUid;
+      authorNameStr = thread.authorName;
+      votesCount = thread.votes || 0;
+    }
+
+    const prefix = threadCommunity + "-";
+    const rawId = isReply 
+      ? threadId 
+      : (threadId.startsWith(prefix) ? threadId.slice(prefix.length) : threadId);
+
+    const isRealDoc = rawId && !rawId.includes("mock") && !rawId.includes("temp");
+
     // Prevent self-voting
-    if (thread?.authorUid && thread.authorUid === user.uid) return;
+    if (authorUid && authorUid === user.uid) return;
+
     // Determine new state and delta
     let delta: number;
     let isRemoving: boolean;
@@ -1879,9 +2297,30 @@ export default function ForumsPage() {
       isRemoving = false;
       setUserVotes(p => ({ ...p, [threadId]: dir }));
     }
-    // Update state immediately
-    setThreads(p => p.map(th => th.id === threadId ? { ...th, votes: (th.votes || 0) + delta } : th));
+
+    // Update state immediately across all lists
+    if (isReply) {
+      setReplies(p => {
+        const n = { ...p };
+        for (const key of Object.keys(n)) {
+          n[key] = n[key].map(rp => rp.id === threadId ? { ...rp, votes: (rp.votes || 0) + delta } : rp);
+        }
+        return n;
+      });
+    } else {
+      setThreads(p => p.map(th => th.id === threadId ? { ...th, votes: (th.votes || 0) + delta } : th));
+      setAllThreads(p => p.map(th => th.id === threadId ? { ...th, votes: (th.votes || 0) + delta } : th));
+      setProfileData(p => {
+        if (!p) return null;
+        return {
+          ...p,
+          threads: p.threads ? p.threads.map(th => th.id === threadId ? { ...th, votes: (th.votes || 0) + delta } : th) : []
+        };
+      });
+    }
+
     votingThreadRef.current.add(threadId);
+
     if (isRealDoc) {
       try {
         // Get voter's data for trust-based weight
@@ -1889,34 +2328,46 @@ export default function ForumsPage() {
         const voterData = voterSnap?.exists() ? {
           xp: voterSnap.data().forumXp || 0,
         } : { xp: 0 };
-        voteThread(threadCommunity, threadId, delta);
-        // Apply صيت change to author — use transaction for atomicity + idempotency
-        if (thread?.authorUid) {
-          const contentVotes = (thread.votes || 0) + delta;
+
+        // Define DB doc references
+        const contentDocRef = isReply
+          ? doc(db, "forums", threadCommunity, "threads", parentThreadId!, "replies", rawId)
+          : doc(db, "forums", threadCommunity, "threads", rawId);
+
+        const voteDocRef = isReply
+          ? doc(db, "forums", threadCommunity, "threads", parentThreadId!, "replies", rawId, "votes", user.uid)
+          : doc(db, "forums", threadCommunity, "threads", rawId, "votes", user.uid);
+
+        const authorRef = doc(db, "users", authorUid);
+
+        // Update core content votes
+        await updateDoc(contentDocRef, { votes: increment(delta) });
+
+        // Apply صيت change to author using transaction
+        if (authorUid) {
+          const contentVotes = votesCount + delta;
           if (isRemoving) {
             // Removing vote → read stored saitGain from vote doc to exactly reverse it
-            const voteSnap = await getDoc(doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid)).catch(() => null);
+            const voteSnap = await getDoc(voteDocRef).catch(() => null);
             const storedGain = voteSnap?.exists() ? (voteSnap.data().saitGain || 0) : 0;
-            console.log("[SAIT] ForumsPage REMOVE", { threadId, voterUid: user.uid, previousVote: prev, delta, storedGain, reputationDelta: -storedGain });
+            console.log("[SAIT] REMOVE", { threadId, voterUid: user.uid, previousVote: prev, delta, storedGain, reputationDelta: -storedGain });
             if (storedGain !== 0) {
-              await updateDoc(doc(db, "users", thread.authorUid), { forumKarma: increment(-storedGain) }).catch((e) => { console.error("[SAIT] ForumsPage REMOVE error", e); });
+              await updateDoc(authorRef, { forumKarma: increment(-storedGain) }).catch((e) => { console.error("[SAIT] REMOVE error", e); });
             }
             // Delete vote doc
-            await deleteDoc(doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid)).catch(() => {});
+            await deleteDoc(voteDocRef).catch(() => {});
           } else {
             // Adding new vote → use transaction to prevent double-counting
             const saitGain = calcSaitGain(Math.abs(contentVotes), dir === "up" ? 1 : -1, voterData);
-            console.log("[SAIT] ForumsPage ADD", { threadId, voterUid: user.uid, previousVote: prev, dir, saitGain, contentVotes });
+            console.log("[SAIT] ADD", { threadId, voterUid: user.uid, previousVote: prev, dir, saitGain, contentVotes });
             try {
               await runTransaction(db, async (transaction) => {
-                const voteDocRef = doc(db, "forums", threadCommunity, "threads", threadId, "votes", user.uid);
-                const authorRef = doc(db, "users", thread.authorUid);
-                // ALL reads FIRST (Firestore requirement)
+                // ALL reads FIRST
                 const voteDoc = await transaction.get(voteDocRef);
                 const authorDoc = await transaction.get(authorRef);
                 // Idempotency: if vote doc already exists with same dir, skip karma update
                 if (voteDoc.exists() && voteDoc.data().dir === (dir === "up" ? 1 : -1)) {
-                  console.log("[SAIT] ForumsPage SKIP (vote already exists)", { threadId, voterUid: user.uid });
+                  console.log("[SAIT] SKIP (vote already exists)", { threadId, voterUid: user.uid });
                   return;
                 }
                 // ALL writes AFTER reads
@@ -1926,13 +2377,15 @@ export default function ForumsPage() {
                   transaction.set(authorRef, { forumKarma: currentForumKarma + saitGain }, { merge: true });
                 }
               });
-              console.log("[SAIT] ForumsPage DONE", { threadId, voterUid: user.uid, saitGain });
+              console.log("[SAIT] DONE", { threadId, voterUid: user.uid, saitGain });
             } catch (txErr) {
-              console.error("[SAIT] ForumsPage TRANSACTION FAILED", txErr);
+              console.error("[SAIT] TRANSACTION FAILED", txErr);
             }
           }
         }
-      } catch {}
+      } catch (err) {
+        console.error("Firestore write failed for vote", err);
+      }
     }
     votingThreadRef.current.delete(threadId);
   };
@@ -1953,10 +2406,25 @@ export default function ForumsPage() {
   };
 
   // Open community profile view
-  const openCommunity = async (comm: typeof allCommunities[0]) => {
+  const openCommunity = async (comm: typeof mergedCommunities[0]) => {
     setCommunityViewData(comm);
     setCommunityThreadCount(0);
     setCommunityReplyCount(0);
+    // Fetch creator photo from Firestore if not already loaded
+    try {
+      const snap = await getDoc(doc(db, "communities", comm.name));
+      if (snap.exists()) {
+        const cd = snap.data();
+        if (cd.creatorUid) {
+          const uSnap = await getDoc(doc(db, "users", cd.creatorUid));
+          if (uSnap.exists() && uSnap.data().photoURL) {
+            const mods = comm.mods ? [...comm.mods] : [{ name: "", role: "مؤسس" }];
+            (mods[0] as any).photo = uSnap.data().photoURL;
+            setCommunityViewData({ ...comm, mods });
+          }
+        }
+      }
+    } catch {}
     try {
       const stats = await fetchCommunityStats(comm.name);
       setCommunityThreadCount(stats.threadCount);
@@ -2079,7 +2547,7 @@ export default function ForumsPage() {
   const filteredThreads = threads.filter(th => { if (typeFilter !== "all" && th.type !== typeFilter) return false; if (searchQuery.trim()) { const q = searchQuery.toLowerCase(); if (!th.title.toLowerCase().includes(q) && !th.body?.toLowerCase().includes(q) && !th.tags?.some(t => t.toLowerCase().includes(q))) return false; } if (timeFilter !== "all") { const now = Date.now(); const cutoff = timeFilter === "today" ? now - 86400000 : timeFilter === "week" ? now - 86400000 * 7 : now - 86400000 * 30; if (new Date(th.createdAt).getTime() < cutoff) return false; } return true; });
   const sortedThreads = [...filteredThreads].sort((a, b) => { if (sortMode === "pinned") return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0); if (sortMode === "popular") return (b.replyCount || 0) - (a.replyCount || 0); if (sortMode === "unsolved") return (a.solved ? 0 : 1) - (b.solved ? 0 : 1); if (sortMode === "views") return (b.views || 0) - (a.views || 0); if (sortMode === "hot") return hotRank(b.votes || 0, b.replyCount || 0, b.createdAt) - hotRank(a.votes || 0, a.replyCount || 0, a.createdAt); const timeDiff = (b.createdAt || "").localeCompare(a.createdAt || ""); return threadSort === "oldest" ? -timeDiff : timeDiff; });
   const pinnedThreads = sortedThreads.filter(t => t.pinned); const regularThreads = sortedThreads.filter(t => !t.pinned);
-  const activeThread = activeThreadId ? (threads.find(t => t.id === activeThreadId) || allThreads.find(t => t.id === activeThreadId)) : null;
+  const activeThread = activeThreadId ? findThreadById(activeThreadId) : null;
   const activeReplies = activeThreadId ? (replies[activeThreadId] || []) : [];
 
   // Update tab title when thread data loads (important for new tabs)
@@ -2093,17 +2561,17 @@ export default function ForumsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-nf-body text-nf-text" dir="rtl">
-      <header className="sticky top-0 z-50 border-b border-nf-border" style={{ backgroundColor: "#222224" }}>
+      <header className="sticky z-50 border-b border-nf-border" style={{ backgroundColor: "var(--bg-nav)", top: "var(--navbar-top, 0px)" }}>
         <div className="flex items-center h-[56px] px-4">
           {/* Left - Logo */}
           <div className="flex items-center gap-3 shrink-0">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-nf-muted hover:text-white lg:hidden rounded-lg hover:bg-nf-secondary/40 transition-colors"><Menu size={20} /></button>
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-nf-muted hover:text-nf-text lg:hidden rounded-lg hover:bg-nf-secondary/40 transition-colors"><Menu size={20} /></button>
             <div className="flex flex-col">
               <span className="text-[10px] text-nf-dim font-medium leading-none mb-0.5">منتدى</span>
               <a href="/app" className="text-[16px] font-bold text-nf-text hover:text-nf-accent transition-colors leading-none">NorthFall</a>
             </div>
           </div>
-
+          
           {/* Center - Search */}
           <div className="flex-1 px-8 max-w-2xl mx-auto hidden md:block">
             <div className="relative">
@@ -2129,12 +2597,12 @@ export default function ForumsPage() {
             </div>
             {/* Nav Links */}
             <div className="hidden lg:flex items-center gap-1 px-3 border-l border-nf-border">
-              <button onClick={backToList} className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:text-white hover:bg-nf-secondary/40 transition-colors">الرئيسية</button>
+              <button onClick={backToList} className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:text-nf-text hover:bg-nf-secondary/40 transition-colors">الرئيسية</button>
               <button onClick={() => navigateForum("new")} className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-accent border border-nf-accent/30 hover:bg-nf-accent/10 transition-colors">+ موضوع</button>
-              <a href="/app" className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:text-white hover:bg-nf-secondary/40 transition-colors">التطبيق</a>
+              <a href="/app" className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:text-nf-text hover:bg-nf-secondary/40 transition-colors">التطبيق</a>
             </div>
             {/* Notifications */}
-            <button onClick={openNotifications} className="hidden sm:flex p-2 rounded-lg text-nf-muted hover:text-white hover:bg-nf-secondary/40 transition-colors relative">
+            <button onClick={openNotifications} className="hidden sm:flex p-2 rounded-lg text-nf-muted hover:text-nf-text hover:bg-nf-secondary/40 transition-colors relative">
               <Bell size={18} />
               {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-nf-accent rounded-full" />}
             </button>
@@ -2159,11 +2627,11 @@ export default function ForumsPage() {
                       </div>
                       {/* Menu items */}
                       <div className="py-0.5">
-                        <button onClick={() => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><User size={14} className="shrink-0 text-nf-dim" /> البروفايل</button>
-                        <button onClick={() => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setUserMenuOpen(false); setTimeout(() => setProfileTab("saved"), 100); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Bookmark size={14} className="shrink-0 text-nf-dim" /> المحفوظات</button>
-                        <button onClick={() => { openNotifications(); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Bell size={14} className="shrink-0 text-nf-dim" /> الإشعارات</button>
-                        <button onClick={() => { navigateForum("new"); setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Plus size={14} className="shrink-0 text-nf-dim" /> موضوع جديد</button>
-                        <a href="/app" className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-colors"><Settings size={14} className="shrink-0 text-nf-dim" /> الإعدادات</a>
+                        <button onClick={() => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text transition-colors"><User size={14} className="shrink-0 text-nf-dim" /> البروفايل</button>
+                        <button onClick={() => { openProfile(user.uid, user.displayName || "مستخدم", user.photoURL || undefined); setUserMenuOpen(false); setTimeout(() => setProfileTab("saved"), 100); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text transition-colors"><Bookmark size={14} className="shrink-0 text-nf-dim" /> المحفوظات</button>
+                        <button onClick={() => { openNotifications(); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text transition-colors"><Bell size={14} className="shrink-0 text-nf-dim" /> الإشعارات</button>
+                        <button onClick={() => { navigateForum("new"); setUserMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text transition-colors"><Plus size={14} className="shrink-0 text-nf-dim" /> موضوع جديد</button>
+                        <a href="/app" className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text transition-colors"><Settings size={14} className="shrink-0 text-nf-dim" /> الإعدادات</a>
                       </div>
                       <div className="border-t border-nf-border/50 py-0.5">
                         <a href="/app" className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-accent hover:bg-nf-accent/5 transition-colors"><ArrowRight size={14} className="shrink-0" /> العودة للتطبيق</a>
@@ -2173,7 +2641,7 @@ export default function ForumsPage() {
                 </AnimatePresence>
               </div>
             ) : (
-              <a href="/app" className="flex items-center gap-1.5 text-[13px] font-bold text-nf-text hover:text-white transition-colors bg-nf-secondary/50 hover:bg-nf-secondary px-4 py-2 rounded-lg"><LogIn size={15} /> دخول</a>
+              <a href="/app" className="flex items-center gap-1.5 text-[13px] font-bold text-nf-text hover:text-nf-text transition-colors bg-nf-secondary/50 hover:bg-nf-secondary px-4 py-2 rounded-lg"><LogIn size={15} /> دخول</a>
             )}
           </div>
         </div>
@@ -2186,7 +2654,7 @@ export default function ForumsPage() {
             <motion.div initial={{ opacity: 0, y: -10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.97 }} transition={{ duration: 0.15 }} className="w-full max-w-md bg-nf-card border border-nf-border rounded-xl shadow-2xl shadow-black/50 overflow-hidden" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border">
                 <h3 className="text-sm font-bold text-nf-text flex items-center gap-2"><Bell size={16} /> الإشعارات</h3>
-                <button onClick={() => setNotifOpen(false)} className="p-1 text-nf-dim hover:text-white rounded-lg hover:bg-nf-secondary/40 transition-colors"><X size={16} /></button>
+                <button onClick={() => setNotifOpen(false)} className="p-1 text-nf-dim hover:text-nf-text rounded-lg hover:bg-nf-secondary/40 transition-colors"><X size={16} /></button>
               </div>
               <div className="max-h-[400px] overflow-y-auto">
                 {notifList.length === 0 ? (
@@ -2210,7 +2678,7 @@ export default function ForumsPage() {
       </AnimatePresence>
 
       <div className="flex flex-1">
-        <aside className={cn("w-[240px] bg-nf-body border-r border-nf-border overflow-y-auto flex-shrink-0 sticky top-[56px] h-[calc(100vh-56px)] py-3 flex flex-col", viewMode === "ai" ? "hidden" : sidebarOpen ? "block" : "hidden lg:block")}>
+        <aside className={cn("w-[240px] bg-nf-body border-r border-nf-border overflow-y-auto flex-shrink-0 sticky py-3 flex flex-col", sidebarOpen ? "block" : "hidden lg:block")} style={{ top: "calc(var(--navbar-top, 0px) + 56px)", height: "calc(100vh - var(--navbar-top, 0px) - 56px)" }}>
           {/* Community Search */}
           <div className="px-3 mb-3">
             <div className="relative">
@@ -2234,7 +2702,7 @@ export default function ForumsPage() {
                   <item.icon size={16} className={cn("shrink-0", item.active ? "text-nf-accent" : "text-nf-dim")} /><span>{item.label}</span>
                 </button>
               ))}
-              <button onClick={() => navigateForum("ai")} className={cn("ai-btn w-full", viewMode === "ai" && "ai-btn-active")}>
+              <button onClick={() => setShowAiPanel(p => !p)} className={cn("ai-btn w-full", showAiPanel && "ai-btn-active")}>
                 <Sparkles size={16} className="ai-btn-icon" />
                 <span className="ai-btn-letter" style={{ animationDelay: "0s" }}>ذكاء اصطناعي</span>
               </button>
@@ -2252,7 +2720,7 @@ export default function ForumsPage() {
                   { icon: Bell, label: "الإشعارات", id: "notifs", onClick: openNotifications },
                   { icon: Plus, label: "موضوع جديد", id: "newthread", onClick: () => navigateForum("new") },
                 ].map(item => (
-                  <button key={item.id} onClick={item.onClick} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-all", item.id === "newthread" && "text-nf-accent hover:bg-nf-accent/10")}>
+                  <button key={item.id} onClick={item.onClick} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text transition-all", item.id === "newthread" && "text-nf-accent hover:bg-nf-accent/10")}>
                     <item.icon size={16} className={cn("shrink-0", item.id === "newthread" ? "text-nf-accent" : "text-nf-dim")} /><span>{item.label}</span>
                     {item.id === "notifs" && unreadCount > 0 && <span className="mr-auto px-1.5 py-0.5 rounded-full bg-nf-accent text-white text-[9px] font-bold min-w-[18px] text-center">{unreadCount > 99 ? "99+" : unreadCount}</span>}
                   </button>
@@ -2267,7 +2735,7 @@ export default function ForumsPage() {
               <div className="text-[10px] font-bold text-nf-accent uppercase tracking-wider px-2 mb-1.5">مجتمعاتي</div>
               <div className="space-y-0.5">
                 {joinedComms.map(comm => (
-                  <div key={comm.name} onClick={() => { setSelectedCommunity(comm.name); navigateForum("list", { community: comm.name }); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer", selectedCommunity === comm.name ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-white")}>
+                  <div key={comm.name} onClick={() => { setSelectedCommunity(comm.name); navigateForum("list", { community: comm.name }); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer", selectedCommunity === comm.name ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text")}>
                     {comm.img ? <img src={comm.img} alt="" className="w-[18px] h-[18px] rounded-full opacity-80" /> : <div className="w-[18px] h-[18px] rounded-full bg-nf-accent/20 flex items-center justify-center text-[8px] text-nf-accent font-bold">n/</div>}
                     <span>n/{comm.name}</span>
                   </div>
@@ -2283,17 +2751,17 @@ export default function ForumsPage() {
               <div className="relative">
                 <Search size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-nf-dim" />
                 <input type="text" value={communitySearch} onChange={e => setCommunitySearch(e.target.value)} placeholder="ابحث عن مجتمع..." className="w-full bg-nf-secondary border border-nf-border/40 rounded-md pr-7 pl-2 py-1 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/30 transition-colors" />
-                {communitySearch && <button onClick={() => setCommunitySearch("")} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-nf-dim hover:text-white text-[10px]">✕</button>}
+                {communitySearch && <button onClick={() => setCommunitySearch("")} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-nf-dim hover:text-nf-text text-[10px]">✕</button>}
               </div>
             </div>
             <div className="space-y-0.5">
-              {allCommunities.filter(c => !communitySearch || c.name.toLowerCase().includes(communitySearch.toLowerCase())).map(comm => (
-                <div key={comm.name} onClick={() => { setSelectedCommunity(comm.name); navigateForum("list", { community: comm.name }); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer", selectedCommunity === comm.name ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-white")}>
+              {mergedCommunities.filter(c => !communitySearch || c.name.toLowerCase().includes(communitySearch.toLowerCase())).map(comm => (
+                <div key={comm.name} onClick={() => { setSelectedCommunity(comm.name); navigateForum("list", { community: comm.name }); }} className={cn("w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer", selectedCommunity === comm.name ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text")}>
                   {comm.img ? <img src={comm.img} alt="" className="w-[18px] h-[18px] rounded-full opacity-60" /> : <div className="w-[18px] h-[18px] rounded-full bg-nf-accent/20 flex items-center justify-center text-[8px] text-nf-accent font-bold">n/</div>}
                   <span>n/{comm.name}</span>
                 </div>
               ))}
-              {communitySearch && allCommunities.filter(c => c.name.toLowerCase().includes(communitySearch.toLowerCase())).length === 0 && (
+              {communitySearch && mergedCommunities.filter(c => c.name.toLowerCase().includes(communitySearch.toLowerCase())).length === 0 && (
                 <p className="text-[10px] text-nf-dim px-3 py-2 text-center">لا توجد نتائج</p>
               )}
             </div>
@@ -2308,7 +2776,7 @@ export default function ForumsPage() {
                 { icon: HelpCircle, label: "المساعدة", id: "help" },
                 { icon: Shield, label: "القوانين", id: "rules" },
               ].map(item => (
-                <button key={item.id} className="w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:bg-nf-secondary/40 hover:text-white transition-all">
+                <button key={item.id} className="w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text transition-all">
                   <item.icon size={16} className="shrink-0 text-nf-dim" /><span>{item.label}</span>
                 </button>
               ))}
@@ -2341,13 +2809,15 @@ export default function ForumsPage() {
 
                   <div className="bg-nf-card rounded-lg overflow-hidden mb-5">
                     {/* Banner */}
-                    <div className="relative h-[140px] overflow-hidden">
-                      <img src={profileData.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-nf-card to-transparent" />
+                    <div className={`relative overflow-hidden ${profileData.bannerUrl ? 'h-[140px]' : 'h-0'}`}>
+                      {profileData.bannerUrl ? (
+                        <img src={profileData.bannerUrl} alt="" className="w-full h-full object-cover" />
+                      ) : null}
+                      {profileData.bannerUrl && <div className="absolute inset-0 bg-gradient-to-t from-nf-card to-transparent" />}
                     </div>
 
                     {/* Header - avatar overlaps banner */}
-                    <div className="flex items-start gap-5 px-6 -mt-8 relative z-10 pb-4">
+                    <div className={`flex items-start gap-5 px-6 ${profileData.bannerUrl ? '-mt-8' : 'mt-0'} relative z-10 pb-4`}>
                       <div className="shrink-0">
                         {profileData.photo ? <img src={profileData.photo} alt="" className="w-[72px] h-[72px] rounded-full object-cover border-[3px] border-nf-card" /> : <div className="w-[72px] h-[72px] rounded-full bg-nf-muted flex items-center justify-center text-white text-[26px] font-bold border-[3px] border-nf-card">{(profileData.name || "م")[0]}</div>}
                       </div>
@@ -2408,7 +2878,7 @@ export default function ForumsPage() {
                       { icon: Gamepad2, label: "الألعاب", id: "games" as const },
                       { icon: Award, label: "الإنجازات", id: "awards" as const },
                     ].map(tab => { const TI = tab.icon; return (
-                      <button key={tab.id} onClick={() => setProfileTab(tab.id)} className={cn("flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-bold transition-colors", profileTab === tab.id ? "bg-nf-secondary/50 text-white" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-white")}>
+                      <button key={tab.id} onClick={() => setProfileTab(tab.id)} className={cn("flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-bold transition-colors", profileTab === tab.id ? "bg-nf-secondary/50 text-nf-text" : "text-nf-muted hover:bg-nf-secondary/40 hover:text-nf-text")}>
                         <TI size={13} /><span>{tab.label}</span>
                       </button>
                     ); })}
@@ -2445,10 +2915,7 @@ export default function ForumsPage() {
 
                   {profileTab === "saved" && (
                     (() => {
-                      const allLoaded = [...allThreads, ...threads];
-                      const unique = new Map<string, ForumThread>();
-                      allLoaded.forEach(t => unique.set(t.id, t));
-                      const savedList = [...unique.values()].filter(t => savedThreads.has(t.id));
+                      const savedList = Object.values(savedThreadsData);
                       return savedList.length > 0 ? savedList.map(thread => (
                         <div key={thread.id} onClick={() => { setSelectedCommunity(thread.community); openThread(thread.id); }} className="bg-nf-card rounded-xl mb-3 hover:bg-[#2e2e30] cursor-pointer transition-all p-5 border border-nf-border/20 group">
                           <div className="flex items-start gap-3">
@@ -2467,7 +2934,7 @@ export default function ForumsPage() {
                                 <span>{timeAgo(thread.createdAt)}</span>
                                 <span className="flex items-center gap-1"><MessageSquare size={10} /> {thread.replyCount} رد</span>
                                 <span className="flex items-center gap-1"><Eye size={10} /> {thread.views || 0}</span>
-                                <button onClick={e => { e.stopPropagation(); const n = new Set(savedThreads); n.delete(thread.id); setSavedThreads(n); showToast("تم إزالة الحفظ"); }} className="text-nf-accent hover:underline mr-auto">إزالة</button>
+                                <button onClick={e => { e.stopPropagation(); toggleSaveThread(thread); }} className="text-nf-accent hover:underline mr-auto">إزالة</button>
                               </div>
                             </div>
                           </div>
@@ -2487,13 +2954,32 @@ export default function ForumsPage() {
                       const userGames = GAMES.filter(g => gameIds.includes(g.id));
                       if (userGames.length === 0) return <p className="text-[14px] text-nf-dim text-center py-10">لا توجد ألعاب مفضلة بعد</p>;
                       return (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {userGames.map(g => (
-                            <div key={g.id} className="group cursor-pointer" onClick={() => window.open(g.steamUrl, "_blank")}>
-                              <div className="relative rounded-lg overflow-hidden aspect-[3/4] mb-1.5">
-                                <img src={g.cover} alt={g.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                                <span className="absolute bottom-1.5 right-1.5 left-1.5 text-[9px] text-white font-bold truncate drop-shadow">{g.name}</span>
+                            <div key={g.id} className="flex bg-nf-card/50 border border-nf-border/20 rounded-xl overflow-hidden cursor-pointer hover:border-nf-accent/40 hover:bg-nf-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300" onClick={() => window.open(g.steamUrl, "_blank")}>
+                              <div className="w-[100px] sm:w-[120px] shrink-0 relative">
+                                <img src={g.cover} alt={g.name} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-l from-nf-card/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+                              <div className="p-3 pl-4 flex-1 min-w-0 flex flex-col justify-between">
+                                <div>
+                                  <h3 className="text-[15px] font-bold text-nf-text truncate mb-1">{g.name}</h3>
+                                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-nf-dim mb-2">
+                                    <span className="bg-nf-secondary px-1.5 py-0.5 rounded text-nf-text font-bold">{g.releaseYear}</span>
+                                    <span className="flex items-center text-yellow-400 gap-0.5 font-bold"><Star size={10} fill="currentColor" /> {g.rating}</span>
+                                  </div>
+                                  <p className="text-[11px] text-nf-dim/80 mb-2 truncate">المطور: <span className="text-nf-text font-medium">{g.developer}</span></p>
+                                  <div className="flex flex-wrap gap-1 mb-2">
+                                    {g.genre.slice(0, 3).map(tag => (
+                                      <span key={tag} className="px-1.5 py-0.5 rounded bg-nf-accent/10 text-nf-accent text-[9px] font-bold">{tag}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap gap-1 mt-auto">
+                                  {g.platforms.slice(0, 3).map(p => (
+                                    <span key={p} className="px-1.5 py-0.5 rounded bg-white/5 text-nf-dim border border-white/5 text-[9px] font-bold uppercase">{p}</span>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -2524,109 +3010,61 @@ export default function ForumsPage() {
                   <div className="flex gap-4 mb-5">
                     {/* Main content */}
                     <div className="flex-1 bg-nf-card rounded-xl p-6 shadow-sm">
-                      <div className="flex items-center gap-2 mb-3 flex-wrap">
-                        {(() => { const TI = activeTypeInfo.icon; return <span className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold", activeTypeInfo.bg, activeTypeInfo.color)}><TI size={11} />{activeTypeInfo.label}</span>; })()}
-                        {activeThread.tags?.map(tag => <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-nf-secondary text-nf-dim font-medium">{tag}</span>)}
-                        {activeThread.solved && <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-400/10 text-green-400 text-[10px] font-bold"><CheckCircle2 size={10} /> محلول</span>}
-                        {activeThread.locked && <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400/10 text-amber-400 text-[10px] font-bold"><Lock size={10} /> مغلق</span>}
-                        {activeThread.pinned && <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-nf-accent/10 text-nf-accent text-[10px] font-bold"><Pin size={10} /> مثبّت</span>}
-                        <div className="flex items-center gap-3 mr-auto text-[11px] text-nf-dim font-medium">
-                          <span className="flex items-center gap-1"><Eye size={11} />{activeThread.views || 0}</span>
-                          <span className="flex items-center gap-1"><MessageCircle size={11} />{activeReplies.length || activeThread.replyCount}</span>
-                          <span className="flex items-center gap-1"><Clock size={11} />{timeAgo(activeThread.createdAt)}</span>
+                      {/* Top Header Row spanning full width */}
+                      <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5 flex-wrap gap-4 text-right" dir="rtl">
+                        <div className="flex items-center gap-3">
+                          <UserHoverCard name={activeThread.authorName} photo={activeThread.authorPhoto} uid={activeThread.authorUid}>
+                            <div className="flex items-center gap-3 cursor-pointer group/author" onClick={() => openProfile(activeThread.authorUid, activeThread.authorName, activeThread.authorPhoto)}>
+                              <div className="relative">
+                                {activeThread.authorPhoto ? (
+                                  <img src={activeThread.authorPhoto} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-nf-border/60 group-hover/author:border-nf-accent transition-colors shadow-sm" />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-full bg-nf-muted flex items-center justify-center text-white text-[18px] font-bold border-2 border-nf-border/60 group-hover/author:border-nf-accent transition-colors shadow-sm">
+                                    {(activeThread.authorName || "م")[0]}
+                                  </div>
+                                )}
+                                {authorCache[activeThread.authorUid]?.isOnline && (
+                                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-950 shrink-0 shadow" />
+                                )}
+                              </div>
+                              <div className="flex flex-col justify-center text-right">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[16px] font-extrabold text-nf-text group-hover/author:text-nf-accent transition-colors">
+                                    {activeThread.authorName}
+                                    {activeThread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" && (
+                                      <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] inline mr-1 shrink-0" />
+                                    )}
+                                  </span>
+                                  <span className="px-2.5 py-0.5 rounded bg-nf-accent/10 text-nf-accent text-[9px] font-bold">صاحب المنشور</span>
+                                  <span className="text-[10px] text-nf-dim">@{activeThread.authorName}</span>
+                                </div>
+                                <span className="text-[11px] text-nf-dim font-medium mt-0.5">انضم {authorCache[activeThread.authorUid]?.joinDate ? formatDate(authorCache[activeThread.authorUid].joinDate!) : "سابقاً"}</span>
+                              </div>
+                            </div>
+                          </UserHoverCard>
+                        </div>
+
+                        {/* Badges, views, replies, etc. */}
+                        <div className="flex items-center gap-2 flex-wrap ml-auto md:ml-0">
+                          {(() => { const TI = activeTypeInfo.icon; return <span className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-extrabold", activeTypeInfo.bg, activeTypeInfo.color)}><TI size={11} />{activeTypeInfo.label}</span>; })()}
+                          {activeThread.tags?.map(tag => <span key={tag} className="text-[10px] px-2.5 py-1 rounded-md bg-nf-secondary text-nf-dim font-medium border border-nf-border/20">{tag}</span>)}
+                          {activeThread.solved && <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-green-400/10 text-green-400 text-[10px] font-bold"><CheckCircle2 size={10} /> محلول</span>}
+                          {activeThread.locked && <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-400/10 text-amber-400 text-[10px] font-bold"><Lock size={10} /> مغلق</span>}
+                          {activeThread.pinned && <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-nf-accent/10 text-nf-accent text-[10px] font-bold"><Pin size={10} /> مثبّت</span>}
+                          
+                          <div className="flex items-center gap-3.5 border-r border-nf-border/30 pr-3.5 mr-1.5 text-[12px] text-nf-dim font-semibold">
+                            <span className="flex items-center gap-1.5" title="المشاهدات"><Eye size={13} className="text-nf-accent" /> {activeThread.views || 0}</span>
+                            <span className="flex items-center gap-1.5" title="الردود"><MessageCircle size={13} className="text-nf-accent" /> {activeReplies.length || activeThread.replyCount}</span>
+                            <span className="flex items-center gap-1.5 text-nf-dim/70" title="تاريخ النشر"><Clock size={13} /> {timeAgo(activeThread.createdAt)}</span>
+                          </div>
                         </div>
                       </div>
+
                       <h1 className="text-[26px] font-bold text-nf-text leading-[1.3] mb-5">{activeThread.title}</h1>
-                      <div className="flex gap-4">
-                        {/* Author with hover card */}
-                        <div className="relative group shrink-0" onMouseEnter={() => fetchAuthorCache(activeThread.authorUid)}>
-                          <div className="flex flex-col items-center gap-1.5 w-[52px]" onClick={() => openProfile(activeThread.authorUid, activeThread.authorName, activeThread.authorPhoto)}>
-                            {activeThread.authorPhoto ? <img src={activeThread.authorPhoto} alt="" className="w-11 h-11 rounded-full object-cover cursor-pointer" /> : <div className="w-11 h-11 rounded-full bg-nf-muted flex items-center justify-center text-white text-[15px] font-bold cursor-pointer">{(activeThread.authorName || "م")[0]}</div>}
-                            <span className="text-[11px] font-bold text-nf-text hover:text-nf-accent cursor-pointer text-center inline-flex items-center gap-0.5">{activeThread.authorName}{(activeThread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[10px] h-[10px] inline" />}</span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-nf-accent/10 text-nf-accent font-bold">صاحب</span>
-                          </div>
-                          {/* Hover Profile Card */}
-                          <div className="absolute top-0 right-full mr-2 w-[520px] bg-nf-card rounded-xl shadow-2xl border border-nf-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                            {/* Banner */}
-                            <div className="relative h-[120px] overflow-hidden">
-                              <img src={authorCache[activeThread.authorUid]?.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-nf-card via-nf-card/30 to-transparent" />
-                              {activeThread.authorPhoto && <img src={activeThread.authorPhoto} alt="" className="absolute bottom-2 left-4 w-16 h-16 rounded-full object-cover border-[3px] border-nf-card shadow-lg" />}
-                            </div>
-                            <div className="px-5 pt-1 pb-4">
-                              <div className="flex items-center justify-between mb-1.5">
-                                <div>
-                                  <p className="text-[17px] font-bold text-nf-text inline-flex items-center gap-1.5">{activeThread.authorName}{(activeThread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[16px] h-[16px] inline" />}</p>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-[11px] text-nf-accent">@{activeThread.authorName}</p>
-                                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold">{authorCache[activeThread.authorUid]?.role || "عضو"}</span>
-                                    <span className={cn("flex items-center gap-1 text-[9px] font-bold", authorCache[activeThread.authorUid]?.isOnline ? "text-green-400" : "text-nf-dim")}>
-                                      <span className={cn("w-1.5 h-1.5 rounded-full", authorCache[activeThread.authorUid]?.isOnline ? "bg-green-400" : "bg-nf-dim")} />
-                                      {authorCache[activeThread.authorUid]?.isOnline ? "متصل الآن" : "غير متصل"}
-                                    </span>
-                                  </div>
-                                </div>
-                                <span className="text-[9px] px-2 py-1 rounded-full bg-nf-accent/10 text-nf-accent font-bold">صاحب المنشور</span>
-                              </div>
-                              {/* Bio */}
-                              {authorCache[activeThread.authorUid]?.bio && <p className="text-[11px] text-nf-dim leading-[1.7] mb-2.5 line-clamp-2">{authorCache[activeThread.authorUid].bio}</p>}
-                              {/* Stats row */}
-                              <div className="flex items-center gap-4 mb-2.5 border-t border-nf-border/40 pt-2.5 text-[11px]">
-                                <span className="text-nf-dim flex items-center gap-1.5">{levelBadge(authorCache[activeThread.authorUid]?.xp ?? 0, "md")}<span className="font-bold text-nf-text text-[13px]">{Math.round(authorCache[activeThread.authorUid]?.karma ?? 0)}</span> صيت</span>
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.postCount ?? sortedThreads.filter(t => t.authorUid === activeThread.authorUid).length}</span> موضوع</span>
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.commentCount ?? activeReplies.filter(r => r.authorUid === activeThread.authorUid).length}</span> رد</span>
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.followerCount ?? "—"}</span> يتابعونه</span>
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{authorCache[activeThread.authorUid]?.followingCount ?? "—"}</span> يتابعهم</span>
-                                <span className="text-nf-dim"><span className="font-bold text-nf-text text-[13px]">{allThreads.filter(t => t.authorUid === activeThread.authorUid).reduce((s, t) => s + (t.views || 0), 0)}</span> مشاهدة</span>
-                              </div>
-                              {/* Join date */}
-                              {authorCache[activeThread.authorUid]?.joinDate && <div className="flex items-center gap-1.5 mb-2 text-[9px] text-nf-dim"><Calendar size={9} className="text-nf-accent" /> انضم {formatDate(authorCache[activeThread.authorUid].joinDate!)}</div>}
-                              {/* Social links */}
-                              {authorCache[activeThread.authorUid]?.socialLinks && Object.values(authorCache[activeThread.authorUid].socialLinks!).some(v => v?.trim()) && (
-                                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                                  {Object.entries(authorCache[activeThread.authorUid].socialLinks!).filter(([, v]) => v?.trim()).map(([key, val]) => {
-                                    const labels: Record<string, string> = { twitter: "X", youtube: "YouTube", github: "GitHub", steam: "Steam", discord: "Discord", website: "موقع" };
-                                    return <a key={key} href={val} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-nf-secondary text-[9px] text-nf-accent font-bold hover:bg-nf-accent/10 transition-colors"><ExternalLink size={8} />{labels[key] || key}</a>;
-                                  })}
-                                </div>
-                              )}
-                              {/* Favorite Games */}
-                              {authorCache[activeThread.authorUid]?.favoriteGameIds && authorCache[activeThread.authorUid].favoriteGameIds!.length > 0 && (() => {
-                                const topGames = GAMES.filter(g => authorCache[activeThread.authorUid].favoriteGameIds!.includes(g.id)).slice(0, 3);
-                                if (topGames.length === 0) return null;
-                                return (
-                                  <div className="flex gap-2 mb-2.5">
-                                    {topGames.map(g => (
-                                      <div key={g.id} className="relative rounded-lg overflow-hidden w-14 h-[70px] shrink-0 cursor-pointer group" onClick={() => window.open(g.steamUrl, "_blank")}>
-                                        <img src={g.cover} alt={g.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                                        <span className="absolute bottom-0.5 right-0.5 left-0.5 text-[6px] text-white font-bold truncate drop-shadow leading-tight">{g.name}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                );
-                              })()}
-                              {/* Communities */}
-                              <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
-                                {[...new Set(allThreads.filter(t => t.authorUid === activeThread.authorUid).map(t => t.community))].slice(0, 5).map(c => (
-                                  <span key={c} className="px-2 py-0.5 rounded bg-nf-secondary text-[9px] text-nf-dim font-bold">{c}</span>
-                                ))}
-                              </div>
-                              {/* Badges */}
-                              <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-                                {authorCache[activeThread.authorUid]?.role === "مشرف" && <span className="px-2 py-0.5 rounded-full bg-red-400/10 text-red-400 text-[8px] font-bold">🛡 مشرف</span>}
-                              </div>
-                              {/* Action buttons */}
-                              <div className="flex items-center gap-2">
-                                <button onClick={() => openProfile(activeThread.authorUid, activeThread.authorName, activeThread.authorPhoto)} className="flex-1 bg-nf-accent/15 hover:bg-nf-accent/25 text-nf-accent text-[11px] font-bold py-2 rounded-lg transition-colors">عرض البروفايل</button>
-                                <button onClick={() => setReplyingTo(activeThread.id)} className="px-3 py-2 rounded-lg bg-nf-secondary text-nf-dim hover:text-nf-text hover:bg-nf-secondary/60 text-[11px] font-bold transition-colors"><MessageSquare size={12} /></button>
-                                {user?.uid !== activeThread.authorUid && <button onClick={() => toggleFollowUser(activeThread.authorUid)} className={cn("px-3 py-2 rounded-lg text-[11px] font-bold transition-colors", followedUsers.has(activeThread.authorUid) ? "bg-nf-accent/20 text-nf-accent" : "bg-nf-accent/10 text-nf-accent hover:bg-nf-accent/20")}>{followedUsers.has(activeThread.authorUid) ? "متابَع ✓" : "متابعة"}</button>}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                        {activeThread.body && <div className="text-[16px] leading-[2.2] text-nf-text">{renderBody(activeThread.body, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); })}</div>}
+                      
+                      <div className="w-full">
+                        <div className="w-full">
+                        {activeThread.body && <div className="text-[16px] leading-[2.2] text-nf-text">{renderBody(activeThread.body, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); }, (src) => setLightboxImg({ src, urls: [src], idx: 0 }))}</div>}
 
                         {/* Inline AI Summary */}
                         <AnimatePresence>
@@ -2700,7 +3138,7 @@ export default function ForumsPage() {
                             <button onClick={() => { setQuotedThreadId(activeThread.id); setReplyingTo(activeThread.id); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-bold transition-colors"><Quote size={13} /> اقتباس</button>
                             <button onClick={() => openShare(activeThread.id, activeThread.title)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors"><Share2 size={12} /> مشاركة</button>
                             <button onClick={() => copyText(`${window.location.origin}/forum?view=thread&threadId=${activeThread.id}&community=${activeThread.community}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors"><Link2 size={12} /> نسخ الرابط</button>
-                            <button onClick={() => { const n = new Set(savedThreads); if (n.has(activeThread.id)) { n.delete(activeThread.id); showToast("تم إزالة الحفظ"); } else { n.add(activeThread.id); showToast("تم الحفظ ✓"); } setSavedThreads(n); }} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors", savedThreads.has(activeThread.id) ? "text-nf-accent hover:bg-nf-secondary/40" : "text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40")}><Bookmark size={12} fill={savedThreads.has(activeThread.id) ? "currentColor" : "none"} /> حفظ</button>
+                            <button onClick={() => toggleSaveThread(activeThread)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors", savedThreads.has(activeThread.id) ? "text-nf-accent hover:bg-nf-secondary/40" : "text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40")}><Bookmark size={12} fill={savedThreads.has(activeThread.id) ? "currentColor" : "none"} /> حفظ</button>
                             {/* AI Summary button */}
                             <button onClick={async () => {
                               if (aiThreadSummary) { setAiThreadSummary(null); return; }
@@ -2832,9 +3270,11 @@ export default function ForumsPage() {
                               {/* Hover Profile Card */}
                               <div className="absolute top-full mt-1 right-0 w-[480px] bg-nf-card rounded-xl shadow-2xl border border-nf-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                                 {/* Banner */}
-                                <div className="relative h-[100px] overflow-hidden">
-                                  <img src={authorCache[reply.authorUid]?.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-nf-card via-nf-card/30 to-transparent" />
+                                <div className={`relative overflow-hidden ${authorCache[reply.authorUid]?.bannerUrl ? 'h-[100px]' : 'h-[50px]'}`}>
+                                  {authorCache[reply.authorUid]?.bannerUrl ? (
+                                    <img src={authorCache[reply.authorUid].bannerUrl} alt="" className="w-full h-full object-cover" />
+                                  ) : null}
+                                  {authorCache[reply.authorUid]?.bannerUrl && <div className="absolute inset-0 bg-gradient-to-t from-nf-card via-nf-card/30 to-transparent" />}
                                   {reply.authorPhoto && <img src={reply.authorPhoto} alt="" className="absolute bottom-2 left-3 w-14 h-14 rounded-full object-cover border-[3px] border-nf-card shadow-lg" />}
                                 </div>
                                 <div className="px-4 pt-1 pb-3">
@@ -2844,7 +3284,7 @@ export default function ForumsPage() {
                                       <div className="flex items-center gap-2 mt-0.5">
                                         <p className="text-[10px] text-nf-accent">@{reply.authorName}</p>
                                         <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold">{authorCache[reply.authorUid]?.role || "عضو"}</span>
-                                        <span className={cn("flex items-center gap-1 text-[9px] font-bold", authorCache[reply.authorUid]?.isOnline ? "text-green-400" : "text-nf-dim")}>
+                                        <span className={cn("flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold", authorCache[reply.authorUid]?.isOnline ? "bg-green-400/10 text-green-400" : "bg-nf-secondary/60 text-nf-dim")}>
                                           <span className={cn("w-1.5 h-1.5 rounded-full", authorCache[reply.authorUid]?.isOnline ? "bg-green-400" : "bg-nf-dim")} />
                                           {authorCache[reply.authorUid]?.isOnline ? "متصل الآن" : "غير متصل"}
                                         </span>
@@ -2920,7 +3360,7 @@ export default function ForumsPage() {
                               </div>
                             ) : <>
                               {reply.quotedThreadId && (() => {
-                                const qt = threads.find(t => t.id === reply.quotedThreadId) || allThreads.find(t => t.id === reply.quotedThreadId);
+                                const qt = findThreadById(reply.quotedThreadId);
                                 if (!qt) return null;
                                 return (
                                   <div onClick={() => openThread(qt.id)} className="mb-3 rounded-lg border border-nf-border-2/40 bg-[#16161a] px-4 pt-3 pb-2 cursor-pointer hover:bg-[#1c1c22] hover:border-nf-border-2/70 transition-all duration-150">
@@ -2942,7 +3382,7 @@ export default function ForumsPage() {
                                   </div>
                                 );
                               })()}
-                              <div className="text-[16px] text-nf-text leading-[2.2]">{renderBody(reply.text, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); })}</div>
+                              <div className="text-[16px] text-nf-text leading-[2.2]">{renderBody(reply.text, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); }, (src) => setLightboxImg({ src, urls: [src], idx: 0 }))}</div>
                             </>}
                             <div className="flex items-center gap-4 mt-4">
                               <button onClick={() => { setReplyingTo(reply.id); setReplyText(`@${reply.authorName} `); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-bold transition-colors"><Reply size={12} /> رد</button>
@@ -3085,7 +3525,7 @@ export default function ForumsPage() {
                       )}
                       {/* Quote preview */}
                       {quotedThreadId && (() => {
-                        const qt = threads.find(t => t.id === quotedThreadId) || allThreads.find(t => t.id === quotedThreadId);
+                        const qt = findThreadById(quotedThreadId);
                         if (!qt) return null;
                         return (
                           <div className="mb-4 rounded-lg border border-nf-border-2/40 bg-[#16161a] overflow-hidden">
@@ -3173,7 +3613,7 @@ export default function ForumsPage() {
                       )}
                       {replyPreview ? (
                         <div className="w-full min-h-[120px] bg-nf-secondary rounded-lg px-4 py-3 text-[15px] text-nf-text leading-[1.8]">
-                          {replyText.trim() ? renderBody(replyText, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); }) : <span className="text-nf-dim">لا يوجد محتوى للمعاينة</span>}
+                          {replyText.trim() ? renderBody(replyText, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); }, (src) => setLightboxImg({ src, urls: [src], idx: 0 })) : <span className="text-nf-dim">لا يوجد محتوى للمعاينة</span>}
                         </div>
                       ) : (
                         <textarea ref={replyTextareaRef} value={replyText} onChange={e => setReplyText(e.target.value)} placeholder={replyingTo ? `اكتب ردك...` : "شارك في النقاش..."} className="w-full bg-nf-secondary rounded-lg px-4 py-3 text-[15px] text-nf-text placeholder:text-nf-dim outline-none focus:ring-1 focus:ring-nf-accent leading-[1.8] min-h-[120px]" />
@@ -3208,7 +3648,7 @@ export default function ForumsPage() {
                     <h2 className="text-[18px] font-bold text-nf-text mb-5">إنشاء موضوع جديد</h2>
                     <div className="space-y-5">
                       <div><label className="text-[12px] font-bold text-nf-dim mb-2 block">نوع الموضوع</label><div className="flex items-center gap-2 flex-wrap">{threadTypes.map(tt => { const TI = tt.icon; return <button key={tt.id} onClick={() => setNewType(tt.id)} className={cn("flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-bold transition-colors", newType === tt.id ? cn(tt.bg, tt.color) : "bg-nf-secondary text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text")}><TI size={13} />{tt.label}</button>; })}</div></div>
-                      <div><label className="text-[12px] font-bold text-nf-dim mb-2 block">التصنيف</label><div className="flex items-center gap-2 flex-wrap">{allCommunities.map(c => <button key={c.name} onClick={() => setNewCommunity(c.name)} className={cn("flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-bold transition-colors", newCommunity === c.name ? "bg-nf-accent/10 text-nf-accent" : "bg-nf-secondary text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text")}>{c.img && <img src={c.img} alt="" className="w-4 h-4 rounded object-cover" />}{c.name}</button>)}</div></div>
+                      <div><label className="text-[12px] font-bold text-nf-dim mb-2 block">التصنيف</label><div className="flex items-center gap-2 flex-wrap">{mergedCommunities.map(c => <button key={c.name} onClick={() => setNewCommunity(c.name)} className={cn("flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-bold transition-colors", newCommunity === c.name ? "bg-nf-accent/10 text-nf-accent" : "bg-nf-secondary text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text")}>{c.img && <img src={c.img} alt="" className="w-4 h-4 rounded object-cover" />}{c.name}</button>)}</div></div>
                       <div className="relative">
                         <input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="عنوان الموضوع" className="w-full bg-nf-secondary rounded-lg px-4 py-3 text-[17px] font-bold text-nf-text placeholder:text-nf-dim outline-none focus:ring-1 focus:ring-nf-accent pr-12" />
                         <button onClick={async () => {
@@ -3240,7 +3680,7 @@ export default function ForumsPage() {
                           </div>
                           {/* Preview body */}
                           <div className="px-5 py-4">
-                            {newBody.trim() ? <div className="text-[15px] text-nf-text leading-[2.2]">{renderBody(newBody)}</div> : <span className="text-nf-dim/30">لا يوجد محتوى</span>}
+                            {newBody.trim() ? <div className="text-[15px] text-nf-text leading-[2.2]">{renderBody(newBody, undefined, (src) => setLightboxImg({ src, urls: [src], idx: 0 }))}</div> : <span className="text-nf-dim/30">لا يوجد محتوى</span>}
                           </div>
                           {/* Preview tags */}
                           {newTags.trim() && (
@@ -3358,7 +3798,8 @@ export default function ForumsPage() {
                 </motion.div>
               )}
 
-              {viewMode === "ai" && (
+              {/* AI view — replaced by sidebar panel */}
+              {false && (
                 <motion.div key="ai" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex flex-col h-[calc(100vh-80px)] relative">
                   <AnimatePresence>
                     {selectionRect && selectedText && (
@@ -3422,7 +3863,7 @@ export default function ForumsPage() {
                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }} className="grid grid-cols-2 gap-2 max-w-[400px] w-full">
                             {[
                               { icon: Code, label: "اكتب كود", desc: "C#, GDScript, JS", color: "blue" },
-                              { icon: BarChart3, label: "قارن محركات", desc: "Unity vs Unreal vs Godot", color: "green" },
+                              { icon: BarChart3, label: "قارن أدوات", desc: "مقارنة محركات وأدوات التطوير", color: "green" },
                               { icon: Bug, label: "حل مشكلة", desc: "أخبرني بالخطأ", color: "red" },
                               { icon: Lightbulb, label: "أفكار لعبة", desc: "اقتراحات إبداعية", color: "yellow" },
                             ].map((card, i) => {
@@ -3516,9 +3957,11 @@ export default function ForumsPage() {
                                     msg.content === "__PROFILE_CARD__" ? (
                                       /* Full Visual Profile Card — real data from Firebase */
                                       <div className="bg-nf-card rounded-xl border border-nf-border/6 overflow-hidden max-w-[380px]">
-                                        <div className="relative h-[90px] overflow-hidden">
-                                          <img src={myProfileData?.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
-                                          <div className="absolute inset-0 bg-gradient-to-t from-nf-card via-nf-card/40 to-transparent" />
+                                        <div className={`relative overflow-hidden ${myProfileData?.bannerUrl ? 'h-[90px]' : 'h-0'}`}>
+                                          {myProfileData?.bannerUrl ? (
+                                            <img src={myProfileData.bannerUrl} alt="" className="w-full h-full object-cover" />
+                                          ) : null}
+                                          {myProfileData?.bannerUrl && <div className="absolute inset-0 bg-gradient-to-t from-nf-card via-nf-card/40 to-transparent" />}
                                         </div>
                                         <div className="px-4 -mt-7 relative z-10 pb-4">
                                           <div className="flex items-start gap-3">
@@ -3569,12 +4012,17 @@ export default function ForumsPage() {
                                             const topGames = GAMES.filter(g => gameIds.includes(g.id)).slice(0, 3);
                                             if (topGames.length === 0) return null;
                                             return (
-                                              <div className="grid grid-cols-3 gap-1.5 mt-3">
+                                              <div className="flex flex-wrap gap-2 mt-3">
                                                 {topGames.map(g => (
-                                                  <div key={g.id} className="relative rounded-md overflow-hidden aspect-[3/4] cursor-pointer" onClick={() => window.open(g.steamUrl, "_blank")}>
-                                                    <img src={g.cover} alt={g.name} className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                                                    <span className="absolute bottom-1 right-1 left-1 text-[7px] text-white font-bold truncate drop-shadow">{g.name}</span>
+                                                  <div key={g.id} className="flex bg-nf-secondary/30 rounded-lg overflow-hidden w-[140px] shrink-0 cursor-pointer border border-nf-border/20 hover:border-nf-accent/30 hover:bg-nf-secondary/50 transition-all" onClick={() => window.open(g.steamUrl, "_blank")}>
+                                                    <img src={g.cover} alt={g.name} className="w-10 h-14 object-cover shrink-0" />
+                                                    <div className="flex flex-col justify-center p-1.5 flex-1 min-w-0">
+                                                      <span className="text-[10px] font-bold text-nf-text truncate mb-0.5">{g.name}</span>
+                                                      <div className="flex items-center gap-1 text-[8px] text-nf-dim">
+                                                        <span className="truncate">{g.releaseYear}</span>
+                                                        <span className="flex items-center text-yellow-400 gap-0.5"><Star size={7} fill="currentColor" /> {g.rating}</span>
+                                                      </div>
+                                                    </div>
                                                   </div>
                                                 ))}
                                               </div>
@@ -3918,7 +4366,7 @@ export default function ForumsPage() {
                     </AnimatePresence>
                     <div className="relative bg-nf-card/90 rounded-2xl border border-nf-border/8 focus-within:border-nf-accent/20 focus-within:shadow-[0_0_24px_rgba(var(--nf-accent-rgb),0.08)] transition-all" style={{ backdropFilter: "blur(16px)" }}>
                       {/* Context hint bar — shows when viewing a thread */}
-                      {activeThread && viewMode === "ai" && (
+                      {activeThread && showAiPanel && (
                         <div className="flex items-center gap-2 px-4 pt-3 pb-1">
                           <MessageSquare size={10} className="text-nf-accent/40 shrink-0" />
                           <span className="text-[9px] text-nf-dim/40 truncate">سياق: {activeThread.title}</span>
@@ -4041,9 +4489,11 @@ export default function ForumsPage() {
 
                   <div className="bg-nf-card rounded-lg overflow-hidden mb-5">
                     {/* Banner with user photo overlay */}
-                    <div className="relative h-[160px] overflow-hidden">
-                      <img src={communityViewData.banner || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-nf-card via-nf-card/40 to-transparent" />
+                    <div className={`relative overflow-hidden ${communityViewData.banner ? 'h-[160px]' : 'h-0'}`}>
+                      {communityViewData.banner ? (
+                        <img src={communityViewData.banner} alt="" className="w-full h-full object-cover" />
+                      ) : null}
+                      {communityViewData.banner && <div className="absolute inset-0 bg-gradient-to-t from-nf-card via-nf-card/40 to-transparent" />}
                       {/* User photo in bottom-right of banner */}
                       {user?.photoURL && <img src={user.photoURL} alt="" className="absolute bottom-3 left-4 w-10 h-10 rounded-full object-cover border-2 border-nf-card shadow-lg" />}
                     </div>
@@ -4074,8 +4524,8 @@ export default function ForumsPage() {
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-2 px-1 mb-4">
-                    <button onClick={() => { setSelectedCommunity(communityViewData.name); backToList(); }} className="flex-1 bg-nf-accent/15 hover:bg-nf-accent/25 text-nf-accent text-[12px] font-bold py-2 rounded-lg flex items-center justify-center transition-colors">تصفح المواضيع</button>
-                    <button onClick={() => { navigateForum("new", { community: communityViewData.name }); setNewCommunity(communityViewData.name); }} className="flex-1 bg-nf-accent/15 hover:bg-nf-accent/25 text-nf-accent text-[12px] font-bold py-2 rounded-lg flex items-center justify-center transition-colors">موضوع جديد</button>
+                    <button onClick={() => { setSelectedCommunity(communityViewData.name); backToList(); }} className="flex-1 bg-nf-secondary hover:bg-nf-accent/10 text-nf-muted hover:text-nf-accent text-[12px] font-bold py-2 rounded-lg flex items-center justify-center transition-colors">تصفح المواضيع</button>
+                    <button onClick={() => { navigateForum("new", { community: communityViewData.name }); setNewCommunity(communityViewData.name); }} className="flex-1 bg-nf-secondary hover:bg-nf-accent/10 text-nf-muted hover:text-nf-accent text-[12px] font-bold py-2 rounded-lg flex items-center justify-center transition-colors">موضوع جديد</button>
                     <button onClick={() => toggleFollow(communityViewData.name)} className={cn("px-3.5 py-2 rounded-lg text-[12px] font-bold transition-colors", followedCommunities.has(communityViewData.name) ? "bg-nf-accent/10 text-nf-accent" : "bg-nf-secondary text-nf-muted hover:bg-nf-accent/10 hover:text-nf-accent")}>{followedCommunities.has(communityViewData.name) ? "متابَع ✓" : "متابعة"}</button>
                     <button onClick={() => openShare(communityViewData.name, `n/${communityViewData.name}`)} className="px-3 py-2 rounded-lg bg-nf-secondary text-nf-muted hover:bg-nf-accent/10 hover:text-nf-accent text-[12px] font-bold transition-colors"><Share2 size={13} /></button>
                   </div>
@@ -4104,8 +4554,9 @@ export default function ForumsPage() {
                         <div className="space-y-1">
                           {communityViewData.mods.map((mod, i) => (
                             <div key={i} className="flex items-center gap-2">
+                              {(mod as any).photo ? <img src={(mod as any).photo} alt="" className="w-5 h-5 rounded-full object-cover" /> : <div className="w-5 h-5 rounded-full bg-nf-secondary flex items-center justify-center text-[8px] text-nf-accent font-bold">{(mod.name || "م")[0]}</div>}
                               <span className="text-[11px] text-nf-accent font-medium">u/{mod.name}</span>
-                              <span className="text-[9px] text-nf-dim bg-nf-secondary px-1.5 py-0.5 rounded">{mod.role}</span>
+                              <span className="text-[9px] text-nf-accent bg-nf-accent/10 px-2 py-0.5 rounded font-bold">{mod.role}</span>
                             </div>
                           ))}
                         </div>
@@ -4201,18 +4652,18 @@ export default function ForumsPage() {
                   <div className="mb-5">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h1 className="text-[20px] font-bold text-nf-text cursor-pointer hover:text-nf-accent transition-colors" onClick={() => { const c = allCommunities.find(c => c.name === selectedCommunity); if (c) openCommunity(c); }}>{selectedCommunity}</h1>
+                        <h1 className="text-[20px] font-bold text-nf-text cursor-pointer hover:text-nf-accent transition-colors" onClick={() => { const c = mergedCommunities.find(c => c.name === selectedCommunity); if (c) openCommunity(c); }}>{selectedCommunity}</h1>
                         <span className="text-[12px] text-nf-dim font-medium">{sortedThreads.length} موضوع · {new Set(allThreads.filter(t => t.community === selectedCommunity).map(t => t.authorUid)).size} عضو</span>
                       </div>
-                      <button onClick={() => navigateForum("new")} className="border border-nf-border hover:border-nf-accent hover:text-nf-accent text-nf-text text-[12px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors bg-transparent"><Plus size={14} /> موضوع جديد</button>
+                      <button onClick={() => navigateForum("new")} className="border border-nf-border hover:border-nf-accent hover:text-nf-accent text-nf-text text-[12px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors bg-nf-secondary"><Plus size={14} /> موضوع جديد</button>
                     </div>
                     {/* Forum Search Bar - powerful with dropdown */}
                     <div className="relative mb-3" ref={searchRef}>
                       <div className={cn("group flex items-center rounded-xl px-4 gap-2.5 transition-all border", showSearchDropdown ? "bg-nf-card border-nf-border rounded-b-none shadow-lg shadow-black/20" : "bg-nf-body border-nf-border hover:bg-nf-secondary/50 focus-within:bg-nf-card focus-within:border-nf-accent/30 focus-within:shadow-lg focus-within:shadow-black/20")}>
                         <Search size={16} className={cn("shrink-0 transition-colors", showSearchDropdown ? "text-nf-accent" : "text-nf-dim")} />
-                        <input ref={searchInputRef} type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setShowSearchDropdown(true); }} onFocus={() => setShowSearchDropdown(true)} onKeyDown={handleSearchKeyDown} placeholder="ابحث في المواضيع والردود والوسوم..." className="flex-1 bg-transparent border-none outline-none text-[14px] text-nf-text placeholder:text-nf-dim/70 py-2.5" />
+                        <input ref={searchInputRef} type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setShowSearchDropdown(true); }} onFocus={() => setShowSearchDropdown(true)} onKeyDown={handleSearchKeyDown} placeholder="ابحث في المواضيع والردود والوسوم..." className="flex-1 !bg-transparent border-none outline-none text-[14px] text-nf-text placeholder:text-nf-dim/70 py-2.5" />
                         {searching && <div className="w-4 h-4 border-2 border-nf-accent/30 border-t-nf-accent rounded-full animate-spin shrink-0" />}
-                        {searchQuery && <button onClick={() => { setSearchQuery(""); searchInputRef.current?.focus(); }} className="text-nf-dim hover:text-white transition-colors shrink-0 p-0.5"><X size={14} /></button>}
+                        {searchQuery && <button onClick={() => { setSearchQuery(""); searchInputRef.current?.focus(); }} className="text-nf-dim hover:text-nf-text transition-colors shrink-0 p-0.5"><X size={14} /></button>}
                         {!searchQuery && !showSearchDropdown && <kbd className="hidden sm:inline-flex items-center px-2 py-1 rounded-md bg-nf-secondary/60 text-[10px] text-nf-dim font-mono border border-nf-border">⌘K</kbd>}
                       </div>
 
@@ -4252,7 +4703,7 @@ export default function ForumsPage() {
                                 <div className="px-3 py-1.5 border-t border-nf-border/30">
                                   <span className="text-[12px] font-bold text-nf-dim uppercase tracking-wider mb-1.5 block">الأكثر رواجاً</span>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {["Unity","Unreal","Godot","Blender","نقاش","سؤال"].map(tag => (
+                                    {["GameDev","برمجة","نقاش","سؤال","مساعدة","مشروع"].map(tag => (
                                       <button key={tag} onClick={() => setSearchQuery(tag)} className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-nf-secondary/40 text-[12px] text-nf-muted hover:text-nf-accent hover:bg-nf-accent/10 transition-all"><TrendingUp size={11} className="text-nf-accent" />{tag}</button>
                                     ))}
                                   </div>
@@ -4401,7 +4852,7 @@ export default function ForumsPage() {
                   {pinnedThreads.length > 0 && sortMode !== "popular" && (
                     <div className="mb-1">
                       <div className="flex items-center gap-2 px-3 py-1.5"><Pin size={10} className="text-nf-dim" /><span className="text-[10px] font-bold text-nf-dim uppercase tracking-wider">مثبّتة</span></div>
-                      {pinnedThreads.map(thread => <ThreadRow key={thread.id} thread={thread} onOpen={() => openThread(thread.id)} saved={savedThreads.has(thread.id)} onSave={() => { const n = new Set(savedThreads); if (n.has(thread.id)) { n.delete(thread.id); showToast("تم إزالة الحفظ"); } else { n.add(thread.id); showToast("تم الحفظ ✓"); } setSavedThreads(n); }} userVotes={userVotes} onVote={handleVote} openProfile={openProfile} onShare={() => openShare(thread.id, thread.title)} isVisited={!!lastReadHistory[thread.id]} />)}
+                      {pinnedThreads.map(thread => <ThreadRow key={thread.id} thread={thread} onOpen={() => openThread(thread.id)} saved={savedThreads.has(thread.id)} onSave={() => toggleSaveThread(thread)} userVotes={userVotes} onVote={handleVote} openProfile={openProfile} onShare={() => openShare(thread.id, thread.title)} isVisited={!!lastReadHistory[thread.id]} />)}
                     </div>
                   )}
                   {loading ? (
@@ -4428,7 +4879,7 @@ export default function ForumsPage() {
                   ) : regularThreads.length === 0 && pinnedThreads.length === 0 ? (
                     <div className="text-center py-20"><MessageCirclePlus size={28} className="mx-auto text-nf-border mb-3" /><p className="text-[15px] font-bold text-nf-dim mb-1">لا توجد مواضيع بعد</p><p className="text-[13px] text-nf-dim">ابدأ نقاشاً في {selectedCommunity}</p></div>
                   ) : (
-                    (sortMode === "pinned" ? sortedThreads : regularThreads).map(thread => <ThreadRow key={thread.id} thread={thread} onOpen={() => openThread(thread.id)} href={getForumUrl("thread", { threadId: thread.id, community: thread.community })} saved={savedThreads.has(thread.id)} onSave={() => { const n = new Set(savedThreads); if (n.has(thread.id)) { n.delete(thread.id); showToast("تم إزالة الحفظ"); } else { n.add(thread.id); showToast("تم الحفظ ✓"); } setSavedThreads(n); }} userVotes={userVotes} onVote={handleVote} openProfile={openProfile} onShare={() => openShare(thread.id, thread.title)} isVisited={!!lastReadHistory[thread.id]} />)
+                    (sortMode === "pinned" ? sortedThreads : regularThreads).map(thread => <ThreadRow key={thread.id} thread={thread} onOpen={() => openThread(thread.id)} href={getForumUrl("thread", { threadId: thread.id, community: thread.community })} saved={savedThreads.has(thread.id)} onSave={() => toggleSaveThread(thread)} userVotes={userVotes} onVote={handleVote} openProfile={openProfile} onShare={() => openShare(thread.id, thread.title)} isVisited={!!lastReadHistory[thread.id]} />)
                   )}
                 </motion.div>
               )}
@@ -4436,9 +4887,190 @@ export default function ForumsPage() {
           </div>
         </main>
 
-        {/* RIGHT SIDEBAR - hidden in AI chat view */}
-        {viewMode !== "ai" && (
-        <aside className="hidden xl:block w-[280px] bg-nf-body border-l border-nf-border overflow-y-auto flex-shrink-0 sticky top-[56px] h-[calc(100vh-56px)] py-4 px-3 space-y-3">
+        {/* AI SIDEBAR PANEL — fixed on the right */}
+        {showAiPanel && (
+          <aside className="hidden lg:flex flex-col w-[380px] shrink-0 border-r border-nf-border/40 sticky overflow-hidden"
+            style={{
+              top: "calc(var(--navbar-top, 0px) + 56px)",
+              height: "calc(100vh - var(--navbar-top, 0px) - 56px)",
+              background: "linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-body) 100%)",
+              order: -1,
+            }}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border/20 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="relative">
+                  <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-nf-accent/30 to-nf-accent/10 flex items-center justify-center border border-nf-accent/20">
+                    <Sparkles size={14} className="text-nf-accent" />
+                  </div>
+                  {aiConnected === "ok" && (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-400 border border-nf-body" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-nf-text leading-none">NorthFall AI</p>
+                  <p className="text-[9px] text-nf-dim mt-0.5">
+                    {aiConnected === "ok" ? "متصل" : aiConnected === "testing" ? "جاري الاتصال..." : "غير متصل"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-0.5">
+                {aiMessages.length > 0 && (
+                  <button onClick={() => { if (confirm("مسح المحادثة؟")) { setAiMessages([]); } }}
+                    className="p-1.5 rounded-lg text-nf-dim hover:text-red-400 hover:bg-red-400/10 transition-all" title="مسح">
+                    <Trash2 size={13} />
+                  </button>
+                )}
+                <button onClick={() => setAiSettingsOpen(p => !p)}
+                  className={cn("p-1.5 rounded-lg transition-all", aiSettingsOpen ? "text-nf-accent bg-nf-accent/10" : "text-nf-dim hover:text-nf-text hover:bg-nf-hover")}
+                  title="الإعدادات">
+                  <Settings size={13} />
+                </button>
+                <button onClick={() => setShowAiPanel(false)}
+                  className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-all">
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Generating progress */}
+            {aiGenerating && (
+              <div className="h-[2px] shrink-0 overflow-hidden bg-nf-border/10">
+                <div className="h-full bg-gradient-to-r from-transparent via-nf-accent to-transparent"
+                  style={{ width: "50%", animation: "shimmer 1.5s ease-in-out infinite" }} />
+              </div>
+            )}
+
+            {/* Messages area */}
+            <div ref={aiChatScrollRef}
+              onScroll={() => { const el = aiChatScrollRef.current; if (el) setAiShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 150); }}
+              className="flex-1 overflow-y-auto min-h-0 px-3 py-4">
+
+              {aiMessages.length === 0 ? (
+                /* Empty state */
+                <div className="flex flex-col items-center justify-center h-full gap-5 px-2 text-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-nf-accent/10 blur-2xl rounded-full scale-150" />
+                    <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-nf-accent/20 to-nf-accent/5 border border-nf-accent/20 flex items-center justify-center shadow-lg">
+                      <Sparkles size={24} className="text-nf-accent" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[16px] font-black text-nf-text">NorthFall AI</p>
+                    <p className="text-[11px] text-nf-dim mt-1.5 leading-relaxed max-w-[260px]">
+                      {aiConnected === "ok"
+                        ? "مساعدك الذكي — يعرف كل شيء عن المنصة والتطوير"
+                        : "أضف مفتاح API من الإعدادات للبدء"}
+                    </p>
+                  </div>
+                  {aiConnected === "ok" && (
+                    <div className="grid grid-cols-2 gap-2 w-full max-w-[300px]">
+                      {[
+                        { l: "كيف أستخدم المنتدى؟", e: "🗺️" },
+                        { l: "Unity vs Godot", e: "⚡" },
+                        { l: "اكتب كود C#", e: "💻" },
+                        { l: "أفكار لعبة إندي", e: "💡" },
+                      ].map((s, i) => (
+                        <button key={i} onClick={() => aiChatSend(s.l)}
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-nf-secondary/20 border border-nf-border/20 text-[11px] text-nf-muted hover:text-nf-text hover:bg-nf-secondary/40 hover:border-nf-accent/20 transition-all text-right">
+                          <span className="text-base shrink-0">{s.e}</span>
+                          <span className="leading-tight">{s.l}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Messages */
+                <div className="space-y-4 pb-2">
+                  {aiMessages.map(msg => (
+                    <div key={msg.id}>
+                      {msg.role === "user" && (
+                        <div className="flex justify-end">
+                          <div className="max-w-[88%] bg-nf-accent/10 border border-nf-accent/15 rounded-2xl rounded-tl-sm px-3.5 py-2.5 shadow-sm">
+                            <p className="text-[12px] text-nf-text leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+                        </div>
+                      )}
+                      {msg.role === "assistant" && (
+                        <div className="flex gap-2.5">
+                          <div className="w-6 h-6 rounded-lg bg-nf-accent/10 border border-nf-accent/15 flex items-center justify-center shrink-0 mt-0.5">
+                            <Sparkles size={11} className="text-nf-accent" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {msg.isTyping ? (
+                              <div className="flex items-center gap-1 py-1.5">
+                                {[0,1,2,3].map(i => (
+                                  <motion.span key={i}
+                                    animate={{ height: [3, 14, 3], opacity: [0.2, 1, 0.2] }}
+                                    transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }}
+                                    className="w-[3px] rounded-full bg-nf-accent inline-block" />
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="ai-markdown text-[12px] leading-[1.85]">
+                                <ReactMarkdown>{(() => {
+                                  const progress = aiTypingProgress[msg.id] ?? msg.content.length;
+                                  return msg.content.slice(0, progress);
+                                })()}</ReactMarkdown>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={aiChatEndRef} />
+                </div>
+              )}
+            </div>
+
+            {/* Scroll to bottom button */}
+            {aiShowScrollBtn && (
+              <button onClick={() => aiChatEndRef.current?.scrollIntoView({ behavior: "smooth" })}
+                className="absolute bottom-[72px] left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-nf-accent text-nf-primary text-[10px] font-bold shadow-lg hover:bg-nf-accent/80 transition-all z-10">
+                ↓ جديد
+              </button>
+            )}
+
+            {/* Input area */}
+            <div className="shrink-0 px-3 pb-3 pt-2 border-t border-nf-border/20">
+              <div className={cn(
+                "flex items-end gap-2 rounded-2xl px-3.5 py-2.5 transition-all border",
+                "bg-nf-secondary/20 border-nf-border/20 focus-within:border-nf-accent/30 focus-within:bg-nf-secondary/30"
+              )}>
+                <textarea
+                  ref={aiTextareaRef}
+                  value={aiInput}
+                  onChange={e => { setAiInput(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; }}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); aiChatSend(); } }}
+                  placeholder="اسألني أي شيء..."
+                  rows={1}
+                  className="flex-1 !bg-transparent border-none outline-none text-[12px] text-nf-text placeholder:text-nf-dim/40 resize-none leading-relaxed overflow-hidden"
+                  style={{ minHeight: "20px", maxHeight: "120px" }}
+                />
+                <button
+                  onClick={() => aiGenerating ? aiAbortRef.current?.abort() : aiChatSend()}
+                  disabled={!aiInput.trim() && !aiGenerating}
+                  className={cn(
+                    "p-2 rounded-xl transition-all shrink-0 mb-0.5",
+                    aiGenerating
+                      ? "bg-red-400/10 text-red-400 hover:bg-red-400/20"
+                      : aiInput.trim()
+                        ? "bg-nf-accent text-nf-primary hover:bg-nf-accent/80 shadow-sm"
+                        : "text-nf-dim/30 cursor-not-allowed"
+                  )}>
+                  {aiGenerating ? <X size={14} /> : <Send size={14} />}
+                </button>
+              </div>
+              <p className="text-[9px] text-nf-dim/30 text-center mt-1.5">Enter للإرسال · Shift+Enter لسطر جديد</p>
+            </div>
+          </aside>
+        )}
+
+        {/* RIGHT SIDEBAR */}
+        <aside className="hidden xl:block w-[280px] bg-nf-body border-l border-nf-border overflow-y-auto flex-shrink-0 sticky py-4 px-3 space-y-3" style={{ top: "calc(var(--navbar-top, 0px) + 56px)", height: "calc(100vh - var(--navbar-top, 0px) - 56px)" }}>
           {/* Browse Communities - Card */}
           <div className="bg-nf-secondary/30 rounded-xl p-3.5 border border-nf-border/20">
             <div className="flex items-center gap-2 mb-2.5">
@@ -4446,15 +5078,19 @@ export default function ForumsPage() {
               <h3 className="text-[12px] font-semibold text-nf-muted">تصفح المجتمعات</h3>
             </div>
             <div className="space-y-0.5">
-              {allCommunities.map(comm => (
-                <button key={comm.name} onClick={() => openCommunity(comm)} className={cn("w-full flex items-center gap-2.5 p-2 rounded-lg text-right transition-all group", selectedCommunity === comm.name ? "bg-nf-secondary/60" : "hover:bg-nf-secondary/40")}>
-                  {comm.img ? <img src={comm.img} alt="" className="w-7 h-7 rounded-md object-cover" /> : <div className="w-7 h-7 rounded-md bg-nf-accent/10 flex items-center justify-center text-[11px] text-nf-accent font-bold">{comm.name[0]}</div>}
-                  <div className="flex-1 min-w-0">
-                    <p className={cn("text-[11px] font-bold truncate transition-colors", selectedCommunity === comm.name ? "text-nf-accent" : "text-nf-muted group-hover:text-nf-text")}>{comm.name}</p>
-                    <p className="text-[9px] text-nf-dim">{new Set(allThreads.filter(t => t.community === comm.name).map(t => t.authorUid)).size} عضو · {allThreads.filter(t => t.community === comm.name).length} موضوع</p>
-                  </div>
-                </button>
-              ))}
+              {mergedCommunities.map(comm => {
+                const memberCount = new Set(allThreads.filter(t => t.community === comm.name).map(t => t.authorUid)).size;
+                const threadCount = allThreads.filter(t => t.community === comm.name).length;
+                return (
+                  <button key={comm.name} onClick={() => openCommunity(comm)} className={cn("w-full flex items-center gap-2.5 p-2 rounded-lg text-right transition-colors group", selectedCommunity === comm.name ? "bg-nf-secondary/60" : "hover:bg-nf-secondary/40")}>
+                    {comm.img ? <img src={comm.img} alt="" className="w-7 h-7 rounded-md object-cover" /> : <div className="w-7 h-7 rounded-md bg-nf-accent/10 flex items-center justify-center text-[11px] text-nf-accent font-bold">{comm.name[0]}</div>}
+                    <div className="flex-1 min-w-0">
+                      <p className={cn("text-[11px] font-bold truncate transition-colors group-hover:text-nf-accent", selectedCommunity === comm.name ? "text-nf-accent" : "text-nf-accent/70")}>{comm.name}</p>
+                      <p className="text-[9px] text-nf-dim mt-0.5">{memberCount} عضو · {threadCount} موضوع</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -4561,7 +5197,6 @@ export default function ForumsPage() {
             <p className="text-[9px] text-nf-dim">© 2025 NorthFall</p>
           </div>
         </aside>
-        )}
       </div>
 
       {/* Forum Disclaimer Modal — always show until accepted */}
@@ -4647,8 +5282,10 @@ export default function ForumsPage() {
               </div>
 
               {/* Banner preview */}
-              <div className="relative h-[100px] rounded-lg overflow-hidden mb-4 border border-nf-border/30">
-                <img src={editBannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
+              <div className="relative h-[100px] rounded-lg overflow-hidden mb-4 border border-nf-border/30 bg-nf-secondary/30">
+                {editBannerUrl ? (
+                  <img src={editBannerUrl} alt="" className="w-full h-full object-cover" />
+                ) : null}
                 <div className="absolute inset-0 bg-gradient-to-t from-nf-card/50 to-transparent" />
                 <div className="absolute bottom-2 left-3 flex items-center gap-2">
                   {user?.photoURL && <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full object-cover border-2 border-nf-card" />}
@@ -4828,8 +5465,26 @@ export default function ForumsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <ImageLightbox
+          src={lightboxImg.src}
+          alt=""
+          onClose={() => setLightboxImg(null)}
+          allImages={lightboxImg.urls}
+          currentIndex={lightboxImg.idx}
+          onNavigate={(idx) => setLightboxImg(prev => prev ? { ...prev, idx, src: prev.urls[idx] } : null)}
+        />
+      )}
     </div>
   );
+}
+
+function calculateReadTime(text: string) {
+  const words = text.trim().split(/\s+/).length;
+  const time = Math.ceil(words / 200);
+  return `${time} دقيقة`;
 }
 
 function ThreadRow({ thread, onOpen, saved, onSave, userVotes, onVote, openProfile, onShare, isVisited, href }: {
@@ -4837,61 +5492,67 @@ function ThreadRow({ thread, onOpen, saved, onSave, userVotes, onVote, openProfi
   userVotes: Record<string, "up" | "down">; onVote: (id: string, dir: "up" | "down") => void;
   openProfile: (uid: string, name: string, photo?: string) => void; onShare: () => void; isVisited?: boolean; href?: string;
 }) {
-  const typeInfo = getTypeInfo(thread.type); const TypeIcon = typeInfo.icon;
-  const excerpt = thread.body ? thread.body.replace(/[#*_`\[\]\(\)]/g, "").slice(0, 120) + (thread.body.length > 120 ? "…" : "") : "";
-  const hasMedia = thread.body && extractUrls(thread.body).some(u => u.type === "youtube" || u.type === "streamable" || u.type === "image" || u.type === "twitch" || u.type === "vimeo");
-  const userVote = userVotes[thread.id];
+  const excerpt = thread.body ? thread.body.replace(/[#*_`\[\]\(\)]/g, "").slice(0, 200) + (thread.body.length > 200 ? "..." : "") : "";
   const isNew = thread.createdAt && (Date.now() - new Date(thread.createdAt).getTime()) < 86400000 * 2;
+  const readTime = calculateReadTime(thread.body || "");
+  const userVote = userVotes[thread.id];
+
+  const avatars = [{ photo: thread.authorPhoto, name: thread.authorName, uid: thread.authorUid }];
+  if (thread.lastReplyBy && thread.lastReplyBy !== thread.authorName) {
+    avatars.push({ photo: undefined, name: thread.lastReplyBy, uid: "" });
+  }
+
   return (
-    <a href={href || "#"} onClick={e => { if (!e.ctrlKey && !e.metaKey && !e.shiftKey) { e.preventDefault(); onOpen(); } }} className={cn("block bg-nf-card rounded-xl mb-2.5 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md border border-nf-border/20 hover:border-nf-accent/20", isVisited ? "opacity-80 hover:opacity-100" : "")}>
-      <div className="flex p-4 gap-4">
-        {/* Left: avatar + vote */}
-        <div className="flex flex-col items-center gap-2 shrink-0 w-[48px]" onClick={e => e.stopPropagation()}>
-          <button onClick={(e) => { e.stopPropagation(); openProfile(thread.authorUid, thread.authorName, thread.authorPhoto); }} className="cursor-pointer">
-            {thread.authorPhoto ? <img src={thread.authorPhoto} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-nf-border/30" /> : <div className="w-10 h-10 rounded-full bg-nf-secondary flex items-center justify-center text-[14px] text-nf-text font-bold">{(thread.authorName || "م")[0]}</div>}
-          </button>
-          <div className="flex flex-col items-center gap-0.5">
-            <button onClick={() => onVote(thread.id, "up")} className={cn("p-1 rounded hover:bg-nf-secondary/40 transition-colors", userVote === "up" ? "text-green-400" : "text-nf-dim")}><ThumbsUp size={14} /></button>
-            <span className={cn("text-[13px] font-bold", (thread.votes || 0) > 0 ? "text-green-400" : (thread.votes || 0) < 0 ? "text-red-400" : "text-nf-dim")}>{thread.votes || 0}</span>
-            <button onClick={() => onVote(thread.id, "down")} className={cn("p-1 rounded hover:bg-nf-secondary/40 transition-colors", userVote === "down" ? "text-red-400" : "text-nf-dim")}><ThumbsDown size={14} /></button>
+    <a href={href || "#"} onClick={e => { if (!e.ctrlKey && !e.metaKey && !e.shiftKey) { e.preventDefault(); onOpen(); } }} className={cn("block bg-nf-card rounded-xl mb-3 cursor-pointer transition-all duration-200 border border-nf-border/30 hover:border-nf-accent/40 hover:shadow-lg", isVisited ? "opacity-70" : "")}>
+      <div className="flex flex-col p-5 gap-3.5">
+        {/* Top Info Row: Avatar & Name */}
+        <div className="flex items-center justify-between mb-0.5">
+          <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+            <UserHoverCard name={thread.authorName} photo={thread.authorPhoto} uid={thread.authorUid}>
+              <div className="flex items-center gap-3 cursor-pointer group/author" onClick={() => openProfile(thread.authorUid, thread.authorName, thread.authorPhoto)}>
+                <div className="w-10 h-10 rounded-full bg-nf-secondary flex items-center justify-center overflow-hidden border-2 border-nf-border/40 group-hover/author:border-nf-accent transition-colors shadow-sm">
+                  {thread.authorPhoto ? <img src={thread.authorPhoto} alt="" className="w-full h-full object-cover" /> : <span className="text-[14px] font-bold text-nf-text">{(thread.authorName || "م")[0]}</span>}
+                </div>
+                <div className="flex flex-col justify-center text-right">
+                  <span className="text-[15px] font-bold text-nf-text group-hover/author:text-nf-accent transition-colors inline-flex items-center gap-1.5 leading-none mb-1">
+                    {thread.authorName}{(thread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline shrink-0" />}
+                  </span>
+                  <span className="text-[11px] text-nf-dim font-medium leading-none">{timeAgo(thread.createdAt)}</span>
+                </div>
+              </div>
+            </UserHoverCard>
           </div>
+          {isNew && <span className="px-2.5 py-1 rounded-md bg-nf-accent/15 text-nf-accent text-[10px] font-bold">جديد</span>}
         </div>
-        {/* Right: content */}
-        <div className="flex-1 min-w-0">
-          {/* Title row */}
-          <div className="flex items-start gap-2 mb-1.5">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={cn("text-[15px] font-bold truncate transition-colors leading-snug", isVisited ? "text-nf-dim" : "text-nf-text")}>{thread.title}</span>
-                {isNew && <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-nf-accent/15 text-nf-accent">جديد</span>}
-              </div>
-              <div className="flex items-center gap-2 text-[11px] font-medium">
-                {thread.community && <span className="px-2 py-0.5 rounded-md bg-nf-accent/10 text-nf-accent font-bold text-[10px]">{thread.community}</span>}
-                <span className="flex items-center gap-1 text-nf-dim"><TypeIcon size={10} /> {typeInfo.label}</span>
-                {thread.tags?.slice(0, 3).map(tag => <span key={tag} className="px-2 py-0.5 rounded-md bg-nf-secondary text-[10px] text-nf-text font-bold">{tag}</span>)}
-                {thread.pinned && <span className="flex items-center gap-1 text-nf-accent text-[10px]"><Pin size={9} /> مثبّت</span>}
-                {thread.locked && <span className="flex items-center gap-1 text-nf-dim text-[10px]"><Lock size={9} /> مقفول</span>}
-                {thread.solved && <span className="flex items-center gap-1 text-green-400 text-[10px]"><CheckCircle2 size={9} /> محلول</span>}
-                {(thread.votes || 0) >= 5 && <span className="flex items-center gap-1 text-orange-400 text-[10px]"><TrendingUp size={9} /> رائج</span>}
-                {hasMedia && <span className="flex items-center gap-1 text-nf-accent text-[10px]"><Play size={9} /> ميديا</span>}
-              </div>
+
+        <div className="flex items-start gap-2.5">
+          {thread.pinned && <Pin size={18} className="text-nf-accent shrink-0 mt-0.5 fill-nf-accent/20" />}
+          {thread.locked && <Lock size={18} className="text-nf-dim shrink-0 mt-0.5" />}
+          <span className={cn("text-[17px] font-bold leading-snug flex-1", isVisited ? "text-nf-dim" : "text-nf-text")}>{thread.title}</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {thread.community && <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-nf-accent/10 text-nf-accent border border-nf-accent/20">{thread.community}</span>}
+          {thread.tags?.map(tag => <span key={tag} className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-nf-secondary text-nf-dim border border-nf-border/30">{tag}</span>)}
+        </div>
+
+        {excerpt && <p className="text-[13px] text-nf-dim/90 leading-relaxed line-clamp-2">{excerpt}</p>}
+
+        <div className="flex flex-wrap items-center justify-between mt-1 pt-3 border-t border-nf-border/20 gap-4">
+          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center bg-nf-secondary/50 rounded-lg border border-nf-border/30">
+              <button onClick={() => onVote(thread.id, "up")} className={cn("p-1.5 hover:bg-nf-secondary rounded-r-lg transition-colors", userVote === "up" ? "text-green-400" : "text-nf-dim")}><ArrowUp size={14} strokeWidth={3} /></button>
+              <span className={cn("text-[12px] font-bold min-w-[20px] text-center", (thread.votes || 0) > 0 ? "text-green-400" : (thread.votes || 0) < 0 ? "text-red-400" : "text-nf-dim")}>{thread.votes || 0}</span>
+              <button onClick={() => onVote(thread.id, "down")} className={cn("p-1.5 hover:bg-nf-secondary rounded-l-lg transition-colors", userVote === "down" ? "text-red-400" : "text-nf-dim")}><ArrowUp size={14} strokeWidth={3} className="rotate-180" /></button>
             </div>
+            <button onClick={onSave} className={cn("p-1.5 rounded-lg border border-nf-border/30 hover:bg-nf-secondary transition-colors", saved ? "text-nf-accent bg-nf-accent/10 border-nf-accent/30" : "text-nf-dim bg-nf-secondary/50")}><Bookmark size={14} fill={saved ? "currentColor" : "none"} /></button>
+            <button onClick={onShare} className="p-1.5 rounded-lg border border-nf-border/30 hover:bg-nf-secondary text-nf-dim bg-nf-secondary/50 transition-colors"><Share2 size={14} /></button>
           </div>
-          {/* Excerpt */}
-          {excerpt && <p className="text-[13px] text-nf-dim font-medium mb-3 line-clamp-2 leading-relaxed">{excerpt}</p>}
-          {/* Bottom bar */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-[11px] text-nf-dim font-medium">
-              <span onClick={e => { e.stopPropagation(); openProfile(thread.authorUid, thread.authorName, thread.authorPhoto); }} className="text-nf-text font-bold hover:text-nf-accent cursor-pointer inline-flex items-center gap-1">{thread.authorName}{(thread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span>
-              <span className="text-nf-dim">{timeAgo(thread.createdAt)}</span>
-              <span className="flex items-center gap-1"><MessageSquare size={11} /> {thread.replyCount} رد</span>
-              <span className="flex items-center gap-1"><Eye size={11} /> {thread.views || 0}</span>
-              {thread.lastReplyBy && <span className="flex items-center gap-1 text-nf-dim"><ArrowRight size={10} /> آخر رد: <span className="text-nf-text font-bold">{thread.lastReplyBy}</span> {thread.lastReplyAt && timeAgo(thread.lastReplyAt)}</span>}
-            </div>
-            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-              <button onClick={onSave} className={cn("p-1.5 rounded-lg hover:bg-nf-secondary/40 transition-colors", saved ? "text-nf-accent" : "text-nf-dim")}><Bookmark size={14} fill={saved ? "currentColor" : "none"} /></button>
-              <button onClick={onShare} className="p-1.5 rounded-lg text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text transition-colors"><Share2 size={14} /></button>
-            </div>
+
+          <div className="flex items-center gap-3.5 text-[12px] text-nf-dim font-medium ml-auto">
+            <span className="flex items-center gap-1.5" title="الردود"><MessageSquare size={14} /> {thread.replyCount}</span>
+            <span className="flex items-center gap-1.5" title="المشاهدات"><Eye size={14} /> {thread.views || 0}</span>
+            <span className="flex items-center gap-1.5 text-nf-dim/70" title="وقت القراءة">{readTime}</span>
           </div>
         </div>
       </div>

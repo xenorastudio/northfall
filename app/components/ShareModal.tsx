@@ -112,8 +112,8 @@ export default function ShareModal({
             className="bg-nf-primary border border-nf-border rounded-xl w-full max-w-[360px] mx-4 overflow-hidden"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border-2">
-              <button onClick={onClose} className="text-nf-muted hover:text-white p-1"><X size={16} /></button>
-              <div className="text-sm font-bold text-white">{t("share.title")}</div>
+              <button onClick={onClose} className="text-nf-muted hover:text-nf-text p-1"><X size={16} /></button>
+              <div className="text-sm font-bold text-nf-text">{t("share.title")}</div>
               <div className="w-6" />
             </div>
             <div className="p-4">
@@ -130,7 +130,7 @@ export default function ShareModal({
                       <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: p.color + "20", color: p.color }}>
                         <IconComp />
                       </div>
-                      <span className="text-sm text-white font-medium flex-1 text-right">
+                      <span className="text-sm text-nf-text font-medium flex-1 text-right">
                         {p.id === "copy" ? (copied ? t("share.copied") : t("share.copyLink")) : p.name}
                       </span>
                       {p.id === "copy" && (

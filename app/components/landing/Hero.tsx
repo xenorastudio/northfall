@@ -1,8 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { collection, getDocs, query, limit as fLimit } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export function Hero() {
+  const [featuredComms, setFeaturedComms] = useState<{ name: string; desc: string; img: string }[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(query(collection(db, "communities"), fLimit(4)));
+        setFeaturedComms(snap.docs.map(d => ({ name: d.id, desc: d.data().desc?.split("\n")[0] || `مجتمع n/${d.id}`, img: d.data().img || "" })));
+      } catch {}
+    })();
+  }, []);
+
   return (
     <section className="pt-32 pb-24 px-6 relative overflow-hidden bg-black">
       <div className="max-w-6xl mx-auto relative">
@@ -29,7 +42,7 @@ export function Hero() {
           </h1>
 
           <p className="text-base sm:text-lg text-white/50 max-w-xl mx-auto mb-10 leading-relaxed">
-            مجتمعات متخصصة لـ Unity و Unreal Engine و Godot و Blender.
+            مجتمعات متخصصة لمطوري الألعاب العرب.
             شارك مشروعك، تعلم من خبراء عرب، وكن جزء من أكبر مجتمع لتطوير الألعاب في العالم العربي.
           </p>
 
@@ -60,30 +73,27 @@ export function Hero() {
         </div>
 
         {/* Community Cards */}
+        {featuredComms.length > 0 && (
         <div className="mt-20 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          {[
-            { name: "Unity", desc: "تطوير ألعاب 3D و 2D", img: "/assets/images/unitylogo.png" },
-            { name: "Unreal", desc: "ألعاب AAA بـ UE5", img: "/assets/images/unreallogo.svg" },
-            { name: "Godot", desc: "محرك مفتوح ومجاني", img: "/assets/images/godotlogo.png" },
-            { name: "Blender", desc: "نمذجة وأنيميشن 3D", img: "/assets/images/logoblender.png" },
-          ].map((c) => (
+          {featuredComms.map((c) => (
             <Link
               key={c.name}
               href={`/community/${c.name}`}
               className="group p-5 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04] transition-all"
             >
-              <img src={c.img} alt={`${c.name} — ${c.desc}`} className="w-10 h-10 rounded-lg mb-3 object-cover" width={40} height={40} />
+              {c.img ? <img src={c.img} alt={c.name} className="w-10 h-10 rounded-lg mb-3 object-cover" width={40} height={40} /> : <div className="w-10 h-10 rounded-lg mb-3 bg-white/10 flex items-center justify-center text-white/40 font-bold text-sm">n/</div>}
               <h3 className="font-bold text-sm text-white/70 group-hover:text-white/90 transition-colors">{c.name}</h3>
               <p className="text-xs text-white/50 mt-1">{c.desc}</p>
             </Link>
           ))}
         </div>
+        )}
 
         {/* Social Proof */}
         <div className="mt-16 text-center">
-          <p className="text-sm text-white/40 mb-6">كل محركات الألعاب الرئيسية — بمكان واحد</p>
+          <p className="text-sm text-white/40 mb-6">كل ما يخص تطوير الألعاب — بمكان واحد</p>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-30">
-            {["Unity", "Unreal Engine", "Godot", "Blender", "GameDev", "تطوير ألعاب", "برمجة"].map((name) => (
+            {["GameDev", "تطوير ألعاب", "برمجة", "مشاريع", "تعلم"].map((name) => (
               <span key={name} className="text-lg font-semibold text-white/30">{name}</span>
             ))}
           </div>

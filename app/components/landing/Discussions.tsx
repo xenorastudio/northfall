@@ -22,7 +22,7 @@ export function Discussions() {
               {/* Thread Content */}
               <div className="p-6">
                 <h3 className="font-semibold text-lg mb-3 text-white/80">
-                  Best approach for Arabic text rendering in Unity?
+                  Best approach for rendering Arabic text in game engines?
                 </h3>
                 <p className="text-white/35 text-sm mb-4 leading-relaxed">
                   I&apos;m working on an Arabic visual novel and the text keeps disconnecting.

@@ -7,3 +7,5 @@ app/.netlify/
 Thumbs.db
 *.log
 tsconfig.tsbuildinfo
+
+.env*.local

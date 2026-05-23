@@ -115,46 +115,27 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
             });
           }
         } else {
-          const meta: Record<string, any> = {
-            Unity: {
-              img: "/assets/images/unitylogo.png",
-              banner: "/assets/images/bannerunity.png",
-              desc: "مكانك لو حابب تتعلم Unity وتشارك مشاريعك مع مطورين عرب. تواصل، اسأل، واطلع شغلك للعالم.",
-              tags: ["Unity", "GameDev", "C#", "3D", "2D", "AR/VR"],
-              memberCount: 0,
-              postCount: 0,
-              onlineCount: 0,
-            },
-            Unreal: {
-              img: "/assets/images/unreallogo.svg",
-              banner: "/assets/images/bannerunity.png",
-              desc: "محرك الألعاب الأقوى — من AAA لمستقلة. تعلم UE5، شارك مشاريعك، واساعد غيرك يبدأ.",
-              tags: ["Unreal", "UE5", "Blueprints", "C++", "Nanite", "Lumen"],
-              memberCount: 0,
-              postCount: 0,
-              onlineCount: 0,
-            },
-            Godot: {
-              img: "/assets/images/godotlogo.png",
-              banner: "/assets/images/godotbanner.png",
-              desc: "المحرك المفتوح اللي بيسمح لك تعمل لعبتك بلا قيود. من 2D لـ 3D — تعال شارك تجربتك وساعد غيرك يبدأ.",
-              tags: ["Godot", "OpenSource", "GDScript", "2D", "3D"],
-              memberCount: 0,
-              postCount: 0,
-              onlineCount: 0,
-            },
-            Blender: {
-              img: "/assets/images/logoblender.png",
-              banner: "/assets/images/bannerblender.png",
-              desc: "من النمذجة للأنيميشن للرندر — كل شي بيتعمل بـ Blender. اعرض أعمالك وتعلم تقنيات جديدة مع مجتمع يفهمك.",
-              tags: ["Blender", "3D", "Modeling", "Animation", "Rendering"],
-              memberCount: 0,
-              postCount: 0,
-              onlineCount: 0,
-            },
-          };
-          const m = meta[name] || { img: "", banner: "", desc: `مجتمع n/${name}`, tags: [], memberCount: 0, postCount: 0, onlineCount: 0 };
-          setData(m);
+          try {
+            const commSnap = await getDoc(doc(db, "communities", name));
+            if (commSnap.exists()) {
+              const d = commSnap.data();
+              setData({
+                img: d.img || "",
+                banner: d.banner || "",
+                desc: d.desc || `مجتمع n/${name}`,
+                tags: d.tags || [],
+                memberCount: d.memberCount || 0,
+                postCount: d.postCount || 0,
+                onlineCount: d.onlineCount || 0,
+                creatorName: d.creatorName || "",
+                creatorUid: d.creatorUid || "",
+              });
+            } else {
+              setData({ img: "", banner: "", desc: `مجتمع n/${name}`, tags: [], memberCount: 0, postCount: 0, onlineCount: 0 });
+            }
+          } catch {
+            setData({ img: "", banner: "", desc: `مجتمع n/${name}`, tags: [], memberCount: 0, postCount: 0, onlineCount: 0 });
+          }
         }
       } catch {}
     }
@@ -268,11 +249,11 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
   if (!data) return <div className="p-3 text-xs text-nf-muted">{t("gen.loading")}</div>;
   return (
     <div>
-      <div className="relative h-[65px]">
-        <img src={data.bannerUrl || "/assets/images/bannerunity.png"} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-nf-primary to-transparent" />
+      <div className={`relative overflow-hidden ${data.bannerUrl ? 'h-[65px]' : 'h-0'}`}>
+        {data.bannerUrl ? <img src={data.bannerUrl} alt="" className="w-full h-full object-cover" /> : null}
+        {data.bannerUrl && <div className="absolute inset-0 bg-gradient-to-t from-nf-primary to-transparent" />}
       </div>
-      <div className="px-3 pb-2.5 -mt-4 relative">
+      <div className={`px-3 pb-2.5 ${data.bannerUrl ? '-mt-4' : 'mt-2'} relative`}>
         <div className="flex items-end gap-2 mb-2">
           <div className="relative">
             {data.photo ? (
@@ -290,7 +271,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-[13px] font-bold text-white">u/{data.name}</span>
+              <span className="text-[13px] font-bold text-nf-text">u/{data.name}</span>
               {(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && (
                 <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] shrink-0" />
               )}
@@ -304,12 +285,12 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
         </div>
         <div className="flex flex-wrap gap-1 mb-2">
           {(() => { const r = getLevel(data.xp || 0); return <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${r.bg} ${r.color} border ${r.border}`}>{r.name}</span>; })()}
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{Math.max(0, Math.round(data.karma || 0))}</span> صيت</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-nf-text font-bold">{Math.max(0, Math.round(data.karma || 0))}</span> صيت</span>
           <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-amber-400 font-bold">{data.xp || 0}</span> XP</span>
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.postCount || 0}</span> منشور</span>
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-white font-bold">{data.commentCount || 0}</span> تعليق</span>
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><Users size={7} /><span className="text-white font-bold">{data.followerCount || 0}</span> يتابعونه</span>
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><UserPlus size={7} /><span className="text-white font-bold">{data.followingCount || 0}</span> يتابعهم</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-nf-text font-bold">{data.postCount || 0}</span> منشور</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-nf-text font-bold">{data.commentCount || 0}</span> تعليق</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><Users size={7} /><span className="text-nf-text font-bold">{data.followerCount || 0}</span> يتابعونه</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><UserPlus size={7} /><span className="text-nf-text font-bold">{data.followingCount || 0}</span> يتابعهم</span>
         </div>
         {data.bio && <p className="text-[10px] text-nf-dim leading-relaxed mb-2 line-clamp-2">{data.bio}</p>}
         {/* Social Links */}
@@ -319,7 +300,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
               const labels: Record<string, string> = { twitter: "X", youtube: "YouTube", github: "GitHub", steam: "Steam", discord: "Discord", website: "موقع" };
               const label = labels[key] || key;
               const url = val.startsWith("http") ? val : `https://${val}`;
-              return <button key={key} onClick={(e) => { e.stopPropagation(); window.open(url, "_blank", "noopener,noreferrer"); }} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-nf-secondary text-nf-muted hover:text-white hover:bg-nf-hover transition-colors cursor-pointer"><ExternalLink size={8} />{label}</button>;
+              return <button key={key} onClick={(e) => { e.stopPropagation(); window.open(url, "_blank", "noopener,noreferrer"); }} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-nf-secondary text-nf-muted hover:text-nf-text hover:bg-nf-hover transition-colors cursor-pointer"><ExternalLink size={8} />{label}</button>;
             })}
           </div>
         )}
@@ -340,7 +321,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
           );
         })()}
         <div className="flex gap-2">
-          <button onClick={() => onProfileClick?.(uid || "")} className="flex-1 py-1.5 rounded text-[11px] font-bold bg-nf-secondary text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+          <button onClick={() => onProfileClick?.(data?.uid || uid || "")} className="flex-1 py-1.5 rounded text-[11px] font-bold bg-nf-secondary text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
             {t("hc.viewProfile")}
           </button>
           {user && !isOwn && (
@@ -348,7 +329,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
               onClick={toggleFollow}
               className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded text-[11px] font-bold border transition-all ${
                 isFollowing
-                  ? "bg-nf-secondary text-nf-muted border-nf-border hover:bg-nf-hover hover:text-white"
+                  ? "bg-nf-secondary text-nf-muted border-nf-border hover:bg-nf-hover hover:text-nf-text"
                   : "bg-nf-accent text-white border-nf-accent hover:bg-nf-accent/80"
               }`}
             >
@@ -365,7 +346,13 @@ function CommunityCard({ data, name, onCommunityClick }: { data: any; name: stri
   const { t } = useI18n();
   const { user } = useAuth();
   const [joined, setJoined] = useState(false);
-  const [memberCount, setMemberCount] = useState(data.memberCount || 0);
+  const [memberCount, setMemberCount] = useState(data?.memberCount || 0);
+
+  useEffect(() => {
+    if (data?.memberCount !== undefined) {
+      setMemberCount(data.memberCount);
+    }
+  }, [data]);
 
   useEffect(() => {
     if (!user) return;
@@ -379,15 +366,13 @@ function CommunityCard({ data, name, onCommunityClick }: { data: any; name: stri
   if (!data) return <div className="p-3 text-xs text-nf-muted">{t("hc.loading")}</div>;
   return (
     <div>
-      <div className="relative h-[70px]">
+      <div className={`relative overflow-hidden ${data.banner ? 'h-[70px]' : 'h-0'}`}>
         {data.banner ? (
           <img src={data.banner} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-l from-nf-secondary to-nf-primary" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-nf-primary to-transparent" />
+        ) : null}
+        {data.banner && <div className="absolute inset-0 bg-gradient-to-t from-nf-primary to-transparent" />}
       </div>
-      <div className="px-3 pb-2.5 -mt-5 relative">
+      <div className={`px-3 pb-2.5 ${data.banner ? '-mt-5' : 'mt-0'} relative`}>
         <div className="flex items-end gap-2 mb-2">
           {data.img ? (
             <img src={data.img} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-nf-primary" />
@@ -395,7 +380,7 @@ function CommunityCard({ data, name, onCommunityClick }: { data: any; name: stri
             <div className="w-9 h-9 rounded-full bg-nf-secondary border-2 border-nf-primary flex items-center justify-center text-sm text-nf-muted font-bold">n/</div>
           )}
           <div className="flex-1">
-            <div className="text-[13px] font-bold text-white">n/{name}</div>
+            <div className="text-[13px] font-bold text-nf-text">n/{name}</div>
             <div className="text-[10px] text-nf-dim">{t("cp.founded")}</div>
           </div>
         </div>
@@ -403,8 +388,8 @@ function CommunityCard({ data, name, onCommunityClick }: { data: any; name: stri
 
         {/* Stats */}
         <div className="text-[10px] text-nf-dim mb-2 flex items-center gap-3">
-          <span className="flex items-center gap-1"><Users size={9} /> <span className="text-white font-bold">{memberCount > 0 ? memberCount.toLocaleString() : "—"}</span> {t("cp.members")}</span>
-          <span className="flex items-center gap-1"><FileText size={9} /> <span className="text-white font-bold">{data.postCount || "—"}</span> {t("cp.posts")}</span>
+          <span className="flex items-center gap-1"><Users size={9} /> <span className="text-nf-text font-bold">{memberCount > 0 ? memberCount.toLocaleString() : "—"}</span> {t("cp.members")}</span>
+          <span className="flex items-center gap-1"><FileText size={9} /> <span className="text-nf-text font-bold">{data.postCount || "—"}</span> {t("cp.posts")}</span>
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400" /> <span className="text-green-400 font-bold">{data.onlineCount || "—"}</span> متصل</span>
         </div>
 
@@ -419,7 +404,7 @@ function CommunityCard({ data, name, onCommunityClick }: { data: any; name: stri
 
         {/* Actions */}
         <div className="flex gap-2">
-          <button onClick={() => onCommunityClick?.(name)} className="flex-1 py-1.5 rounded text-[11px] font-bold bg-nf-secondary text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+          <button onClick={() => onCommunityClick?.(name)} className="flex-1 py-1.5 rounded text-[11px] font-bold bg-nf-secondary text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
             {t("hc.viewCommunity")}
           </button>
           {user && !joined && (

@@ -107,7 +107,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-    <article className="min-h-screen bg-[#1e1e20] text-[#e0e0e0]" style={{ direction: 'rtl' }}>
+    <article className="min-h-screen bg-nf-body text-nf-text-2" style={{ direction: 'rtl' }}>
       {jsonLd && (
         <script
           type="application/ld+json"
@@ -123,35 +123,35 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
       <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-8">
         {post ? (
           <div className="w-full max-w-2xl">
-            <div className="bg-[#242426] border border-white/[0.06] rounded-2xl overflow-hidden">
+            <div className="bg-nf-primary border border-nf-border rounded-2xl overflow-hidden">
               {/* Header */}
-              <div className="px-5 py-4 border-b border-white/[0.04]">
-                <div className="flex items-center gap-2 text-sm text-white/40">
-                  {post.community && <span className="font-bold text-white/60">n/{post.community}</span>}
+              <div className="px-5 py-4 border-b border-nf-border-2">
+                <div className="flex items-center gap-2 text-sm text-nf-dim">
+                  {post.community && <span className="font-bold text-nf-muted">n/{post.community}</span>}
                   {post.community && <span>·</span>}
                   <span>{post.authorName || 'مستخدم'}</span>
                   <span>·</span>
                   <span>{post.createdAt ? new Date(post.createdAt).toLocaleDateString('ar-SA') : ''}</span>
                 </div>
-                <h1 className="text-xl font-bold text-white mt-2 leading-relaxed">{post.title}</h1>
+                <h1 className="text-xl font-bold text-nf-text mt-2 leading-relaxed">{post.title}</h1>
               </div>
 
               {/* Body */}
               {post.body && (
-                <div className="px-5 py-4 text-white/70 text-sm leading-relaxed whitespace-pre-wrap">
+                <div className="px-5 py-4 text-nf-text-2 text-sm leading-relaxed whitespace-pre-wrap">
                   {post.body}
                 </div>
               )}
 
               {/* Image */}
               {post.imageUrl && (
-                <div className="border-t border-white/[0.04]">
+                <div className="border-t border-nf-border-2">
                   <img src={post.imageUrl} alt={post.title} className="w-full max-h-[500px] object-cover" />
                 </div>
               )}
 
               {/* Stats */}
-              <div className="px-5 py-3 flex items-center gap-4 text-sm text-white/40 border-t border-white/[0.04]">
+              <div className="px-5 py-3 flex items-center gap-4 text-sm text-nf-dim border-t border-nf-border-2">
                 <span>👍 {post.votes || 0}</span>
                 <span>💬 {post.commentCount || 0} تعليق</span>
               </div>
@@ -161,7 +161,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
             <div className="mt-4 text-center">
               <a
                 href={`/app?view=post&postId=${id}`}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-bold text-sm hover:bg-white/90 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-nf-text text-nf-body rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
               >
                 افتح في NorthFall ←
               </a>
@@ -169,8 +169,8 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           </div>
         ) : (
           <div className="text-center">
-            <p className="text-xl font-bold text-white/60">المنشور غير موجود</p>
-            <a href="/app" className="mt-4 inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-bold text-sm hover:bg-white/90 transition-colors">
+            <p className="text-xl font-bold text-nf-muted">المنشور غير موجود</p>
+            <a href="/app" className="mt-4 inline-flex items-center gap-2 px-6 py-3 bg-nf-text text-nf-body rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
               العودة للرئيسية ←
             </a>
           </div>

@@ -35,6 +35,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "sr.rules": { ar: "قوانين المجتمع", en: "Community Rules" },
   "sr.mods": { ar: "المشرفون", en: "Moderators" },
   "sr.creator": { ar: "صانع المجتمع", en: "Community Creator" },
+  "sr.stats": { ar: "إحصائيات", en: "Stats" },
   "sr.tags": { ar: "الوسوم", en: "Tags" },
   "sr.trending": { ar: "مجتمعات رهيبة", en: "Trending Communities" },
   "sr.join": { ar: "انضمام", en: "Join" },
@@ -241,8 +242,8 @@ const translations: Record<string, Record<Lang, string>> = {
   "search.results": { ar: "نتيجة", en: "results" },
   "search.sortBy": { ar: "ترتيب", en: "Sort by" },
   // HoverCard
-  "hc.defaultBio": { ar: "مطور ألعاب ومهتم بـ Unity و Godot. أحب أشارك مشاريعي وتعلم من المجتمع.", en: "Game developer interested in Unity & Godot. Love sharing projects and learning from the community." },
-  "hc.memberOf": { ar: "عضو في n/Unity · n/Godot · n/Blender", en: "Member of n/Unity · n/Godot · n/Blender" },
+  "hc.defaultBio": { ar: "مطور ألعاب. أحب أشارك مشاريعي وتعلم من المجتمع.", en: "Game developer. Love sharing projects and learning from the community." },
+  "hc.memberOf": { ar: "عضو في n/عام", en: "Member of n/عام" },
   "hc.defaultBadges": { ar: "مطور ألعاب · نشيط · عضو جديد", en: "Game Dev · Active · New Member" },
   // PostComposer
   "pc.createPlaceholder": { ar: "أنشئ منشوراً...", en: "Create a post..." },
@@ -270,7 +271,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "chat.inputPlaceholder": { ar: "اكتب رسالة...", en: "Type a message..." },
   "chat.groupIcon": { ar: "أيقونة المجموعة", en: "Group Icon" },
   "chat.groupName": { ar: "اسم المجموعة", en: "Group Name" },
-  "chat.groupNamePlaceholder": { ar: "مثال: مطورين Unity", en: "e.g. Unity Devs" },
+  "chat.groupNamePlaceholder": { ar: "مثال: مجموعة مطورين", en: "e.g. Dev Group" },
   "chat.maxGroups": { ar: "يمكنك إنشاء مجموعتين كحد أقصى", en: "You can create up to 2 groups max" },
   "chat.create": { ar: "إنشاء", en: "Create" },
   "chat.inviteDesc": { ar: "شارك الرمز مع مطورين لدعوتهم (حتى 4 مطورين)", en: "Share the code with developers to invite them (up to 4 devs)" },

@@ -42,7 +42,7 @@ export function Features() {
     },
     {
       title: "Engine Integrations",
-      description: "Dedicated spaces for Unity, Unreal, Godot & Blender with tailored tools.",
+      description: "Dedicated spaces for every game engine and tool with tailored features.",
       icon: "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4",
       color: "from-pink-500/30 to-pink-600/10",
       iconColor: "text-pink-400",
@@ -55,7 +55,7 @@ export function Features() {
       <div className="absolute inset-0 z-0">
         <img
           src="/assets/images/BackgroundBl.jpg"
-          alt="ميزات NorthFall — مجتمعات Unity و Unreal و Godot و Blender"
+          alt="ميزات NorthFall — مجتمعات تطوير الألعاب العربية"
           className="w-full h-full object-cover blur-2xl scale-110"
         />
         <div className="absolute inset-0 bg-black/40" />

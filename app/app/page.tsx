@@ -10,6 +10,12 @@ import CommunityPage from "../components/CommunityPage";
 import ProfilePage from "../components/ProfilePage";
 import PostDetail from "../components/PostDetail";
 import CreatePostPage from "../components/CreatePostPage";
+import CreateCommunityPage from "../components/CreateCommunityPage";
+import EditCommunityPage from "../components/EditCommunityPage";
+import CommunityDashboard from "../components/CommunityDashboard";
+import CustomFeedModal, { type CustomFeed } from "../components/CustomFeedModal";
+import { useToast } from "../components/ToastProvider";
+import { DataProvider, useData } from "../components/DataProvider";
 import { lazy, Suspense } from "react";
 
 const SettingsPage = lazy(() => import("../components/SettingsPage"));
@@ -22,14 +28,14 @@ import AuthProvider, { useAuth } from "../components/AuthProvider";
 import { I18nProvider, useI18n } from "../components/I18nProvider";
 import LoginModal from "../components/LoginModal";
 import ToastProvider from "../components/ToastProvider";
-import { Megaphone, X, ArrowUp } from "lucide-react";
+import { Megaphone, X, ArrowUp, Rss, Pencil } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, startAfter, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 // framer-motion removed for performance
 import { cn } from "@/lib/utils";
 
-type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo";
+type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "edit-community" | "community-dashboard";
 
 interface Post {
   id: string;
@@ -57,6 +63,8 @@ interface Post {
 function AppContent() {
   const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { toast } = useToast();
+  const { refreshCommunities } = useData();
   const [posts, setPosts] = useState<Post[]>([]);
 
   // Apply saved accent color on load
@@ -71,14 +79,18 @@ function AppContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get("view");
-    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo"].includes(v)) {
+    if (v === "thread") {
+      window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
+      return;
+    }
+      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "edit-community", "community-dashboard"].includes(v)) {
       setView(v as View);
       const c = params.get("community"); if (c) setSelectedCommunity(c);
       const p = params.get("postId"); if (p) setSelectedPostId(p);
       const u = params.get("uid"); if (u) setViewingUid(u);
       const e = params.get("editPostId"); if (e) { setEditPostId(e); setView("edit"); }
       // Set tab title on direct URL load
-      const titles: Record<string, string> = { feed: "Northfall", community: c ? `n/${c}` : "مجتمع", profile: "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف", games: "ألعاب", seo: "أدوات SEO" };
+      const titles: Record<string, string> = { feed: "Northfall", community: c ? `n/${c}` : "مجتمع", profile: "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف", games: "ألعاب", seo: "أدوات SEO", "create-community": "إنشاء مجتمع جديد", "edit-community": "تعديل مجتمع", "community-dashboard": "لوحة تحكم المجتمع" };
       document.title = (titles[v] || "Northfall") + " — Northfall";
     }
   }, []);
@@ -106,6 +118,9 @@ function AppContent() {
       admin: "إشراف",
       games: "ألعاب",
       seo: "أدوات SEO",
+      "create-community": "إنشاء مجتمع جديد",
+      "edit-community": "تعديل مجتمع",
+      "community-dashboard": "لوحة تحكم المجتمع",
     };
     document.title = (titleMap[newView] || "Northfall") + " — Northfall";
   };
@@ -114,8 +129,12 @@ function AppContent() {
   useEffect(() => {
     const onPopState = () => {
       const params = new URLSearchParams(window.location.search);
-      const v = params.get("view") as View | null;
-      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo"].includes(v)) {
+      const v = params.get("view") as View | null | "thread";
+      if (v === "thread") {
+        window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
+        return;
+      }
+    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "edit-community", "community-dashboard"].includes(v)) {
         setView(v);
         const c = params.get("community"); if (c) setSelectedCommunity(c);
         const p = params.get("postId"); if (p) setSelectedPostId(p);
@@ -151,6 +170,49 @@ function AppContent() {
   const [newPostsCount, setNewPostsCount] = useState(0);
   const [sidebarKey, setSidebarKey] = useState(0);
 
+  // ── Custom Feeds ──────────────────────────────────────────────
+  const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>([]);
+  const [activeCustomFeed, setActiveCustomFeed] = useState<CustomFeed | null>(null);
+  const [showCustomFeedModal, setShowCustomFeedModal] = useState(false);
+  const [editingCustomFeed, setEditingCustomFeed] = useState<CustomFeed | null>(null);
+
+  // Load custom feeds from Firestore (real-time)
+  useEffect(() => {
+    if (!user) { setCustomFeeds([]); setActiveCustomFeed(null); return; }
+    const unsub = onSnapshot(
+      collection(db, "users", user.uid, "customFeeds"),
+      (snap) => {
+        const feeds = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as CustomFeed))
+          .sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+        setCustomFeeds(feeds);
+        // Update active feed data if it was edited
+        setActiveCustomFeed((prev) => {
+          if (!prev) return null;
+          return feeds.find((f) => f.id === prev.id) || null;
+        });
+      },
+      () => {}
+    );
+    return () => unsub();
+  }, [user]);
+
+  const openCustomFeed = (feed: CustomFeed) => {
+    setActiveCustomFeed(feed);
+    setFeedMode("all");
+    setTagFilter(null);
+    const params = new URLSearchParams({ view: "feed", customFeed: feed.id });
+    window.history.pushState({ view: "feed", customFeed: feed.id }, "", `/app?${params.toString()}`);
+    document.title = `${feed.name} — Northfall`;
+    setView("feed");
+  };
+
+  const clearCustomFeed = () => {
+    setActiveCustomFeed(null);
+    navigateTo("feed");
+  };
+  // ─────────────────────────────────────────────────────────────
+
   // Fetch followed users and joined communities
   useEffect(() => {
     if (!user) { setFollowedUids([]); setJoinedCommunities([]); return; }
@@ -178,6 +240,46 @@ function AppContent() {
       hasMoreRef.current = true;
     }
     try {
+      // ── Custom Feed mode ──────────────────────────────────────
+      if (activeCustomFeed && activeCustomFeed.communities.length > 0) {
+        // Split into chunks of 10 (Firestore "in" limit)
+        const comms = activeCustomFeed.communities;
+        const chunks: string[][] = [];
+        for (let i = 0; i < comms.length; i += 10) chunks.push(comms.slice(i, i + 10));
+
+        let allPosts: Post[] = [];
+        for (const chunk of chunks) {
+          // No orderBy to avoid composite index requirement — sort client-side
+          const q = query(
+            collection(db, "posts"),
+            where("community", "in", chunk),
+            limit(30)
+          );
+          const snap = await getDocs(q);
+          snap.docs.forEach((d) => {
+            const post = { id: d.id, ...d.data() } as Post;
+            if (!allPosts.find((p) => p.id === post.id)) allPosts.push(post);
+          });
+        }
+
+        // Sort client-side
+        allPosts.sort((a, b) => {
+          if (sortMode === "top") return (b.votes || 0) - (a.votes || 0);
+          if (sortMode === "new") return (b.createdAt || "").localeCompare(a.createdAt || "");
+          // hot
+          const scoreA = (a.votes || 0) * (1 / (1 + (Date.now() - new Date(a.createdAt || "").getTime()) / 3600000));
+          const scoreB = (b.votes || 0) * (1 / (1 + (Date.now() - new Date(b.createdAt || "").getTime()) / 3600000));
+          return scoreB - scoreA;
+        });
+
+        if (loadMore) setPosts((prev) => [...prev, ...allPosts.slice(prev.length, prev.length + POSTS_PER_PAGE)]);
+        else setPosts(allPosts.slice(0, POSTS_PER_PAGE * 3));
+        hasMoreRef.current = false;
+        setHasMore(false);
+        return;
+      }
+      // ─────────────────────────────────────────────────────────
+
       if (feedMode === "following" && user && (followedUids.length > 0 || joinedCommunities.length > 0)) {
         let allPosts: Post[] = [];
         if (followedUids.length > 0) {
@@ -217,7 +319,7 @@ function AppContent() {
     } finally {
       setLoading(false);
     }
-  }, [feedMode, user, followedUids, joinedCommunities]);
+  }, [feedMode, user, followedUids, joinedCommunities, activeCustomFeed]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
@@ -239,8 +341,15 @@ function AppContent() {
   // Re-fetch when feed mode changes
   useEffect(() => { fetchPosts(); }, [feedMode]);
 
+  // Re-fetch when custom feed changes
+  useEffect(() => { fetchPosts(); }, [activeCustomFeed]);
+
   const [viewingUid, setViewingUid] = useState<string | null>(null);
+  const [editingCommunity, setEditingCommunity] = useState<string>("");
+  const [dashboardCommunity, setDashboardCommunity] = useState<string>("");
   const openCommunity = (name: string) => { setSelectedCommunity(name); navigateTo("community", { community: name }); };
+  const openCommunityDashboard = (name: string) => { setDashboardCommunity(name); navigateTo("community-dashboard", { community: name }); };
+  const openEditCommunity = (name: string) => { setEditingCommunity(name); navigateTo("edit-community", { community: name }); };
   const openProfile = (uid?: string) => { if (uid) { setViewingUid(uid); navigateTo("profile", { uid }); } else if (user) { setViewingUid(user.uid); navigateTo("profile", { uid: user.uid }); } else { setShowLogin(true); } };
   const openPost = (id: string) => { setSelectedPostId(id); const p = posts.find(p => p.id === id); navigateTo("post", { postId: id, postTitle: p?.title || "" }); };
   const openCreate = () => { if (user) { setEditPostId(""); navigateTo("create"); } else setShowLogin(true); };
@@ -307,6 +416,7 @@ function AppContent() {
       <SidebarLeft
         key={sidebarKey}
         onNavClick={(id) => {
+          clearCustomFeed();
           if (id === "profile" || id === "saved") requireAuth(() => { setViewingUid(user?.uid || null); navigateTo("profile", { uid: user?.uid || "" }); });
           else if (id === "notifs") navigateTo("notifs");
           else if (id === "settings") navigateTo("settings");
@@ -315,28 +425,78 @@ function AppContent() {
           else if (id === "hot" || id === "new" || id === "top") { setSortMode(id); navigateTo("feed"); }
           else backToFeed();
         }}
-        onCommunityClick={openCommunity}
-        activeNav={view === "feed" ? (sortMode === "hot" ? "hot" : sortMode === "new" ? "new" : sortMode === "top" ? "top" : "home") : view === "profile" ? "profile" : view === "settings" ? "settings" : view === "notifs" ? "notifs" : view === "games" ? "games" : view === "community" ? selectedCommunity : ""}
+        onCommunityClick={(name) => { clearCustomFeed(); openCommunity(name); }}
+        activeNav={view === "feed" ? (activeCustomFeed ? "" : sortMode === "hot" ? "hot" : sortMode === "new" ? "new" : sortMode === "top" ? "top" : "home") : view === "profile" ? "profile" : view === "settings" ? "settings" : view === "notifs" ? "notifs" : view === "games" ? "games" : view === "community" ? selectedCommunity : ""}
+        onCreateCommunity={() => requireAuth(() => navigateTo("create-community"))}
+        onDashboardClick={(name) => openCommunityDashboard(name)}
+        customFeeds={customFeeds}
+        activeCustomFeedId={activeCustomFeed?.id ?? null}
+        onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))}
+        onCreateCustomFeed={() => requireAuth(() => { setEditingCustomFeed(null); setShowCustomFeedModal(true); })}
+        onEditCustomFeed={(feed) => requireAuth(() => { setEditingCustomFeed(feed); setShowCustomFeedModal(true); })}
       />
 
-      <div className="md:ml-[260px] pt-12 min-h-screen flex justify-center">
+      <div className="md:ml-[260px] min-h-screen flex justify-center" style={{ paddingTop: "var(--nav-total-height)" }}>
         <div className="w-full max-w-[1280px] px-3 md:px-6 py-3 md:py-5 pb-20 md:pb-5 flex gap-8 justify-center items-start" style={{ direction: "rtl" }}>
-          <div className="hidden lg:block"><SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={view === "community" ? selectedCommunity : undefined} /></div>
+          <div className={cn("hidden lg:block self-stretch", view === "community" && "hidden")}><SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={view === "community" ? selectedCommunity : undefined} /></div>
 
-          <div className={cn("flex-1", view === "feed" ? "max-w-[680px]" : "max-w-[920px]")} style={{ direction: "rtl" }}>
+          <div className={cn("flex-1", view === "feed" ? "max-w-[680px]" : view === "create-community" ? "max-w-[1150px]" : view === "community" ? "max-w-[1000px]" : "max-w-[1100px]")} style={{ direction: "rtl" }}>
             <div>
               {view === "feed" && (
                 <div key="feed" className="animate-in fade-in duration-150">
                   <PostComposer onFocus={openCreate} onPost={() => { backToFeed(); }} />
 
-                  <FeedSort onSortChange={(s) => setSortMode(s)} onTagClick={(t) => setTagFilter(t === tagFilter ? null : t)} tagFilter={tagFilter} feedMode={feedMode} onFeedModeChange={setFeedMode} requireAuth={requireAuth} />
+                  {/* Custom Feed Header */}
+                  {activeCustomFeed && (
+                    <div className="rounded-xl border border-nf-border-2/60 bg-nf-secondary/30 overflow-hidden mb-3">
+                      {/* Top accent bar */}
+                      <div className="h-0.5 w-full bg-nf-accent/60" />
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <div className="w-9 h-9 rounded-xl bg-nf-accent/10 border border-nf-accent/20 flex items-center justify-center shrink-0">
+                          <Rss size={16} className="text-nf-accent" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-bold text-nf-text">{activeCustomFeed.name}</span>
+                            {activeCustomFeed.isPrivate && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-nf-secondary text-nf-dim border border-nf-border-2/50">خاص</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                            {activeCustomFeed.communities.slice(0, 4).map((c) => (
+                              <span key={c} className="text-[10px] text-nf-dim">n/{c}</span>
+                            ))}
+                            {activeCustomFeed.communities.length > 4 && (
+                              <span className="text-[10px] text-nf-dim">+{activeCustomFeed.communities.length - 4}</span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => { setEditingCustomFeed(activeCustomFeed); setShowCustomFeedModal(true); }}
+                          className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors shrink-0"
+                          title="تعديل الفيد"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={clearCustomFeed}
+                          className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors shrink-0"
+                          title="إغلاق الفيد"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <FeedSort onSortChange={(s) => setSortMode(s)} onTagClick={(t) => setTagFilter(t === tagFilter ? null : t)} tagFilter={tagFilter} feedMode={activeCustomFeed ? "all" : feedMode} onFeedModeChange={activeCustomFeed ? undefined : setFeedMode} requireAuth={requireAuth} />
 
                   {newPostsCount > 0 && (
                     <button
                       onClick={() => { setNewPostsCount(0); fetchPosts(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-xl bg-nf-accent/10 border border-nf-accent/25 text-nf-accent text-xs font-bold hover:bg-nf-accent/20 transition-colors shadow-sm shadow-nf-accent/5 animate-in fade-in slide-in-from-top-2 duration-200"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-xl bg-nf-accent/10 border border-nf-accent/30 text-nf-accent text-xs font-bold hover:bg-nf-accent/20 transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-200"
                     >
-                      <ArrowUp size={14} />
+                      <ArrowUp size={14} className="animate-bounce" />
                       {newPostsCount} {t("gen.newPosts")}
                     </button>
                   )}
@@ -345,10 +505,10 @@ function AppContent() {
                     <div className="flex items-center gap-3 bg-nf-primary border border-nf-border-2 rounded-lg px-4 py-3 mb-3">
                       <Megaphone size={18} className="text-nf-accent shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-white">{t("gen.welcome")}</div>
+                        <div className="text-sm font-bold text-nf-text">{t("gen.welcome")}</div>
                         <div className="text-xs text-nf-muted">{t("gen.welcomeSub")}</div>
                       </div>
-                      <button onClick={() => setShowAnnouncement(false)} className="text-nf-muted hover:text-white shrink-0">
+                      <button onClick={() => setShowAnnouncement(false)} className="text-nf-muted hover:text-nf-text shrink-0">
                         <X size={14} />
                       </button>
                     </div>
@@ -356,21 +516,22 @@ function AppContent() {
 
                   <div className="flex flex-col gap-3">
                     {loading ? (
-                      <>
+                    <>
                         {[1,2,3].map(i => (
-                          <div key={i} className="bg-transparent border border-nf-border-2 rounded-lg p-4 animate-pulse">
+                          <div key={i} className="border border-nf-border-2 rounded-lg p-4 overflow-hidden relative" style={{ animationDelay: `${i * 0.08}s` }}>
+                            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite]" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent)" }} />
                             <div className="flex items-center gap-2 mb-3">
-                              <div className="w-5 h-5 rounded-full bg-nf-secondary" />
-                              <div className="w-20 h-3 rounded bg-nf-secondary" />
-                              <div className="w-12 h-3 rounded bg-nf-secondary" />
+                              <div className="w-5 h-5 rounded-full bg-nf-secondary/80" />
+                              <div className="w-20 h-3 rounded bg-nf-secondary/80" />
+                              <div className="w-12 h-3 rounded bg-nf-secondary/60" />
                             </div>
-                            <div className="w-3/4 h-5 rounded bg-nf-secondary mb-2" />
-                            <div className="w-full h-3 rounded bg-nf-secondary mb-1" />
-                            <div className="w-2/3 h-3 rounded bg-nf-secondary" />
+                            <div className="w-3/4 h-5 rounded bg-nf-secondary/80 mb-2" />
+                            <div className="w-full h-3 rounded bg-nf-secondary/60 mb-1" />
+                            <div className="w-2/3 h-3 rounded bg-nf-secondary/40" />
                             <div className="flex items-center gap-3 mt-3">
-                              <div className="w-16 h-3 rounded bg-nf-secondary" />
-                              <div className="w-20 h-3 rounded bg-nf-secondary" />
-                              <div className="w-14 h-3 rounded bg-nf-secondary" />
+                              <div className="w-16 h-3 rounded bg-nf-secondary/60" />
+                              <div className="w-20 h-3 rounded bg-nf-secondary/60" />
+                              <div className="w-14 h-3 rounded bg-nf-secondary/40" />
                             </div>
                           </div>
                         ))}
@@ -432,13 +593,13 @@ function AppContent() {
 
               {view === "community" && selectedCommunity && (
                 <div key="community" className="animate-in fade-in duration-150">
-                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} />
+                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} onDashboardClick={(name) => openCommunityDashboard(name)} />
                 </div>
               )}
 
               {view === "profile" && (
                 <div key="profile" className="animate-in fade-in duration-150">
-                  <ProfilePage uid={viewingUid || undefined} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onSettingsClick={() => navigateTo("settings")} onAdminClick={() => navigateTo("admin")} onPostClick={openPost} />
+                  <ProfilePage uid={viewingUid || undefined} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onSettingsClick={() => navigateTo("settings")} onAdminClick={() => navigateTo("admin")} onPostClick={openPost} onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))} />
                 </div>
               )}
 
@@ -488,6 +649,41 @@ function AppContent() {
                 </div>
               )}
 
+              {view === "create-community" && (
+                <div key="create-community" className="animate-in fade-in duration-150">
+                  <CreateCommunityPage
+                    onBack={backToFeed}
+                    onSuccess={async (cleanName) => {
+                      await refreshCommunities();
+                      openCommunity(cleanName);
+                    }}
+                    showToast={(msg, type) => toast(msg, type || "info")}
+                  />
+                </div>
+              )}
+
+              {view === "edit-community" && editingCommunity && (
+                <div key="edit-community" className="animate-in fade-in duration-150">
+                  <EditCommunityPage
+                    communityName={editingCommunity}
+                    onBack={backToFeed}
+                    onSaved={() => { setDashboardCommunity(editingCommunity); navigateTo("community-dashboard", { community: editingCommunity }); }}
+                    showToast={(msg, type) => toast(msg, type || "info")}
+                  />
+                </div>
+              )}
+
+              {view === "community-dashboard" && dashboardCommunity && (
+                <div key="community-dashboard" className="animate-in fade-in duration-150">
+                  <CommunityDashboard
+                    communityName={dashboardCommunity}
+                    onBack={backToFeed}
+                    onEdit={() => { setEditingCommunity(dashboardCommunity); navigateTo("edit-community", { community: dashboardCommunity }); }}
+                    showToast={(msg, type) => toast(msg, type || "info")}
+                  />
+                </div>
+              )}
+
               {view === "post" && (
                 <div key="post" className="animate-in fade-in duration-150">
                   <PostDetail postId={selectedPostId} onBack={backToFeed} onCommunityClick={openCommunity} onProfileClick={openProfile} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); backToFeed(); }} onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }} />
@@ -500,12 +696,23 @@ function AppContent() {
 
       <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
 
-      {/* Scroll progress bar - only in feed */}
-      {view === "feed" && (
-        <div className="fixed top-12 left-0 right-0 h-[2px] z-[1002] bg-transparent">
-          <div className="h-full bg-nf-accent/60 origin-left transition-[width] duration-100" style={{ width: `${scrollProgress}%` }} />
-        </div>
-      )}
+      {/* Custom Feed Modal */}
+      <CustomFeedModal
+        open={showCustomFeedModal}
+        onClose={() => { setShowCustomFeedModal(false); setEditingCustomFeed(null); }}
+        editFeed={editingCustomFeed}
+        onSaved={(feed) => {
+          // If we just created/edited the active feed, update it
+          if (activeCustomFeed?.id === feed.id) {
+            setActiveCustomFeed(feed);
+          }
+        }}
+        onDeleted={(id) => {
+          if (activeCustomFeed?.id === id) clearCustomFeed();
+        }}
+      />
+
+
 
       {/* Back to top */}
       {showBackTop && (
@@ -513,11 +720,7 @@ function AppContent() {
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="fixed bottom-20 sm:bottom-6 left-6 w-10 h-10 rounded-full bg-nf-accent text-white flex items-center justify-center shadow-lg hover:bg-nf-accent/80 transition-all z-50 animate-in fade-in zoom-in duration-200"
         >
-          <svg className="absolute inset-0 w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-            <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2.5" />
-            <circle cx="20" cy="20" r="17" fill="none" stroke="white" strokeWidth="2.5" strokeDasharray={`${scrollProgress * 1.07} 107`} strokeLinecap="round" />
-          </svg>
-          <ArrowUp size={14} className="relative z-10" />
+          <ArrowUp size={16} />
         </button>
       )}
     </>
@@ -527,13 +730,15 @@ function AppContent() {
 export default function AppPage() {
   return (
     <AuthProvider>
-      <I18nProvider>
-        <ToastProvider>
-          <MaintenanceOverlay>
-            <AppContent />
-          </MaintenanceOverlay>
-        </ToastProvider>
-      </I18nProvider>
+      <DataProvider>
+        <I18nProvider>
+          <ToastProvider>
+            <MaintenanceOverlay>
+              <AppContent />
+            </MaintenanceOverlay>
+          </ToastProvider>
+        </I18nProvider>
+      </DataProvider>
     </AuthProvider>
   );
 }

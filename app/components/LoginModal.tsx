@@ -27,16 +27,16 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
             className="bg-nf-primary border border-nf-border rounded-xl p-8 max-w-[400px] w-full text-center relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <button onClick={onClose} className="absolute top-3 left-3 text-nf-muted hover:text-white transition-colors">
+            <button onClick={onClose} className="absolute top-3 left-3 text-nf-muted hover:text-nf-text transition-colors">
               <X size={18} />
             </button>
 
             <div className="flex items-center justify-center gap-2 mb-5">
               <Mountain size={32} className="text-nf-accent" />
-              <span className="font-inter text-xl font-bold text-white">NorthFall</span>
+              <span className="font-inter text-xl font-bold text-nf-text">NorthFall</span>
             </div>
 
-            <h2 className="text-lg font-bold text-white mb-2">{t("lm.title")}</h2>
+            <h2 className="text-lg font-bold text-nf-text mb-2">{t("lm.title")}</h2>
             <p className="text-sm text-nf-muted mb-6">{t("lm.subtitle")}</p>
 
             <button
@@ -54,8 +54,8 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
 
             <p className="text-[11px] text-nf-dim mt-4 leading-relaxed">
               {t("lm.agreement")}{" "}
-              <a href="#" className="text-nf-muted hover:text-white">{t("sr.terms")}</a> {t("lm.and")}{" "}
-              <a href="#" className="text-nf-muted hover:text-white">{t("sr.privacy")}</a>
+              <a href="#" className="text-nf-muted hover:text-nf-text">{t("sr.terms")}</a> {t("lm.and")}{" "}
+              <a href="#" className="text-nf-muted hover:text-nf-text">{t("sr.privacy")}</a>
             </p>
           </motion.div>
         </motion.div>

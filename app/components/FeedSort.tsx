@@ -6,7 +6,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "./I18nProvider";
 
-const trendingTags = ["#Unity", "#Unreal", "#Godot", "#Blender", "#GameDev", "#UE5", "#3D", "#IndieDev", "#CSharp", "#OpenSource"];
+const trendingTags = ["#GameDev", "#تطوير_ألعاب", "#برمجة", "#IndieDev", "#3D", "#CSharp", "#OpenSource"];
 
 interface FeedSortProps {
   onSortChange?: (sort: string) => void;
@@ -29,7 +29,7 @@ export default function FeedSort({ onSortChange, onTagClick, tagFilter, feedMode
   ];
 
   return (
-    <div className="bg-nf-secondary/30 border border-nf-border-2/50 rounded-xl px-2 py-1.5 mb-3">
+    <div className="bg-nf-secondary/30 border border-nf-border-2/50 rounded-xl px-2 py-1.5 mb-3 transition-all duration-300 hover:border-nf-accent/20">
       <div className="flex items-center gap-2 flex-wrap">
         {/* Feed mode: الكل / المتابَعين */}
         <div className="flex items-center gap-0.5">
@@ -103,7 +103,7 @@ export default function FeedSort({ onSortChange, onTagClick, tagFilter, feedMode
                         key={tag}
                         onClick={() => { onTagClick?.(tag.replace("#", "")); setShowTrending(false); }}
                         className={cn("px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
-                          tagFilter === tag.replace("#", "") ? "bg-nf-accent/20 text-nf-accent" : "bg-nf-secondary text-nf-muted hover:bg-nf-hover hover:text-white")}
+                          tagFilter === tag.replace("#", "") ? "bg-nf-accent/20 text-nf-accent" : "bg-nf-secondary text-nf-muted hover:bg-nf-hover hover:text-nf-text")}
                       >
                         {tag}
                       </button>
@@ -124,7 +124,7 @@ export default function FeedSort({ onSortChange, onTagClick, tagFilter, feedMode
           >
             <Hash size={12} />
             {tagFilter}
-            <button onClick={() => onTagClick?.(tagFilter)} className="hover:text-white transition-colors mr-0.5">
+            <button onClick={() => onTagClick?.(tagFilter)} className="hover:text-nf-text transition-colors mr-0.5">
               <X size={10} />
             </button>
           </motion.div>

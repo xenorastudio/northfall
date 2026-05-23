@@ -48,12 +48,6 @@ export default function ForumsRoute() {
       <div className="sr-only">
         <h1>منتدى NorthFall — منشورات ونقاشات ومجتمعات عربية في مختلف المجالات</h1>
         <p>شارك المحتوى، افتح نقاشات جديدة، تفاعل مع المجتمع، واكتشف مواضيع ومجتمعات ينشر فيها المستخدمون محتوى جديد كل يوم حول اهتمامات مختلفة ومتنوعة.</p>
-        <nav aria-label="روابط المجتمعات">
-          <a href="/community/Unity">مجتمع Unity</a>
-          <a href="/community/Unreal">مجتمع Unreal</a>
-          <a href="/community/Godot">مجتمع Godot</a>
-          <a href="/community/Blender">مجتمع Blender</a>
-        </nav>
       </div>
       <AuthProvider>
         <ForumsPage />

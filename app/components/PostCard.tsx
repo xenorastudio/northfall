@@ -495,8 +495,8 @@ export default function PostCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       onClick={handleClick}
-      className={cn("bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-colors duration-150 relative",
-        voteCount >= 10 ? "border-orange-400/20 hover:bg-nf-accent/5 hover:border-orange-400/40" : "border-nf-border-2 hover:bg-nf-accent/5 hover:border-nf-accent/15")}
+      className={cn("group bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-all duration-200 relative",
+        voteCount >= 10 ? "border-orange-400/20 hover:bg-nf-accent/5 hover:border-orange-400/35" : "border-nf-border-2 hover:bg-nf-accent/5 hover:border-nf-accent/20")}
     >
       <div className="px-4 pt-3 pb-2 relative" onDoubleClick={handleDblClickVote}>
         {/* Double-click heart animation */}
@@ -516,7 +516,7 @@ export default function PostCard({
           </div>
           <HoverCard type="community" name={community.replace("n/", "")} onCommunityClick={onCommunityClick}><span className="font-semibold text-nf-accent cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onCommunityClick?.(community.replace("n/", "")); }}>{community}</span></HoverCard>
           <span className="text-nf-dim">·</span>
-          <HoverCard type="user" name={author} uid={authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted hover:text-white hover:underline cursor-pointer inline-flex items-center gap-1" onClick={(e) => { e.stopPropagation(); onProfileClick?.(authorUid || undefined); }}>u/{author}{(authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span></HoverCard>
+          <HoverCard type="user" name={author} uid={authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted hover:text-nf-text hover:underline cursor-pointer inline-flex items-center gap-1" onClick={(e) => { e.stopPropagation(); onProfileClick?.(authorUid || undefined); }}>u/{author}{(authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span></HoverCard>
           <span className="text-nf-dim">·</span>
           <span className="text-nf-muted">{time}</span>
           {flair && <><span className="text-nf-dim">·</span><span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-nf-accent/20 text-nf-accent">{flair}</span></>}
@@ -524,7 +524,7 @@ export default function PostCard({
         </div>
 
         {/* Title - MY title first */}
-        <h3 className="text-[18px] font-bold text-white leading-snug mb-1">{title}</h3>
+        <h3 className="text-[18px] font-bold text-nf-text leading-snug mb-1">{title}</h3>
 
         {/* Body - MY body */}
         {body && (
@@ -537,7 +537,7 @@ export default function PostCard({
         {/* Poll */}
         {poll && poll.options.length >= 2 && (
           <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-1.5 text-[13px] font-bold text-white mb-1">
+            <div className="flex items-center gap-1.5 text-[13px] font-bold text-nf-text mb-1">
               <BarChart3 size={14} className="text-nf-accent" />
               <span>استطلاع</span>
             </div>
@@ -564,7 +564,7 @@ export default function PostCard({
                       {isVoted && <div className="w-2 h-2 rounded-full bg-nf-accent" />}
                     </div>
                   )}
-                  <span className="text-[13px] text-white relative z-10 flex-1">{opt}</span>
+                  <span className="text-[13px] text-nf-text relative z-10 flex-1">{opt}</span>
                   {hasVoted && (
                     <span className={cn("text-[13px] font-bold relative z-10 tabular-nums", isVoted ? "text-nf-accent" : "text-nf-dim")}>{pct}%</span>
                   )}
@@ -608,11 +608,11 @@ export default function PostCard({
         {/* Quoted Post - Mini Post Card (under my content, darker bg) */}
         {quotedPost && (
           <div
-            className="mt-3 rounded-lg border border-nf-border-2/40 bg-[#16161a] overflow-hidden hover:border-nf-border-2/70 transition-all duration-150"
+            className="mt-3 rounded-lg border border-nf-border-2/40 bg-nf-body overflow-hidden hover:border-nf-border-2/70 transition-all duration-150"
           >
             <div
               onClick={(e) => { e.stopPropagation(); onPostClick?.(quotedPost.id); }}
-              className="px-4 pt-3 pb-2 cursor-pointer hover:bg-[#1c1c22] transition-all duration-150"
+              className="px-4 pt-3 pb-2 cursor-pointer hover:bg-nf-hover transition-all duration-150"
             >
               <div className="flex items-center gap-2 text-[13px] mb-1.5">
                 <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
@@ -628,32 +628,32 @@ export default function PostCard({
                 <span className="text-nf-dim">·</span>
                 <span className="text-nf-muted">{quotedPost.createdAt ? timeAgoShort(quotedPost.createdAt) : ""}</span>
               </div>
-              {quotedPost.title && <h3 className="text-[18px] font-bold text-white/80 leading-snug mb-1">{quotedPost.title}</h3>}
+              {quotedPost.title && <h3 className="text-[18px] font-bold text-nf-text-2 leading-snug mb-1">{quotedPost.title}</h3>}
               {quotedPost.body && <p className="text-sm text-nf-text-2/80 leading-relaxed line-clamp-3">{quotedPost.body}</p>}
               {quotedPost.imageUrl && <div className="mt-2 -mx-4"><img src={quotedPost.imageUrl} alt="" className="w-full max-h-[300px] object-cover" /></div>}
             </div>
             {/* Quote actions */}
             <div className="flex items-center gap-1 px-3 py-1.5 border-t border-nf-border-2/30 text-nf-dim">
-              <button onClick={() => onQuoteClick?.(quotedPost.id)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] hover:bg-nf-hover hover:text-white transition-colors"><Quote size={10} />اقتباس</button>
+              <button onClick={() => onQuoteClick?.(quotedPost.id)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] hover:bg-nf-hover hover:text-nf-text transition-colors"><Quote size={10} />اقتباس</button>
             </div>
           </div>
         )}
       </div>
 
       {/* Footer - always visible */}
-      <div className="flex items-center gap-3 px-3 sm:px-4 py-1.5 text-nf-muted flex-wrap">
+      <div className="flex items-center gap-3 px-3 sm:px-4 py-1.5 text-nf-muted flex-wrap opacity-80 group-hover:opacity-100 transition-opacity duration-300">
         <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1.5 py-0.5">
           <button onClick={(e) => { e.stopPropagation(); handleVote(1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === 1 ? "text-orange-500" : "text-nf-dim hover:text-nf-muted")}><ArrowUp size={16} /></button>
           <span className={cn("text-xs font-bold min-w-[20px] text-center", myVote === 1 ? "text-orange-500" : myVote === -1 ? "text-blue-400" : voteCount > 0 ? "text-orange-500" : voteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{voteCount}</span>
           <button onClick={(e) => { e.stopPropagation(); handleVote(-1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
+        <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors">
           <MessageSquare size={14} /><span>{comments} {t("pc.comments")}</span>
         </button>
-        <button onClick={(e) => { e.stopPropagation(); onQuoteClick?.(postId || ""); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
+        <button onClick={(e) => { e.stopPropagation(); onQuoteClick?.(postId || ""); }} className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors">
           <Quote size={14} /><span>اقتباس</span>
         </button>
-        <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="flex items-center gap-1 hover:text-white text-xs transition-colors">
+        <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors">
           <Share2 size={14} /><span>{t("pc.share")}</span>
         </button>
         <button onClick={(e) => { e.stopPropagation(); toggleSave(); }} className={cn("flex items-center gap-1 text-xs transition-all duration-200", saved ? "text-nf-accent" : "hover:text-nf-accent")}>
@@ -664,13 +664,13 @@ export default function PostCard({
         </span>
         <div className="flex-1" />
         <div className="relative">
-          <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="hover:text-white transition-colors p-0.5 rounded hover:bg-nf-hover"><MoreHorizontal size={16} /></button>
+          <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="hover:text-nf-text transition-colors p-0.5 rounded hover:bg-nf-hover"><MoreHorizontal size={16} /></button>
           {showMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
               <div className="absolute left-0 top-full mt-1 bg-nf-primary border border-nf-border-2 rounded-lg overflow-hidden z-50 min-w-[140px]">
                 {user && authorUid === user.uid && onEditClick && (
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEditClick(postId || ""); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEditClick(postId || ""); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
                     <Pencil size={12} /> تعديل المنشور
                   </button>
                 )}
@@ -679,10 +679,10 @@ export default function PostCard({
                     <Trash2 size={12} /> حذف المنشور
                   </button>
                 )}
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); navigator.clipboard?.writeText(`${window.location.origin}/app?view=post&postId=${postId}`); toast("تم نسخ الرابط", "success"); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); navigator.clipboard?.writeText(`${window.location.origin}/app?view=post&postId=${postId}`); toast("تم نسخ الرابط", "success"); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
                   <Link2 size={12} /> نسخ الرابط
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); setShowReport(true); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-white transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); setShowReport(true); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
                   <Flag size={12} /> إبلاغ
                 </button>
               </div>
@@ -705,7 +705,7 @@ export default function PostCard({
             onChange={(e) => setQuickReplyText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); handleQuickReply(); } }}
             placeholder={t("pc.quickReply")}
-            className="flex-1 bg-nf-secondary rounded-full px-3 py-1.5 text-xs text-white placeholder:text-nf-dim border-none outline-none"
+            className="flex-1 bg-nf-secondary rounded-full px-3 py-1.5 text-xs text-nf-text placeholder:text-nf-dim border-none outline-none"
             onClick={(e) => e.stopPropagation()}
           />
           <button onClick={(e) => { e.stopPropagation(); handleQuickReply(); }} disabled={!quickReplyText.trim()} className={cn("p-1.5 rounded-full transition-colors", quickReplyText.trim() ? "text-nf-accent hover:bg-nf-accent/10" : "text-nf-dim")}>
@@ -720,7 +720,7 @@ export default function PostCard({
           <div className="flex items-center gap-1.5 mb-1">
             <Sparkles size={10} className={cn("text-nf-accent/60", aiLoading && "animate-pulse")} />
             <span className="text-[9px] text-nf-accent/60 font-bold">{aiLoading ? "بكتبلك..." : "NorthFall AI"}</span>
-            {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="mr-auto text-nf-dim hover:text-white transition-colors"><X size={10} /></button>}
+            {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="mr-auto text-nf-dim hover:text-nf-text transition-colors"><X size={10} /></button>}
           </div>
           {aiLoading && !aiResult && (
             <div className="flex items-center gap-1">
