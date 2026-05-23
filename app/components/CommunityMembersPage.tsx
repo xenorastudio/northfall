@@ -165,17 +165,6 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
   return (
     <div className="w-full max-w-[720px]" style={{ direction: "rtl" }}>
 
-      {/* ── Header ── */}
-      <div className="flex items-center gap-3 mb-8">
-        <button onClick={onBack} className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text transition-colors">
-          <ChevronRight size={18} />
-        </button>
-        <div>
-          <h1 className="text-[22px] font-bold text-nf-text">إدارة الأعضاء</h1>
-          <p className="text-[13px] text-nf-dim mt-0.5">n/{communityName} · {members.length} عضو</p>
-        </div>
-      </div>
-
       {/* ── Tabs ── */}
       <div className="flex border-b border-nf-border-2/30 mb-6">
         {[
