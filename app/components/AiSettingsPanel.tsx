@@ -2,6 +2,7 @@
 
 import { Key, Check, AlertCircle, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { plainAr } from "@/lib/arabic-text";
 import ComposeSelect from "./ComposeSelect";
 import TranslateLangPicker from "./TranslateLangPicker";
 
@@ -21,18 +22,16 @@ type Props = {
   aiApiKey: string;
   setAiApiKey: (k: string) => void;
   aiConnected: "unknown" | "testing" | "ok" | "fail";
-  onSave: () => void;
   onTest: () => void;
   onDeleteKey?: () => void;
-  translationLangSelector?: React.ReactNode;
 };
 
 function SettingRow({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-3 gap-4">
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] text-nf-muted font-medium">{label}</p>
-        {sub && <p className="text-[10px] text-nf-dim/80 mt-0.5">{sub}</p>}
+        <p className="text-[12px] text-nf-muted font-medium">{plainAr(label)}</p>
+        {sub && <p className="text-[10px] text-nf-dim/80 mt-0.5">{plainAr(sub)}</p>}
       </div>
       <div className="shrink-0">{children}</div>
     </div>
@@ -47,10 +46,8 @@ export default function AiSettingsPanel({
   aiApiKey,
   setAiApiKey,
   aiConnected,
-  onSave,
   onTest,
   onDeleteKey,
-  translationLangSelector,
 }: Props) {
   const current = aiModels[aiModel];
 
@@ -75,7 +72,7 @@ export default function AiSettingsPanel({
         />
       </SettingRow>
 
-      <SettingRow label="مفتاح API" sub="يحفظ في متصفحك فقط — من موقع المزود">
+      <SettingRow label="مفتاح API" sub="يحفظ في متصفحك فقط. من موقع المزود">
         <div className="relative w-[160px]">
           <input
             type="password"
@@ -132,24 +129,20 @@ export default function AiSettingsPanel({
       )}
 
       <SettingRow label="لغة ترجمة AI" sub="اللغة الافتراضية لترجمة المحتوى">
-        <div className="w-[160px]">{translationLangSelector}</div>
-      </SettingRow>
-
-      <SettingRow label="ترجمة التعليقات" sub="لغة عرض التعليقات المترجمة">
-        <div className="w-[160px]">
-          <TranslateLangPicker />
+        <div className="w-[148px]">
+          <TranslateLangPicker fullWidth variant="settings" storageKey="nf-ai-translate-lang" />
         </div>
       </SettingRow>
 
-      <div className="pt-4">
-        <button
-          type="button"
-          onClick={onSave}
-          className="w-full bg-nf-body hover:bg-nf-hover text-nf-text text-[11px] font-bold py-2.5 rounded-lg transition-all border border-nf-border-2/60"
-        >
-          حفظ
-        </button>
-      </div>
+      <SettingRow label="ترجمة التعليقات" sub="لغة عرض التعليقات المترجمة">
+        <div className="w-[148px]">
+          <TranslateLangPicker fullWidth variant="settings" storageKey="nf-translate-lang" />
+        </div>
+      </SettingRow>
+
+      <p className="text-[10px] text-nf-dim/70 mt-2 leading-relaxed">
+        اضغط «حفظ التغييرات» أعلى الصفحة لحفظ مفتاح API والنموذج.
+      </p>
     </div>
   );
 }

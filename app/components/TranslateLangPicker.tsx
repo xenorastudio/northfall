@@ -106,33 +106,63 @@ export const ALL_LANGS = [
   { id: "lb", flag: "🇱🇺", label: "Lëtzebuergesch" },
 ];
 
-export function getTranslateLang(): string {
-  if (typeof window === "undefined") return "ar";
-  return localStorage.getItem("nf-translate-lang") || "ar";
+export type TranslateLangStorageKey = "nf-translate-lang" | "nf-ai-translate-lang";
+
+export function getTranslateLang(storageKey: TranslateLangStorageKey = "nf-translate-lang"): string {
+  if (typeof window === "undefined") return storageKey === "nf-ai-translate-lang" ? "en" : "ar";
+  return localStorage.getItem(storageKey) || (storageKey === "nf-ai-translate-lang" ? "en" : "ar");
 }
 
 interface TranslateLangPickerProps {
   className?: string;
-  /** If true, shows as a full-width selector (for Settings page) */
   fullWidth?: boolean;
+  /** إعدادات: نص بسيط بدون مربع. تعليقات: EN + سهم */
+  variant?: "inline" | "settings";
+  storageKey?: TranslateLangStorageKey;
 }
 
-export default function TranslateLangPicker({ className, fullWidth }: TranslateLangPickerProps) {
+const MENU_H = 280;
+
+export default function TranslateLangPicker({
+  className,
+  fullWidth,
+  variant = "inline",
+  storageKey = "nf-translate-lang",
+}: TranslateLangPickerProps) {
   const [open, setOpen] = useState(false);
-  const [lang, setLang] = useState(getTranslateLang);
+  const [lang, setLang] = useState(() => getTranslateLang(storageKey));
   const [search, setSearch] = useState("");
   const [mounted, setMounted] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 220 });
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number; width: number; openUp: boolean }>({
+    top: 0,
+    left: 0,
+    width: 220,
+    openUp: false,
+  });
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Listen for external changes
   useEffect(() => {
-    const h = (e: Event) => setLang((e as CustomEvent).detail);
+    setLang(getTranslateLang(storageKey));
+  }, [storageKey]);
+
+  useEffect(() => {
+    const eventName =
+      storageKey === "nf-ai-translate-lang" ? "nf-ai-translate-lang-change" : "nf-translate-lang-change";
+    const h = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail || detail === storageKey || typeof detail === "string") {
+        setLang(getTranslateLang(storageKey));
+      }
+    };
+    window.addEventListener(eventName, h);
     window.addEventListener("nf-translate-lang-change", h);
-    return () => window.removeEventListener("nf-translate-lang-change", h);
-  }, []);
+    return () => {
+      window.removeEventListener(eventName, h);
+      window.removeEventListener("nf-translate-lang-change", h);
+    };
+  }, [storageKey]);
 
   useEffect(() => {
     setMounted(true);
@@ -157,8 +187,10 @@ export default function TranslateLangPicker({ className, fullWidth }: TranslateL
         if (!rect) return;
         const menuWidth = 220;
         const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
-        const top = Math.min(rect.bottom + 6, window.innerHeight - 12);
-        setMenuPos({ top, left, width: menuWidth });
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const openUp = spaceBelow < MENU_H && rect.top > spaceBelow;
+        const top = openUp ? Math.max(8, rect.top - MENU_H - 6) : rect.bottom + 6;
+        setMenuPos({ top, left, width: menuWidth, openUp });
       };
       updatePos();
       setTimeout(() => searchRef.current?.focus(), 50);
@@ -182,67 +214,94 @@ export default function TranslateLangPicker({ className, fullWidth }: TranslateL
 
   const pick = (id: string) => {
     setLang(id);
-    localStorage.setItem("nf-translate-lang", id);
+    localStorage.setItem(storageKey, id);
     setOpen(false);
     setSearch("");
     window.dispatchEvent(new CustomEvent("nf-translate-lang-change", { detail: id }));
+    if (storageKey === "nf-ai-translate-lang") {
+      window.dispatchEvent(new CustomEvent("nf-ai-translate-lang-change", { detail: id }));
+    }
   };
 
+  const menuPanel = (
+    <>
+      <div className="px-3 py-2 border-b border-nf-border-2/30">
+        <input
+          ref={searchRef}
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="ابحث..."
+          className="w-full bg-transparent text-[11px] text-nf-text placeholder:text-nf-dim outline-none"
+        />
+      </div>
+      <div className="overflow-y-auto py-1" style={{ maxHeight: MENU_H - 44 }}>
+        {filtered.map((l) => (
+          <button
+            key={l.id}
+            type="button"
+            onClick={() => pick(l.id)}
+            className={cn(
+              "w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] transition-colors",
+              l.id === lang ? "bg-nf-accent/12 text-nf-accent" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
+            )}
+          >
+            <span className="text-[10px] font-bold uppercase opacity-60 w-6 shrink-0">{langBadge(l.id)}</span>
+            <span className="flex-1 text-right">{l.label}</span>
+            {l.id === lang && <Check size={9} className="text-nf-accent shrink-0" />}
+          </button>
+        ))}
+        {filtered.length === 0 && <p className="text-center text-[11px] text-nf-dim py-3">لا توجد نتائج</p>}
+      </div>
+    </>
+  );
+
   if (fullWidth) {
-    // Settings page — full width button
+    const settingsPlain = variant === "settings";
     return (
       <div className={cn("relative", className)} ref={ref}>
         <button
+          ref={buttonRef}
+          type="button"
           onClick={() => setOpen(!open)}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[12px] font-medium transition-all border bg-nf-secondary/30 border-nf-border/10 hover:border-nf-border/25"
+          className={cn(
+            "w-full flex items-center gap-2 text-[11px] transition-colors",
+            settingsPlain
+              ? "justify-end text-nf-muted hover:text-nf-text py-1"
+              : "px-3 py-2 rounded-lg border bg-nf-secondary/30 border-nf-border/10 hover:border-nf-border/25"
+          )}
         >
-          <span className="w-7 h-7 rounded-md bg-nf-secondary/60 border border-nf-border-2/50 flex items-center justify-center text-[10px] font-bold text-nf-muted uppercase shrink-0">
-            {langBadge(current.id)}
-          </span>
-          <span className="flex-1 text-right text-nf-text">{current.label}</span>
-          <span className="text-[10px] text-nf-dim/50 font-mono uppercase">{current.id}</span>
-          <ChevronDown size={12} className={cn("shrink-0 opacity-40 transition-transform", open && "rotate-180")} />
+          {settingsPlain ? (
+            <>
+              <span className="text-nf-text truncate">{current.label}</span>
+              <span className="text-[10px] font-bold uppercase text-nf-dim">{langBadge(current.id)}</span>
+              <ChevronDown size={11} className={cn("shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
+            </>
+          ) : (
+            <>
+              <span className="flex-1 text-right text-nf-text">{current.label}</span>
+              <span className="text-[10px] font-bold uppercase text-nf-dim">{langBadge(current.id)}</span>
+              <ChevronDown size={12} className={cn("shrink-0 opacity-40 transition-transform", open && "rotate-180")} />
+            </>
+          )}
         </button>
 
-        {open && (
-          <div
-            className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-nf-border-2 shadow-xl overflow-hidden"
-            style={{ background: "var(--bg-primary, #18181a)" }}
-          >
-            {/* Search */}
-            <div className="px-3 py-2 border-b border-nf-border-2/40">
-              <input
-                ref={searchRef}
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="ابحث عن لغة..."
-                className="w-full bg-transparent text-[11px] text-nf-text placeholder:text-nf-dim outline-none"
-              />
+        {open && mounted && createPortal(
+          <div className="fixed inset-0 z-[1200]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
+            <div
+              className="absolute rounded-xl border border-nf-border-2/50 shadow-2xl overflow-hidden"
+              style={{
+                top: menuPos.top,
+                left: menuPos.left,
+                width: menuPos.width,
+                background: "var(--bg-body)",
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {menuPanel}
             </div>
-            <div className="max-h-[260px] overflow-y-auto py-1">
-              {filtered.map(l => (
-                <button
-                  key={l.id}
-                  onClick={() => pick(l.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 text-[11px] transition-colors",
-                    l.id === lang ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
-                  )}
-                >
-                  <span className="w-6 h-6 rounded-md bg-nf-secondary/50 border border-nf-border-2/40 flex items-center justify-center text-[9px] font-bold text-nf-dim uppercase shrink-0">
-                    {langBadge(l.id)}
-                  </span>
-                  <span className="flex-1 text-right">{l.label}</span>
-                  <span className="text-[9px] font-mono opacity-30 uppercase">{l.id}</span>
-                  {l.id === lang && <Check size={10} className="text-nf-accent shrink-0" />}
-                </button>
-              ))}
-              {filtered.length === 0 && (
-                <p className="text-center text-[11px] text-nf-dim py-4">لا توجد نتائج</p>
-              )}
-            </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     );
@@ -264,47 +323,18 @@ export default function TranslateLangPicker({ className, fullWidth }: TranslateL
       </button>
 
       {open && mounted && createPortal(
-        <div
-          className="fixed inset-0 z-[1200]"
-          onMouseDown={() => { setOpen(false); setSearch(""); }}
-        >
+        <div className="fixed inset-0 z-[1200]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
           <div
-            className="absolute rounded-xl border border-nf-border-2 shadow-2xl overflow-hidden bg-nf-primary"
-            style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width, maxHeight: 320 }}
+            className="absolute rounded-xl border border-nf-border-2/50 shadow-2xl overflow-hidden"
+            style={{
+              top: menuPos.top,
+              left: menuPos.left,
+              width: menuPos.width,
+              background: "var(--bg-body)",
+            }}
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {/* Search */}
-            <div className="px-3 py-2 border-b border-nf-border-2/40 bg-nf-secondary/20">
-              <input
-                ref={searchRef}
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="ابحث..."
-                className="w-full bg-transparent text-[11px] text-nf-text placeholder:text-nf-dim outline-none"
-              />
-            </div>
-            <div className="overflow-y-auto" style={{ maxHeight: 256 }}>
-              {filtered.map(l => (
-                <button
-                  key={l.id}
-                  onClick={() => pick(l.id)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] transition-colors",
-                    l.id === lang ? "bg-nf-accent/12 text-nf-accent" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
-                  )}
-                >
-                  <span className="w-5 h-5 rounded bg-nf-secondary/50 border border-nf-border-2/40 flex items-center justify-center text-[8px] font-bold text-nf-dim uppercase shrink-0">
-                    {langBadge(l.id)}
-                  </span>
-                  <span className="flex-1 text-right">{l.label}</span>
-                  {l.id === lang && <Check size={9} className="text-nf-accent shrink-0" />}
-                </button>
-              ))}
-              {filtered.length === 0 && (
-                <p className="text-center text-[11px] text-nf-dim py-3">لا توجد نتائج</p>
-              )}
-            </div>
+            {menuPanel}
           </div>
         </div>,
         document.body

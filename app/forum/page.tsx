@@ -57,7 +57,7 @@ export default function ForumsRoute() {
               المنتدى
             </h1>
             <p className="text-[14px] text-nf-muted leading-relaxed mb-8">
-              نعمل على تجربة منتدى جديدة كلياً — نقاشات، مواضيع، ومجتمعات. قريباً على NorthFall.
+              بنبني منتدى جديد للنقاش والمواضيع والمجتمعات. ترقبنا قريبا على NorthFall.
             </p>
             <a
               href="/app"

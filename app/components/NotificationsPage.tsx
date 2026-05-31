@@ -1,18 +1,32 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Bell, MessageSquare, ArrowUp, UserPlus, Award,
   CheckCheck, Trash2, Eye, Heart, AtSign, Users, Shield,
   Megaphone, Gift, X,
 } from "lucide-react";
-import { collection, query, orderBy, limit, onSnapshot, updateDoc, deleteDoc, doc, writeBatch, setDoc, addDoc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  orderBy,
+  limit,
+  onSnapshot,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDoc,
+  writeBatch,
+  setDoc,
+  addDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
 import {
   actorInitial,
   formatNotificationPrimary,
+  notificationActionText,
   notificationActorLabel,
   primaryActor,
   type NotificationLike,
@@ -59,6 +73,8 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [handledInvites, setHandledInvites] = useState<Record<string, "accepted" | "declined">>({});
+  const [actorPhotos, setActorPhotos] = useState<Record<string, string>>({});
+  const loadedPhotoUids = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -73,6 +89,46 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
     }, () => setLoading(false));
     return () => unsub();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const uids = [
+      ...new Set(
+        notifications
+          .map((n) => {
+            const a = primaryActor(n as NotificationLike);
+            return a?.uid || n.fromUid;
+          })
+          .filter((uid): uid is string => Boolean(uid))
+      ),
+    ].filter((uid) => !loadedPhotoUids.current.has(uid));
+
+    if (!uids.length) return;
+
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = {};
+      await Promise.all(
+        uids.slice(0, 12).map(async (uid) => {
+          loadedPhotoUids.current.add(uid);
+          try {
+            const snap = await getDoc(doc(db, "users", uid));
+            const photo = snap.data()?.photoURL as string | undefined;
+            if (photo) next[uid] = photo;
+          } catch {
+            /* ignore */
+          }
+        })
+      );
+      if (!cancelled && Object.keys(next).length) {
+        setActorPhotos((prev) => ({ ...prev, ...next }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [notifications, user]);
 
   const markRead = async (n: any) => {
     if (!user || n.read) return;
@@ -265,8 +321,11 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
                   const notif = n as NotificationLike;
                   const actor = primaryActor(notif);
                   const primaryText = formatNotificationPrimary(notif);
-                  const actionText = actor ? primaryText.slice(actor.name.length).trim() : primaryText;
-                  const username = actor?.name || notificationActorLabel(notif);
+                  const actionText = notificationActionText(notif);
+                  const username = notificationActorLabel(notif);
+                  const actorUid = actor?.uid || n.fromUid;
+                  const photo =
+                    actor?.photo || n.fromPhoto || (actorUid ? actorPhotos[actorUid] : undefined);
                   const postPreview = notif.postTitle || (notif.text?.match(/"([^"]+)"/)?.[1] ?? "");
                   return (
                     <div
@@ -286,22 +345,17 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
                       )}
 
                       <div className="shrink-0 relative">
-                        {(() => {
-                          const actor = primaryActor(n as NotificationLike);
-                          const photo = actor?.photo || n.fromPhoto;
-                          const name = actor?.name || n.fromName || actorInitial(n.text || "U");
-                          return photo ? (
-                            <img
-                              src={photo}
-                              alt=""
-                              className="w-10 h-10 rounded-full object-cover ring-2 ring-nf-border-2/60 bg-nf-secondary"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full ring-2 ring-nf-border-2/60 bg-gradient-to-br from-nf-secondary to-nf-hover flex items-center justify-center text-[13px] font-bold text-nf-text">
-                              {actorInitial(name)}
-                            </div>
-                          );
-                        })()}
+                        {photo ? (
+                          <img
+                            src={photo}
+                            alt=""
+                            className="w-11 h-11 rounded-full object-cover ring-2 ring-nf-border-2/50 bg-nf-secondary"
+                          />
+                        ) : (
+                          <div className="w-11 h-11 rounded-full ring-2 ring-nf-border-2/50 bg-nf-secondary flex items-center justify-center text-[14px] font-bold text-nf-text">
+                            {actorInitial(username)}
+                          </div>
+                        )}
                         <span
                           className={cn(
                             "absolute -bottom-0.5 -start-0.5 w-[18px] h-[18px] rounded-full border-2 border-nf-body flex items-center justify-center",
@@ -321,18 +375,20 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
                         >
                           {actor ? (
                             <>
-                              <span className={cn("font-bold", !n.read && "text-nf-text")}>
+                              <span className={cn("font-bold text-nf-accent", !n.read && "text-nf-text")}>
                                 u/{username}
                               </span>
-                              {" "}
-                              <span className={cn(n.read ? "text-nf-muted" : "text-nf-text/90")}>
-                                {actionText}
+                              <span className={cn("mx-1", n.read ? "text-nf-muted" : "text-nf-text/90")}>
+                                {actionText || "تفاعل مع حسابك"}
                               </span>
                             </>
                           ) : (
                             <span className={cn(!n.read && "font-medium")}>{primaryText}</span>
                           )}
                         </p>
+                        {n.type === "follow" && actor && (
+                          <p className="text-[11px] text-nf-dim mt-0.5">متابع جديد</p>
+                        )}
                         {postPreview && notif.type !== "follow" && (
                           <p className="text-[12px] text-nf-dim mt-0.5 line-clamp-1">
                             {postPreview}

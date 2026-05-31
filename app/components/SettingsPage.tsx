@@ -246,6 +246,9 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
 
   const saveAll = async () => {
     if (!user) return;
+    localStorage.setItem("nf-ai-key", aiApiKey);
+    localStorage.setItem("nf-ai-provider", aiProvider);
+    localStorage.setItem("nf-ai-model", String(aiModel));
     try {
       await updateDoc(doc(db, "users", user.uid), {
         displayName, photoURL: photoUrl, bio, bannerUrl, profilePrivate, hideActivity, showOnline, socialLinks,
@@ -976,14 +979,12 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
               aiApiKey={aiApiKey}
               setAiApiKey={setAiApiKey}
               aiConnected={aiConnected}
-              onSave={saveAiSettings}
               onTest={testAiConnection}
               onDeleteKey={() => {
                 setAiApiKey("");
                 localStorage.removeItem("nf-ai-key");
                 setAiConnected("unknown");
               }}
-              translationLangSelector={<TranslationLangSelector />}
             />
           )}
 

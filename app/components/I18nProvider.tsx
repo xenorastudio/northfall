@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { stripArabicDiacritics } from "@/lib/arabic-text";
+import { plainAr } from "@/lib/arabic-text";
 
 type Lang = "ar" | "en";
 
@@ -434,7 +434,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const t = (key: string): string => {
     const raw = translations[key]?.[lang] || key;
-    return lang === "ar" ? stripArabicDiacritics(raw) : raw;
+    return lang === "ar" ? plainAr(raw) : raw;
   };
 
   const dir = lang === "ar" ? "rtl" : "ltr";
