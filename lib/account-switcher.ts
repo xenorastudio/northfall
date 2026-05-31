@@ -381,6 +381,11 @@ export function setPickerSkipped(): void {
   sessionStorage.setItem(PICKER_SKIP_KEY, "true");
 }
 
+export function clearPickerSkipped(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(PICKER_SKIP_KEY);
+}
+
 // ─── Account Data Cache (instant load for picker) ────────────────
 const CACHE_KEY = "nf-accounts-cache";
 

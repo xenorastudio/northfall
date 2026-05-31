@@ -7,6 +7,7 @@ import { History, ChevronDown, X, Clock, AtSign, Check, ArrowLeftRight, GitCommi
 import { cn } from "@/lib/utils";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import ConfirmModal from "./ConfirmModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -129,14 +130,14 @@ function BeforeAfterSlider({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="absolute top-0 inset-x-0 flex items-center justify-between px-5 h-12 z-10 border-b border-white/8">
-        <div className="flex items-center gap-3 text-[11px]">
-          <span className="text-white/40">{beforeLabel}</span>
-          <ArrowLeftRight size={11} className="text-white/20" />
-          <span className="text-white/70 font-semibold">{afterLabel}</span>
+        <div className="flex items-center gap-2 text-[11px] text-white/60">
+          <span>{beforeLabel}</span>
+          <span className="text-white/30">·</span>
+          <span className="text-white/80 font-semibold">{afterLabel}</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[10px] text-white/25 tabular-nums">{Math.round(pct)}%</span>
-          <button onClick={onClose} className="text-[11px] text-white/40 hover:text-white/80 transition-colors px-2 py-1 rounded border border-white/10 hover:border-white/20">
+          <button onClick={onClose} className="text-[11px] text-white/50 hover:text-white/90 transition-colors px-2 py-1">
             إغلاق
           </button>
         </div>
@@ -271,6 +272,7 @@ export default function LivingPostVersions({
   const [showDiff, setShowDiff] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [deletingVersion, setDeletingVersion] = useState<number | null>(null);
+  const [deleteConfirmVersion, setDeleteConfirmVersion] = useState<number | null>(null);
 
   useEffect(() => {
     setActiveIdx(resolveVersionIndex(versions, currentVersion));
@@ -304,7 +306,6 @@ export default function LivingPostVersions({
 
   const handleDeleteVersion = async (versionNum: number) => {
     if (!postId || !canManageVersions || versions.length <= 1) return;
-    if (!confirm(`حذف الإصدار v${versionNum}؟ لا يمكن التراجع.`)) return;
     setDeletingVersion(versionNum);
     try {
       const nextVersions = versions.filter((v) => v.version !== versionNum);
@@ -400,11 +401,11 @@ export default function LivingPostVersions({
             {hasMultiple && prevVersion?.imageUrl && activeVersion?.imageUrl && (
               <button
                 onClick={() => setShowSlider(true)}
-                className="flex items-center gap-1.5 px-3 text-nf-dim hover:text-nf-muted hover:bg-nf-hover transition-colors border-l border-nf-border-2/30"
+                className="flex items-center px-3 text-nf-dim hover:text-nf-muted hover:bg-nf-hover transition-colors border-l border-nf-border-2/30"
                 title="مقارنة الصور"
               >
-                <ArrowLeftRight size={12} />
                 <span className="hidden sm:inline">قبل/بعد</span>
+                <span className="sm:hidden">ق/ب</span>
               </button>
             )}
             {hasMultiple && prevVersion?.body && activeVersion?.body && (
@@ -475,7 +476,7 @@ export default function LivingPostVersions({
             className="overflow-hidden mt-1.5"
           >
             <div className="flex items-center justify-between px-3 py-2 rounded border border-nf-border-2/40 bg-nf-secondary/20 text-[11px]">
-              <span className="text-nf-dim">إصدار قديم — v{activeVersion.version}</span>
+              <span className="text-nf-dim">إصدار قديم v{activeVersion.version}</span>
               <button onClick={() => handleChange(versions.length - 1)} className="text-nf-accent hover:underline">
                 الأحدث ←
               </button>
@@ -563,7 +564,7 @@ export default function LivingPostVersions({
                     {canManageVersions && versions.length > 1 && (
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteVersion(v.version); }}
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmVersion(v.version); }}
                         disabled={deletingVersion === v.version}
                         className="shrink-0 mt-1 p-1.5 rounded-md text-nf-dim hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40"
                         title={`حذف v${v.version}`}
@@ -617,6 +618,28 @@ export default function LivingPostVersions({
           />
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        open={deleteConfirmVersion !== null}
+        title="حذف الإصدار؟"
+        message={
+          deleteConfirmVersion !== null
+            ? `سيتم حذف الإصدار v${deleteConfirmVersion} نهائياً.`
+            : ""
+        }
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        loading={deletingVersion !== null}
+        onCancel={() => {
+          if (deletingVersion === null) setDeleteConfirmVersion(null);
+        }}
+        onConfirm={() => {
+          if (deleteConfirmVersion !== null) {
+            void handleDeleteVersion(deleteConfirmVersion).finally(() => setDeleteConfirmVersion(null));
+          }
+        }}
+      />
     </>
   );
 }

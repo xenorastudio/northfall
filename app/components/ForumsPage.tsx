@@ -1216,6 +1216,7 @@ export default function ForumsPage() {
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiProvider, setAiProvider] = useState<"chatgpt" | "gemini" | "claude" | "deepseek" | "groq" | "mistral" | "chatanywhere">("chatanywhere");
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const [aiSettingsTab, setAiSettingsTab] = useState<"provider" | "api">("provider");
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiConnected, setAiConnected] = useState<"unknown" | "testing" | "ok" | "fail">("unknown");
@@ -5491,17 +5492,29 @@ ${modePrompts[aiMode] || ""}`;
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="h-full w-[320px] max-w-[85vw] bg-nf-card border-l border-nf-border/10 flex flex-col" onClick={e => e.stopPropagation()}>
               {/* Panel header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-nf-border/8">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-nf-accent/10 flex items-center justify-center"><Sparkles size={13} className="text-nf-accent" /></div>
-                  <span className="text-[13px] font-bold text-nf-text">الإعدادات</span>
-                </div>
+                <span className="text-[13px] font-bold text-nf-text">إعدادات AI</span>
                 <button onClick={() => setAiSettingsOpen(false)} className="p-1.5 rounded-lg text-nf-dim/50 hover:text-nf-text hover:bg-nf-secondary/40 transition-colors"><X size={14} /></button>
               </div>
-              {/* Panel content */}
-              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-                {/* Provider */}
-                <div>
-                  <label className="text-[9px] text-nf-dim font-bold mb-2 block uppercase tracking-wider">المزود</label>
+              <div className="nf-settings-subtabs px-5 pt-3">
+                {([
+                  { id: "provider", label: "المزود" },
+                  { id: "api", label: "المفتاح" },
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setAiSettingsTab(tab.id)}
+                    className={cn(
+                      "nf-settings-subtab",
+                      aiSettingsTab === tab.id ? "nf-settings-subtab--active" : "nf-settings-subtab--idle"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                {aiSettingsTab === "provider" && (
                   <div className="grid grid-cols-3 gap-1.5">
                     {([
                       { id: "chatanywhere", label: "تجريبي" },
@@ -5517,24 +5530,23 @@ ${modePrompts[aiMode] || ""}`;
                       </button>
                     ))}
                   </div>
-                </div>
-                {/* API Key */}
-                <div>
-                  <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">مفتاح API</label>
-                  <div className="relative">
-                    <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder={aiProvider === "chatgpt" ? "sk-proj-..." : aiProvider === "gemini" ? "AIza..." : aiProvider === "deepseek" ? "sk-..." : aiProvider === "groq" ? "gsk_..." : aiProvider === "mistral" ? "..." : "sk-ant-api03-..."} className="w-full bg-nf-secondary/30 rounded-lg px-3.5 py-2.5 text-[11px] text-nf-text placeholder:text-nf-dim/30 outline-none focus:ring-1 focus:ring-nf-accent/20 font-mono border border-nf-border/10 focus:border-nf-accent/20 transition-all" dir="ltr" />
-                    <Key size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-nf-dim/25" />
-                  </div>
-                  {/* Connection status */}
-                  {aiApiKey && (
-                    <div className="mt-2.5">
-                      <button onClick={testAiConnection} disabled={aiConnected === "testing"} className={cn("w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-bold transition-all border", aiConnected === "ok" ? "bg-green-400/10 text-green-400 border-green-400/15" : aiConnected === "fail" ? "bg-red-400/10 text-red-400 border-red-400/15" : aiConnected === "testing" ? "bg-nf-accent/10 text-nf-accent border-nf-accent/15" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-accent/15")}>
-                        {aiConnected === "testing" ? <><div className="w-2.5 h-2.5 border-2 border-nf-accent/30 border-t-nf-accent rounded-full animate-spin" /> اختبار...</> : aiConnected === "ok" ? <><Check size={11} /> متصل بنجاح</> : aiConnected === "fail" ? <><AlertCircle size={11} /> فشل الاتصال</> : <><Zap size={11} /> اختبار الاتصال</>}
-                      </button>
+                )}
+                {aiSettingsTab === "api" && (
+                  <div>
+                    <div className="relative">
+                      <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder={aiProvider === "chatgpt" ? "sk-proj-..." : aiProvider === "gemini" ? "AIza..." : aiProvider === "deepseek" ? "sk-..." : aiProvider === "groq" ? "gsk_..." : aiProvider === "mistral" ? "..." : "sk-ant-api03-..."} className="w-full bg-nf-secondary/30 rounded-lg px-3.5 py-2.5 text-[11px] text-nf-text placeholder:text-nf-dim/30 outline-none focus:ring-1 focus:ring-nf-accent/20 font-mono border border-nf-border/10 focus:border-nf-accent/20 transition-all" dir="ltr" />
+                      <Key size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-nf-dim/25" />
                     </div>
-                  )}
-                  <p className="text-[9px] text-nf-dim/30 mt-1.5 leading-relaxed">{aiApiKey ? "الإرسال يعمل مباشرة عبر API بعد الحفظ" : "بدون مفتاح — سيتم نسخ الرسالة وفتح موقع AI"}</p>
-                </div>
+                    {aiApiKey && (
+                      <div className="mt-2.5">
+                        <button onClick={testAiConnection} disabled={aiConnected === "testing"} className={cn("w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-bold transition-all border", aiConnected === "ok" ? "bg-green-400/10 text-green-400 border-green-400/15" : aiConnected === "fail" ? "bg-red-400/10 text-red-400 border-red-400/15" : aiConnected === "testing" ? "bg-nf-accent/10 text-nf-accent border-nf-accent/15" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-accent/15")}>
+                          {aiConnected === "testing" ? <><div className="w-2.5 h-2.5 border-2 border-nf-accent/30 border-t-nf-accent rounded-full animate-spin" /> اختبار...</> : aiConnected === "ok" ? <><Check size={11} /> متصل</> : aiConnected === "fail" ? <><AlertCircle size={11} /> فشل</> : <><Zap size={11} /> اختبار</>}
+                        </button>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-nf-dim/50 mt-2 leading-relaxed">{aiApiKey ? "يُحفظ في متصفحك فقط" : "بدون مفتاح — سيتم نسخ الرسالة وفتح موقع المزود"}</p>
+                  </div>
+                )}
               </div>
               {/* Panel footer */}
               <div className="px-5 py-4 border-t border-nf-border/8 space-y-2">

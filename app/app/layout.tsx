@@ -1,18 +1,19 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-
-const SITE_URL = 'https://www.northfall.blog';
+import { SITE_URL, SITE_NAME, APP_DESCRIPTION } from '@/lib/site-seo';
 
 export const metadata: Metadata = {
-  title: 'NorthFall',
-  description: 'اكتشف المجتمعات والمنشورات الأكثر تفاعلًا على NorthFall. شوف شو الناس تناقش كل يوم، شارك رأيك، انشر محتوى جديد، وتفاعل مع مجتمع عربي مفتوح للنقاشات والمنشورات في مختلف المجالات. من الأسئلة السريعة إلى النقاشات الطويلة والمحتوى اللي يصنعه المستخدمون، دائمًا فيه شيء جديد تكتشفه.',
-  keywords: ['NorthFall', 'نورث فول', 'منشورات', 'مجتمعات', 'ألعاب', 'نقاشات', 'تطوير ألعاب', 'مطورين عرب', 'GameDev', 'استكشف', 'منصة مجتمعات', 'أخبار الألعاب', 'مشاريع', 'مجتمع عربي', 'منتدى عربي', 'منصة عربية', 'رياضة', 'فن', 'تصميم', 'برمجة', 'تعليم'],
+  title: SITE_NAME,
+  description: APP_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: ['NorthFall', 'Arabic community', 'Arabic social network', 'Arabic forum', 'largest Arabic platform', 'Arabic posts', 'Arabic discussions', 'gaming community Arabic'],
   alternates: { canonical: `${SITE_URL}/app` },
   openGraph: {
-    title: 'NorthFall — مجتمعك العربي',
-    description: 'اكتشف المجتمعات والمنشورات الأكثر تفاعلًا على NorthFall. شوف شو الناس تناقش كل يوم، شارك رأيك، انشر محتوى جديد، وتفاعل مع مجتمع عربي مفتوح للنقاشات والمنشورات.',
+    title: SITE_NAME,
+    description: APP_DESCRIPTION,
     url: `${SITE_URL}/app`,
+    siteName: SITE_NAME,
     type: 'website',
+    locale: 'en_US',
   },
 };
 
@@ -23,8 +24,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {
         '@type': 'WebPage',
         '@id': `${SITE_URL}/app/#webpage`,
-        name: 'الرئيسية — NorthFall',
-        description: 'استكشف المنشورات والمجتمعات على NorthFall',
+        name: SITE_NAME,
+        description: APP_DESCRIPTION,
         url: `${SITE_URL}/app`,
         isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}/#website` },
         breadcrumb: {
@@ -44,15 +45,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {/* SSR content for SEO — hidden visually but visible to crawlers */}
-      <div className="sr-only">
-        <h1>NorthFall — مجتمع عربي للمنشورات والنقاشات والمجتمعات</h1>
-        <p>مكان يشارك فيه الناس أفكارهم واهتماماتهم من خلال منشورات وتعليقات ونقاشات يومية في مختلف المجالات. الألعاب والبرمجة هم الأكثر نشاطًا، ومعهم مجتمعات كثيرة ومحتوى جديد ينزل باستمرار من المستخدمين.</p>
-        <h2>المجتمعات</h2>
-        <nav aria-label="روابط سريعة">
-          <Link href="/forum">المنتدى</Link>
-        </nav>
-      </div>
       {children}
     </>
   );

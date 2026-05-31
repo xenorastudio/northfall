@@ -1,7 +1,7 @@
 "use client";
 
 import "./rich-editor.css";
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useState, useEffect, useRef, useCallback, memo, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
 import {
   Bold,
@@ -38,6 +38,7 @@ import { insertCodeBlockInEditor, paintCodeHighlights, stripCodeHighlights } fro
 import { looksLikeCodePaste } from "@/lib/code-indent";
 import EditorTableMenu from "./EditorTableMenu";
 import EditorLinkBubble, { type LinkBubbleState } from "./EditorLinkBubble";
+import { useI18n } from "./I18nProvider";
 import {
   getHashtagSuggestions,
   prefetchHashtagPool,
@@ -58,6 +59,11 @@ import {
   type MentionSuggestion,
 } from "@/lib/mention-suggestions";
 
+export type RichContentEditorHandle = {
+  /** Sync editor DOM → markdown immediately (for preview / submit) */
+  flush: () => string;
+};
+
 export interface RichContentEditorProps {
   value: string;
   onChange: (markdown: string) => void;
@@ -76,6 +82,9 @@ export interface RichContentEditorProps {
   t?: (key: string) => string;
   autoFocus?: boolean;
   noSpecs?: boolean;
+  /** Comment: hide toolbar/footer until the user types */
+  expandChromeOnInput?: boolean;
+  onDismiss?: () => void;
 }
 
 type ToolbarBtn = {
@@ -89,7 +98,7 @@ function ToolbarDivider() {
   return <span className="w-px h-4 bg-nf-border-2/40 mx-0.5 shrink-0" aria-hidden />;
 }
 
-function RichContentEditor({
+const RichContentEditor = forwardRef<RichContentEditorHandle, RichContentEditorProps>(function RichContentEditor({
   value,
   onChange,
   placeholder,
@@ -102,12 +111,16 @@ function RichContentEditor({
   user,
   shareSpecs,
   onToggleSpecs,
-  t = (k) => k,
+  t: tProp,
   autoFocus = false,
   noSpecs = false,
-}: RichContentEditorProps) {
+  expandChromeOnInput = false,
+  onDismiss,
+}, ref) {
+  const { t: tI18n, lang } = useI18n();
+  const t = tProp ?? tI18n;
+  const isAr = lang === "ar";
   const isComment = variant === "comment";
-  const isAr = /[\u0600-\u06FF]/.test(t("pd.cancel"));
   const { user: authUser } = useAuth();
 
   const editorRef = useRef<HTMLDivElement>(null);
@@ -169,6 +182,21 @@ function RichContentEditor({
     },
     [onChange]
   );
+
+  const flushMarkdown = useCallback(() => {
+    if (emitTimer.current) clearTimeout(emitTimer.current);
+    const el = editorRef.current;
+    if (!el) return normalizePostBodyMarkdown(textRef.current);
+    const md = normalizePostBodyMarkdown(htmlToMarkdown(el.innerHTML));
+    textRef.current = md;
+    lastEmitted.current = md;
+    skipNextRender.current = true;
+    setHasContent(!!md.trim());
+    onChange(md);
+    return md;
+  }, [onChange]);
+
+  useImperativeHandle(ref, () => ({ flush: flushMarkdown }), [flushMarkdown]);
 
   const menusOpenRef = useRef(false);
   useEffect(() => {
@@ -508,6 +536,8 @@ function RichContentEditor({
       anchor.setAttribute("href", href);
       anchor.textContent = label.trim() || href;
       anchor.classList.add("nf-md-link");
+      anchor.style.color = "inherit";
+      anchor.style.textDecoration = "underline";
       emitMarkdownOnly();
       closeLinkBubble();
     },
@@ -545,7 +575,14 @@ function RichContentEditor({
       if (linkEl) {
         linkBubbleActiveRef.current = true;
         setLinkBubble({ mode: "edit", rect: linkEl.getBoundingClientRect(), anchor: linkEl });
+        return;
       }
+      linkBubbleActiveRef.current = true;
+      setLinkBubble({
+        mode: "create",
+        selectedText: "",
+        range: sel.getRangeAt(0).cloneRange(),
+      });
       return;
     }
     const text = sel.toString().trim();
@@ -813,7 +850,12 @@ function RichContentEditor({
     menusOpenRef.current = false;
     paintCodeHighlights(el);
     emitMarkdownOnly();
+    if (expandChromeOnInput && !textRef.current.trim()) {
+      onDismiss?.();
+    }
   };
+
+  const showCommentChrome = !isComment || !expandChromeOnInput || hasContent;
 
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -854,12 +896,17 @@ function RichContentEditor({
   return (
     <div
       className={cn(
-        "rounded-xl overflow-hidden bg-transparent flex flex-col",
-        !className?.includes("border-0") && "border border-nf-border-2/50",
+        "rounded-xl overflow-hidden flex flex-col",
+        isComment ? "nf-comment-editor bg-transparent" : "bg-transparent",
+        !className?.includes("border-0") && !isComment && "border border-nf-border-2/50",
         className
       )}
     >
-      <div className="flex items-center gap-0.5 px-2 py-1.5 flex-wrap bg-nf-secondary/15">
+      {showCommentChrome && (
+      <div className={cn(
+        "flex items-center gap-0.5 px-2 py-1.5 flex-wrap",
+        isComment ? "bg-transparent border-b border-nf-border-2/30" : "bg-nf-secondary/15"
+      )}>
         {visibleToolbar.map((btn, i) => (
           <span key={btn.title} className="contents">
             {i > 0 && (i === 4 || i === 6 || i === 9) && <ToolbarDivider />}
@@ -876,50 +923,75 @@ function RichContentEditor({
             </button>
           </span>
         ))}
-        <div className="flex-1" />
-        <span className="text-[10px] text-nf-dim/70 hidden sm:inline px-1">
-          Ctrl+Enter{isComment ? (isAr ? " للنشر" : " submit") : ""}
-        </span>
+        {!isComment && <div className="flex-1" />}
+        {!isComment && (
+          <span className="text-[10px] text-nf-dim/70 hidden sm:inline px-1">
+            Ctrl+Enter{isAr ? " للنشر" : " submit"}
+          </span>
+        )}
       </div>
+      )}
 
       <EditorLinkBubble
         state={linkBubble}
-        isAr={isAr}
         onClose={closeLinkBubble}
         onApply={applyLinkToRange}
         onUpdate={updateExistingLink}
         onRemove={removeLink}
       />
 
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        spellCheck={false}
-        autoCorrect="off"
-        autoCapitalize="off"
-        data-gramm="false"
-        data-enable-grammarly="false"
-        role="textbox"
-        aria-multiline
-        data-placeholder={placeholder}
-        onInput={scheduleSync}
-        onFocus={handleEditorFocusIn}
-        onBlur={handleEditorFocusOut}
-        onKeyDown={handleKeyDown}
-        onKeyUp={(e) => {
-          if (["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"].includes(e.key)) return;
-          if (menuSyncTimer.current) clearTimeout(menuSyncTimer.current);
-          menuSyncTimer.current = setTimeout(() => syncAutocompleteMenus(), 120);
-        }}
-        onClick={(e) => {
-          handleEditorClick(e);
-          requestAnimationFrame(() => syncAutocompleteMenus());
-        }}
-        onPaste={handlePaste}
-        style={{ minHeight }}
-        className="nf-rich-editor w-full resize-y overflow-y-auto outline-none"
-      />
+      <div className={cn("relative", isComment && expandChromeOnInput && !hasContent && "flex items-start gap-2.5 px-2 py-2")}>
+        {isComment && expandChromeOnInput && !hasContent && (
+          <div className="shrink-0 pt-0.5">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-nf-secondary/40 flex items-center justify-center text-[10px] text-nf-muted font-bold">
+                {(user?.displayName || "U")[0]}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="relative flex-1 min-w-0">
+        {!hasContent && (
+          <div
+            className="absolute inset-x-0 top-0 px-3 py-2.5 text-[0.9375rem] text-nf-dim pointer-events-none select-none leading-relaxed truncate"
+            aria-hidden
+          >
+            {placeholder}
+          </div>
+        )}
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
+          data-gramm="false"
+          data-enable-grammarly="false"
+          role="textbox"
+          aria-multiline
+          aria-placeholder={placeholder}
+          onInput={scheduleSync}
+          onFocus={handleEditorFocusIn}
+          onBlur={handleEditorFocusOut}
+          onKeyDown={handleKeyDown}
+          onKeyUp={(e) => {
+            if (["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"].includes(e.key)) return;
+            if (menuSyncTimer.current) clearTimeout(menuSyncTimer.current);
+            menuSyncTimer.current = setTimeout(() => syncAutocompleteMenus(), 120);
+          }}
+          onClick={(e) => {
+            handleEditorClick(e);
+            requestAnimationFrame(() => syncAutocompleteMenus());
+          }}
+          onPaste={handlePaste}
+          style={{ minHeight: isComment && expandChromeOnInput && !hasContent ? 36 : minHeight }}
+          className="nf-rich-editor w-full resize-y overflow-y-auto outline-none relative z-[1]"
+        />
+        </div>
+      </div>
 
       {activeTableCell &&
         typeof document !== "undefined" &&
@@ -1068,8 +1140,8 @@ function RichContentEditor({
           document.body
         )}
 
-      {isComment && (
-        <div className="flex items-center gap-2 px-3 pb-2 pt-1.5 border-t border-nf-border-2/30">
+      {isComment && showCommentChrome && (
+        <div className="flex items-center gap-2 px-3 pb-2 pt-1.5 border-t border-nf-border-2/20 bg-transparent">
           {!noSpecs && onToggleSpecs && (
             <button
               type="button"
@@ -1125,6 +1197,6 @@ function RichContentEditor({
       )}
     </div>
   );
-}
+});
 
 export default memo(RichContentEditor);

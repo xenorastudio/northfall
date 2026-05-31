@@ -133,10 +133,8 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
       if (af !== bf) return af - bf;
       return a.name.localeCompare(b.name, "ar");
     });
-  const createdComms = sortByFavorite(allComms.filter((c) => c.creatorUid === user?.uid));
-  const joinedComms = sortByFavorite(allComms.filter((c) => joinedNames.includes(c.name) && c.creatorUid !== user?.uid));
   const myCommunities = sortByFavorite(
-    [...createdComms, ...joinedComms.filter((j) => !createdComms.some((c) => c.name === j.name))]
+    allComms.filter((c) => joinedNames.includes(c.name))
   );
   const toggleSidebarFavorite = async (name: string) => {
     if (!user) return;
@@ -151,7 +149,14 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
           c.name.toLowerCase().includes(commSearch.toLowerCase()) ||
           c.label.toLowerCase().includes(commSearch.toLowerCase())
       )
-    : sortByFavorite(allComms);
+    : allComms;
+  const displayedMyCommunities = commSearch.trim()
+    ? myCommunities.filter(
+        (c) =>
+          c.name.toLowerCase().includes(commSearch.toLowerCase()) ||
+          c.label.toLowerCase().includes(commSearch.toLowerCase())
+      )
+    : myCommunities;
 
   // Dark mode toggle
   useEffect(() => {
@@ -244,16 +249,23 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
       {/* Communities — Reddit style */}
       {user && (
         <div className="flex flex-col gap-px mb-2">
-          <button
-            type="button"
-            onClick={() => setCommSectionOpen((o) => !o)}
-            className="flex items-center justify-between w-full px-3.5 py-2 text-[10px] font-bold text-nf-dim uppercase tracking-wider hover:text-nf-muted"
-          >
-            <span>{t("sb.communities")}</span>
-            {commSectionOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
+          <div className="px-3.5 py-2 pb-1">
+            <span className="text-[10px] font-bold text-nf-dim uppercase tracking-wider">{t("sb.communities")}</span>
+          </div>
           {commSectionOpen && (
             <>
+              <div className="px-3 pb-1.5">
+                <div className="relative">
+                  <Search size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nf-dim pointer-events-none" />
+                  <input
+                    type="text"
+                    value={commSearch}
+                    onChange={(e) => setCommSearch(e.target.value)}
+                    placeholder={t("sb.searchComm")}
+                    className="w-full bg-transparent border border-nf-border-2 rounded-lg pr-7 pl-6 py-1.5 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-border-2"
+                  />
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => onNavClick("manage-communities")}
@@ -265,7 +277,7 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
                 <Settings2 size={16} className="opacity-60 shrink-0" />
                 <span>إدارة المجتمعات</span>
               </button>
-              {myCommunities.map((c) => (
+              {displayedMyCommunities.map((c) => (
                 <div key={c.name} className="flex items-center mx-2 group/comm">
                   <Link
                     href={`/community/${encodeURIComponent(c.name)}`}
@@ -295,18 +307,7 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
                   </button>
                 </div>
               ))}
-              <div className="px-3 pt-1 pb-1.5">
-                <div className="relative">
-                  <Search size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nf-dim pointer-events-none" />
-                  <input
-                    type="text"
-                    value={commSearch}
-                    onChange={(e) => setCommSearch(e.target.value)}
-                    placeholder={t("sb.searchComm")}
-                    className="w-full !bg-nf-secondary border border-nf-border-2 rounded-lg pr-7 pl-6 py-1.5 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/50"
-                  />
-                </div>
-              </div>
+              {commSearch.trim() && (
               <div className="max-h-[140px] overflow-y-auto">
                 {filteredComms
                   .filter((c) => !myCommunities.some((m) => m.name === c.name))
@@ -330,6 +331,7 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
                     </Link>
                   ))}
               </div>
+              )}
             </>
           )}
         </div>
@@ -370,23 +372,16 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
         {[
           { icon: Home, id: "home" },
           { icon: Flame, id: "hot" },
-          { icon: Gamepad2, id: "games" },
           { icon: Bell, id: "notifs" },
           { icon: User, id: "profile" },
         ].map(item => (
           <button
             key={item.id}
-            onClick={() => {
-              if (item.id === "games") {
-                window.open("/games", "_blank", "noopener,noreferrer");
-                return;
-              }
-              onNavClick(item.id);
-            }}
+            onClick={() => onNavClick(item.id)}
             className={cn("flex flex-col items-center justify-center gap-0.5 flex-1 py-1", activeNav === item.id ? "text-nf-accent" : "text-nf-dim")}
           >
             <item.icon size={18} />
-            <span className="text-[8px] font-semibold">{item.id === "home" ? t("sb.home") : item.id === "hot" ? t("sb.popular") : item.id === "games" ? "ألعاب" : item.id === "notifs" ? t("sb.notifs") : t("sb.profile")}</span>
+            <span className="text-[8px] font-semibold">{item.id === "home" ? t("sb.home") : item.id === "hot" ? t("sb.popular") : item.id === "notifs" ? t("sb.notifs") : t("sb.profile")}</span>
             {item.id === "notifs" && unreadCount > 0 && <span className="absolute top-0.5 right-1/2 translate-x-2 w-1.5 h-1.5 rounded-full bg-red-500" />}
           </button>
         ))}

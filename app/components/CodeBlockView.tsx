@@ -21,26 +21,30 @@ export default function CodeBlockView({
   code,
   lang,
   collapsible = true,
+  compact = false,
 }: {
   code: string;
   lang: string;
   collapsible?: boolean;
+  compact?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const display = prepareCodeForDisplay(code);
   const highlighted = highlightCode(display, resolveHighlightLang(lang, display));
   const lineCount = useMemo(() => display.split("\n").length, [display]);
-  const isLong = collapsible && lineCount > COLLAPSE_LINE_THRESHOLD;
+  const collapseThreshold = compact ? 8 : COLLAPSE_LINE_THRESHOLD;
+  const collapsedMaxHeight = compact ? 160 : COLLAPSED_MAX_HEIGHT_PX;
+  const isLong = collapsible && lineCount > collapseThreshold;
   const collapsed = isLong && !expanded;
 
   return (
-    <div className="nf-code-block nf-gh-code-block nf-code-block-wrap" dir="ltr">
+    <div className={cn("nf-code-block nf-gh-code-block nf-code-block-wrap", compact && "nf-code-block--compact")} dir="ltr">
       <div
         className={cn(
           "nf-code-block-scroll relative",
           collapsed && "nf-code-block-scroll--collapsed"
         )}
-        style={collapsed ? { maxHeight: COLLAPSED_MAX_HEIGHT_PX } : undefined}
+        style={collapsed ? { maxHeight: collapsedMaxHeight } : undefined}
       >
         <pre dir="ltr" className="nf-code-block-pre">
           <code className="nf-hl-code" dir="ltr" dangerouslySetInnerHTML={{ __html: highlighted }} />

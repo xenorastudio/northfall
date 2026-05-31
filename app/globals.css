@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
 /* ─── خط حسب الحرف (عربي + إنجليزي في نفس الجملة) ─────────────────
    font-family: Noto Kufi, Plus Jakarta, …
    • حروف عربية → Noto Kufi Arabic
@@ -359,16 +373,12 @@
     color: var(--text-muted);
   }
 
-  /* صور الفيد — ضباب الجوانب مثل Reddit */
+  /* صور الفيد — عرض نظيف */
   .nf-feed-media {
     background: var(--bg-secondary);
   }
   .nf-feed-media-frame {
-    min-height: 120px;
-  }
-  .nf-feed-media-backdrop {
-    filter: blur(40px) saturate(1.15);
-    opacity: 0.85;
+    min-height: 80px;
   }
   .nf-feed-media-img {
     max-width: 100%;
@@ -377,7 +387,7 @@
   /* بطاقة المنشور — فاصل هادئ، radius عند hover */
   .nf-post-card {
     border: none;
-    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 22%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 10%, transparent);
     border-radius: 0;
     transition: background 0.14s ease, border-radius 0.14s ease, border-color 0.14s ease;
   }
@@ -395,7 +405,7 @@
 
   /* بطاقة منشور بإطار — من إعدادات المستخدم */
   .nf-post-card--bordered {
-    border: 1px solid var(--border-primary) !important;
+    border: 1px solid color-mix(in srgb, var(--border-primary) 35%, transparent) !important;
     border-radius: 0.625rem !important;
     margin-bottom: 0.5rem;
     padding-inline: 0.25rem;
@@ -831,6 +841,21 @@ html.light .nf-highlight-meta  { color: rgba(255,255,255,0.6); }
 html.light button:has(.nf-highlight-no-cover) .nf-highlight-title { color: var(--text-primary); }
 html.light button:has(.nf-highlight-no-cover) .nf-highlight-meta  { color: var(--text-muted); }
 
+/* Bowie Knife easter egg — tab / logo glitch */
+@keyframes nf-brand-glitch {
+  0%   { transform: translate(0); filter: none; }
+  20%  { transform: translate(-2px, 1px); filter: hue-rotate(90deg); }
+  40%  { transform: translate(2px, -1px); text-shadow: 2px 0 #ff0040, -2px 0 #00e5ff; }
+  60%  { transform: translate(-1px, 2px); filter: hue-rotate(-40deg); }
+  80%  { transform: translate(1px, -2px); text-shadow: -2px 0 #ff0040, 2px 0 #00e5ff; }
+  100% { transform: translate(0); filter: none; }
+}
+.nf-brand-glitch {
+  display: inline-block;
+  animation: nf-brand-glitch 0.12s steps(2) infinite;
+  color: #facc15 !important;
+}
+
 /* Landing page animations */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
@@ -1066,13 +1091,13 @@ html.light button:has(.nf-highlight-no-cover) .nf-highlight-meta  { color: var(-
   color: var(--text-secondary);
 }
 .ai-markdown a {
-  color: #60a5fa;
+  color: var(--text-primary);
   text-decoration: underline;
   text-underline-offset: 2px;
   transition: color 0.15s;
 }
 .ai-markdown a:hover {
-  color: #93bbfd;
+  color: var(--text-secondary);
 }
 
 /* AI chat textarea */
@@ -1201,10 +1226,18 @@ html.light .quoted-thread-hover-bg:hover {
   background: #EDEEF0 !important;
 }
 
-/* ─── Hide Navbar When Image Lightbox is Open ────────────────── */
+/* ─── Hide chrome When Image Lightbox is Open ────────────────── */
 html.lightbox-open nav,
 html.lightbox-open .fixed-nav,
-html.lightbox-open [role="navigation"] {
+html.lightbox-open [role="navigation"],
+html.lightbox-open aside {
+  display: none !important;
+}
+
+html.modal-open nav,
+html.modal-open .fixed-nav,
+html.modal-open [role="navigation"],
+html.modal-open aside {
   display: none !important;
 }
 
@@ -1329,11 +1362,11 @@ html.light .nf-spoiler {
   word-break: break-word;
   overflow-wrap: anywhere;
 }
-.nf-rich-editor:empty::before {
-  content: attr(data-placeholder);
-  color: var(--text-muted);
-  opacity: 0.45;
-  pointer-events: none;
+/* Placeholder من RichContentEditor overlay — لا تكرار مع ::before */
+.nf-rich-editor:empty::before,
+.nf-rich-editor:has(> br:only-child)::before {
+  content: none;
+  display: none;
 }
 .nf-rich-editor p { margin: 0.25rem 0; }
 .nf-rich-editor p:first-child { margin-top: 0; }
@@ -1341,7 +1374,27 @@ html.light .nf-spoiler {
 .nf-md-h1 { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin: 0.75rem 0 0.375rem; }
 .nf-md-h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0.625rem 0 0.3rem; }
 .nf-md-h3 { font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin: 0.5rem 0 0.25rem; }
-.nf-md-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.nf-md-link { color: #60a5fa; text-decoration: underline; text-underline-offset: 2px; }
+.nf-post-body a,
+.nf-comment-body a,
+.nf-rich-editor a,
+.nf-post-body a:visited,
+.nf-comment-body a:visited,
+.nf-rich-editor a:visited,
+a.nf-md-link,
+a.nf-md-link:visited,
+.text-nf-text-2 a.nf-md-link,
+[class*="text-nf-text"] a.nf-md-link {
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa !important;
+}
+.nf-post-body a:hover,
+.nf-comment-body a:hover,
+.nf-rich-editor a:hover,
+a.nf-md-link:hover {
+  color: #93c5fd !important;
+  -webkit-text-fill-color: #93c5fd !important;
+}
 .nf-md-inline-code {
   display: inline !important;
   padding: 0.125rem 0.375rem;
@@ -1402,6 +1455,46 @@ html.light .nf-spoiler {
   object-fit: cover;
 }
 .nf-rich-editor .nf-hashtag { cursor: text; }
+
+/* NorthFall AI — زر وقائمة */
+.nf-ai-btn-wrapper { position: relative; display: inline-block; }
+.nf-ai-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.55rem 0.28rem 0.45rem;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.78);
+  background: #101010;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    inset 0 2px 4px rgba(255, 255, 255, 0.04),
+    0 -1px 2px rgba(0, 0, 0, 0.2);
+}
+.nf-ai-btn:hover, .nf-ai-btn--open {
+  color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.12), inset 0 4px 8px rgba(255, 255, 255, 0.05), 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+.nf-ai-btn-icon { width: 12px; height: 12px; flex-shrink: 0; color: rgba(255, 255, 255, 0.55); }
+.nf-ai-btn:hover .nf-ai-btn-icon, .nf-ai-btn--open .nf-ai-btn-icon { color: rgba(255, 255, 255, 0.88); }
+.nf-ai-btn--loading { opacity: 0.75; pointer-events: none; }
+.nf-ai-menu {
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.nf-ai-menu-item { color: var(--text-muted); transition: background 0.15s ease, color 0.15s ease; }
+.nf-ai-menu-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 
 /* NorthFall AI — حد ملوّن دوّار رفيع أثناء الكتابة فقط */
 @keyframes nf-ai-border-spin {

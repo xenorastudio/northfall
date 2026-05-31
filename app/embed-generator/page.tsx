@@ -84,7 +84,7 @@ function EmbedGeneratorContent() {
   const [origin, setOrigin]   = useState("");
   const [codeTab, setCodeTab] = useState<"blockquote" | "iframe">("blockquote");
 
-  const [embedDark,     setEmbedDark]     = useState(false);
+  const [embedSkin,     setEmbedSkin]     = useState("dark");
   const [hideBody,      setHideBody]      = useState(false);
   const [hideUsername,  setHideUsername]  = useState(false);
   const [hideImage,     setHideImage]     = useState(false);
@@ -121,11 +121,12 @@ function EmbedGeneratorContent() {
 
   useEffect(() => { setIframeH(300); },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [embedDark, hideBody, hideUsername, hideImage, hideFooter, hideBrand, hideFlair, hideVotes, hideTime, hideCommunity, compactMode, maxLines, borderRadius]);
+    [embedSkin, hideBody, hideUsername, hideImage, hideFooter, hideBrand, hideFlair, hideVotes, hideTime, hideCommunity, compactMode, maxLines, borderRadius]);
 
   const qs = (() => {
     const p = new URLSearchParams();
-    if (embedDark)            p.set("theme", "dark");
+    if (embedSkin === "light")  p.set("theme", "light");
+    else if (embedSkin !== "dark") p.set("skin", embedSkin);
     if (hideBody)             p.set("hideBody", "1");
     if (hideUsername)         p.set("hideUser", "1");
     if (hideImage)            p.set("hideImg", "1");
@@ -165,7 +166,7 @@ function EmbedGeneratorContent() {
 
   const blockquoteAttrs = [
     postId ? `data-post-id="${postId}"` : "",
-    embedDark      ? `data-theme="dark"` : "",
+    embedSkin !== "dark" ? `data-skin="${embedSkin}"` : "",
     hideBody       ? `data-hide-body="1"` : "",
     hideUsername   ? `data-hide-user="1"` : "",
     hideImage      ? `data-hide-img="1"` : "",
@@ -389,8 +390,23 @@ function EmbedGeneratorContent() {
               {showCustom && (
                 <div style={boxBody}>
                   {/* Two columns of checkboxes */}
+                  <div style={{ marginBottom: 12 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#333", marginLeft: 8, display: "block", marginBottom: 6 }}>ثيم الـ Embed:</span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {[
+                        { v: "dark", l: "داكن" },
+                        { v: "light", l: "فاتح" },
+                        { v: "midnight", l: "منتصف الليل" },
+                        { v: "ocean", l: "محيط" },
+                        { v: "sunset", l: "غروب" },
+                        { v: "minimal", l: "بسيط" },
+                      ].map((o) => (
+                        <RadioBtn key={o.v} label={o.l} active={embedSkin === o.v} onClick={() => setEmbedSkin(o.v)} />
+                      ))}
+                    </div>
+                  </div>
+
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 20px", marginBottom: 14 }}>
-                    <ClassicCheck on={embedDark}     onChange={setEmbedDark}     label="الوضع الداكن"          desc="خلفية داكنة للـ embed" />
                     <ClassicCheck on={compactMode}   onChange={setCompactMode}   label="وضع مضغوط"             desc="حجم أصغر وأقل padding" />
                     <ClassicCheck on={hideBody}      onChange={setHideBody}      label="إخفاء نص المنشور"      desc="عرض العنوان فقط" />
                     <ClassicCheck on={hideImage}     onChange={setHideImage}     label="إخفاء الصورة"          desc="لا تعرض صورة المنشور" />

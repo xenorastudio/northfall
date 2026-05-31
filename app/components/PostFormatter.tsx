@@ -6,7 +6,8 @@ import { splitTextByHashtags } from "@/lib/hashtags";
 import { collectMarkdownTableRows, isMarkdownTableSeparatorLine } from "@/lib/markdown-table";
 import { guessCodeLang } from "@/lib/code-highlight";
 import { repairUtf8Mojibake } from "@/lib/display-text";
-import { collectIndentedCodeBlock, collectLooseCodeBlock, isMarkdownListItem } from "@/lib/markdown-body";
+import { collectIndentedCodeBlock, collectLooseCodeBlock, isMarkdownListItem, isMarkdownLinkLine } from "@/lib/markdown-body";
+import { autolinkBareUrls } from "@/lib/autolink";
 import CodeBlockView from "./CodeBlockView";
 
 function escapeHtml(s: string): string {
@@ -16,6 +17,8 @@ function escapeHtml(s: string): string {
 /** نص فيه جدول أو تنسيق markdown — لا يكفي PostHashtagText وحده */
 export function bodyNeedsFormattedRender(text: string | undefined | null): boolean {
   if (!text?.trim()) return false;
+  if (/<pre[\s>]/i.test(text) || /nf-editor-pre/i.test(text)) return true;
+  if (collectLooseCodeBlock(text.split("\n"), 0)) return true;
   return (
     /!\[[^\]]*\]\([^)]+\)/.test(text) ||
     /(?<!\*)\*(?!\*)[\s\S]+?(?<!\*)\*(?!\*)/.test(text) ||
@@ -34,7 +37,8 @@ export function bodyNeedsFormattedRender(text: string | undefined | null): boole
     /^\d+\.\s/m.test(text) ||
     /^---+$/m.test(text) ||
     /^#{1,6}/m.test(text) ||
-    /@([\p{L}\p{N}_-]+)/u.test(text)
+    /@([\p{L}\p{N}_-]+)/u.test(text) ||
+    /https?:\/\/\S+/i.test(text)
   );
 }
 
@@ -51,13 +55,14 @@ function formatInlinePlain(text: string): string {
   );
   s = s.replace(
     /\[([\s\S]*?)\]\(([\s\S]*?)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:underline">$1</a>'
+    '<a href="$2" target="_blank" rel="noopener noreferrer" class="nf-md-link">$1</a>'
   );
   s = s.replace(/>!([\s\S]+?)!</g, '<span class="nf-spoiler" onclick="this.classList.toggle(\'revealed\')">$1</span>');
   s = s.replace(
     /@([\p{L}\p{N}_-]+)/gu,
     '<span class="nf-md-mention mention-link" data-mention="$1">@$1</span>'
   );
+  s = autolinkBareUrls(s);
   return s;
 }
 
@@ -77,8 +82,19 @@ function formatInline(text: string): string {
     .join("");
 }
 
-export function renderFormattedBody(text: string): React.ReactNode[] {
+function isInlineOnlyCommentLine(line: string): boolean {
+  const t = line.trim();
+  if (!t) return false;
+  if (t.startsWith("```") || t.startsWith(">") || /^#{1,3}\s/.test(t)) return false;
+  if (isMarkdownListItem(line) || /^\d+\.\s/.test(t)) return false;
+  if (t.match(/^---+$|^\*\*\*+$|^___+$/)) return false;
+  if (/^https?:\/\//i.test(t) && parseVideoUrl(t)) return false;
+  return true;
+}
+
+export function renderFormattedBody(text: string, opts?: { compact?: boolean }): React.ReactNode[] {
   if (!text) return [];
+  const compact = opts?.compact ?? false;
   text = repairUtf8Mojibake(text);
   const lines = text.split("\n");
   const result: React.ReactNode[] = [];
@@ -97,6 +113,7 @@ export function renderFormattedBody(text: string): React.ReactNode[] {
             key={`code-${i}`}
             code={codeLines.join("\n")}
             lang={codeLang || guessCodeLang(codeLines.join("\n"))}
+            compact={compact}
           />
         );
         codeLines = [];
@@ -121,9 +138,26 @@ export function renderFormattedBody(text: string): React.ReactNode[] {
           key={`indented-${i}`}
           code={indented.code}
           lang={guessCodeLang(indented.code)}
+          compact={compact}
         />
       );
       i = indented.endIndex;
+      continue;
+    }
+
+    if (isMarkdownLinkLine(line)) {
+      const formatted = formatInline(line.trim());
+      result.push(
+        compact ? (
+          <span
+            key={i}
+            className="text-sm text-nf-text-2 leading-relaxed nf-comment-inline"
+            dangerouslySetInnerHTML={{ __html: formatted }}
+          />
+        ) : (
+          <p key={i} className="text-sm text-nf-text-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />
+        )
+      );
       continue;
     }
 
@@ -134,6 +168,7 @@ export function renderFormattedBody(text: string): React.ReactNode[] {
           key={`loose-${i}`}
           code={loose.code}
           lang={guessCodeLang(loose.code)}
+          compact={compact}
         />
       );
       i = loose.endIndex;
@@ -238,8 +273,24 @@ export function renderFormattedBody(text: string): React.ReactNode[] {
       continue;
     }
 
-    // Video URL on its own line — render as poster card
     const trimmed = line.trim();
+    if (/^https?:\/\/\S+$/i.test(trimmed) && !parseVideoUrl(trimmed)) {
+      const formatted = formatInline(trimmed);
+      result.push(
+        compact ? (
+          <span
+            key={i}
+            className="text-sm text-nf-text-2 leading-relaxed nf-comment-inline block my-0.5"
+            dangerouslySetInnerHTML={{ __html: formatted }}
+          />
+        ) : (
+          <p key={i} className="text-sm text-nf-text-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />
+        )
+      );
+      continue;
+    }
+
+    // Video URL on its own line — render as poster card
     if (/^https?:\/\//i.test(trimmed) && parseVideoUrl(trimmed)) {
       result.push(
         <div key={i} className="my-2">
@@ -250,6 +301,16 @@ export function renderFormattedBody(text: string): React.ReactNode[] {
     }
 
     const formatted = formatInline(line);
+    if (compact && isInlineOnlyCommentLine(line)) {
+      result.push(
+        <span
+          key={i}
+          className="text-sm text-nf-text-2 leading-relaxed nf-comment-inline"
+          dangerouslySetInnerHTML={{ __html: formatted }}
+        />
+      );
+      continue;
+    }
     result.push(<p key={i} className="text-sm text-nf-text-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />);
   }
 
@@ -259,6 +320,7 @@ export function renderFormattedBody(text: string): React.ReactNode[] {
         key="code-end"
         code={codeLines.join("\n")}
         lang={codeLang || guessCodeLang(codeLines.join("\n"))}
+        compact={compact}
       />
     );
   }

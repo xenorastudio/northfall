@@ -46,9 +46,14 @@ function parseMarkdownTableCellsQuick(line: string): boolean {
   return cells.length >= 2;
 }
 
+export function isMarkdownLinkLine(line: string): boolean {
+  return /^\[[^\]]+\]\([^)]+\)\s*$/.test(line.trim());
+}
+
 export function isCodeLikeLine(line: string): boolean {
   const t = line.trim();
   if (!t) return false;
+  if (isMarkdownLinkLine(line)) return false;
   if (t.includes("|") && parseMarkdownTableCellsQuick(t)) return false;
   if (/^(#{1,3}\s|>\s|\d+\.\s)/.test(t)) return false;
   if (/^https?:\/\//i.test(t)) return false;
@@ -256,4 +261,16 @@ export function repairMarkdownCodeBlocks(md: string): string {
 /** Full pipeline for preview / post body */
 export function normalizePostBodyMarkdown(md: string): string {
   return repairMarkdownCodeBlocks(md);
+}
+
+/** Inline code that is actually a markdown link — unwrap so it renders as a link */
+export function unwrapMarkdownLinksInInlineCode(md: string): string {
+  return md.replace(/`(\[[^\]]+\]\([^`]+?\))`/g, "$1");
+}
+
+/** Loose code lines or markdown → normalized markdown for preview/posts */
+export function preparePostBodyMarkdown(raw: string): string {
+  const trimmed = (raw || "").trim();
+  const unwrapped = unwrapMarkdownLinksInInlineCode(trimmed);
+  return normalizePostBodyMarkdown(unwrapped);
 }

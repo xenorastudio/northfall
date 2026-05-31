@@ -28,7 +28,7 @@ export default function MaintenanceOverlay({ children }: { children: React.React
 
   const isOwner = OWNER_UIDS.includes(user?.uid || "");
 
-  if (loading) return null;
+  if (loading) return <>{children}</>;
 
   // Owners always pass through
   if (isOwner) {

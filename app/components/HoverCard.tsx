@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { cn } from "@/lib/utils";
+import { mergeActor } from "@/lib/notification-format";
 import { getLevel } from "@/lib/ranking";
 import { useToast } from "./ToastProvider";
 import { GAMES } from "./GamesPage";
@@ -232,17 +233,38 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
       toast("تمت المتابعة", "success");
       // Batched follow notification
       try {
+        const actor = {
+          uid: user.uid,
+          name: user.displayName || "مستخدم",
+          photo: user.photoURL || "",
+        };
         const notifQ = query(collection(db, "users", uid, "notifications"), where("type", "==", "follow"), where("read", "==", false));
         const notifSnap = await getDocs(notifQ);
         if (!notifSnap.empty) {
           const existing = notifSnap.docs[0];
           const prev = existing.data();
+          const actors = mergeActor(prev.actors, actor);
           const count = (prev.count || 1) + 1;
-          await updateDoc(existing.ref, { count, text: `${count} شخص تابعوك`, createdAt: new Date().toISOString() });
+          await updateDoc(existing.ref, {
+            count,
+            actors,
+            fromUid: actor.uid,
+            fromName: actor.name,
+            fromPhoto: actor.photo,
+            text: count > 1 ? `${actor.name} و ${count - 1} آخرين تابعوك` : `${actor.name} تابعك`,
+            createdAt: new Date().toISOString(),
+          });
         } else {
           await addDoc(collection(db, "users", uid, "notifications"), {
-            type: "follow", text: `${user.displayName || "مستخدم"} تابعك`,
-            read: false, createdAt: new Date().toISOString(), count: 1,
+            type: "follow",
+            text: `${actor.name} تابعك`,
+            fromUid: actor.uid,
+            fromName: actor.name,
+            fromPhoto: actor.photo,
+            actors: [actor],
+            read: false,
+            createdAt: new Date().toISOString(),
+            count: 1,
           });
         }
       } catch {}
@@ -391,9 +413,9 @@ function CommunityCard({ data, name, onCommunityClick }: { data: any; name: stri
 
         {/* Stats */}
         <div className="text-[10px] text-nf-dim mb-2 flex items-center gap-3">
-          <span className="flex items-center gap-1"><Users size={9} /> <span className="text-nf-text font-bold">{memberCount > 0 ? memberCount.toLocaleString() : "—"}</span> {t("cp.members")}</span>
-          <span className="flex items-center gap-1"><FileText size={9} /> <span className="text-nf-text font-bold">{data.postCount || "—"}</span> {t("cp.posts")}</span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400" /> <span className="text-green-400 font-bold">{data.onlineCount || "—"}</span> متصل</span>
+          <span className="flex items-center gap-1"><Users size={9} /> <span className="text-nf-text font-bold">{memberCount > 0 ? memberCount.toLocaleString() : "0"}</span> {t("cp.members")}</span>
+          <span className="flex items-center gap-1"><FileText size={9} /> <span className="text-nf-text font-bold">{data.postCount || "0"}</span> {t("cp.posts")}</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400" /> <span className="text-green-400 font-bold">{data.onlineCount || "0"}</span> متصل</span>
         </div>
 
         {/* Tags */}

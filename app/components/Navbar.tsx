@@ -16,6 +16,7 @@ import { useI18n } from "./I18nProvider";
 import { resolveCategoryDisplay } from "@/lib/community-categories";
 import { fetchSearchTrending, type SearchTrendingSnapshot, type TrendingTopic } from "@/lib/search-trending";
 import { textDirAttr } from "@/lib/display-text";
+import { BOWIE_KNIFE_LABEL, type BowieGlitchDetail } from "@/lib/bowie-easter-egg";
 
 
 const sortOptions = [
@@ -58,6 +59,43 @@ function timeAgoShort(ts: any): string {
     if (s < 2592000) return `${Math.floor(s / 86400)}d`;
     return `${Math.floor(s / 2592000)}mo`;
   } catch { return ""; }
+}
+
+function LogoBrand() {
+  const [label, setLabel] = useState("NorthFall");
+  const [glitching, setGlitching] = useState(false);
+
+  useEffect(() => {
+    const onGlitch = (e: Event) => {
+      const d = (e as CustomEvent<BowieGlitchDetail>).detail;
+      if (d.phase === "done") {
+        setGlitching(false);
+        setLabel("NorthFall");
+        return;
+      }
+      setGlitching(true);
+      setLabel(d.label || BOWIE_KNIFE_LABEL);
+    };
+    window.addEventListener("nf-bowie-glitch", onGlitch);
+    return () => window.removeEventListener("nf-bowie-glitch", onGlitch);
+  }, []);
+
+  return (
+    <Link
+      href="/app"
+      className="hidden md:flex w-[260px] items-center justify-end shrink-0"
+      aria-label="NorthFall - الصفحة الرئيسية"
+    >
+      <span
+        className={cn(
+          "font-inter text-[15px] font-bold text-nf-text tracking-tight max-w-[240px] truncate",
+          glitching && "nf-brand-glitch"
+        )}
+      >
+        {label}
+      </span>
+    </Link>
+  );
 }
 
 export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick, onPostClick, onNotifsClick, onSettingsClick, onCreateClick, onAdminClick, onSeoClick, activeCommunity, activeCommunityImg, topOffset = 40 }: {
@@ -433,11 +471,140 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   };
 
   return (
-    <nav className="fixed left-0 right-0 h-12 border-b border-nf-border z-[1001] flex items-center px-4 transition-top duration-300" style={{ direction: "rtl", top: "var(--navbar-top)", backgroundColor: "var(--bg-nav)", borderBottomColor: "var(--border-subtle)" }}>
-      {/* Logo */}
-      <Link href="/app" className="hidden md:flex w-[260px] items-center shrink-0 gap-2" aria-label="NorthFall - الصفحة الرئيسية">
-        <span className="font-inter text-[15px] font-bold text-nf-text tracking-tight">NorthFall</span>
-      </Link>
+    <nav className="fixed left-0 right-0 h-12 border-b border-nf-border z-[1001] flex items-center px-4 gap-3 transition-top duration-300" style={{ direction: "rtl", top: "var(--navbar-top)", backgroundColor: "var(--bg-nav)", borderBottomColor: "var(--border-subtle)" }}>
+      {/* Actions — يمين الشريط في RTL */}
+      <div className="md:w-[260px] flex items-center justify-start gap-1.5 shrink-0">
+        {user ? (
+          <div className="relative" ref={userMenuRef}>
+            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-nf-hover transition-colors border border-transparent hover:border-nf-border-2">
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="صورة المستخدم" className="w-7 h-7 rounded-full object-cover border border-nf-border-2" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-nf-secondary flex items-center justify-center border border-nf-border-2"><User size={13} className="text-nf-muted" /></div>
+              )}
+              <ChevronDown size={10} className={cn("text-nf-dim shrink-0 transition-transform", showUserMenu && "rotate-180")} />
+            </button>
+            <AnimatePresence>
+              {showUserMenu && (
+                <motion.div initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.1 }} className="absolute top-full mt-1 right-0 w-[260px] bg-nf-body border border-nf-border-2 rounded-lg z-50 overflow-hidden" style={{ direction: "rtl" }}>
+                  {/* User info header */}
+                  <div className="px-3 py-2.5 border-b border-nf-border-2">
+                    <div className="flex items-center gap-2.5">
+                      {user.photoURL ? (
+                        <img src={user.photoURL} alt="صورة المستخدم" className="w-10 h-10 rounded-full object-cover border border-nf-border-2" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-nf-secondary flex items-center justify-center border border-nf-border-2"><User size={18} className="text-nf-muted" /></div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold text-nf-text truncate flex items-center gap-1">{user.displayName || t("gen.user")}{(user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] inline" />}</p>
+                        <p className="text-[10px] text-nf-dim truncate">{user.email || ""}</p>
+                      </div>
+                      <button
+                        onClick={() => setShowAccountSwitcher(p => !p)}
+                        className="p-1 rounded-md text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors shrink-0"
+                        title="تبديل الحسابات"
+                      >
+                        <ChevronDown size={12} className={cn("transition-transform", showAccountSwitcher && "rotate-180")} />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="text-[10px] text-nf-dim"><span className="text-nf-text font-bold">{Math.max(0, Math.round(userKarma))}</span> صيت</span>
+                      <span className="text-[10px] text-nf-dim"><span className="text-amber-400 font-bold">{userXp}</span> XP</span>
+                      <span className="text-[10px] text-green-400 flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />متصل</span>
+                    </div>
+                  </div>
+                  <AnimatePresence>
+                    {showAccountSwitcher && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="overflow-hidden border-b border-nf-border-2"
+                      >
+                        <div className="px-3 py-2 space-y-1">
+                          <p className="text-[9px] font-bold text-nf-dim uppercase tracking-wider mb-1.5">الحسابات المربوطة ({linkedAccounts.length}/{MAX_ACCOUNTS})</p>
+                          {linkedAccounts.map(acc => (
+                            <div key={acc.uid}
+                              className={cn("flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors group", acc.uid === user.uid ? "bg-nf-accent/10" : "hover:bg-nf-hover cursor-pointer")}
+                              onClick={() => acc.uid !== user.uid && !switchingUid && switchAccount(acc.uid)}>
+                              <div className="relative shrink-0">
+                                {acc.photoURL
+                                  ? <img src={acc.photoURL} alt="" className="w-7 h-7 rounded-full object-cover" />
+                                  : <div className="w-7 h-7 rounded-full bg-nf-secondary flex items-center justify-center"><User size={12} className="text-nf-muted" /></div>
+                                }
+                                {switchingUid === acc.uid && (
+                                  <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-semibold text-nf-text truncate">{acc.displayName || "مستخدم"}</p>
+                                <p className="text-[9px] text-nf-dim truncate">{acc.email}</p>
+                              </div>
+                              {acc.uid === user.uid
+                                ? <span className="text-[9px] text-nf-accent font-bold shrink-0">نشط</span>
+                                : <div className="flex items-center gap-1 shrink-0">
+                                    {!switchingUid && <span className="text-[9px] text-nf-dim opacity-0 group-hover:opacity-100 transition-opacity">تبديل</span>}
+                                    <button onClick={(e) => { e.stopPropagation(); removeAccount(acc.uid); }} className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-nf-dim hover:text-red-400 transition-all"><X size={10} /></button>
+                                  </div>
+                              }
+                            </div>
+                          ))}
+                          {linkedAccounts.length < MAX_ACCOUNTS && (
+                            <button onClick={addAccount} className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-nf-dim hover:bg-nf-hover hover:text-nf-accent transition-colors border border-dashed border-nf-border-2 mt-1">
+                              <Plus size={11} />
+                              <span>إضافة حساب جديد</span>
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <div className="py-0.5">
+                    {[
+                      { icon: User, label: t("nav.profile"), action: () => { onProfileClick(); setShowUserMenu(false); } },
+                      { icon: Bookmark, label: t("sb.saved"), action: () => { onProfileClick(); setShowUserMenu(false); } },
+                      { icon: Bell, label: t("nav.notifs"), action: () => { onNotifsClick?.(); setShowUserMenu(false); } },
+                      { icon: Plus, label: t("pc.createPlaceholder"), action: () => { onCreateClick?.(); setShowUserMenu(false); } },
+                      { icon: Settings, label: t("nav.settings"), action: () => { onSettingsClick?.(); setShowUserMenu(false); } },
+                      ...(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" ? [{ icon: Shield, label: "لوحة الإشراف", action: () => { onAdminClick?.(); setShowUserMenu(false); } }] : []),
+                      ...(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" ? [{ icon: Search, label: "أدوات SEO", action: () => { onSeoClick?.(); setShowUserMenu(false); } }] : []),
+                      { icon: HelpCircle, label: t("sb.help"), action: () => { setShowUserMenu(false); } },
+                    ].map((item, i) => (
+                      <button key={i} onClick={item.action} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
+                        <item.icon size={14} className="shrink-0 text-nf-dim" />
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t border-nf-border-2 py-0.5">
+                    <button onClick={handleSignOut} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-red-400 hover:bg-red-400/5 transition-colors">
+                      <LogOut size={14} className="shrink-0" />
+                      <span>تسجيل الخروج</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <button onClick={onLoginClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">
+            {t("nav.login")}
+          </button>
+        )}
+        <button onClick={toggleTheme} className="w-8 h-8 flex items-center justify-center rounded-lg text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-colors" title={darkMode ? "الوضع المضيء" : "الوضع الداكن"}>
+          {darkMode ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
+        <button onClick={onNotifsClick} className="w-8 h-8 flex items-center justify-center rounded-lg text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-colors relative">
+          <Bell size={15} />
+          {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center px-0.5">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+        </button>
+        <button onClick={onCreateClick} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-all duration-200 whitespace-nowrap">
+          <Plus size={12} /> {t("pc.createPlaceholder")}
+        </button>
+      </div>
 
       {/* Search */}
       <div className="flex-1 max-w-[560px] mx-auto relative z-10" ref={searchRef} style={{ direction: "rtl" }}>
@@ -762,144 +929,8 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
         </AnimatePresence>
       </div>
 
-      {/* Actions - icons then account on far right */}
-      <div className="md:w-[260px] flex items-center justify-end gap-1.5 shrink-0" style={{ direction: "ltr" }}>
-        <button onClick={toggleTheme} className="w-8 h-8 flex items-center justify-center rounded-lg text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-colors" title={darkMode ? "الوضع المضيء" : "الوضع الداكن"}>
-          {darkMode ? <Sun size={15} /> : <Moon size={15} />}
-        </button>
-        <button onClick={onNotifsClick} className="w-8 h-8 flex items-center justify-center rounded-lg text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-colors relative">
-          <Bell size={15} />
-          {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center px-0.5">{unreadCount > 9 ? "9+" : unreadCount}</span>}
-        </button>
-        <button onClick={onCreateClick} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-all duration-200 whitespace-nowrap">
-          <Plus size={12} /> {t("pc.createPlaceholder")}
-        </button>
-        {user ? (
-          <div className="relative" ref={userMenuRef}>
-            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-nf-hover transition-colors border border-transparent hover:border-nf-border-2">
-              {user.photoURL ? (
-                <img src={user.photoURL} alt="صورة المستخدم" className="w-7 h-7 rounded-full object-cover border border-nf-border-2" />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-nf-secondary flex items-center justify-center border border-nf-border-2"><User size={13} className="text-nf-muted" /></div>
-              )}
-              <ChevronDown size={10} className={cn("text-nf-dim shrink-0 transition-transform", showUserMenu && "rotate-180")} />
-            </button>
-            <AnimatePresence>
-              {showUserMenu && (
-                <motion.div initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.1 }} className="absolute top-full mt-1 left-0 w-[260px] bg-nf-primary border border-nf-border-2 rounded-lg z-50 overflow-hidden" style={{ direction: "rtl" }}>
-                  {/* User info header */}
-                  <div className="px-3 py-2.5 border-b border-nf-border-2">
-                    <div className="flex items-center gap-2.5">
-                      {user.photoURL ? (
-                        <img src={user.photoURL} alt="صورة المستخدم" className="w-10 h-10 rounded-full object-cover border border-nf-border-2" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-nf-secondary flex items-center justify-center border border-nf-border-2"><User size={18} className="text-nf-muted" /></div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-bold text-nf-text truncate flex items-center gap-1">{user.displayName || t("gen.user")}{(user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] inline" />}</p>
-                        <p className="text-[10px] text-nf-dim truncate">{user.email || ""}</p>
-                      </div>
-                      {/* Account switcher toggle */}
-                      <button
-                        onClick={() => setShowAccountSwitcher(p => !p)}
-                        className="p-1 rounded-md text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors shrink-0"
-                        title="تبديل الحسابات"
-                      >
-                        <ChevronDown size={12} className={cn("transition-transform", showAccountSwitcher && "rotate-180")} />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-3 mt-2">
-                      <span className="text-[10px] text-nf-dim"><span className="text-nf-text font-bold">{Math.max(0, Math.round(userKarma))}</span> صيت</span>
-                      <span className="text-[10px] text-nf-dim"><span className="text-amber-400 font-bold">{userXp}</span> XP</span>
-                      <span className="text-[10px] text-green-400 flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />متصل</span>
-                    </div>
-                  </div>
-
-                  {/* ── Account Switcher Panel ── */}
-                  <AnimatePresence>
-                    {showAccountSwitcher && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                        className="overflow-hidden border-b border-nf-border-2"
-                      >
-                        <div className="px-3 py-2 space-y-1">
-                          <p className="text-[9px] font-bold text-nf-dim uppercase tracking-wider mb-1.5">الحسابات المربوطة ({linkedAccounts.length}/{MAX_ACCOUNTS})</p>
-                          {linkedAccounts.map(acc => (
-                            <div key={acc.uid}
-                              className={cn("flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors group", acc.uid === user.uid ? "bg-nf-accent/10" : "hover:bg-nf-hover cursor-pointer")}
-                              onClick={() => acc.uid !== user.uid && !switchingUid && switchAccount(acc.uid)}>
-                              <div className="relative shrink-0">
-                                {acc.photoURL
-                                  ? <img src={acc.photoURL} alt="" className="w-7 h-7 rounded-full object-cover" />
-                                  : <div className="w-7 h-7 rounded-full bg-nf-secondary flex items-center justify-center"><User size={12} className="text-nf-muted" /></div>
-                                }
-                                {switchingUid === acc.uid && (
-                                  <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
-                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-semibold text-nf-text truncate">{acc.displayName || "مستخدم"}</p>
-                                <p className="text-[9px] text-nf-dim truncate">{acc.email}</p>
-                              </div>
-                              {acc.uid === user.uid
-                                ? <span className="text-[9px] text-nf-accent font-bold shrink-0">نشط</span>
-                                : <div className="flex items-center gap-1 shrink-0">
-                                    {!switchingUid && <span className="text-[9px] text-nf-dim opacity-0 group-hover:opacity-100 transition-opacity">تبديل</span>}
-                                    <button onClick={(e) => { e.stopPropagation(); removeAccount(acc.uid); }} className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-nf-dim hover:text-red-400 transition-all"><X size={10} /></button>
-                                  </div>
-                              }
-                            </div>
-                          ))}
-                          {linkedAccounts.length < MAX_ACCOUNTS && (
-                            <button onClick={addAccount} className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-nf-dim hover:bg-nf-hover hover:text-nf-accent transition-colors border border-dashed border-nf-border-2 mt-1">
-                              <Plus size={11} />
-                              <span>إضافة حساب جديد</span>
-                            </button>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Menu items */}
-                  <div className="py-0.5">
-                    {[
-                      { icon: User, label: t("nav.profile"), action: () => { onProfileClick(); setShowUserMenu(false); } },
-                      { icon: Bookmark, label: t("sb.saved"), action: () => { onProfileClick(); setShowUserMenu(false); } },
-                      { icon: Bell, label: t("nav.notifs"), action: () => { onNotifsClick?.(); setShowUserMenu(false); } },
-                      { icon: Plus, label: t("pc.createPlaceholder"), action: () => { onCreateClick?.(); setShowUserMenu(false); } },
-                      { icon: Settings, label: t("nav.settings"), action: () => { onSettingsClick?.(); setShowUserMenu(false); } },
-                      ...(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" ? [{ icon: Shield, label: "لوحة الإشراف", action: () => { onAdminClick?.(); setShowUserMenu(false); } }] : []),
-                      ...(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" ? [{ icon: Search, label: "أدوات SEO", action: () => { onSeoClick?.(); setShowUserMenu(false); } }] : []),
-                      { icon: HelpCircle, label: t("sb.help"), action: () => { setShowUserMenu(false); } },
-                    ].map((item, i) => (
-                      <button key={i} onClick={item.action} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
-                        <item.icon size={14} className="shrink-0 text-nf-dim" />
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="border-t border-nf-border-2 py-0.5">
-                    <button onClick={handleSignOut} className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-red-400 hover:bg-red-400/5 transition-colors">
-                      <LogOut size={14} className="shrink-0" />
-                      <span>تسجيل الخروج</span>
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        ) : (
-          <button onClick={onLoginClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-all duration-200">
-            {t("nav.login")}
-          </button>
-        )}
-      </div>
+      {/* Logo — يسار الشريط في RTL */}
+      <LogoBrand />
     </nav>
   );
 }

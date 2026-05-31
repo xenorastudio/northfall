@@ -4,9 +4,9 @@ import { Image, AlertCircle, X, ChevronDown, ChevronUp, Eye, Bold, Heading2, Cod
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { useData } from "./DataProvider";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import RichContentEditor from "./RichContentEditor";
+import RichContentEditor, { type RichContentEditorHandle } from "./RichContentEditor";
 import { cleanArabicTextPreserveLines } from "@/lib/clean-arabic-text";
 import { collection, addDoc, doc, getDoc, updateDoc, setDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -48,7 +48,7 @@ function formatDraftAge(iso?: string): string {
   return `منذ ${months} ش`;
 }
 
-export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostId, livingPostId, livingVersions }: {
+export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostId, livingPostId, livingVersions, defaultCommunity }: {
   onBack: () => void;
   onPost: () => void;
   editPostId?: string;
@@ -57,17 +57,25 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
   livingPostId?: string;
   /** Existing versions array passed from PostDetail */
   livingVersions?: import("./LivingPostVersions").PostVersion[];
+  /** Pre-select community when creating from a community page */
+  defaultCommunity?: string;
 }) {
   const { user } = useAuth();
   const { t, lang } = useI18n();
-  const { communities: fetchedComms } = useData();
+  const { communities: fetchedComms, joinedCommunities } = useData();
   const profileHandle = user?.displayName?.replace(/\s+/g, "") || user?.uid?.slice(0, 10) || "me";
-  const comms = fetchedComms.map((c) => ({
-    name: c.name,
-    label: c.label || `n/${c.name}`,
-    desc: c.shortDesc || "",
-    img: c.img || "",
-  }));
+  const comms = useMemo(
+    () =>
+      fetchedComms
+        .filter((c) => joinedCommunities.includes(c.name) || c.creatorUid === user?.uid)
+        .map((c) => ({
+          name: c.name,
+          label: c.label || `n/${c.name}`,
+          desc: c.shortDesc || "",
+          img: c.img || "",
+        })),
+    [fetchedComms, joinedCommunities, user?.uid]
+  );
   const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -76,7 +84,13 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
   type MediaItem = { id: string; type: "image" | "video"; url: string };
   const newMediaId = () => `m-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([{ id: "m-0", type: "image", url: "" }]);
-  const [community, setCommunity] = useState(PROFILE_POST_COMMUNITY);
+  const [community, setCommunity] = useState(defaultCommunity || PROFILE_POST_COMMUNITY);
+
+  useEffect(() => {
+    if (!editPostId && !livingPostId && defaultCommunity) {
+      setCommunity(defaultCommunity);
+    }
+  }, [defaultCommunity, editPostId, livingPostId]);
   const [flair, setFlair] = useState("");
   const [showCommDrop, setShowCommDrop] = useState(false);
   const [commPickerSearch, setCommPickerSearch] = useState("");
@@ -94,6 +108,8 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
   ];
   const [submitting, setSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewBody, setPreviewBody] = useState("");
+  const editorRef = useRef<RichContentEditorHandle>(null);
   const [showPoll, setShowPoll] = useState(false);
   const [composeTab, setComposeTab] = useState<"text" | "media" | "poll">("text");
   const [pollOptions, setPollOptions] = useState<PollOptionRow[]>([
@@ -664,7 +680,15 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
           <button
             type="button"
             title={showPreview ? "العودة للتحرير" : "معاينة المنشور"}
-            onClick={() => setShowPreview(!showPreview)}
+            onClick={() => {
+              if (!showPreview) {
+                const md = editorRef.current?.flush() ?? body;
+                setPreviewBody(md);
+                setShowPreview(true);
+              } else {
+                setShowPreview(false);
+              }
+            }}
             className={cn(
               "inline-flex items-center px-3 py-2 rounded-lg text-[11px] font-semibold border transition-colors",
               showPreview
@@ -790,11 +814,11 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
               <p className="text-[13px] text-nf-dim mb-2 italic">بدون عنوان</p>
             )}
 
-            {hasMeaningfulPreviewBody(body) ? (
+            {hasMeaningfulPreviewBody(previewBody || body) ? (
               <div className="nf-post-body nf-bidi-text text-sm text-nf-text-2 leading-relaxed mb-2" dir="auto">
-                <PostBodyContent text={body} />
+                <PostBodyContent text={previewBody || body} />
               </div>
-            ) : (body || "").trim() ? (
+            ) : (previewBody || body || "").trim() ? (
               <p className="text-[12px] text-nf-dim italic mb-2">
                 لا يوجد نص بعد — الخط الفاصل أو الهاشتاق وحده لا يظهر كمنشور في الفيد
               </p>
@@ -881,7 +905,7 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
           {!livingPostId && <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <button type="button" onClick={() => { setShowCommDrop(!showCommDrop); setShowFlairDrop(false); }}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-full border border-nf-border-2 bg-nf-secondary/80 text-[13px] text-nf-text hover:border-nf-border-2/80 transition-colors w-full justify-between">
+                className="flex items-center gap-2.5 px-3 py-2 rounded-full border border-nf-border-2 bg-transparent text-[13px] text-nf-text hover:border-nf-border-2/80 transition-colors w-full justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
                   {isProfileTarget ? (
                     user?.photoURL ? (
@@ -906,35 +930,37 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
               <AnimatePresence>
                 {showCommDrop && (
                   <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                    className="absolute top-full mt-2 right-0 left-0 bg-[#1a1a1b] border border-[#343536] rounded-xl overflow-hidden z-30 shadow-lg">
-                    <p className="px-3 pt-2.5 pb-1 text-[11px] font-bold text-[#d7dadc]">انشر إلى</p>
+                    className="absolute top-full mt-2 right-0 left-0 bg-nf-primary border border-nf-border-2 rounded-xl overflow-hidden z-30 shadow-lg">
+                    <p className="px-3 pt-2.5 pb-1 text-[11px] font-bold text-nf-muted">انشر إلى</p>
                     <div className="px-3 pb-2">
                       <div className="relative">
-                        <Search size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#818384]" />
+                        <Search size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim" />
                         <input
                           type="text"
                           value={commPickerSearch}
                           onChange={(e) => setCommPickerSearch(e.target.value)}
                           placeholder="ابحث عن مجتمع..."
-                          className="w-full rounded-full border border-[#343536] bg-[#272729] py-2 pr-9 pl-3 text-[12px] text-[#d7dadc] placeholder:text-[#818384] outline-none focus:border-[#818384]"
+                          className="w-full rounded-full border border-nf-border-2 bg-transparent py-2 pr-9 pl-3 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-border"
                           onClick={(e) => e.stopPropagation()}
                         />
                       </div>
                     </div>
                     <button type="button" onClick={() => { setCommunity(PROFILE_POST_COMMUNITY); setShowCommDrop(false); setCommPickerSearch(""); }}
-                      className={cn("flex items-center gap-3 w-full px-3 py-2.5 text-right hover:bg-[#272729] transition-colors", isProfileTarget && "bg-[#272729]")}>
+                      className={cn("flex items-center gap-3 w-full px-3 py-2.5 text-right hover:bg-nf-hover transition-colors", isProfileTarget && "bg-nf-hover")}>
                       {user?.photoURL ? (
                         <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
                       ) : (
                         <span className="w-8 h-8 rounded-full bg-nf-accent/30 flex items-center justify-center text-[10px] text-nf-accent font-bold shrink-0">u</span>
                       )}
                       <div className="flex-1 min-w-0 text-right">
-                        <p className="text-[13px] font-semibold text-[#d7dadc]">u/{profileHandle}</p>
-                        <p className="text-[11px] text-[#818384]">صفحتك</p>
+                        <p className="text-[13px] font-semibold text-nf-text">u/{profileHandle}</p>
+                        <p className="text-[11px] text-nf-dim">صفحتك</p>
                       </div>
                     </button>
-                    <div className="max-h-[220px] overflow-y-auto border-t border-[#343536]">
-                      {comms
+                    <div className="max-h-[220px] overflow-y-auto border-t border-nf-border-2">
+                      {comms.length === 0 && !commPickerSearch.trim() ? (
+                        <p className="px-3 py-4 text-[11px] text-nf-dim text-center">انضم لمجتمع أولاً لنشر فيه</p>
+                      ) : comms
                         .filter((c) => {
                           const q = commPickerSearch.trim().toLowerCase();
                           if (!q) return true;
@@ -942,15 +968,15 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
                         })
                         .map((c) => (
                           <button key={c.name} type="button" onClick={() => { setCommunity(c.name); setShowCommDrop(false); setCommPickerSearch(""); }}
-                            className={cn("flex items-center gap-3 w-full px-3 py-2.5 text-right hover:bg-[#272729] transition-colors", community === c.name && "bg-[#272729]")}>
+                            className={cn("flex items-center gap-3 w-full px-3 py-2.5 text-right hover:bg-nf-hover transition-colors", community === c.name && "bg-nf-hover")}>
                             {c.img ? (
                               <img src={c.img} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
                             ) : (
-                              <span className="w-8 h-8 rounded-full bg-[#272729] flex items-center justify-center text-[9px] text-nf-accent font-bold shrink-0">n/</span>
+                              <span className="w-8 h-8 rounded-full bg-nf-secondary flex items-center justify-center text-[9px] text-nf-accent font-bold shrink-0">n/</span>
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-medium text-[#d7dadc]">{c.label}</p>
-                              {c.desc && <p className="text-[10px] text-[#818384] truncate">{c.desc}</p>}
+                              <p className="text-[13px] font-medium text-nf-text">{c.label}</p>
+                              {c.desc && <p className="text-[10px] text-nf-dim truncate">{c.desc}</p>}
                             </div>
                           </button>
                         ))}
@@ -1102,6 +1128,7 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
                   </div>
                 )}
                 <RichContentEditor
+                  ref={editorRef}
                   variant="post"
                   value={body}
                   onChange={setBody}

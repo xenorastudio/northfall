@@ -9,6 +9,7 @@ import {
 import { guessCodeLang, highlightCode } from "@/lib/code-highlight";
 import { isMarkdownListItem } from "@/lib/markdown-body";
 import { prepareCodeForDisplay } from "@/lib/code-indent";
+import { autolinkBareUrls } from "@/lib/autolink";
 import { getPrePlainText } from "@/lib/editor-code";
 
 function escapeHtml(s: string): string {
@@ -46,6 +47,7 @@ function formatInlineMarkdown(text: string, opts?: { skipHashtagSpans?: boolean 
         />!([\s\S]+?)!</g,
         '<span class="nf-spoiler" data-spoiler="true" contenteditable="true">$1</span>'
       );
+      s = autolinkBareUrls(s);
       return s;
     })
     .join("");
@@ -116,6 +118,7 @@ export function htmlToMarkdown(html: string): string {
           return el.textContent ?? "";
         }
         const text = childrenMarkdown.replace(/\n+/g, " ").trim();
+        if (/^\[[^\]]+\]\([^)]+\)$/.test(text)) return text;
         return text ? `\`${text}\`` : "";
       }
       case "PRE": {

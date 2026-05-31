@@ -5,8 +5,18 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import PostHashtagText from "./PostHashtagText";
-import { normalizePostBodyMarkdown } from "@/lib/markdown-body";
+import { preparePostBodyMarkdown } from "@/lib/markdown-body";
+import { htmlToMarkdown } from "@/lib/rich-content-markdown";
 import { bodyNeedsFormattedRender, renderFormattedBody } from "./PostFormatter";
+
+function normalizeBodyForDisplay(text: string): string {
+  const raw = (text || "").trim();
+  if (!raw) return "";
+  if (/<pre[\s>]/i.test(raw) || /nf-editor-pre/i.test(raw) || /<a[\s>]/i.test(raw) || /<p[\s>]/i.test(raw)) {
+    return preparePostBodyMarkdown(htmlToMarkdown(raw));
+  }
+  return preparePostBodyMarkdown(raw);
+}
 import { UserProfilePopover } from "./HoverCard";
 
 export default function PostBodyContent({
@@ -15,12 +25,14 @@ export default function PostBodyContent({
   onHashtagClick,
   onProfileClick,
   enableMentionHover = true,
+  variant = "post",
 }: {
   text: string;
   className?: string;
   onHashtagClick?: (tag: string) => void;
   onProfileClick?: (uid: string) => void;
   enableMentionHover?: boolean;
+  variant?: "post" | "comment";
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -83,7 +95,7 @@ export default function PostBodyContent({
 
   if (!text) return null;
 
-  const normalized = normalizePostBodyMarkdown(text);
+  const normalized = normalizeBodyForDisplay(text);
 
   const onClick = (e: React.MouseEvent) => {
     const mention = (e.target as HTMLElement).closest(
@@ -117,6 +129,8 @@ export default function PostBodyContent({
       document.body
     );
 
+  const isComment = variant === "comment";
+
   if (bodyNeedsFormattedRender(normalized)) {
     return (
       <>
@@ -124,13 +138,14 @@ export default function PostBodyContent({
           ref={rootRef}
           className={cn(
             "nf-post-body nf-bidi-text text-sm leading-relaxed",
+            isComment && "nf-comment-body",
             className
           )}
           dir="auto"
           style={{ textAlign: "right" }}
           onClick={onClick}
         >
-          {renderFormattedBody(normalized)}
+          {renderFormattedBody(normalized, { compact: isComment })}
         </div>
         {popover}
       </>

@@ -1,12 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users, MessageSquare, LogIn, Clock, TrendingUp, Search, X, Shield, Tag, Link2, Plus, Copy, Check, UserCog, ChevronDown, Crown, MoreVertical, BellOff, Hash } from "lucide-react";
+import { Users, MessageSquare, Clock, TrendingUp, Search, X, Shield, Tag, Link2, Copy, Check, ChevronDown, Crown, MoreVertical, BellOff } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, deleteDoc, getCountFromServer, addDoc, onSnapshot } from "firebase/firestore";
 import { setCommunityFavorite, setCommunityMuted, addCommunityToCustomFeed } from "@/lib/user-community-prefs";
 import { db } from "@/lib/firebase";
 import PostCard from "./PostCard";
+import CommunityHighlights from "./CommunityHighlights";
 import { useAuth } from "./AuthProvider";
 import { useData } from "./DataProvider";
 import { postMatchesHashtag, interestTagsFromHashtag } from "@/lib/hashtags";
@@ -111,6 +112,7 @@ interface CommunityPageProps {
   onEditClick?: (id: string) => void;
   onDeleteClick?: (id: string) => void;
   onPostClick?: (id: string) => void;
+  onCreatePost?: (communityName: string) => void;
   onJoinToggle?: (name: string, joined: boolean) => void;
   onDashboardClick?: (name: string) => void;
   onMembersClick?: (name: string) => void;
@@ -120,7 +122,7 @@ interface CommunityPageProps {
   onSidebarRefresh?: () => void;
 }
 
-export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick, onPostClick, onJoinToggle, onDashboardClick, onMembersClick, onModPanelClick, customFeeds = [], showToast, onSidebarRefresh }: CommunityPageProps) {
+export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick, onPostClick, onCreatePost, onJoinToggle, onDashboardClick, onMembersClick, onModPanelClick, customFeeds = [], showToast, onSidebarRefresh }: CommunityPageProps) {
   const { user } = useAuth();
   const { userInterests, pushUserInterests } = useData();
   const [hashtagFilter, setHashtagFilter] = useState<string | null>(null);
@@ -132,6 +134,9 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   const [sortMode, setSortMode] = useState<"new" | "top" | "comments">("new");
   const [searchQuery, setSearchQuery] = useState("");
   const [dbMeta, setDbMeta] = useState<any>(null);
+  const [metaReady, setMetaReady] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
+  const [roleChecked, setRoleChecked] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteSent, setInviteSent] = useState(false);
@@ -252,6 +257,20 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   }, []);
 
   useEffect(() => {
+    setDbMeta(null);
+    setMetaReady(false);
+    setIsStaff(false);
+    setRoleChecked(false);
+    setJoined(false);
+    setModerators([]);
+    setShowOptionsMenu(false);
+    setShowFeedSubmenu(false);
+    setShowInvitePanel(false);
+    setHashtagFilter(null);
+    setSearchQuery("");
+  }, [name]);
+
+  useEffect(() => {
     const isPreview = typeof window !== "undefined" && window.location.search.includes("preview=true");
     setIsPreviewMode(isPreview);
     if (isPreview) {
@@ -274,7 +293,9 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
               founded: parsed.founded || new Date().getFullYear().toString(),
               communityType: parsed.communityType || "public",
               memberCount: parsed.memberCount || 1,
+              creatorUid: parsed.creatorUid,
             });
+            setMetaReady(true);
             return;
           }
         } catch (e) {
@@ -285,7 +306,8 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
 
     getDoc(doc(db, "communities", name)).then(snap => {
       if (snap.exists()) setDbMeta(snap.data());
-    }).catch(() => {});
+      setMetaReady(true);
+    }).catch(() => setMetaReady(true));
   }, [name]);
 
   useEffect(() => {
@@ -336,26 +358,37 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   const isMatureCommunity = !!meta.isMature;
   const showMatureGate = isMatureCommunity && !matureConfirmed && !isPreviewMode;
   const categoryLabel = resolveCategoryDisplay(meta.category);
-  const isOwner = user?.uid === meta.creatorUid;
+  const isOwner = metaReady && !!user && user.uid === dbMeta?.creatorUid;
   const isRestricted = meta.communityType === "restricted";
   const isPrivate = meta.communityType === "private";
   const needsInvite = isPrivate || isRestricted;
+  const canManage = metaReady && roleChecked && (isOwner || isStaff);
 
-  // Check if current user is staff — runs independently of dbMeta
-  const [isStaff, setIsStaff] = useState(false);
   useEffect(() => {
-    if (!user) { setIsStaff(false); return; }
-    // Check creatorUid directly from Firestore
-    getDoc(doc(db, "communities", name)).then(commSnap => {
-      if (!commSnap.exists()) return;
-      if (user.uid === commSnap.data().creatorUid) { setIsStaff(true); return; }
-      getDoc(doc(db, "communities", name, "members", user.uid)).then(s => {
+    if (!user) { setIsStaff(false); setRoleChecked(true); return; }
+    setIsStaff(false);
+    setRoleChecked(false);
+    let cancelled = false;
+    (async () => {
+      try {
+        const commSnap = await getDoc(doc(db, "communities", name));
+        if (cancelled) return;
+        if (!commSnap.exists()) { setRoleChecked(true); return; }
+        if (user.uid === commSnap.data().creatorUid) {
+          setIsStaff(true);
+          setRoleChecked(true);
+          return;
+        }
+        const s = await getDoc(doc(db, "communities", name, "members", user.uid));
+        if (cancelled) return;
         if (s.exists()) {
           const role = s.data().role;
           setIsStaff(role === "admin" || role === "moderator");
         }
-      }).catch(() => {});
-    }).catch(() => {});
+      } catch { /* ignore */ }
+      if (!cancelled) setRoleChecked(true);
+    })();
+    return () => { cancelled = true; };
   }, [user?.uid, name]);
 
   useEffect(() => {
@@ -468,7 +501,21 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   const filteredPosts = [...posts]
     .filter(p => !selectedTag || p.flair === selectedTag)
     .filter(p => !hashtagFilter || postMatchesHashtag(p, hashtagFilter))
-    .filter(p => !searchQuery.trim() || p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || p.body?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(p => {
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) return true;
+      const haystack = [
+        p.title,
+        p.body,
+        p.authorName,
+        p.flair,
+        ...(Array.isArray((p as { hashtags?: string[] }).hashtags) ? (p as { hashtags?: string[] }).hashtags! : []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    })
     .sort((a, b) => {
       if (sortMode === "top") return (b.votes || 0) - (a.votes || 0);
       if (sortMode === "comments") return (b.commentCount || 0) - (a.commentCount || 0);
@@ -522,28 +569,88 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
           </div>
           {/* Action buttons */}
           <div className="flex items-center gap-1.5 pb-1 flex-wrap justify-end">
+            <button
+              type="button"
+              onClick={() => onCreatePost?.(name)}
+              className="inline-flex items-center px-3 py-1.5 rounded-full border border-nf-border-2 bg-nf-card text-[11px] font-semibold text-nf-text hover:bg-nf-hover transition-colors"
+            >
+              إنشاء منشور
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!user) {
+                  window.dispatchEvent(new CustomEvent("nf-login-required"));
+                  return;
+                }
+                toggleJoin();
+              }}
+              disabled={isOwner}
+              className={cn(
+                "inline-flex items-center justify-center px-3 py-1.5 rounded-full border text-[11px] font-semibold transition-colors",
+                isOwner
+                  ? "bg-nf-card text-nf-accent border-nf-accent/30 cursor-default"
+                  : joined
+                    ? "bg-nf-card text-nf-muted border-nf-border-2 hover:border-red-400/50 hover:text-red-400"
+                    : isPrivate
+                      ? "bg-nf-card text-nf-dim border-nf-border-2 cursor-not-allowed opacity-60"
+                      : "bg-nf-card text-nf-text border-nf-border-2 hover:bg-nf-hover"
+              )}
+            >
+              {!user ? "انضم" : isOwner ? "مؤسس" : joined ? "عضو" : isPrivate ? "خاص" : "انضم"}
+            </button>
+            {canManage && onDashboardClick && (
+              <button
+                type="button"
+                onClick={() => onDashboardClick(name)}
+                className="inline-flex items-center px-3 py-1.5 rounded-full border border-nf-border-2 bg-nf-card text-[11px] font-semibold text-nf-muted hover:text-nf-text hover:bg-nf-hover transition-colors"
+              >
+                الإدارة
+              </button>
+            )}
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => onMembersClick?.(name)}
+                className="inline-flex items-center px-3 py-1.5 rounded-full border border-nf-border-2 bg-nf-card text-[11px] font-semibold text-nf-muted hover:text-nf-text hover:bg-nf-hover transition-colors"
+              >
+                الأعضاء
+              </button>
+            )}
             {user && isMuted && (
               <button
                 type="button"
-                onClick={toggleMute}
                 disabled={menuBusy}
-                title={`إلغاء كتم n/${name}`}
-                className="p-2 rounded-full border border-nf-border-2 bg-nf-card text-nf-dim hover:text-nf-text hover:border-nf-border transition-colors"
-                aria-label="إلغاء الكتم">
+                onClick={toggleMute}
+                title={`إلغاء كتم إشعارات n/${name}`}
+                className="p-1.5 rounded-full border border-nf-border-2 bg-nf-card text-nf-muted hover:text-nf-text hover:bg-nf-hover transition-colors"
+                aria-label="كتم مفعّل"
+              >
                 <BellOff size={15} />
               </button>
             )}
             <div className="relative" ref={menuRef}>
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => { setShowOptionsMenu(p => !p); setShowFeedSubmenu(false); }}
-                className="p-2 rounded-full border border-nf-border-2 bg-nf-card text-nf-dim hover:text-nf-text hover:border-nf-border transition-colors"
-                aria-label="خيارات المجتمع">
+                className="p-1.5 rounded-full border border-nf-border-2 bg-nf-card text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors"
+                aria-label="خيارات المجتمع"
+              >
                 <MoreVertical size={15} />
               </button>
               {showOptionsMenu && (
                 <div
                   className="absolute left-0 top-full mt-1 min-w-[188px] rounded-md border border-nf-border-2 bg-nf-card z-[500] overflow-hidden py-0.5 shadow-lg"
                 >
+                  {canManage && needsInvite && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowInvitePanel(p => !p); setShowOptionsMenu(false); }}
+                      className="w-full px-3 py-1.5 text-[12px] text-nf-text hover:bg-nf-hover transition-colors text-right"
+                    >
+                      دعوة
+                    </button>
+                  )}
                   <button
                     type="button"
                     disabled={menuBusy}
@@ -592,40 +699,6 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
                 </div>
               )}
             </div>
-            {onDashboardClick && (isOwner || isStaff) && (
-              <button onClick={() => onDashboardClick(name)}
-                className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-nf-border-2 bg-nf-secondary text-nf-dim hover:text-nf-accent hover:border-nf-accent transition-all flex items-center gap-1.5">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                <span className="hidden sm:inline">الإدارة</span>
-              </button>
-            )}
-            {/* Invite button for owner/staff of restricted/private */}
-            {(isOwner || isStaff) && needsInvite && (
-              <button onClick={() => setShowInvitePanel(p => !p)}
-                className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-nf-accent/40 bg-nf-accent/10 text-nf-accent hover:bg-nf-accent/20 transition-all flex items-center gap-1.5">
-                <Plus size={11} /> دعوة
-              </button>
-            )}
-            {(isOwner || isStaff) && (
-              <button onClick={() => onMembersClick?.(name)}
-                className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-nf-border-2 bg-nf-secondary text-nf-dim hover:text-nf-accent hover:border-nf-accent transition-all flex items-center gap-1.5">
-                <UserCog size={11} /> الأعضاء
-              </button>
-            )}
-            <button
-              onClick={toggleJoin}
-              disabled={isOwner}
-              className={cn("px-4 py-1.5 rounded-full text-[12px] font-bold border transition-all",
-                isOwner ? "bg-nf-accent/10 text-nf-accent border-nf-accent/30 cursor-default"
-                  : joined ? "bg-transparent text-nf-muted border-nf-border-2 hover:border-red-400/50 hover:text-red-400"
-                  : isPrivate ? "bg-nf-secondary text-nf-dim border-nf-border-2 cursor-not-allowed opacity-50"
-                  : "bg-nf-text text-nf-body border-nf-text hover:opacity-90")}>
-              {!user ? <span className="flex items-center gap-1.5"><LogIn size={13} /> انضم</span>
-                : isOwner ? "👑 مؤسس"
-                : joined ? "✓ عضو"
-                : isPrivate ? "🔒 خاص"
-                : "انضم"}
-            </button>
           </div>
         </div>
 
@@ -637,7 +710,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
         )}
 
         {/* Invite panel */}
-        {showInvitePanel && isOwner && needsInvite && (
+        {showInvitePanel && canManage && needsInvite && (
           <div className="bg-nf-card border border-nf-border-2 rounded-xl p-4 mb-4 space-y-3">
             <p className="text-[12px] font-bold text-nf-text">دعوة أعضاء جدد</p>
             {/* Invite link */}
@@ -694,6 +767,14 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
         {/* Posts column — expands when sidebar hides */}
         <div className={cn("flex-1 min-w-0 transition-all duration-300", showMatureGate && "pointer-events-none select-none blur-md opacity-40")}>
           {/* Active Tag Filter Banner */}
+          {hashtagFilter && (
+            <div className="flex items-center justify-between bg-nf-card border border-nf-border-2 px-3 py-2 rounded-xl mb-2.5">
+              <span className="text-[12px] text-nf-text font-bold">#{hashtagFilter.replace(/^#+/, "")}</span>
+              <button onClick={() => setHashtagFilter(null)} className="text-nf-accent hover:underline text-[11px] font-bold">
+                إلغاء
+              </button>
+            </div>
+          )}
           {selectedTag && (
             <div className="flex items-center justify-between bg-nf-secondary border border-nf-border-2 px-3.5 py-2.5 rounded-xl mb-2.5">
               <span className="text-[12px] text-nf-text font-bold">تصفية حسب الوسم: #{selectedTag}</span>
@@ -702,17 +783,14 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
               </button>
             </div>
           )}
-          {hashtagFilter && (
-            <div className="flex items-center justify-between bg-nf-accent/10 border border-nf-accent/25 px-3.5 py-2.5 rounded-xl mb-2.5">
-              <span className="text-[12px] text-nf-accent font-bold flex items-center gap-1.5">
-                <Hash size={13} />
-                هاشتاغ: #{hashtagFilter}
-              </span>
-              <button type="button" onClick={() => setHashtagFilter(null)} className="text-nf-accent hover:underline text-[11px] font-bold">
-                إلغاء
-              </button>
-            </div>
+          {onPostClick && (
+            <CommunityHighlights
+              communityName={name}
+              postCount={posts.length}
+              onPostClick={onPostClick}
+            />
           )}
+
           {/* Sort bar */}
           <div className="flex items-center gap-1.5 bg-nf-card border border-nf-border-2/50 rounded-xl px-2 py-1.5 mb-2">
             {([
@@ -734,9 +812,13 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
           {/* Search bar */}
           <div className="relative mb-3">
             <Search size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-nf-dim pointer-events-none" />
-            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder="ابحث في منشورات المجتمع..."
-              className="w-full !bg-nf-card border border-nf-border-2/50 rounded-xl pr-9 pl-8 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/60 outline-none focus:border-nf-accent/40 transition-colors" />
+              className="w-full bg-transparent border border-nf-border-2 rounded-xl pr-9 pl-8 py-2 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-border-2 transition-colors"
+            />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-nf-dim hover:text-nf-text">
                 <X size={12} />
@@ -759,10 +841,14 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
                 author={post.authorName || t("gen.user")} authorUid={post.authorUid} authorPhoto={post.authorPhoto}
                 time={post.createdAt || t("gen.now")} title={post.title} body={post.body}
                 image={post.imageUrl} imageUrls={post.imageUrls} flair={post.flair}
+                flairBg={(post as { flairBg?: string }).flairBg}
+                flairTextColor={(post as { flairTextColor?: string }).flairTextColor}
                 isNsfw={post.isNsfw} isSpoiler={post.isSpoiler}
                 isLiving={(post as any).isLiving} currentVersion={(post as any).currentVersion} versionsCount={(post as any).versions?.length}
                 votes={post.votes || 0}
-                comments={post.commentCount || 0} awards={post.awards} poll={post.poll}
+                comments={post.commentCount || 0}
+                views={(post as { views?: number }).views || 0}
+                awards={post.awards} poll={post.poll}
                  quotedPostId={post.quotedPostId} onPostClick={onPostClick}
                  onEditClick={onEditClick} onDeleteClick={onDeleteClick} onFlairClick={setSelectedTag}
                  hashtags={(post as { hashtags?: string[] }).hashtags}

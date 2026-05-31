@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, Sparkles, TrendingUp, Hash, ChevronDown, X } from "lucide-react";
+import { Flame, Clock, TrendingUp, Hash, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ interface FeedSortProps {
   onSortChange?: (sort: string) => void;
   onTagClick?: (tag: string) => void;
   tagFilter?: string | null;
+  onTagFilterClear?: () => void;
   feedMode?: "all" | "following";
   onFeedModeChange?: (mode: "all" | "following") => void;
   requireAuth?: (action: () => void) => void;
@@ -28,6 +29,7 @@ export default function FeedSort({
   onSortChange,
   onTagClick,
   tagFilter,
+  onTagFilterClear,
   feedMode = "all",
   onFeedModeChange,
   requireAuth,
@@ -52,7 +54,7 @@ export default function FeedSort({
 
   const sortOptions = [
     { icon: Flame, label: t("fs.hot"), id: "hot" },
-    { icon: Sparkles, label: t("fs.new"), id: "new" },
+    { icon: Clock, label: t("fs.new"), id: "new" },
     { icon: TrendingUp, label: t("fs.top"), id: "top" },
   ];
 
@@ -89,7 +91,20 @@ export default function FeedSort({
   };
 
   return (
-    <div className="rounded-xl border border-nf-border-2/60 bg-nf-card px-2 py-1.5 mb-3 shadow-sm">
+    <div className="mb-3 space-y-2">
+      {tagFilter && (
+        <div className="flex items-center justify-between bg-nf-card border border-nf-border-2 rounded-xl px-3 py-2">
+          <span className="text-[12px] text-nf-text font-semibold">#{tagFilter.replace(/^#+/, "")}</span>
+          <button
+            type="button"
+            onClick={() => onTagFilterClear?.()}
+            className="text-[11px] text-nf-accent hover:underline font-bold"
+          >
+            إلغاء
+          </button>
+        </div>
+      )}
+    <div className="rounded-xl border border-nf-border-2/60 bg-nf-card px-2 py-1.5 shadow-sm">
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-0.5">
           <button
@@ -132,7 +147,8 @@ export default function FeedSort({
             <button
               type="button"
               onClick={() => setShowTrending(!showTrending)}
-              className={cn(tabBase, showTrending || tagFilter ? tabActive : tabIdle)}
+              className={cn(tabBase, showTrending || tagFilter ? tabActive : tabIdle, tagFilter && "ring-1 ring-nf-accent/35")}
+              title={tagFilter ? `#${tagFilter.replace(/^#+/, "")}` : undefined}
             >
               <Hash size={13} className="opacity-70" />
               <span>{t("fs.trending")}</span>
@@ -194,20 +210,8 @@ export default function FeedSort({
           </div>
         </div>
 
-        {tagFilter && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-nf-accent/10 border border-nf-accent/25 text-nf-accent text-[11px] font-medium"
-          >
-            <Hash size={11} />
-            #{tagFilter}
-            <button type="button" onClick={() => onTagClick?.(tagFilter)} className="hover:text-white transition-colors">
-              <X size={10} />
-            </button>
-          </motion.div>
-        )}
       </div>
+    </div>
     </div>
   );
 }

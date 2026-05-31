@@ -1,28 +1,49 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "./AuthProvider";
 import { doc, updateDoc, getDoc, deleteDoc, collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, AlertTriangle, Sparkles, Key, ChevronDown, Monitor, Heart, ExternalLink } from "lucide-react";
-import { getShowAccountPickerSetting, setShowAccountPickerSetting } from "@/lib/account-switcher";
+import { reauthenticateWithPopup, GoogleAuthProvider, signOut, type User as FirebaseUser } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import {
+  removeLinkedAccount,
+  restoreSession,
+  setShowAccountPickerSetting,
+  clearPickerSkipped,
+  getShowAccountPickerSetting,
+} from "@/lib/account-switcher";
+import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Sparkles, Key, ChevronDown, Monitor, Heart, ExternalLink } from "lucide-react";
 import { getPostBorderedPref, setPostBorderedPref } from "@/lib/user-display-prefs";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useI18n } from "./I18nProvider";
 import { useToast } from "./ToastProvider";
-import TranslateLangPicker from "./TranslateLangPicker";
+import TranslateLangPicker, { langBadge } from "./TranslateLangPicker";
+import AiSettingsPanel from "./AiSettingsPanel";
 import { useClassicTabs } from "./ClassicTabsProvider";
 import ComposeSelect from "./ComposeSelect";
 import "./rich-editor.css";
+import { SiX, SiYoutube, SiGithub, SiSteam, SiDiscord } from "react-icons/si";
+import { HiOutlineGlobeAlt } from "react-icons/hi2";
+import type { IconType } from "react-icons";
 
-function IconX() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="#fff"/></svg>; }
-function IconYouTube() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z" fill="#FF0000"/><path d="M9.545 15.568V8.432L15.818 12z" fill="#fff"/></svg>; }
-function IconGitHub() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" fill="#fff"/></svg>; }
-function IconSteam() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M11.502 18.003l-2.09-1.442a1.29 1.29 0 0 1-.398-1.666 1.28 1.28 0 0 1 1.532-.623l1.898.633.418-1.858a1.284 1.284 0 0 1 1.796-.856 1.29 1.29 0 0 1 .577 1.748l-1.012 2.024a1.29 1.29 0 0 1-1.878.478z" fill="#fff"/><path d="M22.5 12c0 5.799-4.701 10.5-10.5 10.5S1.5 17.799 1.5 12 6.201 1.5 12 1.5 22.5 6.201 22.5 12z" fill="none" stroke="#fff" strokeWidth="1.5"/></svg>; }
-function IconDiscord() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0c-.164-.393-.406-.874-.618-1.25a.077.077 0 0 0-.079-.036 19.74 19.74 0 0 0-4.885 1.515.07.07 0 0 0-.032.028C.533 9.046-.32 13.56.1 18.058a.082.082 0 0 0 .031.056c2.053 1.508 4.041 2.423 5.993 3.03a.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.926.077.077 0 0 1-.008-.126c.126-.094.252-.192.372-.301a.074.074 0 0 1 .078-.012c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .079.01c.12.1.246.204.373.302a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.926.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.028c1.96-.607 3.949-1.522 6.002-3.029a.077.077 0 0 0 .031-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029z" fill="#5865F2"/></svg>; }
-function IconWebsite() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#00e5ff"/></svg>; }
-function IconTwitch() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" fill="#9146FF"/></svg>; }
+const socialFields: {
+  id: string;
+  label?: string;
+  labelKey?: string;
+  placeholder: string;
+  bg: string;
+  icon: IconType;
+  iconColor?: string;
+}[] = [
+  { id: "twitter", label: "X (Twitter)", placeholder: "https://x.com/username", bg: "#000000", icon: SiX },
+  { id: "youtube", label: "YouTube", placeholder: "https://youtube.com/@channel", bg: "#ff0000", icon: SiYoutube },
+  { id: "github", label: "GitHub", placeholder: "https://github.com/username", bg: "#24292f", icon: SiGithub },
+  { id: "steam", label: "Steam", placeholder: "https://steamcommunity.com/id/username", bg: "#1b2838", icon: SiSteam },
+  { id: "discord", label: "Discord", placeholder: "https://discord.gg/invite-code", bg: "#5865f2", icon: SiDiscord },
+  { id: "website", labelKey: "sp.personalWebsite", placeholder: "https://your-site.com", bg: "#2563eb", icon: HiOutlineGlobeAlt, iconColor: "#fff" },
+];
 
 const TRANSLATE_LANGS = [
   { id: "en", label: "English", sub: "إنجليزي", flag: "🇺🇸" },
@@ -83,7 +104,7 @@ function TranslationLangSelector() {
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all border bg-nf-secondary/30 border-nf-border/10 hover:border-nf-border/25">
-        <span className="text-lg leading-none">{current.flag}</span>
+        <span className="w-7 h-7 rounded-md bg-nf-secondary/60 border border-nf-border-2/50 flex items-center justify-center text-[10px] font-bold text-nf-muted uppercase shrink-0">{langBadge(current.id)}</span>
         <span className="flex-1 text-right text-nf-text">{current.label}</span>
         <span className="text-[11px] text-nf-dim/40">{current.sub}</span>
         <ChevronDown size={12} className={cn("shrink-0 transition-transform opacity-40", open && "rotate-180")} />
@@ -93,7 +114,7 @@ function TranslationLangSelector() {
           <div className="py-0.5 max-h-[240px] overflow-y-auto">
             {TRANSLATE_LANGS.map(l => (
               <button key={l.id} onClick={() => { setLang(l.id); localStorage.setItem("nf-ai-translate-lang", l.id); setOpen(false); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-semibold transition-all", lang === l.id ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-hover")}>
-                <span className="text-lg leading-none">{l.flag}</span>
+                <span className="w-6 h-6 rounded-md bg-nf-secondary/50 border border-nf-border-2/40 flex items-center justify-center text-[9px] font-bold text-nf-dim uppercase shrink-0">{langBadge(l.id)}</span>
                 <span className="flex-1 text-right text-nf-text">{l.label}</span>
                 <span className="text-[11px] opacity-40 text-nf-dim">{l.sub}</span>
                 {lang === l.id && <Check size={10} className="text-nf-accent shrink-0" />}
@@ -105,15 +126,6 @@ function TranslationLangSelector() {
     </div>
   );
 }
-
-const socialFields = [
-  { id: "twitter", label: "X (Twitter)", placeholder: "https://x.com/username", bg: "#000", icon: IconX },
-  { id: "youtube", label: "YouTube", placeholder: "https://youtube.com/@channel", bg: "#ff0000", icon: IconYouTube },
-  { id: "github", label: "GitHub", placeholder: "https://github.com/username", bg: "#333", icon: IconGitHub },
-  { id: "steam", label: "Steam", placeholder: "https://steamcommunity.com/id/username", bg: "#1b2838", icon: IconSteam },
-  { id: "discord", label: "Discord", placeholder: "https://discord.gg/invite-code", bg: "#5865f2", icon: IconDiscord },
-  { id: "website", labelKey: "sp.personalWebsite", placeholder: "https://your-site.com", bg: "#0d1117", icon: IconWebsite },
-];
 
 function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
@@ -178,6 +190,16 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const [privacyTab, setPrivacyTab] = useState<"profile" | "content" | "muted">("profile");
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ visibility: true, interactions: true, data: false });
   const [showAccountPicker, setShowAccountPicker] = useState(false);
+
+  useEffect(() => {
+    if (!showDeleteConfirm) return;
+    document.documentElement.classList.add("modal-open");
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.documentElement.classList.remove("modal-open");
+      document.body.style.overflow = "";
+    };
+  }, [showDeleteConfirm]);
 
   useEffect(() => {
     const s = localStorage.getItem("nf-dark");
@@ -333,6 +355,22 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
       return;
     }
     setDeleting(true);
+    const deletedUid = user.uid;
+
+    const deleteAuthUser = async (u: FirebaseUser) => {
+      try {
+        await u.delete();
+      } catch (err: unknown) {
+        const code = (err as { code?: string })?.code;
+        if (code === "auth/requires-recent-login") {
+          await reauthenticateWithPopup(u, new GoogleAuthProvider());
+          await u.delete();
+          return;
+        }
+        throw err;
+      }
+    };
+
     try {
       // Delete user's posts
       const postsSnap = await getDocs(query(collection(db, "posts"), where("authorUid", "==", user.uid)));
@@ -356,12 +394,34 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
       const communitiesSnap = await getDocs(collection(db, "users", user.uid, "communities"));
       for (const c of communitiesSnap.docs) await deleteDoc(c.ref);
       await deleteDoc(doc(db, "users", user.uid));
-      // Delete Firebase Auth user
-      await user.delete();
+      await deleteAuthUser(user);
+
+      const remaining = removeLinkedAccount(deletedUid);
+      setShowDeleteConfirm(false);
+      setDeleteConfirm("");
+
+      if (remaining.length >= 1) {
+        setShowAccountPickerSetting(true);
+        clearPickerSkipped();
+        const switched = await restoreSession(remaining[0].refreshToken);
+        if (switched.success) {
+          window.location.href = "/app";
+          return;
+        }
+      }
+
+      await signOut(auth);
       logout();
+      window.location.href = "/app";
     } catch (e: any) {
       console.error("Delete account error:", e);
-      alert(e.message || "حدث خطأ أثناء حذف الحساب");
+      if (e?.code === "auth/popup-closed-by-user") {
+        alert("تم إلغاء تأكيد الهوية. لم يُحذف الحساب.");
+      } else if (e?.code === "auth/requires-recent-login") {
+        alert("يجب تأكيد Google مرة واحدة فقط لحذف الحساب.");
+      } else {
+        alert(e.message || "حدث خطأ أثناء حذف الحساب");
+      }
     } finally {
       setDeleting(false);
     }
@@ -384,7 +444,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
     { name: "Mistral Small", provider: "mistral", model: "mistral-small-latest", free: true, desc: "نموذج صغير من Mistral، مجاني" },
     { name: "GPT-4o Mini", provider: "chatgpt", model: "gpt-4o-mini", free: false, desc: "نسخة مصغرة من GPT-4، رخيصة" },
     { name: "GPT-4.1 Nano", provider: "chatgpt", model: "gpt-4.1-nano", free: false, desc: "أصغر نموذج OpenAI، سريع" },
-    { name: "Gemini 2.5 Flash", provider: "gemini", model: "gemini-2.5-flash-preview-05-20", free: false, desc: "أحدث Gemini، ذكاء عالي" },
+    { name: "Gemini 2.5 Flash", provider: "gemini", model: "gemini-2.5-flash", free: false, desc: "أحدث Gemini، ذكاء عالي" },
     { name: "Claude 3.5 Haiku", provider: "claude", model: "claude-3-5-haiku-20241022", free: false, desc: "سريع ورخيص من Anthropic" },
     { name: "Mistral Medium", provider: "mistral", model: "mistral-medium-latest", free: false, desc: "نموذج متوسط، توازن بين السرعة والذكاء" },
   ];
@@ -433,13 +493,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }} dir={dir}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="flex items-center gap-1.5 text-nf-dim hover:text-nf-text text-[12px] transition-colors">
-            {lang === "ar" ? <ArrowRight size={16} /> : <ArrowRight size={16} className="rotate-180" />}
-            {t("sp.back")}
-          </button>
-          <span className="text-[15px] font-bold text-nf-text">{t("sp.settings")}</span>
-        </div>
+        <span className="text-[15px] font-bold text-nf-text">{t("sp.settings")}</span>
         <button onClick={saveAll} className="h-8 px-5 rounded-lg bg-nf-accent/15 text-nf-accent text-[11px] font-bold hover:bg-nf-accent/25 transition-colors flex items-center gap-1.5">
           <Check size={12} />{t("gen.saveChanges")}
         </button>
@@ -544,7 +598,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
               {/* Account Picker */}
               <div className="p-4">
                 <p className="text-[13px] font-semibold text-nf-text mb-3">شاشة الإقلاع</p>
-                <SettingRow label="إظهار شاشة اختيار الحساب عند الدخول" sub="تظهر عند فتح الموقع إذا كان لديك أكثر من حساب مرتبط — مثل شاشة اختيار المستخدم في البلايستيشن">
+                <SettingRow label="إظهار شاشة اختيار الحساب عند الدخول" sub="تفتح لما ترجع للموقع وعندك أكثر من حساب. تختار أي حساب تدخل فيه.">
                   <Toggle on={showAccountPicker} onToggle={() => { const next = !showAccountPicker; setShowAccountPicker(next); setShowAccountPickerSetting(next); }} />
                 </SettingRow>
               </div>
@@ -580,10 +634,10 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                 <SettingRow label={t("sp.compactFont")} sub="تصغير حجم الخط لعرض أكثر">
                   <Toggle on={compactMode} onToggle={() => { setCompactMode(!compactMode); document.documentElement.classList.toggle("text-sm"); }} />
                 </SettingRow>
-                <SettingRow label="عرض الصور كسلايدر" sub="تنقل بين الصور بسهم — أو اعرضها كلها تحت بعض">
-                  <Toggle on={imageCarousel} onToggle={() => { const next = !imageCarousel; setImageCarousel(next); localStorage.setItem("nf-image-carousel", String(next)); }} />
+                <SettingRow label="عرض الصور كسلايدر" sub="تنقل بين الصور بسهم، أو اعرضها كلها تحت بعض">
+                  <Toggle on={imageCarousel} onToggle={() => { const next = !imageCarousel; setImageCarousel(next); localStorage.setItem("nf-image-carousel", String(next)); window.dispatchEvent(new CustomEvent("nf-prefs-changed")); }} />
                 </SettingRow>
-                <SettingRow label="إطار حول المنشورات" sub="مربع بحدود واضح حول كل منشور في الفيد — لتجربة قراءة أوضح">
+                <SettingRow label="إطار حول المنشورات" sub="مربع بحدود خفيفة حول كل منشور في الفيد">
                   <Toggle
                     on={postBordered}
                     onToggle={() => {
@@ -646,9 +700,14 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                 <SettingRow label="متابعون جدد" sub="عند متابعة شخص لحسابك">
                   <Toggle on={notifFollows} onToggle={() => setNotifFollows(!notifFollows)} />
                 </SettingRow>
-                <SettingRow label="جوائز" sub="عند حصولك على جائزة من مستخدم">
-                  <Toggle on={notifAwards} onToggle={() => setNotifAwards(!notifAwards)} />
-                </SettingRow>
+                <div className="relative">
+                  <SettingRow label="جوائز" sub="عند حصولك على جائزة من مستخدم">
+                    <Toggle on={notifAwards} onToggle={() => setNotifAwards(!notifAwards)} />
+                  </SettingRow>
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/55 rounded-lg pointer-events-auto cursor-not-allowed">
+                    <span className="text-[12px] font-bold text-white/90 tracking-wide">قريباً</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -807,8 +866,8 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                         return (
                           <div key={f.id}>
                             <div className="flex items-center gap-2 mb-1.5">
-                              <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: f.bg }}>
-                                <IconComp />
+                              <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: f.bg }}>
+                                <IconComp size={13} color={f.iconColor || "#ffffff"} />
                               </div>
                               <span className="text-[11px] font-semibold text-nf-text">{label}</span>
                               {val && (
@@ -909,78 +968,23 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
           )}
 
           {activeSection === "ai" && (
-            <div className="p-4 space-y-6">
-              <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">إعدادات الذكاء الاصطناعي</h3>
-              <p className="text-[11px] text-nf-dim/50 mb-4">اختر المزود والنموذج وأضف مفتاح API لاستخدام أدوات AI في المنشورات والمنتدى</p>
-              {/* Provider */}
-              <div>
-                <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">المزود</label>
-                <p className="text-[8px] text-nf-dim/40 mb-2">الشركة التي توفر خدمة الذكاء الاصطناعي</p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {(["chatanywhere", "deepseek", "groq", "mistral", "gemini", "chatgpt", "claude"] as const).map(p => (
-                    <button key={p} onClick={() => { setAiProvider(p); const idx = AI_MODELS.findIndex(m => m.provider === p); if (idx >= 0) setAiModel(idx); }} className={cn("py-2 rounded-lg text-[10px] font-bold transition-all border", aiProvider === p ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>{p === "chatgpt" ? "ChatGPT" : p === "chatanywhere" ? "تجريبي" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
-                  ))}
-                </div>
-              </div>
-              {/* Model */}
-              {AI_MODELS.filter(m => m.provider === aiProvider).length > 0 && (
-                <div>
-                  <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">النموذج</label>
-                  <p className="text-[8px] text-nf-dim/40 mb-2">النموذج المستخدم — المجانية أسرع، المدفوعة أذكى</p>
-                  <div className="flex flex-col gap-1">
-                    {AI_MODELS.filter(m => m.provider === aiProvider).map(m => {
-                      const gi = AI_MODELS.indexOf(m);
-                      return (
-                        <button key={gi} onClick={() => setAiModel(gi)} className={cn("flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-semibold transition-all border", aiModel === gi ? "bg-nf-accent/10 text-nf-accent border-nf-accent/20" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-border/25")}>
-                          <span>{m.name}</span>
-                          <span className={cn("text-[8px] px-1.5 py-0.5 rounded-full", m.free ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400")}>{m.free ? "مجاني" : "مدفوع"}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {/* Model desc */}
-              {AI_MODELS[aiModel] && (
-                <div className="bg-nf-secondary/20 rounded-lg p-3 border border-white/5">
-                  <p className="text-[10px] text-nf-dim font-bold">{AI_MODELS[aiModel].name}</p>
-                  <p className="text-[11px] text-nf-dim/50">{AI_MODELS[aiModel].desc}</p>
-                </div>
-              )}
-              {/* Translation — AI lang (for AI translate tool) */}
-              <div>
-                <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">لغة ترجمة AI</label>
-                <p className="text-[8px] text-nf-dim/40 mb-2">لغة الهدف عند استخدام أداة الترجمة بالذكاء الاصطناعي</p>
-                <TranslationLangSelector />
-              </div>
-              {/* Free translation lang */}
-              <div>
-                <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">لغة الترجمة المجانية</label>
-                <p className="text-[8px] text-nf-dim/40 mb-2">لغة الهدف لزر "ترجمة" في التعليقات والمنشورات — ذكي: يكتشف اللغة ويترجم للعكس تلقائياً</p>
-                <TranslateLangPicker fullWidth />
-              </div>
-              {/* API Key */}
-              <div>
-                <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">مفتاح API</label>
-                <p className="text-[8px] text-nf-dim/40 mb-2">مفتاح الدخول — احصل عليه مجاناً من موقع المزود</p>
-                <div className="relative">
-                  <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder="sk-..." className="w-full bg-nf-secondary/30 rounded-lg px-4 py-2.5 text-[11px] text-nf-text placeholder:text-nf-dim/30 outline-none focus:ring-1 focus:ring-nf-accent/20 font-mono border border-nf-border/10 focus:border-nf-accent/20 transition-all" dir="ltr" />
-                  <Key size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-nf-dim/25" />
-                </div>
-              </div>
-              {/* Test + Save */}
-              <div className="flex gap-2">
-                <button onClick={saveAiSettings} className="flex-1 bg-nf-accent hover:bg-nf-accent/80 text-white text-[11px] font-bold py-2.5 rounded-lg transition-all">حفظ الإعدادات</button>
-                {aiApiKey && (
-                  <button onClick={testAiConnection} disabled={aiConnected === "testing"} className={cn("px-4 py-2.5 rounded-lg text-[11px] font-bold transition-all border", aiConnected === "ok" ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/15" : aiConnected === "fail" ? "bg-red-400/10 text-red-400 border-red-400/15" : aiConnected === "testing" ? "bg-nf-accent/10 text-nf-accent border-nf-accent/15" : "bg-nf-secondary/30 text-nf-dim border-nf-border/10 hover:border-nf-accent/15")}>
-                    {aiConnected === "testing" ? "اختبار..." : aiConnected === "ok" ? "متصل" : aiConnected === "fail" ? "فشل" : "اختبار"}
-                  </button>
-                )}
-              </div>
-              {aiApiKey && (
-                <button onClick={() => { setAiApiKey(""); localStorage.removeItem("nf-ai-key"); setAiConnected("unknown"); }} className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors">حذف المفتاح</button>
-              )}
-            </div>
+            <AiSettingsPanel
+              aiModel={aiModel}
+              setAiModel={setAiModel}
+              setAiProvider={setAiProvider}
+              aiModels={AI_MODELS}
+              aiApiKey={aiApiKey}
+              setAiApiKey={setAiApiKey}
+              aiConnected={aiConnected}
+              onSave={saveAiSettings}
+              onTest={testAiConnection}
+              onDeleteKey={() => {
+                setAiApiKey("");
+                localStorage.removeItem("nf-ai-key");
+                setAiConnected("unknown");
+              }}
+              translationLangSelector={<TranslationLangSelector />}
+            />
           )}
 
           {activeSection === "language" && (
@@ -1013,30 +1017,22 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
       )}
 
       {/* Delete Account Modal */}
-      {showDeleteConfirm && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      {showDeleteConfirm && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[10055] bg-[#0a0a0a]/95 flex items-center justify-center p-4"
           onClick={() => { setShowDeleteConfirm(false); setDeleteConfirm(""); }}
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.15 }}
-            className="w-full max-w-[420px] bg-nf-primary border border-nf-border rounded-lg overflow-hidden"
-            onClick={e => e.stopPropagation()}
+          <div
+            dir="rtl"
+            role="alertdialog"
+            aria-modal
+            className="w-full max-w-[420px] bg-nf-card border border-nf-border-2 rounded-xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-400/10 flex items-center justify-center">
-                  <AlertTriangle size={20} className="text-red-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-nf-text">حذف الحساب نهائياً</h3>
-                  <p className="text-[10px] text-nf-dim">هذا الإجراء لا يمكن التراجع عنه</p>
-                </div>
+              <div className="mb-4">
+                <h3 className="text-sm font-bold text-nf-text">حذف الحساب نهائياً</h3>
+                <p className="text-[11px] text-nf-dim mt-1">هذا الإجراء لا يمكن التراجع عنه</p>
               </div>
 
               <div className="space-y-3 mb-4 text-[12px] text-nf-text-2 leading-relaxed">
@@ -1048,32 +1044,46 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                   <li>جميع الإشعارات والمحفوظات</li>
                 </ul>
                 <p className="text-red-400 font-semibold text-[11px]">لن تتمكن من استعادة حسابك بعد الحذف.</p>
+                <p className="text-[11px] text-nf-dim">إذا بقيت حسابات مربوطة، ستظهر نافذة اختيار الحساب بعد الحذف.</p>
               </div>
 
               <div className="mb-4">
                 <label className="text-[10px] text-nf-dim mb-1.5 block">
                   للتأكيد، اكتب: <span className="text-red-400 font-bold font-mono">{user?.displayName || ""}DELETE</span>
                 </label>
-                <input type="text" value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)} placeholder={`${user?.displayName || ""}DELETE`}
-                  className="w-full bg-nf-input border border-red-400/20 rounded-lg px-3 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-red-400/40 transition-colors font-mono" />
+                <input
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder={`${user?.displayName || ""}DELETE`}
+                  className="w-full bg-nf-card border border-red-400/20 rounded-lg px-3 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-red-400/40 transition-colors font-mono"
+                />
               </div>
 
               <div className="flex items-center gap-2">
-                <button onClick={handleDeleteAccount} disabled={deleting || deleteConfirm.trim() !== (user?.displayName || "") + "DELETE"}
-                  className={cn("flex-1 px-4 py-2 rounded-lg text-[11px] font-bold transition-colors",
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || deleteConfirm.trim() !== (user?.displayName || "") + "DELETE"}
+                  className={cn(
+                    "flex-1 px-4 py-2 rounded-lg text-[11px] font-bold transition-colors",
                     deleting ? "text-nf-dim cursor-wait bg-nf-secondary" :
                     deleteConfirm.trim() === (user?.displayName || "") + "DELETE" ? "text-white bg-red-500 hover:bg-red-600" :
-                    "text-nf-dim bg-nf-secondary border border-nf-border cursor-not-allowed")}>
+                    "text-nf-dim bg-nf-secondary border border-nf-border cursor-not-allowed"
+                  )}
+                >
                   {deleting ? "جاري الحذف..." : "تأكيد الحذف النهائي"}
                 </button>
-                <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirm(""); }}
-                  className="px-4 py-2 rounded-lg text-[11px] font-medium text-nf-muted hover:text-nf-text border border-nf-border hover:bg-nf-hover transition-colors">
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirm(""); }}
+                  className="px-4 py-2 rounded-lg text-[11px] font-medium text-nf-muted hover:text-nf-text border border-nf-border hover:bg-nf-hover transition-colors"
+                >
                   إلغاء
                 </button>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>,
+        document.body
       )}
     </motion.div>
   );

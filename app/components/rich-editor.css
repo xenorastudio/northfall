@@ -159,11 +159,11 @@
   overflow-wrap: anywhere;
   -webkit-font-smoothing: antialiased;
 }
-.nf-rich-editor:empty::before {
-  content: attr(data-placeholder);
-  color: var(--text-muted);
-  opacity: 0.45;
-  pointer-events: none;
+/* Placeholder via RichContentEditor overlay — avoid double text with ::before */
+.nf-rich-editor:empty::before,
+.nf-rich-editor:has(> br:only-child)::before {
+  content: none;
+  display: none;
 }
 .nf-rich-editor p { margin: 0.25rem 0; }
 .nf-rich-editor p:first-child { margin-top: 0; }
@@ -187,7 +187,12 @@
 .nf-md-h1 { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin: 0.75rem 0 0.375rem; }
 .nf-md-h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0.625rem 0 0.3rem; }
 .nf-md-h3 { font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin: 0.5rem 0 0.25rem; }
-.nf-md-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.nf-md-link {
+  color: #60a5fa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
 .nf-md-inline-code {
   display: inline !important;
   width: auto !important;
@@ -459,20 +464,35 @@ pre.nf-editor-pre > code.nf-hl-code span {
   border-radius: 0.5rem;
   object-fit: cover;
 }
+.nf-rich-editor a,
 .nf-rich-editor a.nf-md-link,
-.nf-post-body a.nf-md-link {
-  color: #4a9eff !important;
+.nf-post-body a,
+.nf-post-body a.nf-md-link,
+.nf-comment-body a,
+.nf-comment-body a.nf-md-link {
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa;
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
 }
+.nf-rich-editor a:hover,
 .nf-rich-editor a.nf-md-link:hover,
-.nf-post-body a.nf-md-link:hover {
-  color: #6bb3ff !important;
+.nf-post-body a:hover,
+.nf-post-body a.nf-md-link:hover,
+.nf-comment-body a:hover,
+.nf-comment-body a.nf-md-link:hover {
+  color: #93c5fd !important;
+  -webkit-text-fill-color: #93c5fd;
 }
+html.light .nf-rich-editor a,
 html.light .nf-rich-editor a.nf-md-link,
-html.light .nf-post-body a.nf-md-link {
-  color: #1565c0 !important;
+html.light .nf-post-body a,
+html.light .nf-post-body a.nf-md-link,
+html.light .nf-comment-body a,
+html.light .nf-comment-body a.nf-md-link {
+  color: #2563eb !important;
+  -webkit-text-fill-color: #2563eb;
 }
 
 .nf-link-toolbar {
@@ -525,4 +545,66 @@ html.light .nf-rich-editor .nf-hashtag {
 .nf-editor-table th:focus {
   outline: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   outline-offset: -1px;
+}
+
+/* Comment composer — transparent, same as page background */
+.nf-comment-editor {
+  background: transparent;
+}
+.nf-comment-editor .nf-rich-editor {
+  background: transparent;
+  padding: 0.625rem 0.75rem;
+  color: var(--text-primary);
+}
+/* Placeholder overlay in RichContentEditor — avoid double text with ::before */
+.nf-comment-editor .nf-rich-editor:empty::before {
+  content: none;
+  display: none;
+}
+.nf-comment-editor .nf-rich-editor a.nf-md-link {
+  display: inline !important;
+}
+
+/* Comment display — compact inline links, lighter code */
+.nf-comment-body {
+  line-height: 1.55;
+}
+.nf-comment-body .nf-comment-inline {
+  display: inline;
+}
+.nf-comment-body .nf-comment-inline a,
+.nf-comment-body a {
+  display: inline !important;
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.nf-comment-body p {
+  margin: 0.2rem 0;
+}
+.nf-comment-body .nf-code-block--compact,
+.nf-comment-body .nf-gh-code-block {
+  margin: 0.35rem 0 0.5rem;
+  max-width: 100%;
+  background: color-mix(in srgb, var(--bg-secondary) 45%, transparent);
+  border-color: color-mix(in srgb, var(--border-subtle) 90%, transparent);
+}
+.nf-comment-body .nf-code-block--compact .nf-code-block-pre,
+.nf-comment-body .nf-code-block--compact pre.nf-editor-pre {
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0;
+}
+.nf-comment-body .nf-code-block-toggle {
+  padding: 0.35rem 0.5rem;
+  font-size: 11px;
+}
+.nf-comment-body code.nf-md-inline-code {
+  display: inline !important;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
 }

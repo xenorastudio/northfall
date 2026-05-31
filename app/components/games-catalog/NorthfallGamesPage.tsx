@@ -45,6 +45,8 @@ import {
 } from "@/lib/user-interests";
 import { useAuth } from "@/app/components/AuthProvider";
 import { cn } from "@/lib/utils";
+import { goToAppView } from "@/lib/nav-app";
+import DonateSupportPopup from "@/app/components/DonateSupportPopup";
 
 type SortBy = "name" | "rating" | "year" | "oldest";
 type ActiveTab = "all" | "followed" | "trending" | "new" | "best" | "hot";
@@ -547,21 +549,28 @@ function GamesProfileMenu({
   const name = user.displayName || user.email?.split("@")[0] || "مستخدم";
   const verified = user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2";
 
+  const uid = user.uid;
+  const goApp = (view: string, extra: Record<string, string> = {}) => {
+    setOpen(false);
+    goToAppView(view, { uid, ...extra });
+  };
+
   const menuItems = [
-    { icon: User, label: "البروفايل", href: "/app?view=profile" },
-    { icon: Gamepad2, label: "ألعابي", href: "/app?view=profile&tab=games" },
-    { icon: Bookmark, label: "المحفوظات", href: "/app?view=profile&tab=saved" },
-    { icon: Bell, label: "الإشعارات", href: "/app?view=notifs" },
-    { icon: Plus, label: "إنشاء منشور", href: "/app?view=create" },
-    { icon: Settings, label: "الإعدادات", href: "/app?view=settings" },
-    { icon: HelpCircle, label: "المساعدة", href: "/app?view=help" },
+    { icon: User, label: "البروفايل", action: () => goApp("profile") },
+    { icon: Gamepad2, label: "ألعابي", action: () => goApp("profile", { tab: "games" }) },
+    { icon: Bookmark, label: "المحفوظات", action: () => goApp("profile", { tab: "saved" }) },
+    { icon: Bell, label: "الإشعارات", action: () => goApp("notifs") },
+    { icon: Plus, label: "إنشاء منشور", action: () => goApp("create") },
+    { icon: Settings, label: "الإعدادات", action: () => goApp("settings") },
+    { icon: HelpCircle, label: "المساعدة", action: () => goApp("help") },
   ];
 
   return (
     <div ref={ref} className="relative hidden sm:flex items-center gap-1.5">
       {favoriteCount > 0 && (
-        <a
-          href="/app?view=profile&tab=games"
+        <button
+          type="button"
+          onClick={() => goApp("profile", { tab: "games" })}
           title="ألعابي المفضلة"
           className="relative w-8 h-8 flex items-center justify-center rounded-lg text-white/55 hover:bg-white/8 hover:text-white transition-colors"
         >
@@ -569,7 +578,7 @@ function GamesProfileMenu({
           <span className="absolute top-0.5 start-0.5 min-w-[14px] h-3.5 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center px-0.5">
             {favoriteCount > 99 ? "99+" : favoriteCount}
           </span>
-        </a>
+        </button>
       )}
 
       <button
@@ -631,15 +640,15 @@ function GamesProfileMenu({
 
             <div className="py-0.5">
               {menuItems.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.action}
+                  className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors text-right"
                 >
                   <item.icon size={14} className="shrink-0 text-nf-dim" />
                   <span>{item.label}</span>
-                </a>
+                </button>
               ))}
             </div>
 
@@ -1119,6 +1128,7 @@ export default function NorthfallGamesPage() {
 
   return (
     <div className="min-h-screen bg-nf-body text-nf-text font-sans" dir="rtl">
+      <DonateSupportPopup />
       <header className="sticky top-0 z-50 bg-nf-body border-b border-nf-border-2/60">
         <div className="flex items-center gap-4 px-4 lg:px-6 h-14">
           <a href="/games" className="shrink-0 flex flex-col items-start leading-none gap-0.5 hover:opacity-90 transition-opacity">

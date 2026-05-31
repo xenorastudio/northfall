@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BookOpen, Languages, FileText, X, ChevronDown, Settings, Key, Check, AlertCircle, Quote, GitBranch } from "lucide-react";
+import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, EyeOff, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BookOpen, Languages, FileText, X, ChevronDown, Settings, Key, Check, AlertCircle, Quote, GitBranch } from "lucide-react";
 import { isPollExpired, pollStatusLabel, type PollData } from "@/lib/poll";
 import { cn } from "@/lib/utils";
 import { firestoreCommunityIdFromDisplay, isUserDestinationPath } from "@/lib/post-target";
@@ -20,10 +20,16 @@ import { textHasHashtags } from "@/lib/hashtags";
 import VideoPlayer from "./VideoPlayer";
 import NsfwMediaCover from "./NsfwMediaCover";
 import FeedMediaFrame from "./FeedMediaFrame";
+import VotePill from "./VotePill";
+import { getVoteTransition, normalizeStoredVote } from "@/lib/vote-transition";
 import { useToast } from "./ToastProvider";
 import { calcSaitGain } from "@/lib/ranking";
 import { displayFeedTitle, textDirAttr } from "@/lib/display-text";
 import { getPostBorderedPref } from "@/lib/user-display-prefs";
+import { buildNorthfallEmbedCode } from "@/lib/northfall-embed";
+import { mergeActor } from "@/lib/notification-format";
+import { bumpCategoryAffinity } from "@/lib/hide-post";
+import { flairBadgeStyle } from "@/lib/flair-badge";
 
 interface QuotedPostData {
   id: string;
@@ -61,6 +67,7 @@ interface PostCardProps {
   versionsCount?: number;
   votes?: number;
   comments?: number;
+  views?: number;
   awards?: any[];
   poll?: PollData | null;
   quotedPost?: QuotedPostData | null;
@@ -74,6 +81,7 @@ interface PostCardProps {
   onFlairClick?: (flair: string) => void;
   hashtags?: string[];
   onHashtagClick?: (tag: string) => void;
+  onHideClick?: (postId: string) => void;
 }
 
 export default function PostCard({
@@ -100,6 +108,7 @@ export default function PostCard({
   versionsCount,
   votes = 0,
   comments = 0,
+  views: viewsProp = 0,
   awards,
   poll,
   onCommunityClick,
@@ -112,6 +121,8 @@ export default function PostCard({
   quotedPostId,
   onFlairClick,
   onHashtagClick,
+  onHideClick,
+  hashtags,
 }: PostCardProps) {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -120,6 +131,7 @@ export default function PostCard({
   const [myVote, setMyVote] = useState(0);
   const [voteLoaded, setVoteLoaded] = useState(false);
   const myVoteRef = useRef(0);
+  const voteCountRef = useRef(votes);
   const votingRef = useRef(false);
   const [saved, setSaved] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
@@ -166,13 +178,19 @@ export default function PostCard({
     }).catch(() => {});
   }, [quotedPostId, quotedPostProp]);
 
+  useEffect(() => {
+    const next = Math.max(0, votes);
+    setVoteCount(next);
+    voteCountRef.current = next;
+  }, [postId]);
+
   // Check if post is saved and load user's vote on mount
   useEffect(() => {
     if (!user || !postId) return;
     getDoc(doc(db, "users", user.uid, "saved", postId)).then(s => setSaved(s.exists())).catch(() => {});
     getDoc(doc(db, "posts", postId, "votes", user.uid)).then(s => {
       if (s.exists()) {
-        const dir = s.data().dir || 0;
+        const dir = normalizeStoredVote(s.data().dir || 0);
         setMyVote(dir);
         myVoteRef.current = dir;
       }
@@ -199,7 +217,7 @@ export default function PostCard({
   const [showReport, setShowReport] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
-  const [views, setViews] = useState(0);
+  const [views, setViews] = useState(viewsProp);
   const [showQuickReply, setShowQuickReply] = useState(false);
   const [quickReplyText, setQuickReplyText] = useState("");
   const [blurRevealed, setBlurRevealed] = useState(false);
@@ -299,25 +317,27 @@ export default function PostCard({
 
   const handleDblClickVote = () => {
     if (!user || !postId) return;
-    if (myVote !== 1) handleVote(1);
+    if (myVoteRef.current !== 1) handleVote(1);
     setDblClickAnim(true);
     setTimeout(() => setDblClickAnim(false), 800);
   };
 
   const handleVote = async (dir: 1 | -1) => {
     if (!user || !postId || !voteLoaded || votingRef.current) return;
-    // Prevent self-voting
     if (authorUid && authorUid === user.uid) return;
     const currentVote = myVoteRef.current;
-    // If clicking same direction → remove vote (toggle off)
-    // If clicking opposite direction → just remove current vote (go neutral), don't switch
-    const newVote = currentVote === dir ? 0 : (currentVote !== 0 ? 0 : dir);
-    const diff = newVote - currentVote;
-    if (diff === 0) return;
-    myVoteRef.current = newVote;
-    setMyVote(newVote);
-    setVoteCount(prev => prev + diff);
+    const transition = getVoteTransition(currentVote as -1 | 0 | 1, dir);
+    if (!transition) return;
+
     votingRef.current = true;
+    const { next: newVote, diff } = transition;
+    const prevVote = currentVote;
+    const prevCount = voteCountRef.current;
+    const nextCount = Math.max(0, prevCount + diff);
+    myVoteRef.current = newVote;
+    voteCountRef.current = nextCount;
+    setMyVote(newVote);
+    setVoteCount(nextCount);
     try {
       // Use increment to avoid race conditions
       await updateDoc(doc(db, "posts", postId), { votes: increment(diff) });
@@ -341,7 +361,7 @@ export default function PostCard({
           await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
         } else {
           // Adding new vote → use transaction to prevent double-counting
-          const saitGain = calcSaitGain(Math.abs(voteCount + diff), newVote as 1 | -1, voterData);
+          const saitGain = calcSaitGain(Math.abs(nextCount), newVote as 1 | -1, voterData);
           console.log("[SAIT] PostCard ADD", { postId, voterUid: user.uid, previousVote: currentVote, nextVote: newVote, saitGain, contentVotes: voteCount + diff });
           try {
             await runTransaction(db, async (transaction) => {
@@ -376,27 +396,60 @@ export default function PostCard({
       // Batch notification: update existing or create new
       if (authorUid && authorUid !== user.uid && newVote !== 0) {
         try {
+          const actor = {
+            uid: user.uid,
+            name: user.displayName || "مستخدم",
+            photo: user.photoURL || "",
+          };
+          const postTitle = title?.slice(0, 80) || "منشور";
           const notifQ = query(collection(db, "users", authorUid, "notifications"), where("postId", "==", postId), where("type", "==", "vote"), where("read", "==", false));
           const notifSnap = await getDocs(notifQ);
           if (!notifSnap.empty) {
             const existing = notifSnap.docs[0];
             const prev = existing.data();
+            const actors = mergeActor(prev.actors, actor);
             const count = (prev.count || 1) + 1;
             await updateDoc(existing.ref, {
               count,
-              text: count > 1 ? `${count} شخص صوّتوا على منشورك "${title?.slice(0, 30) || "منشور"}"` : `${user.displayName || "مستخدم"} صوّت على منشورك "${title?.slice(0, 40) || "منشور"}"`,
-              lastVoterName: user.displayName || "مستخدم",
+              actors,
+              fromUid: actor.uid,
+              fromName: actor.name,
+              fromPhoto: actor.photo,
+              postTitle,
+              text: count > 1 ? `${count} أشخاص صوّتوا على «${postTitle.slice(0, 48)}»` : `${actor.name} صوّت على «${postTitle.slice(0, 48)}»`,
+              lastVoterName: actor.name,
               createdAt: new Date().toISOString(),
             });
           } else {
             await addDoc(collection(db, "users", authorUid, "notifications"), {
-              type: "vote", text: `${user.displayName || "مستخدم"} صوّت على منشورك "${title?.slice(0, 40) || "منشور"}"`,
-              read: false, createdAt: new Date().toISOString(), postId, count: 1,
+              type: "vote",
+              text: `${actor.name} صوّت على «${postTitle.slice(0, 48)}»`,
+              fromUid: actor.uid,
+              fromName: actor.name,
+              fromPhoto: actor.photo,
+              actors: [actor],
+              postTitle,
+              read: false,
+              createdAt: new Date().toISOString(),
+              postId,
+              count: 1,
             });
           }
         } catch {}
       }
-    } catch {} finally { votingRef.current = false; }
+      if (newVote === 1) {
+        void bumpCategoryAffinity(user.uid, {
+          flair,
+          hashtags,
+          community: community?.replace(/^n\//, ""),
+        }).catch(() => {});
+      }
+    } catch {
+      myVoteRef.current = prevVote;
+      voteCountRef.current = prevCount;
+      setMyVote(prevVote);
+      setVoteCount(prevCount);
+    } finally { votingRef.current = false; }
   };
 
   // AI explain post
@@ -489,21 +542,15 @@ export default function PostCard({
   };
 
   const handleEmbed = () => {
-    navigator.clipboard?.writeText(`<iframe src="${window.location.origin}/embed/${postId}" width="600" height="400"></iframe>`);
+    if (!postId) return;
+    navigator.clipboard?.writeText(buildNorthfallEmbedCode(postId, window.location.origin));
     setShowEmbed(true);
     setTimeout(() => setShowEmbed(false), 2000);
   };
 
-  // Track views (optimistic - no extra read)
   useEffect(() => {
-    if (!postId) return;
-    const viewed = sessionStorage.getItem(`viewed-${postId}`);
-    if (!viewed) {
-      sessionStorage.setItem(`viewed-${postId}`, "1");
-      setViews(v => v + 1);
-      updateDoc(doc(db, "posts", postId), { views: (views || 0) + 1 }).catch(() => {});
-    }
-  }, [postId]);
+    setViews(viewsProp);
+  }, [postId, viewsProp]);
 
   const handleQuickReply = async () => {
     if (!user || !postId || !quickReplyText.trim()) return;
@@ -523,22 +570,43 @@ export default function PostCard({
       // Batch notification for comments
       if (authorUid && authorUid !== user.uid) {
         try {
+          const actor = {
+            uid: user.uid,
+            name: user.displayName || "مستخدم",
+            photo: user.photoURL || "",
+          };
+          const postTitle = title?.slice(0, 80) || "منشور";
           const notifQ = query(collection(db, "users", authorUid, "notifications"), where("postId", "==", postId), where("type", "==", "comment"), where("read", "==", false));
           const notifSnap = await getDocs(notifQ);
           if (!notifSnap.empty) {
             const existing = notifSnap.docs[0];
             const prev = existing.data();
+            const actors = mergeActor(prev.actors, actor);
             const count = (prev.count || 1) + 1;
             await updateDoc(existing.ref, {
               count,
-              text: count > 1 ? `${count} شخص علّقوا على منشورك "${title?.slice(0, 30) || "منشور"}"` : `${user.displayName || "مستخدم"} علّق على منشورك "${title?.slice(0, 40) || "منشور"}"`,
-              lastCommenterName: user.displayName || "مستخدم",
+              actors,
+              fromUid: actor.uid,
+              fromName: actor.name,
+              fromPhoto: actor.photo,
+              postTitle,
+              text: count > 1 ? `${count} أشخاص علّقوا على «${postTitle.slice(0, 48)}»` : `${actor.name} علّق على «${postTitle.slice(0, 48)}»`,
+              lastCommenterName: actor.name,
               createdAt: new Date().toISOString(),
             });
           } else {
             await addDoc(collection(db, "users", authorUid, "notifications"), {
-              type: "comment", text: `${user.displayName || "مستخدم"} علّق على منشورك "${title?.slice(0, 40) || "منشور"}"`,
-              read: false, createdAt: new Date().toISOString(), postId, count: 1,
+              type: "comment",
+              text: `${actor.name} علّق على «${postTitle.slice(0, 48)}»`,
+              fromUid: actor.uid,
+              fromName: actor.name,
+              fromPhoto: actor.photo,
+              actors: [actor],
+              postTitle,
+              read: false,
+              createdAt: new Date().toISOString(),
+              postId,
+              count: 1,
             });
           }
         } catch {}
@@ -631,11 +699,8 @@ export default function PostCard({
                   e.stopPropagation();
                   onFlairClick?.(flair);
                 }}
-                className="px-2 py-0.5 rounded-full text-[10px] font-bold hover:opacity-80 active:scale-95 transition-all cursor-pointer"
-                style={{
-                  background: (flairBg as any) || "rgba(var(--accent-rgb,160,160,160),0.2)",
-                  color: (flairTextColor as any) || "var(--accent)"
-                }}
+                className="px-1.5 py-px rounded-full text-[9px] font-semibold hover:opacity-90 active:scale-95 transition-all cursor-pointer shrink-0"
+                style={flairBadgeStyle(flair, flairBg, flairTextColor)}
               >
                 {flair}
               </button>
@@ -695,7 +760,7 @@ export default function PostCard({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg border border-nf-border-2/50 bg-nf-secondary/40 text-[12px] text-nf-accent hover:bg-nf-secondary/70 transition-colors"
+            className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg border border-nf-border-2/50 bg-transparent text-[12px] text-[#60a5fa] underline hover:text-[#93c5fd] transition-colors nf-md-link"
             dir="ltr"
           >
             <Link2 size={14} className="shrink-0" />
@@ -756,33 +821,34 @@ export default function PostCard({
 
         {/* Quoted Post - Mini Post Card (under my content, darker bg) */}
         {quotedPost && (
-          <div
-            className="mt-3 rounded-lg border border-nf-border-2/40 bg-nf-body overflow-hidden hover:border-nf-border-2/70 transition-all duration-150"
-          >
+          <div className="mt-3 rounded-xl border border-nf-border-2/30 bg-nf-body/80 overflow-hidden hover:border-nf-accent/25 transition-all duration-150">
             <div
               onClick={(e) => { e.stopPropagation(); onPostClick?.(quotedPost.id); }}
-              className="px-4 pt-3 pb-2 cursor-pointer hover:bg-nf-hover transition-all duration-150"
+              className="px-3.5 pt-3 pb-2.5 cursor-pointer hover:bg-nf-hover/40 transition-all duration-150"
             >
-              <div className="flex items-center gap-2 text-[13px] mb-1.5">
-                <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
+              <div className="flex items-center gap-2 text-[12px] mb-1.5 min-w-0">
+                <div className="w-6 h-6 rounded-full bg-nf-secondary overflow-hidden shrink-0 ring-1 ring-nf-border-2/50">
                   {quotedPost.authorPhoto ? (
                     <img src={quotedPost.authorPhoto} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[9px] text-nf-muted font-bold">{(quotedPost.authorName || "U")[0]}</div>
+                    <div className="w-full h-full flex items-center justify-center text-[10px] text-nf-muted font-bold">{(quotedPost.authorName || "U")[0]}</div>
                   )}
                 </div>
-                <span className="font-semibold text-nf-accent">n/{quotedPost.community || "عام"}</span>
+                <span className="font-semibold text-nf-accent shrink-0">n/{quotedPost.community || "عام"}</span>
                 <span className="text-nf-dim">·</span>
-                <span className="text-nf-muted">u/{quotedPost.authorName || "User"}</span>
+                <span className="text-nf-muted truncate">u/{quotedPost.authorName || "User"}</span>
                 <span className="text-nf-dim">·</span>
-                <span className="text-nf-muted">{quotedPost.createdAt ? timeAgoShort(quotedPost.createdAt) : ""}</span>
+                <span className="text-nf-dim shrink-0">{quotedPost.createdAt ? timeAgoShort(quotedPost.createdAt) : ""}</span>
               </div>
-              {quotedPost.title && <h3 className="text-[18px] font-bold text-nf-text-2 leading-snug mb-1">{quotedPost.title}</h3>}
-              {quotedPost.body && <p className="text-sm text-nf-text-2/80 leading-relaxed line-clamp-3">{quotedPost.body}</p>}
-              {quotedPost.imageUrl && <div className="mt-2 rounded-lg overflow-hidden"><img src={quotedPost.imageUrl} alt="" className="w-full max-h-[300px] object-cover" /></div>}
+              {quotedPost.title && <h3 className="text-[15px] font-bold text-nf-text leading-snug mb-1 line-clamp-2">{quotedPost.title}</h3>}
+              {quotedPost.body && <p className="text-[13px] text-nf-muted leading-relaxed line-clamp-3">{quotedPost.body}</p>}
+              {quotedPost.imageUrl && (
+                <div className="mt-2 rounded-lg overflow-hidden border border-nf-border-2/30">
+                  <img src={quotedPost.imageUrl} alt="" className="w-full max-h-[220px] object-cover" />
+                </div>
+              )}
             </div>
-            {/* Quote actions */}
-            <div className="flex items-center gap-1 px-3 py-1.5 border-t border-nf-border-2/30 text-nf-dim">
+            <div className="flex items-center gap-1 px-3 py-1.5 border-t border-nf-border-2/25 text-nf-dim">
               <button onClick={() => onQuoteClick?.(quotedPost.id)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] hover:bg-nf-hover hover:text-nf-text transition-colors"><Quote size={10} />اقتباس</button>
             </div>
           </div>
@@ -791,10 +857,13 @@ export default function PostCard({
 
       {/* Footer - always visible */}
       <div className="flex items-center gap-3 px-2 sm:px-3 py-1 text-nf-muted flex-wrap opacity-80 group-hover:opacity-100 transition-opacity duration-300">
-        <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1.5 py-0.5">
-          <button onClick={(e) => { e.stopPropagation(); handleVote(1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === 1 ? "text-orange-500" : "text-nf-dim hover:text-nf-muted")}><ArrowUp size={16} /></button>
-          <span className={cn("text-xs font-bold min-w-[20px] text-center", myVote === 1 ? "text-orange-500" : myVote === -1 ? "text-blue-400" : voteCount > 0 ? "text-orange-500" : voteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{voteCount}</span>
-          <button onClick={(e) => { e.stopPropagation(); handleVote(-1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
+        <div onClick={(e) => e.stopPropagation()}>
+          <VotePill
+            count={voteCount}
+            myVote={myVote as -1 | 0 | 1}
+            onUp={() => handleVote(1)}
+            onDown={() => handleVote(-1)}
+          />
         </div>
         <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors">
           <MessageSquare size={14} /><span>{comments} {t("pc.comments")}</span>
@@ -821,9 +890,6 @@ export default function PostCard({
         <button onClick={(e) => { e.stopPropagation(); toggleSave(); }} className={cn("flex items-center gap-1 text-xs transition-all duration-200", saved ? "text-nf-accent" : "hover:text-nf-accent")}>
           <Bookmark size={14} fill={saved ? "currentColor" : "none"} /><span>{saved ? "محفوظ" : "حفظ"}</span>
         </button>
-        <span className="flex items-center gap-0.5 text-xs text-nf-dim">
-          <Eye size={12} />{views > 0 ? views : "--"}
-        </span>
         <div className="flex-1" />
         <div className="relative">
           <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="hover:text-nf-text transition-colors p-0.5 rounded hover:bg-nf-hover"><MoreHorizontal size={16} /></button>
@@ -847,6 +913,18 @@ export default function PostCard({
                 <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); setShowReport(true); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
                   <Flag size={12} /> إبلاغ
                 </button>
+                {user && onHideClick && postId && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      onHideClick(postId);
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"
+                  >
+                    <EyeOff size={12} /> إخفاء
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -881,7 +959,7 @@ export default function PostCard({
         <div className={cn("nf-ai-box", aiLoading && "nf-ai-box--loading")}>
           <div className="nf-ai-box-inner">
             <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-nf-border-2/30">
-              <span className="nf-ai-box-label">{aiLoading ? "بكتبلك..." : "NorthFall AI"}</span>
+              <span className="nf-ai-box-label">{aiLoading ? "جاري التلخيص..." : "ملخص"}</span>
               {aiResult && !aiLoading && (
                 <button type="button" onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="text-nf-dim/50 hover:text-nf-dim transition-colors shrink-0">
                   <X size={11} />

@@ -10,6 +10,13 @@ import { collection, query, orderBy, limit, onSnapshot, updateDoc, deleteDoc, do
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
+import {
+  actorInitial,
+  formatNotificationPrimary,
+  notificationActorLabel,
+  primaryActor,
+  type NotificationLike,
+} from "@/lib/notification-format";
 
 function timeAgo(ts: any): string {
   if (!ts) return "";
@@ -255,6 +262,12 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
                   const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.general;
                   const Icon = cfg.icon;
                   const isLastInList = gi === grouped.length - 1 && ni === group.items.length - 1;
+                  const notif = n as NotificationLike;
+                  const actor = primaryActor(notif);
+                  const primaryText = formatNotificationPrimary(notif);
+                  const actionText = actor ? primaryText.slice(actor.name.length).trim() : primaryText;
+                  const username = actor?.name || notificationActorLabel(notif);
+                  const postPreview = notif.postTitle || (notif.text?.match(/"([^"]+)"/)?.[1] ?? "");
                   return (
                     <div
                       key={n.id}
@@ -272,35 +285,65 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
                         <span className="absolute start-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-nf-accent" aria-hidden />
                       )}
 
-                      <div className="shrink-0">
-                        {n.fromPhoto ? (
-                          <img
-                            src={n.fromPhoto}
-                            alt=""
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", cfg.bg)}>
-                            <Icon size={14} className={cfg.color} />
-                          </div>
-                        )}
+                      <div className="shrink-0 relative">
+                        {(() => {
+                          const actor = primaryActor(n as NotificationLike);
+                          const photo = actor?.photo || n.fromPhoto;
+                          const name = actor?.name || n.fromName || actorInitial(n.text || "U");
+                          return photo ? (
+                            <img
+                              src={photo}
+                              alt=""
+                              className="w-10 h-10 rounded-full object-cover ring-2 ring-nf-border-2/60 bg-nf-secondary"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full ring-2 ring-nf-border-2/60 bg-gradient-to-br from-nf-secondary to-nf-hover flex items-center justify-center text-[13px] font-bold text-nf-text">
+                              {actorInitial(name)}
+                            </div>
+                          );
+                        })()}
+                        <span
+                          className={cn(
+                            "absolute -bottom-0.5 -start-0.5 w-[18px] h-[18px] rounded-full border-2 border-nf-body flex items-center justify-center",
+                            cfg.bg
+                          )}
+                        >
+                          <Icon size={9} className={cfg.color} />
+                        </span>
                       </div>
 
                       <div className="flex-1 min-w-0 pe-6">
                         <p
                           className={cn(
-                            "text-[13px] leading-snug line-clamp-2",
-                            n.read ? "text-nf-muted" : "text-nf-text font-medium"
+                            "text-[13px] leading-snug",
+                            n.read ? "text-nf-muted" : "text-nf-text"
                           )}
                         >
-                          {n.text || n.message || "إشعار جديد"}
+                          {actor ? (
+                            <>
+                              <span className={cn("font-bold", !n.read && "text-nf-text")}>
+                                u/{username}
+                              </span>
+                              {" "}
+                              <span className={cn(n.read ? "text-nf-muted" : "text-nf-text/90")}>
+                                {actionText}
+                              </span>
+                            </>
+                          ) : (
+                            <span className={cn(!n.read && "font-medium")}>{primaryText}</span>
+                          )}
                         </p>
+                        {postPreview && notif.type !== "follow" && (
+                          <p className="text-[12px] text-nf-dim mt-0.5 line-clamp-1">
+                            {postPreview}
+                          </p>
+                        )}
                         <p className="text-[11px] text-nf-dim mt-0.5">
                           {timeAgo(n.createdAt)}
                           {n.community && (
                             <>
                               <span className="mx-1 text-nf-border-2">·</span>
-                              <span className="text-nf-accent">n/{n.community}</span>
+                              <span className="text-nf-accent font-medium">n/{n.community}</span>
                             </>
                           )}
                         </p>

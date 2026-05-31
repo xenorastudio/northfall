@@ -6,6 +6,12 @@ import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── All world languages ──────────────────────────────────────────────────────
+export function langBadge(id: string): string {
+  if (id === "zh-TW") return "TW";
+  if (id.length <= 3) return id.toUpperCase();
+  return id.slice(0, 2).toUpperCase();
+}
+
 export const ALL_LANGS = [
   { id: "ar", flag: "🇸🇦", label: "العربية" },
   { id: "en", flag: "🇺🇸", label: "English" },
@@ -190,7 +196,9 @@ export default function TranslateLangPicker({ className, fullWidth }: TranslateL
           onClick={() => setOpen(!open)}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[12px] font-medium transition-all border bg-nf-secondary/30 border-nf-border/10 hover:border-nf-border/25"
         >
-          <span className="text-[18px] leading-none">{current.flag}</span>
+          <span className="w-7 h-7 rounded-md bg-nf-secondary/60 border border-nf-border-2/50 flex items-center justify-center text-[10px] font-bold text-nf-muted uppercase shrink-0">
+            {langBadge(current.id)}
+          </span>
           <span className="flex-1 text-right text-nf-text">{current.label}</span>
           <span className="text-[10px] text-nf-dim/50 font-mono uppercase">{current.id}</span>
           <ChevronDown size={12} className={cn("shrink-0 opacity-40 transition-transform", open && "rotate-180")} />
@@ -222,7 +230,9 @@ export default function TranslateLangPicker({ className, fullWidth }: TranslateL
                     l.id === lang ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
                   )}
                 >
-                  <span className="text-[16px] leading-none shrink-0">{l.flag}</span>
+                  <span className="w-6 h-6 rounded-md bg-nf-secondary/50 border border-nf-border-2/40 flex items-center justify-center text-[9px] font-bold text-nf-dim uppercase shrink-0">
+                    {langBadge(l.id)}
+                  </span>
                   <span className="flex-1 text-right">{l.label}</span>
                   <span className="text-[9px] font-mono opacity-30 uppercase">{l.id}</span>
                   {l.id === lang && <Check size={10} className="text-nf-accent shrink-0" />}
@@ -247,7 +257,9 @@ export default function TranslateLangPicker({ className, fullWidth }: TranslateL
         className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[13px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"
         title={`لغة الترجمة: ${current.label}`}
       >
-        <span className="leading-none">{current.flag}</span>
+        <span className="w-5 h-5 rounded bg-nf-secondary/50 border border-nf-border-2/40 flex items-center justify-center text-[8px] font-bold text-nf-dim uppercase leading-none">
+          {langBadge(current.id)}
+        </span>
         <ChevronDown size={8} className={cn("text-nf-dim transition-transform", open && "rotate-180")} />
       </button>
 
@@ -282,7 +294,9 @@ export default function TranslateLangPicker({ className, fullWidth }: TranslateL
                     l.id === lang ? "bg-nf-accent/12 text-nf-accent" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
                   )}
                 >
-                  <span className="text-[15px] leading-none shrink-0">{l.flag}</span>
+                  <span className="w-5 h-5 rounded bg-nf-secondary/50 border border-nf-border-2/40 flex items-center justify-center text-[8px] font-bold text-nf-dim uppercase shrink-0">
+                    {langBadge(l.id)}
+                  </span>
                   <span className="flex-1 text-right">{l.label}</span>
                   {l.id === lang && <Check size={9} className="text-nf-accent shrink-0" />}
                 </button>

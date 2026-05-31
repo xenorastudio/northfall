@@ -1,7 +1,7 @@
 {
-  "name": "NorthFall — منصة المجتمعات العربية",
+  "name": "NorthFall",
   "short_name": "NorthFall",
-  "description": "منصة المجتمعات العربية الأولى للألعاب والتقنية",
+  "description": "The largest Arabic community platform.",
   "start_url": "/app",
   "display": "standalone",
   "background_color": "#1e1e20",

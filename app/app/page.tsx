@@ -2,6 +2,8 @@
 
 import Navbar from "../components/Navbar";
 import DonateBanner from "../components/DonateBanner";
+import DonateSupportPopup from "../components/DonateSupportPopup";
+import BowieEasterEggListener from "../components/BowieEasterEggListener";
 import SidebarLeft from "../components/SidebarLeft";
 import SidebarRight from "../components/SidebarRight";
 import PostComposer from "../components/PostComposer";
@@ -39,7 +41,7 @@ import LoginModal from "../components/LoginModal";
 import ToastProvider from "../components/ToastProvider";
 import { ClassicTabsProvider, useClassicTabs } from "../components/ClassicTabsProvider";
 import { X, ArrowUp } from "lucide-react";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, getDoc, setDoc, startAfter, onSnapshot } from "firebase/firestore";
 import { deletePostCompletely } from "@/lib/delete-content";
 import { canUserAccessFeed, pruneStaleUserFeedRefs } from "@/lib/custom-feed-access";
@@ -61,6 +63,11 @@ import {
   type CommunityMutesMap,
 } from "@/lib/feed-ranking";
 import {
+  rankPostsWithHideLearning,
+  type NegativeSignal,
+} from "@/lib/feed-hide-ranking";
+import { hidePostFromFeed, undoHidePost } from "@/lib/hide-post";
+import {
   formatPostDestinationPath,
   firestoreCommunityIdFromDisplay,
   isUserDestinationPath,
@@ -73,6 +80,8 @@ interface Post {
   community?: string;
   postTarget?: string;
   flair?: string;
+  flairBg?: string | null;
+  flairTextColor?: string | null;
   authorName?: string;
   authorPhoto?: string;
   authorUid?: string;
@@ -86,6 +95,7 @@ interface Post {
   isSpoiler?: boolean;
   votes?: number;
   commentCount?: number;
+  views?: number;
   postType?: string;
   createdAt?: string;
   awards?: any[];
@@ -230,6 +240,19 @@ function AppContent() {
   const [membersCommunity, setMembersCommunity] = useState<string>("");
   const [modPanelCommunity, setModPanelCommunity] = useState<string>("");
   const [invitePending, setInvitePending] = useState<{ token: string; community: string } | null>(null);
+  const [hiddenPostIds, setHiddenPostIds] = useState<Set<string>>(new Set());
+  const [negativeSignals, setNegativeSignals] = useState<NegativeSignal[]>([]);
+  const [categoryAffinities, setCategoryAffinities] = useState<Map<string, number>>(new Map());
+  const [pendingHidePosts, setPendingHidePosts] = useState<Map<string, Post>>(new Map());
+  const hideConfirmTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const communityCategoryLookup = useMemo(() => {
+    const m = new Map<string, string>();
+    allCommunities.forEach((c) => {
+      if (c.name && c.category) m.set(c.name.toLowerCase(), c.category);
+    });
+    return m;
+  }, [allCommunities]);
 
   const openMembers = (name: string) => {
     setMembersCommunity(name);
@@ -271,6 +294,43 @@ function AppContent() {
       () => {}
     );
     return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setHiddenPostIds(new Set());
+      setNegativeSignals([]);
+      setCategoryAffinities(new Map());
+      return;
+    }
+    const unsubHidden = onSnapshot(collection(db, "users", user.uid, "hiddenPosts"), (snap) => {
+      setHiddenPostIds(new Set(snap.docs.map((d) => d.id)));
+    });
+    const unsubSignals = onSnapshot(collection(db, "users", user.uid, "negativeSignals"), (snap) => {
+      setNegativeSignals(
+        snap.docs.map((d) => {
+          const data = d.data();
+          return {
+            category: String(data.category || ""),
+            timestamp: String(data.timestamp || ""),
+            postId: data.postId as string | undefined,
+          };
+        })
+      );
+    });
+    const unsubAff = onSnapshot(collection(db, "users", user.uid, "categoryAffinities"), (snap) => {
+      const m = new Map<string, number>();
+      snap.docs.forEach((d) => {
+        const cat = String(d.data().category || "").toLowerCase();
+        if (cat) m.set(cat, Number(d.data().score) || 0);
+      });
+      setCategoryAffinities(m);
+    });
+    return () => {
+      unsubHidden();
+      unsubSignals();
+      unsubAff();
+    };
   }, [user]);
 
   const openCustomFeed = async (feed: CustomFeed) => {
@@ -561,6 +621,66 @@ function AppContent() {
     }
   }, [feedMode, user, followedUids, joinedCommunities, activeCustomFeed, sortMode, applyHomeFeedPipeline]);
 
+  const handleHidePost = useCallback(
+    (post: Post) => {
+      if (!user) {
+        setShowLogin(true);
+        return;
+      }
+      setPendingHidePosts((prev) => new Map(prev).set(post.id, post));
+
+      const existing = hideConfirmTimersRef.current.get(post.id);
+      if (existing) clearTimeout(existing);
+
+      const timer = setTimeout(() => {
+        hideConfirmTimersRef.current.delete(post.id);
+        setPendingHidePosts((prev) => {
+          const next = new Map(prev);
+          next.delete(post.id);
+          return next;
+        });
+        void hidePostFromFeed(
+          user.uid,
+          {
+            id: post.id,
+            flair: post.flair,
+            hashtags: post.hashtags,
+            community: post.community,
+          },
+          communityCategoryLookup
+        ).catch((e) => console.warn("[hidePost]", e));
+      }, 8000);
+
+      hideConfirmTimersRef.current.set(post.id, timer);
+    },
+    [user, communityCategoryLookup]
+  );
+
+  const handleUndoHide = useCallback(
+    async (postId: string) => {
+      const timer = hideConfirmTimersRef.current.get(postId);
+      if (timer) {
+        clearTimeout(timer);
+        hideConfirmTimersRef.current.delete(postId);
+      }
+      setPendingHidePosts((prev) => {
+        const next = new Map(prev);
+        next.delete(postId);
+        return next;
+      });
+
+      if (user && hiddenPostIds.has(postId)) {
+        try {
+          await undoHidePost(user.uid, postId);
+          toast("تم التراجع — المنشور ظهر مجدداً", "success");
+        } catch {
+          toast("تعذّر التراجع", "error");
+        }
+      }
+    },
+    [user, hiddenPostIds, toast]
+  );
+
   useEffect(() => {
     feedKnownIdsRef.current = new Set(posts.map((p) => p.id));
     if (posts.length > 0 && !loading) feedBaselineReadyRef.current = true;
@@ -608,20 +728,19 @@ function AppContent() {
     }
   }, [user, fetchPosts]);
 
-  // تنبيه منشورات جديدة — بدون الاعتماد على posts[] (يمنع الحلقة المفرغة)
-  useEffect(() => {
-    if (view !== "feed") return;
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10));
-    const unsub = onSnapshot(q, (snap) => {
-      if (Date.now() < suppressNewAlertUntilRef.current) return;
-      if (!feedBaselineReadyRef.current || snap.empty) return;
-
+  // منشورات جديدة — تظهر فقط بعد تحديث يدوي (بدون onSnapshot)
+  const checkForNewPosts = useCallback(async () => {
+    if (!feedBaselineReadyRef.current) return;
+    try {
+      const snap = await getDocs(
+        query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10))
+      );
+      if (snap.empty) return;
       const latestId = snap.docs[0].id;
       if (lastAcknowledgedLatestIdRef.current === latestId) {
         setNewPostsCount(0);
         return;
       }
-
       const known = feedKnownIdsRef.current;
       let count = 0;
       for (const d of snap.docs) {
@@ -629,9 +748,20 @@ function AppContent() {
         else break;
       }
       setNewPostsCount(count);
-    }, () => {});
-    return () => unsub();
-  }, [view]);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view !== "feed") return;
+    const onFocus = () => {
+      if (Date.now() < suppressNewAlertUntilRef.current) return;
+      void checkForNewPosts();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [view, checkForNewPosts]);
 
   // Re-fetch when feed mode or sort changes
   useEffect(() => {
@@ -676,7 +806,20 @@ function AppContent() {
     }
     navigateTo("post", { postId: id, postTitle: p?.title || "" });
   };
-  const openCreate = () => { if (user) { setEditPostId(""); navigateTo("create"); } else setShowLogin(true); };
+  const openCreate = (communityName?: string) => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+    setEditPostId("");
+    if (communityName) {
+      setSelectedCommunity(communityName);
+      navigateTo("create", { community: communityName });
+    } else {
+      setSelectedCommunity("");
+      navigateTo("create");
+    }
+  };
   const openEdit = (id: string) => { setEditPostId(id); navigateTo("edit", { editPostId: id }); };
   const openUpgrade = (id: string) => { setLivingPostId(id); setView("living-upgrade"); setDocumentTitle(); };
 
@@ -717,9 +860,11 @@ function AppContent() {
     (rawTag: string) => {
       const tag = normalizeInterestTag(rawTag);
       if (!tag) return;
-      setTagFilter((prev) => (prev === tag ? null : tag));
       if (view !== "feed") {
+        setTagFilter(tag);
         navigateTo("feed");
+      } else {
+        setTagFilter((prev) => (prev === tag ? null : tag));
       }
       const interestTags = interestTagsFromHashtag(tag);
       pushUserInterests(interestTags);
@@ -741,8 +886,15 @@ function AppContent() {
     });
 
   const rankMode = sortMode === "top" ? "top" as const : sortMode === "new" ? "new" as const : "hot" as const;
-  const displayPosts = sortPostsByMode(
-    activeCustomFeed ? sortedPosts : filterPostsForHomeFeed(sortedPosts, communityMutesRef.current),
+  const feedHideCtx = {
+    negativeSignals,
+    categoryAffinities,
+    communityCategories: communityCategoryLookup,
+  };
+  const displayPosts = rankPostsWithHideLearning(
+    (activeCustomFeed ? sortedPosts : filterPostsForHomeFeed(sortedPosts, communityMutesRef.current))
+      .filter((p) => !hiddenPostIds.has(p.id) || pendingHidePosts.has(p.id)),
+    user ? feedHideCtx : { negativeSignals: [], categoryAffinities: new Map(), communityCategories: communityCategoryLookup },
     rankMode
   );
 
@@ -754,6 +906,8 @@ function AppContent() {
   return (
     <>
       <DonateBanner />
+      <DonateSupportPopup />
+      <BowieEasterEggListener />
       <Navbar onProfileClick={openProfile} onLoginClick={() => setShowLogin(true)} onCommunityClick={openCommunity} onPostClick={openPost} onNotifsClick={() => navigateTo("notifs")} onSettingsClick={() => navigateTo("settings")} onCreateClick={openCreate} onAdminClick={() => navigateTo("admin")} onSeoClick={() => navigateTo("seo")} activeCommunity={view === "community" ? selectedCommunity : undefined} />
       <SidebarLeft
         key={sidebarKey}
@@ -824,13 +978,14 @@ function AppContent() {
                     onSortChange={(s) => setSortMode(s)}
                     onTagClick={handleHashtagClick}
                     tagFilter={tagFilter}
+                    onTagFilterClear={() => setTagFilter(null)}
                     feedMode={activeCustomFeed ? "all" : feedMode}
                     onFeedModeChange={activeCustomFeed ? undefined : setFeedMode}
                     requireAuth={requireAuth}
                   />
 
-                  {/* Highlights — only on main feed, no filters */}
-                  {!activeCustomFeed && feedMode === "all" && !tagFilter && sortMode === "hot" && (
+                  {/* Highlights — ثابت على الرئيسية (كل / جديد / رائج) */}
+                  {!activeCustomFeed && !tagFilter && (
                     <FeedHighlights onPostClick={openPost} onCommunityClick={openCommunity} />
                   )}
 
@@ -886,7 +1041,22 @@ function AppContent() {
                         )}
                       </div>
                     ) : (
-                      displayPosts.map((post) => (
+                      displayPosts.map((post) =>
+                        pendingHidePosts.has(post.id) ? (
+                          <div
+                            key={post.id}
+                            className="border-b border-nf-border-2/40 px-4 py-4 flex items-center justify-between gap-3 bg-nf-hover/20 min-h-[72px]"
+                          >
+                            <span className="text-[13px] text-nf-muted">تم إخفاء هذا المنشور من الفيد</span>
+                            <button
+                              type="button"
+                              onClick={() => void handleUndoHide(post.id)}
+                              className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-bold text-nf-accent bg-nf-accent/10 hover:bg-nf-accent/20 transition-colors"
+                            >
+                              تراجع
+                            </button>
+                          </div>
+                        ) : (
                           <PostCard
                             key={post.id}
                             postId={post.id}
@@ -903,6 +1073,8 @@ function AppContent() {
                             videoUrl={(post as any).videoUrl}
                             mediaItems={(post as any).mediaItems}
                             flair={post.flair}
+                            flairBg={(post as Post).flairBg}
+                            flairTextColor={(post as Post).flairTextColor}
                             isNsfw={post.isNsfw || !!(post.community && matureCommunitySet.current.has(post.community.toLowerCase()))}
                             isSpoiler={post.isSpoiler}
                             isLiving={(post as any).isLiving}
@@ -910,6 +1082,7 @@ function AppContent() {
                             versionsCount={(post as any).versions?.length}
                             votes={post.votes || 0}
                             comments={post.commentCount || 0}
+                            views={post.views || 0}
                             awards={post.awards}
                             poll={post.poll}
                             quotedPostId={post.quotedPostId}
@@ -921,8 +1094,10 @@ function AppContent() {
                             onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }}
                             hashtags={(post as Post).hashtags}
                             onHashtagClick={handleHashtagClick}
+                            onHideClick={() => handleHidePost(post)}
                           />
-                      ))
+                        )
+                      )
                     )}
                     {hasMore && posts.length > 0 && (
                       <button onClick={() => fetchPosts(true)} className="w-full py-3 rounded-lg text-xs font-bold text-nf-dim hover:text-nf-accent hover:bg-nf-accent/5 transition-colors">
@@ -935,7 +1110,7 @@ function AppContent() {
 
               {view === "community" && selectedCommunity && (
                 <div key="community" className="animate-in fade-in duration-150">
-                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { try { await deletePostCompletely(id); } catch (e) { console.error(e); } fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} onDashboardClick={(name) => openCommunityDashboard(name)} onMembersClick={openMembers} onModPanelClick={openModPanel} customFeeds={customFeeds} showToast={toast} onSidebarRefresh={() => setSidebarKey(k => k + 1)} />
+                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { try { await deletePostCompletely(id); } catch (e) { console.error(e); } fetchPosts(); }} onPostClick={openPost} onCreatePost={(c) => openCreate(c)} onJoinToggle={() => setSidebarKey(k => k + 1)} onDashboardClick={(name) => openCommunityDashboard(name)} onMembersClick={openMembers} onModPanelClick={openModPanel} customFeeds={customFeeds} showToast={toast} onSidebarRefresh={() => setSidebarKey(k => k + 1)} />
                 </div>
               )}
 
@@ -987,7 +1162,13 @@ function AppContent() {
 
               {(view === "create" || view === "edit") && (
                 <div key={view} className="animate-in fade-in duration-150">
-                  <CreatePostPage onBack={backToFeed} onPost={backToFeed} editPostId={view === "edit" ? editPostId : undefined} quotedPostId={view === "create" ? quotePostId : undefined} />
+                  <CreatePostPage
+                    onBack={selectedCommunity ? () => navigateTo("community", { community: selectedCommunity }) : backToFeed}
+                    onPost={selectedCommunity ? () => navigateTo("community", { community: selectedCommunity }) : backToFeed}
+                    editPostId={view === "edit" ? editPostId : undefined}
+                    quotedPostId={view === "create" ? quotePostId : undefined}
+                    defaultCommunity={view === "create" ? selectedCommunity || undefined : undefined}
+                  />
                 </div>
               )}
 
@@ -1116,15 +1297,8 @@ function AppContent() {
 
 
 
-      {/* Back to top */}
-      {showBackTop && (
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-20 sm:bottom-6 left-6 w-10 h-10 rounded-full bg-nf-accent text-white flex items-center justify-center shadow-lg hover:bg-nf-accent/80 transition-all z-50 animate-in fade-in zoom-in duration-200"
-        >
-          <ArrowUp size={16} />
-        </button>
-      )}
+      {/* Back to top — hidden (was gray FAB) */}
+
     </>
   );
 }

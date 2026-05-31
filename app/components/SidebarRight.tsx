@@ -8,7 +8,7 @@ import {
   saveSubscriptionInterests,
 } from "@/lib/user-interests";
 import { resolveCategoryDisplay } from "@/lib/community-categories";
-import { collection, getDocs, query, orderBy, limit, getDoc, doc, onSnapshot, getCountFromServer, setDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, getDoc, doc, getCountFromServer, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Flame, TrendingUp, Bookmark, ExternalLink, ChevronDown, Mail, Calendar, Users, Globe, ArrowUp, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
@@ -84,7 +84,7 @@ function renderRichText(text: string): React.ReactNode {
           if (m.index > last) parts.push(<span key={key++}>{line.slice(last, m.index)}</span>);
           if (m[1] !== undefined && m[2] !== undefined) {
             parts.push(
-              <a key={key++} href={m[2]} target="_blank" rel="noopener noreferrer" className="text-[#336699] hover:text-[#2d5f9a] hover:underline underline-offset-2 font-semibold">
+              <a key={key++} href={m[2]} target="_blank" rel="noopener noreferrer" className="text-nf-accent hover:text-nf-text hover:underline underline-offset-2 font-semibold">
                 {m[1]}
               </a>
             );
@@ -92,7 +92,7 @@ function renderRichText(text: string): React.ReactNode {
             parts.push(<strong key={key++} className="font-bold text-nf-text">{m[3]}</strong>);
           } else if (m[4] !== undefined) {
             parts.push(
-              <a key={key++} href={m[4]} target="_blank" rel="noopener noreferrer" className="text-[#336699] hover:text-[#2d5f9a] hover:underline underline-offset-2 font-semibold break-all">
+              <a key={key++} href={m[4]} target="_blank" rel="noopener noreferrer" className="text-nf-accent hover:text-nf-text hover:underline underline-offset-2 font-semibold break-all">
                 {m[4]}
               </a>
             );
@@ -347,9 +347,10 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
   const meta = dbMeta;
   const membersCount = liveMemberCount ?? meta?.memberCount ?? 0;
 
-  useEffect(() => {
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(40));
-    const unsub = onSnapshot(q, (snap) => {
+  const loadRecentPosts = async () => {
+    try {
+      const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(40));
+      const snap = await getDocs(q);
       const ranked = snap.docs
         .map((d: any) => ({ id: d.id, ...d.data() }))
         .filter((p: any) => p.title)
@@ -360,8 +361,16 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
         })
         .slice(0, 8);
       setRecentPosts(ranked);
-    }, () => {});
-    return () => unsub();
+    } catch (e) {
+      console.error("SidebarRight recent posts:", e);
+    }
+  };
+
+  useEffect(() => {
+    void loadRecentPosts();
+    const onFocus = () => void loadRecentPosts();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   useEffect(() => {
@@ -844,31 +853,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
             )}
           </>
         )
-      ) : (
-        <>
-          {/* Site Rules */}
-          <div className="nf-sidebar-card overflow-hidden mb-2">
-            <div className="px-3.5 py-2.5 border-b nf-sidebar-card-divider">
-              <span className="text-[11px] font-bold text-nf-muted uppercase tracking-wide">{t("sr.siteRules")}</span>
-            </div>
-            <div className="px-3.5 py-2.5 space-y-2">
-              {[
-                t("sr.rule1"),
-                t("sr.rule2"),
-                t("sr.rule3"),
-                t("sr.rule4"),
-              ].map((rule: string, i: number) => (
-                <div key={i} className="flex items-start gap-2 text-[11px] text-nf-muted">
-                  <span className="text-[11px] font-bold text-nf-accent shrink-0">
-                    {i + 1}-
-                  </span>
-                  <span className="flex-1 leading-relaxed">{rule}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      ) : null}
 
       {suggestedComms.length > 0 && (
         <div className="nf-sidebar-card overflow-hidden mb-2">

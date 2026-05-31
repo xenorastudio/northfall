@@ -29,6 +29,7 @@ import PostCard from "./PostCard";
 import PostBodyContent from "./PostBodyContent";
 import { GAMES } from "./GamesPage";
 import { cn } from "@/lib/utils";
+import { mergeActor } from "@/lib/notification-format";
 import type { CustomFeed } from "./CustomFeedModal";
 
 const profileColorCache: Record<string, string> = {};
@@ -143,10 +144,15 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const isOwn = !uid || uid === user?.uid;
   const [activeTab, setActiveTab] = useState("posts");
   useEffect(() => {
-    const tab = new URLSearchParams(window.location.search).get("tab");
-    const valid = ["posts", "comments", "saved", "feeds", "games", "awards"];
-    if (tab && valid.includes(tab)) setActiveTab(tab);
-  }, []);
+    const readTab = () => {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      const valid = ["posts", "comments", "saved", "feeds", "games", "awards"];
+      if (tab && valid.includes(tab)) setActiveTab(tab);
+    };
+    readTab();
+    window.addEventListener("popstate", readTab);
+    return () => window.removeEventListener("popstate", readTab);
+  }, [uid]);
   const [posts, setPosts] = useState<any[]>([]);
   const [savedPosts, setSavedPosts] = useState<any[]>([]);
   const [savedPostsLoading, setSavedPostsLoading] = useState(false);
@@ -273,21 +279,38 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       setIsFollowing(true);
       // Batched follow notification
       try {
+        const actor = {
+          uid: user.uid,
+          name: user.displayName || "مستخدم",
+          photo: user.photoURL || "",
+        };
         const notifQ = query(collection(db, "users", targetUid, "notifications"), where("type", "==", "follow"), where("read", "==", false));
         const notifSnap = await getDocs(notifQ);
         if (!notifSnap.empty) {
           const existing = notifSnap.docs[0];
           const prev = existing.data();
+          const actors = mergeActor(prev.actors, actor);
           const count = (prev.count || 1) + 1;
           await updateDoc(existing.ref, {
             count,
-            text: `${count} شخص تابعوك`,
+            actors,
+            fromUid: actor.uid,
+            fromName: actor.name,
+            fromPhoto: actor.photo,
+            text: count > 1 ? `${actor.name} و ${count - 1} آخرين تابعوك` : `${actor.name} تابعك`,
             createdAt: new Date().toISOString(),
           });
         } else {
           await addDoc(collection(db, "users", targetUid, "notifications"), {
-            type: "follow", text: `${user.displayName || "مستخدم"} تابعك`,
-            read: false, createdAt: new Date().toISOString(), count: 1,
+            type: "follow",
+            text: `${actor.name} تابعك`,
+            fromUid: actor.uid,
+            fromName: actor.name,
+            fromPhoto: actor.photo,
+            actors: [actor],
+            read: false,
+            createdAt: new Date().toISOString(),
+            count: 1,
           });
         }
       } catch {}
@@ -699,6 +722,8 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 image={post.imageUrl}
                 imageUrls={post.imageUrls}
                 flair={post.flair}
+                flairBg={(post as { flairBg?: string }).flairBg}
+                flairTextColor={(post as { flairTextColor?: string }).flairTextColor}
                 isNsfw={post.isNsfw}
                 isSpoiler={post.isSpoiler}
                 isLiving={(post as any).isLiving}
@@ -706,6 +731,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 versionsCount={(post as any).versions?.length}
                 votes={post.votes || 0}
                 comments={post.commentCount || 0}
+                views={(post as { views?: number }).views || 0}
                 awards={post.awards}
                 poll={post.poll}
                 quotedPostId={post.quotedPostId}
@@ -951,6 +977,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                   versionsCount={(post as any).versions?.length}
                   votes={post.votes || 0}
                   comments={post.commentCount || 0}
+                  views={(post as { views?: number }).views || 0}
                   awards={post.awards}
                   poll={post.poll}
                   quotedPostId={post.quotedPostId}
@@ -966,7 +993,8 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
         )}
 
         {activeTab === "awards" && (
-          <div className="py-4">
+          <div className="relative py-4 min-h-[320px]">
+            <div className="pointer-events-none select-none opacity-25 blur-[1px]">
             {earnedAwards.length > 0 && (
               <div className="mb-6">
                 <p className="text-xs text-nf-muted mb-3 font-bold">{t("pp.earnedAwards")}</p>
@@ -1000,6 +1028,10 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                   </div>
                 ))}
               </div>
+            </div>
+            </div>
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/55 rounded-xl">
+              <span className="text-[15px] font-bold text-white/90 tracking-wide">قريباً</span>
             </div>
           </div>
         )}

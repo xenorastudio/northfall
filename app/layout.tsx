@@ -25,9 +25,7 @@ const plusJakarta = Plus_Jakarta_Sans({
   preload: true,
 });
 
-const SITE_URL = 'https://www.northfall.blog';
-const SITE_NAME = 'NorthFall';
-const SITE_DESCRIPTION = 'NorthFall — مجتمعك العربي على الإنترنت. مكان للمجتمعات، المنشورات، والنقاشات عن كل شيء تقريبًا. شارك أفكارك، انشر محتوى جديد، وتابع اهتماماتك داخل مجتمع عربي فيه ناس تتفاعل يوميًا من خلال المنشورات والتعليقات والنقاشات. الألعاب والبرمجة هم الأكثر نشاطًا على NorthFall، لكن أكيد بتلاقي مجتمعات ومواضيع ثانية بكل المجالات تقريبًا.';
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/lib/site-seo';
 
 const KEYWORDS = [
   // Brand — NorthFall alone + every variation (extensive to beat clothing store)
@@ -95,9 +93,10 @@ const KEYWORDS = [
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title: {
     default: SITE_NAME,
-    template: "%s",
+    template: "%s | NorthFall",
   },
   description: SITE_DESCRIPTION,
   keywords: KEYWORDS,
@@ -117,16 +116,16 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'ar_SA',
+    locale: 'en_US',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — مجتمعك العربي`,
+    title: SITE_NAME,
     description: SITE_DESCRIPTION,
     images: [{ url: `${SITE_URL}/assets/images/og-image.png`, width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} — مجتمعك العربي`,
+    title: SITE_NAME,
     description: SITE_DESCRIPTION,
     images: [`${SITE_URL}/assets/images/og-image.png`],
   },

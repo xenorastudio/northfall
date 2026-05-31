@@ -12,32 +12,23 @@ type Props = {
   children?: React.ReactNode;
 };
 
-/** إطار وسائط مع ضباب الجوانب مثل Reddit */
+/** إطار وسائط — صورة نظيفة بدون blur */
 export default function FeedMediaFrame({
   src,
   alt = "",
   className,
   imgClassName,
-  maxHeight = "min(480px, 72vh)",
+  maxHeight = "min(520px, 72vh)",
   onImageClick,
   children,
 }: Props) {
   return (
     <div
       className={cn(
-        "nf-feed-media-frame relative overflow-hidden rounded-lg bg-[var(--bg-secondary)]",
+        "relative overflow-hidden rounded-lg bg-[var(--bg-secondary)]",
         className
       )}
     >
-      <img
-        src={src}
-        alt=""
-        aria-hidden
-        className="nf-feed-media-backdrop absolute inset-0 w-full h-full object-cover scale-[1.15] pointer-events-none select-none"
-        loading="lazy"
-        draggable={false}
-      />
-      <div className="absolute inset-0 bg-black/45 pointer-events-none" aria-hidden />
       <img
         src={src}
         alt={alt}
@@ -46,7 +37,7 @@ export default function FeedMediaFrame({
         onClick={onImageClick}
         style={{ maxHeight }}
         className={cn(
-          "relative z-[1] w-full h-auto block object-contain mx-auto",
+          "w-full h-auto block object-contain mx-auto",
           onImageClick && "cursor-zoom-in",
           imgClassName
         )}
