@@ -253,14 +253,14 @@ export default function TranslateLangPicker({ className, fullWidth }: TranslateL
     <div className={cn("relative", className)} ref={ref}>
       <button
         ref={buttonRef}
+        type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[13px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"
+        className="inline-flex items-center gap-0.5 px-1 py-0.5 text-[10px] font-semibold text-nf-muted hover:text-nf-text transition-colors"
         title={`لغة الترجمة: ${current.label}`}
+        aria-label={`لغة الترجمة: ${current.label}`}
       >
-        <span className="w-5 h-5 rounded bg-nf-secondary/50 border border-nf-border-2/40 flex items-center justify-center text-[8px] font-bold text-nf-dim uppercase leading-none">
-          {langBadge(current.id)}
-        </span>
-        <ChevronDown size={8} className={cn("text-nf-dim transition-transform", open && "rotate-180")} />
+        <span className="uppercase tracking-wide">{langBadge(current.id)}</span>
+        <ChevronDown size={9} className={cn("opacity-60 transition-transform", open && "rotate-180")} />
       </button>
 
       {open && mounted && createPortal(

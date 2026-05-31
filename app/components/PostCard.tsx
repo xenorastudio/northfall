@@ -655,7 +655,7 @@ export default function PostCard({
       transition={{ duration: 0.2 }}
       onClick={handleClick}
       className={cn(
-        "group cursor-pointer nf-post-card relative mx-0.5 sm:mx-1",
+        "group cursor-pointer nf-post-card relative",
         postBordered && "nf-post-card--bordered"
       )}
     >

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { BookOpen } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 type MenuItem = {
   label: string;
@@ -17,28 +17,40 @@ type Props = {
   className?: string;
 };
 
+/** زر أدوات AI — نفس أسلوب رد / ترجمة في التعليقات */
 export default function NorthFallAiButton({ open, onToggle, loading, menuItems, className }: Props) {
   return (
-    <div className={cn("nf-ai-btn-wrapper relative", className)}>
+    <div className={cn("relative inline-flex", className)}>
       <button
         type="button"
         onClick={onToggle}
         disabled={loading}
-        className={cn("nf-ai-btn", open && "nf-ai-btn--open", loading && "nf-ai-btn--loading")}
+        className={cn(
+          "flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors disabled:opacity-40",
+          open && "bg-nf-hover text-nf-text"
+        )}
         aria-expanded={open}
       >
-        <BookOpen size={13} className="nf-ai-btn-icon" strokeWidth={2} />
-        <span className="nf-ai-btn-label">أدوات</span>
+        {loading ? (
+          <span className="w-3 h-3 border border-nf-dim border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <Sparkles size={11} />
+        )}
+        <span>أدوات</span>
       </button>
       {open && (
-        <div className="nf-ai-menu absolute right-0 top-full mt-1 z-50 min-w-[152px] py-0.5 overflow-hidden">
+        <div
+          className="absolute right-0 top-full mt-1 z-50 min-w-[148px] py-1 rounded-lg border border-nf-border-2 bg-nf-primary shadow-xl"
+          role="menu"
+        >
           {menuItems.map((item) => (
             <button
               key={item.label}
               type="button"
               disabled={item.disabled}
               onClick={item.onClick}
-              className="nf-ai-menu-item w-full text-right px-2.5 py-1.5 text-[10px] disabled:opacity-40"
+              className="w-full text-right px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text disabled:opacity-40 transition-colors"
+              role="menuitem"
             >
               {item.label}
             </button>

@@ -330,6 +330,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, on
                 )}
                 <span>{translated ? "إلغاء" : "ترجمة"}</span>
               </button>
+              {!translated && <TranslateLangPicker />}
               <button onClick={() => setShowReport(true)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
                 <Flag size={11} /><span>{t("pd.report")}</span>
               </button>
@@ -1013,38 +1014,38 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                 onHashtagClick={onHashtagClick}
                 onProfileClick={onProfileClick}
               />
-              <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+              <div className="mt-2 flex items-center gap-1 text-[11px] flex-wrap">
                 <button
                   type="button"
                   onClick={togglePostTranslate}
                   disabled={postTranslating}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors disabled:opacity-40"
                 >
                   {postTranslating ? (
                     <span className="w-3 h-3 border border-nf-dim border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <Languages size={12} />
+                    <Languages size={11} />
                   )}
-                  {postTranslated ? "إلغاء الترجمة" : "ترجمة"}
+                  <span>{postTranslated ? "إلغاء" : "ترجمة"}</span>
                 </button>
                 {!postTranslated && <TranslateLangPicker />}
               </div>
             </div>
           )}
           {!displayBody && !postTranslated?.body && displayTitle && (
-            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+            <div className="mt-2 flex items-center gap-1 text-[11px] flex-wrap">
               <button
                 type="button"
                 onClick={togglePostTranslate}
                 disabled={postTranslating}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors disabled:opacity-40"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors disabled:opacity-40"
               >
                 {postTranslating ? (
                   <span className="w-3 h-3 border border-nf-dim border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Languages size={12} />
+                  <Languages size={11} />
                 )}
-                {postTranslated ? "إلغاء الترجمة" : "ترجمة"}
+                <span>{postTranslated ? "إلغاء" : "ترجمة"}</span>
               </button>
               {!postTranslated && <TranslateLangPicker />}
             </div>
@@ -1238,7 +1239,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             onToggle={() => setAiDropOpen(!aiDropOpen)}
             loading={aiLoading}
             menuItems={[
-              { label: "لخّص المنشور", onClick: () => handleAiExplain("summarize"), disabled: aiLoading },
+              { label: "لخص المنشور", onClick: () => handleAiExplain("summarize"), disabled: aiLoading },
               { label: "اشرح لي", onClick: () => handleAiExplain("explain"), disabled: aiLoading },
             ]}
           />
@@ -1264,7 +1265,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
 
       {/* AI Result with typing animation */}
       {(aiResult || aiLoading) && (
-        <div className="mx-4 my-2 p-3 rounded-xl border border-nf-accent/20">
+        <div className="mx-3 my-2 p-3 rounded-xl border border-nf-border-2/50 bg-nf-secondary/20">
           <div className="flex items-center gap-1.5 mb-1.5">
             <span className="text-[10px] text-nf-dim font-semibold">{aiLoading ? "جاري التلخيص..." : "ملخص"}</span>
             {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="mr-auto text-nf-dim hover:text-nf-text transition-colors"><X size={11} /></button>}

@@ -75,7 +75,7 @@ export default function AiSettingsPanel({
         />
       </SettingRow>
 
-      <SettingRow label="مفتاح API" sub="يُحفظ في متصفحك فقط — من موقع المزود">
+      <SettingRow label="مفتاح API" sub="يحفظ في متصفحك فقط — من موقع المزود">
         <div className="relative w-[160px]">
           <input
             type="password"
