@@ -10,7 +10,7 @@ export const MAX_QUERY_INTERESTS = 10;
 export const IMPLICIT_VISIT_THRESHOLD = 2;
 
 /** تصنيف → وسوم قابلة للاستعلام (تطابق حقل tags في المجتمعات) */
-const CATEGORY_SLUG: Record<string, string> = {
+export const CATEGORY_SLUG: Record<string, string> = {
   "🎮 تطوير ألعاب": "gamedev",
   "🕹️ ألعاب وجيمينج": "gaming",
   "💻 برمجة وكود": "programming",
@@ -46,6 +46,8 @@ const CATEGORY_SLUG: Record<string, string> = {
   "🍕 طعام وطبخ": "food",
   "🚗 سيارات ومحركات": "cars",
 };
+
+export const ONBOARDING_CATEGORY_LABELS = Object.keys(CATEGORY_SLUG);
 
 export function normalizeInterestTag(raw: string): string {
   return (raw || "")

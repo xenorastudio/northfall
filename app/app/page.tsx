@@ -65,6 +65,8 @@ import {
   rankPostsWithHideLearning,
   type NegativeSignal,
 } from "@/lib/feed-hide-ranking";
+import { applyInterestBoostToPosts } from "@/lib/feed-interest-boost";
+import { getOnboardingCompleted } from "@/lib/user-onboarding";
 import { hidePostFromFeed, undoHidePost } from "@/lib/hide-post";
 import {
   formatPostDestinationPath,
@@ -112,6 +114,7 @@ function AppContent() {
     communities: allCommunities,
     joinedCommunities: joinedFromData,
     userInterests,
+    interestTagWeights,
     pushUserInterests,
   } = useData();
   const { isClassic } = useClassicTabs();
@@ -122,6 +125,17 @@ function AppContent() {
     const ac = localStorage.getItem("nf-accent");
     if (ac) document.documentElement.style.setProperty("--nf-accent", ac);
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getOnboardingCompleted(user.uid).then((done) => {
+      if (!cancelled && !done) window.location.replace("/onboarding");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("feed");
@@ -896,12 +910,16 @@ function AppContent() {
     categoryAffinities,
     communityCategories: communityCategoryLookup,
   };
-  const displayPosts = rankPostsWithHideLearning(
+  const rankedPosts = rankPostsWithHideLearning(
     (activeCustomFeed ? sortedPosts : filterPostsForHomeFeed(sortedPosts, communityMutesRef.current))
       .filter((p) => !hiddenPostIds.has(p.id) || pendingHidePosts.has(p.id)),
     user ? feedHideCtx : { negativeSignals: [], categoryAffinities: new Map(), communityCategories: communityCategoryLookup },
     rankMode
   );
+  const displayPosts =
+    user && Object.keys(interestTagWeights).length > 0
+      ? applyInterestBoostToPosts(rankedPosts, interestTagWeights, communityCategoryLookup)
+      : rankedPosts;
 
   const requireAuth = (action: () => void) => {
     if (user) action();

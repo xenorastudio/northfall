@@ -245,8 +245,6 @@ export default function LivingPostVersions({
   return (
     <>
       <div className="mt-3">
-        <p className="text-[10px] font-semibold text-emerald-400/85 mb-2">منشور حي</p>
-
         <div className="rounded-lg border border-nf-border-2/40 px-2.5 py-2 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-0.5 min-w-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>

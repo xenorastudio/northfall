@@ -533,20 +533,26 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
               <div className="p-4">
                 <p className="text-[13px] font-semibold text-nf-text mb-4">معلومات الحساب</p>
 
-                {/* Banner */}
-                <div className="relative h-[72px] rounded-xl overflow-hidden mb-4 bg-nf-secondary/40 border border-nf-border-2/50">
-                  {bannerUrl && <img src={bannerUrl} alt="" className="w-full h-full object-cover" />}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                </div>
-
-                {/* Avatar + name row */}
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-12 h-12 rounded-full bg-nf-secondary overflow-hidden border-2 border-nf-border-2 shrink-0">
-                    {photoUrl || user?.photoURL
-                      ? <img src={photoUrl || user?.photoURL || ""} alt="" className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center text-lg font-bold text-nf-muted">{(displayName || "U")[0]}</div>}
+                {/* Banner + avatar متداخلان — بدون خلفية ملونة */}
+                <div className="relative mb-10">
+                  <div className="relative h-[88px] rounded-xl overflow-hidden border border-nf-border-2/50 bg-transparent">
+                    {bannerUrl ? (
+                      <img src={bannerUrl} alt="" className="w-full h-full object-cover" />
+                    ) : null}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-body)]/80 via-transparent to-transparent pointer-events-none" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="absolute -bottom-5 right-4 z-10">
+                    <div className="w-[72px] h-[72px] rounded-full overflow-hidden border-[3px] border-[var(--bg-body)] bg-nf-secondary/30 shadow-md">
+                      {photoUrl || user?.photoURL ? (
+                        <img src={photoUrl || user?.photoURL || ""} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xl font-bold text-nf-muted">
+                          {(displayName || "U")[0]}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-1 right-[calc(4rem+1rem)] left-0 min-w-0">
                     <p className="text-[14px] font-bold text-nf-text truncate">{displayName || t("gen.user")}</p>
                     <p className="text-[11px] text-nf-dim truncate">{user?.email || ""}</p>
                   </div>
@@ -558,25 +564,25 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                     <label className="text-[10px] font-semibold text-nf-dim mb-1.5 block">رابط الصورة الشخصية</label>
                     <input type="url" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)}
                       placeholder="https://example.com/photo.jpg"
-                      className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent/50 transition-colors" />
+                      className="w-full bg-transparent border border-nf-border-2/60 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/45 outline-none focus:border-nf-accent/40 transition-colors" />
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold text-nf-dim mb-1.5 block">رابط البانر</label>
                     <input type="url" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)}
                       placeholder="https://example.com/banner.jpg"
-                      className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent/50 transition-colors" />
+                      className="w-full bg-transparent border border-nf-border-2/60 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/45 outline-none focus:border-nf-accent/40 transition-colors" />
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold text-nf-dim mb-1.5 block">{t("sp.displayName")}</label>
                     <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
-                      className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text outline-none focus:border-nf-accent/50 transition-colors" />
+                      className="w-full bg-transparent border border-nf-border-2/60 rounded-lg px-3 py-2 text-[12px] text-nf-text outline-none focus:border-nf-accent/40 transition-colors" />
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold text-nf-dim mb-1.5 block">{t("sp.bio")}</label>
                     <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={200} rows={3}
                       placeholder={t("sp.bioPlaceholder")}
-                      className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent/50 transition-colors resize-none" />
-                    <p className="text-[10px] text-nf-dim/50 mt-1 text-left">{bio.length}/200</p>
+                      className="w-full bg-transparent border border-nf-border-2/60 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/45 outline-none focus:border-nf-accent/40 transition-colors resize-none" />
+                    <p className="text-[10px] text-nf-dim/70 mt-1 text-left">{bio.length}/200</p>
                   </div>
                 </div>
               </div>

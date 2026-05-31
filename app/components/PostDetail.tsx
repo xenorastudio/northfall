@@ -970,6 +970,18 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                 </span>
               </>
             )}
+            {isLivingPost && (
+              <>
+                <span className="text-nf-dim">·</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex items-center gap-0.5 shrink-0">
+                  <GitCommitHorizontal size={9} />
+                  منشور حي
+                  {livingVersions.length > 0 && (
+                    <span className="text-emerald-400/70">v{activeVersion?.version ?? post.currentVersion ?? 1}</span>
+                  )}
+                </span>
+              </>
+            )}
           </div>
 
           <h2 className="text-[16px] sm:text-[18px] font-bold text-nf-text leading-snug mb-2">

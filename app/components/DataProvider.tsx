@@ -24,6 +24,7 @@ interface CachedData {
   joinedCommunities: string[];
   favoriteCommunities: string[];
   userInterests: string[];
+  interestTagWeights: Record<string, number>;
   pushUserInterests: (tags: string[]) => void;
   unreadCount: number;
   loading: boolean;
@@ -36,6 +37,7 @@ const DataContext = createContext<CachedData>({
   joinedCommunities: [],
   favoriteCommunities: [],
   userInterests: [],
+  interestTagWeights: {},
   pushUserInterests: () => {},
   unreadCount: 0,
   loading: true,
@@ -52,6 +54,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [joinedCommunities, setJoinedCommunities] = useState<string[]>([]);
   const [favoriteCommunities, setFavoriteCommunities] = useState<string[]>([]);
   const [userInterests, setUserInterests] = useState<string[]>([]);
+  const [interestTagWeights, setInterestTagWeights] = useState<Record<string, number>>({});
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -86,6 +89,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) {
       setUserInterests([]);
+      setInterestTagWeights({});
       return;
     }
     const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
@@ -93,7 +97,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setUserInterests(
         Array.isArray(raw) ? normalizeInterestTags(raw.map(String)) : []
       );
-    }, () => setUserInterests([]));
+      const w = snap.exists() ? snap.data().interestTagWeights : null;
+      if (w && typeof w === "object" && !Array.isArray(w)) {
+        const parsed: Record<string, number> = {};
+        for (const [k, v] of Object.entries(w)) {
+          if (typeof v === "number" && Number.isFinite(v)) parsed[k] = v;
+        }
+        setInterestTagWeights(parsed);
+      } else {
+        setInterestTagWeights({});
+      }
+    }, () => {
+      setUserInterests([]);
+      setInterestTagWeights({});
+    });
     return () => unsub();
   }, [user]);
 
@@ -166,7 +183,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <DataContext.Provider value={{ communities, joinedCommunities, favoriteCommunities, userInterests, pushUserInterests, unreadCount, loading, refreshCommunities, refreshUnread }}>
+    <DataContext.Provider value={{ communities, joinedCommunities, favoriteCommunities, userInterests, interestTagWeights, pushUserInterests, unreadCount, loading, refreshCommunities, refreshUnread }}>
       {children}
     </DataContext.Provider>
   );

@@ -1327,24 +1327,31 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
             </div>
           )}
 
-          {/* ── Living upgrade: Changelog only ── */}
+          {/* ── Living upgrade: Changelog — نفس شكل نص المنشور ── */}
           {livingPostId && (
-            <div className="pt-1">
-              <div className="h-px bg-nf-border-2/40 mb-3" />
-              <label className="text-[10px] font-semibold text-nf-dim flex items-center gap-1 mb-1.5">
-                <GitBranch size={9} />
+            <div>
+              <label className="text-[12px] font-semibold text-nf-muted flex items-center gap-1.5 mb-2">
+                <GitBranch size={12} className="text-nf-accent/80" />
                 سجل التغييرات
-                <span className="font-normal opacity-60">— ماذا تغيّر؟ (اختياري)</span>
+                <span className="font-normal text-nf-dim">— ماذا تغيّر؟ (اختياري)</span>
               </label>
-              <textarea
-                value={livingChangelog}
-                onChange={(e) => setLivingChangelog(e.target.value)}
-                placeholder={"- أصلحت الألوان\n- حسّنت الخط\n- أضفت تفاصيل جديدة"}
-                rows={3}
-                maxLength={500}
-                className="w-full !bg-transparent border-b border-nf-border-2 px-1 py-1.5 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent transition-colors resize-none leading-relaxed"
-              />
-              <div className="text-[9px] text-nf-dim text-left mt-0.5">{livingChangelog.length}/500</div>
+              <div className="nf-compose-field min-h-[min(180px,32vh)] flex flex-col">
+                <textarea
+                  value={livingChangelog}
+                  onChange={(e) => setLivingChangelog(e.target.value)}
+                  placeholder={"- أصلحت الألوان\n- حسّنت الخط\n- أضفت تفاصيل جديدة"}
+                  maxLength={500}
+                  className="w-full flex-1 min-h-[min(160px,28vh)] px-3 py-2.5 text-[15px] text-nf-text placeholder:text-nf-dim/50 bg-transparent border-0 outline-none resize-none leading-relaxed"
+                />
+                <span
+                  className={cn(
+                    "text-[9px] tabular-nums text-left px-3 pb-2",
+                    livingChangelog.length > 450 ? "text-red-400" : "text-nf-dim"
+                  )}
+                >
+                  {livingChangelog.length}/500
+                </span>
+              </div>
             </div>
           )}
 
