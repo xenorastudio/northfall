@@ -1,7 +1,7 @@
 "use client";
 
 import Navbar from "../components/Navbar";
-import DonateBanner from "../components/DonateBanner";
+import DonateSupportPopup from "../components/DonateSupportPopup";
 import BowieEasterEggListener from "../components/BowieEasterEggListener";
 import SidebarLeft from "../components/SidebarLeft";
 import SidebarRight from "../components/SidebarRight";
@@ -910,7 +910,7 @@ function AppContent() {
 
   return (
     <>
-      <DonateBanner />
+      <DonateSupportPopup />
       <BowieEasterEggListener />
       <Navbar onProfileClick={openProfile} onLoginClick={() => setShowLogin(true)} onCommunityClick={openCommunity} onPostClick={openPost} onNotifsClick={() => navigateTo("notifs")} onSettingsClick={() => navigateTo("settings")} onCreateClick={openCreate} onAdminClick={() => navigateTo("admin")} onSeoClick={() => navigateTo("seo")} activeCommunity={view === "community" ? selectedCommunity : undefined} />
       <SidebarLeft

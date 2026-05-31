@@ -93,7 +93,7 @@ export default function FeedSort({
   return (
     <div className="mb-3 space-y-2">
       {tagFilter && (
-        <div className="flex items-center justify-between bg-nf-card border border-nf-border-2 rounded-xl px-3 py-2">
+        <div className="flex items-center justify-between border border-nf-border-2/40 rounded-lg px-3 py-2 bg-nf-hover/30">
           <span className="text-[12px] text-nf-text font-semibold">#{tagFilter.replace(/^#+/, "")}</span>
           <button
             type="button"
@@ -104,7 +104,7 @@ export default function FeedSort({
           </button>
         </div>
       )}
-    <div className="rounded-xl border border-nf-border-2/60 bg-nf-card px-2 py-1.5 shadow-sm">
+    <div className="px-0.5 py-1.5 border-b border-nf-border-2/25">
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-0.5">
           <button
