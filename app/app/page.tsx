@@ -977,7 +977,6 @@ function AppContent() {
               {view === "feed" && (
                 <div key="feed" className="animate-in fade-in duration-150">
                   <PostComposer onFocus={openCreate} onPost={() => { backToFeed(); }} />
-
                   <FeedSort
                     onSortChange={(s) => setSortMode(s)}
                     onTagClick={handleHashtagClick}

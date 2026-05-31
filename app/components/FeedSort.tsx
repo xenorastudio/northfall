@@ -91,7 +91,7 @@ export default function FeedSort({
   };
 
   return (
-    <div className="mb-3 space-y-2">
+    <div className="mb-3 space-y-2 overflow-visible">
       {tagFilter && (
         <div className="flex items-center justify-between border border-nf-border-2/40 rounded-lg px-3 py-2 bg-nf-hover/30">
           <span className="text-[12px] text-nf-text font-semibold">#{tagFilter.replace(/^#+/, "")}</span>
@@ -104,9 +104,9 @@ export default function FeedSort({
           </button>
         </div>
       )}
-    <div className="px-0.5 py-1.5 border-b border-nf-border-2/25">
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-0.5">
+
+      <div className="rounded-lg border border-nf-border-2/55 px-2 py-1.5 overflow-visible">
+        <div className="flex items-center gap-0.5 flex-wrap overflow-visible">
           <button
             type="button"
             onClick={() => onFeedModeChange?.("all")}
@@ -117,17 +117,15 @@ export default function FeedSort({
           <button
             type="button"
             onClick={() =>
-              requireAuth ? requireAuth(() => onFeedModeChange?.("following")) : onFeedModeChange?.("following")
+              requireAuth
+                ? requireAuth(() => onFeedModeChange?.("following"))
+                : onFeedModeChange?.("following")
             }
             className={cn(tabBase, feedMode === "following" ? tabActive : tabIdle)}
           >
             {t("gen.following")}
           </button>
-        </div>
 
-        <div className="h-4 w-px bg-nf-border-2/50" />
-
-        <div className="flex items-center gap-0.5 flex-wrap">
           {sortOptions.map((opt) => (
             <button
               key={opt.id}
@@ -143,37 +141,38 @@ export default function FeedSort({
             </button>
           ))}
 
-          <div className="relative z-30" ref={trendingRef}>
+          <div className="relative z-50 overflow-visible" ref={trendingRef}>
             <button
               type="button"
               onClick={() => setShowTrending(!showTrending)}
-              className={cn(tabBase, showTrending || tagFilter ? tabActive : tabIdle, tagFilter && "ring-1 ring-nf-accent/35")}
+              className={cn(
+                tabBase,
+                showTrending || tagFilter ? tabActive : tabIdle,
+                tagFilter && "ring-1 ring-nf-accent/35"
+              )}
               title={tagFilter ? `#${tagFilter.replace(/^#+/, "")}` : undefined}
             >
               <Hash size={13} className="opacity-70" />
               <span>{t("fs.trending")}</span>
-              <ChevronDown size={11} className={cn("opacity-60 transition-transform", showTrending && "rotate-180")} />
+              <ChevronDown
+                size={11}
+                className={cn("opacity-60 transition-transform", showTrending && "rotate-180")}
+              />
             </button>
 
             <AnimatePresence>
               {showTrending && (
                 <motion.div
-                  initial={{ opacity: 0, y: -4 }}
+                  initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
+                  exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.12 }}
-                  className="absolute top-full mt-1 right-0 bg-nf-card border border-nf-border-2 rounded-xl p-3 shadow-xl z-[100] min-w-[240px] max-w-[320px]"
+                  className="absolute top-full mt-1 right-0 bg-nf-card border border-nf-border-2 rounded-lg p-2.5 shadow-xl z-[200] min-w-[220px] max-w-[min(320px,calc(100vw-2rem))]"
                 >
-                  <div className="text-[10px] font-semibold text-nf-dim mb-2 flex items-center gap-2">
-                    {t("fs.topNow")}
-                    {trendingLoading && (
-                      <span className="w-3 h-3 border-2 border-nf-accent/30 border-t-nf-accent rounded-full animate-spin" />
-                    )}
-                  </div>
                   {trendingLoading && trendingTopics.length === 0 ? (
-                    <div className="space-y-1.5">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-7 rounded-lg bg-nf-secondary/50 animate-pulse" />
+                    <div className="flex flex-wrap gap-1.5">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="h-7 w-14 rounded-lg bg-nf-secondary/50 animate-pulse" />
                       ))}
                     </div>
                   ) : trendingTopics.length > 0 ? (
@@ -190,10 +189,10 @@ export default function FeedSort({
                             type="button"
                             onClick={() => pickTopic(topic)}
                             className={cn(
-                              "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
+                              "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
                               activeTag
-                                ? "bg-nf-accent/15 text-nf-accent border border-nf-accent/30"
-                                : "bg-nf-secondary/60 text-nf-muted hover:bg-nf-hover border border-transparent"
+                                ? "bg-nf-accent/15 text-nf-accent"
+                                : "bg-nf-secondary/60 text-nf-muted hover:bg-nf-hover"
                             )}
                           >
                             {topic.label}
@@ -202,16 +201,16 @@ export default function FeedSort({
                       })}
                     </div>
                   ) : (
-                    <p className="text-[11px] text-nf-dim py-1">لا توجد هاشتاقات رائجة بعد — انشر بوسم #في منشورك</p>
+                    <p className="text-[11px] text-nf-dim py-0.5">
+                      لا توجد هاشتاقات بعد — استخدم #في منشورك
+                    </p>
                   )}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </div>
-
       </div>
-    </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Flag, Code2, Trash2, Pencil, Link2, BarChart3, BookOpen, Languages, FileText, X, Quote, MoreHorizontal, GitCommitHorizontal, Eye } from "lucide-react";
+import { ArrowRight, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Flag, Code2, Trash2, Pencil, Link2, BarChart3, BookOpen, Languages, FileText, X, Quote, MoreHorizontal, GitCommitHorizontal, Copy, ArrowLeftRight } from "lucide-react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { ReactNode } from "react";
 import { flairBadgeStyle } from "@/lib/flair-badge";
@@ -16,6 +16,7 @@ import ReportModal from "./ReportModal";
 import HoverCard from "./HoverCard";
 import PostBodyContent from "./PostBodyContent";
 import ImageLightbox from "./ImageLightbox";
+import BeforeAfterSlider from "./BeforeAfterSlider";
 import FeedMediaFrame from "./FeedMediaFrame";
 import NorthFallAiButton from "./NorthFallAiButton";
 import NorthFallAiResult from "./NorthFallAiResult";
@@ -396,6 +397,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const commentEditorRef = useRef<RichContentEditorHandle>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [lightboxImg, setLightboxImg] = useState<{ src: string; urls: string[]; idx: number } | null>(null);
+  const [showVersionCompare, setShowVersionCompare] = useState(false);
   const [detailBlurRevealed, setDetailBlurRevealed] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [quotedPost, setQuotedPost] = useState<any>(null);
@@ -430,6 +432,11 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   }, [livingVersions, livingIdx]);
 
   const activeVersion = livingVersions[activeLivingIdx];
+  const prevLivingVersion =
+    activeLivingIdx > 0 ? livingVersions[activeLivingIdx - 1] : null;
+  const canCompareVersionImages = !!(
+    prevLivingVersion?.imageUrl?.trim() && activeVersion?.imageUrl?.trim()
+  );
 
   const displayTitle = activeVersion?.title ?? post?.title ?? "";
   const displayBody = activeVersion?.body ?? post?.body ?? "";
@@ -963,41 +970,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                 </span>
               </>
             )}
-            {isLivingPost && (
-              <>
-                <span className="text-nf-dim">·</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex items-center gap-0.5">
-                  <GitCommitHorizontal size={9} /> منشور حي
-                  {livingVersions.length > 0 && <span className="text-emerald-400/70">v{activeVersion?.version ?? post.currentVersion ?? 1}</span>}
-                </span>
-              </>
-            )}
           </div>
-
-          {isLivingPost && livingVersions.length > 0 && (
-            <div className="mb-3">
-              <LivingPostVersions
-                versions={livingVersions}
-                currentVersion={activeVersion?.version ?? post.currentVersion ?? 1}
-                onVersionChange={(idx) => setLivingIdx(idx)}
-                postId={postId}
-                canManageVersions={!!(user && post?.authorUid === user.uid)}
-                onVersionsUpdated={(next) => {
-                  const latest = next[next.length - 1];
-                  setPost((p: any) => ({
-                    ...p,
-                    versions: next,
-                    currentVersion: latest?.version ?? p?.currentVersion,
-                    title: latest?.title ?? p?.title,
-                    body: latest?.body ?? p?.body,
-                    imageUrl: latest?.imageUrl ?? p?.imageUrl,
-                    imageUrls: latest?.imageUrls ?? p?.imageUrls,
-                  }));
-                }}
-                onUpgradeClick={user && post?.authorUid === user.uid && onUpgradeClick ? () => onUpgradeClick(postId) : undefined}
-              />
-            </div>
-          )}
 
           <h2 className="text-[16px] sm:text-[18px] font-bold text-nf-text leading-snug mb-2">
             {postTranslated?.title ?? displayTitle}
@@ -1081,8 +1054,21 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             const isBlurred = (post.isNsfw || post.isSpoiler) && !detailBlurRevealed;
             if (!urls.length) return null;
 
+            const compareBtn =
+              canCompareVersionImages && !isBlurred ? (
+                <button
+                  type="button"
+                  onClick={() => setShowVersionCompare(true)}
+                  className="absolute top-2 left-2 z-20 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-black/55 text-white/85 hover:bg-black/70 border border-white/10 backdrop-blur-sm transition-colors"
+                >
+                  <ArrowLeftRight size={11} />
+                  قبل/بعد
+                </button>
+              ) : null;
+
             const renderImage = (url: string, i: number) => (
               <div key={url + i} className="relative mt-3 rounded-lg overflow-hidden nf-feed-media">
+                {i === 0 && compareBtn}
                 {isBlurred ? (
                   <div className="relative">
                     <FeedMediaFrame src={url} alt="" imgClassName="nf-feed-media-img blur-2xl scale-105" />
@@ -1107,6 +1093,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
               const url = urls[idx];
               return (
                 <div className="relative mt-3 rounded-lg overflow-hidden nf-feed-media">
+                  {compareBtn}
                   {isBlurred ? (
                     <div className="relative">
                       <FeedMediaFrame src={url} alt="" imgClassName="nf-feed-media-img blur-2xl scale-105" />
@@ -1156,6 +1143,34 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             return urls.map((url, i) => renderImage(url, i));
           })()}
 
+          {isLivingPost && livingVersions.length > 0 && (
+            <div className="mt-4">
+              <LivingPostVersions
+                versions={livingVersions}
+                currentVersion={activeVersion?.version ?? post.currentVersion ?? 1}
+                onVersionChange={(idx) => setLivingIdx(idx)}
+                postId={postId}
+                canManageVersions={!!(user && post?.authorUid === user.uid)}
+                onVersionsUpdated={(next) => {
+                  const latest = next[next.length - 1];
+                  setPost((p: any) => ({
+                    ...p,
+                    versions: next,
+                    currentVersion: latest?.version ?? p?.currentVersion,
+                    title: latest?.title ?? p?.title,
+                    body: latest?.body ?? p?.body,
+                    imageUrl: latest?.imageUrl ?? p?.imageUrl,
+                    imageUrls: latest?.imageUrls ?? p?.imageUrls,
+                  }));
+                }}
+                onUpgradeClick={user && post?.authorUid === user.uid && onUpgradeClick ? () => onUpgradeClick(postId) : undefined}
+                authorName={post?.authorName}
+                authorPhoto={post?.authorPhoto}
+                postTitle={postTranslated?.title ?? displayTitle}
+              />
+            </div>
+          )}
+
           {/* Quoted Post - Mini Post Card (under my content, darker bg) */}
           {quotedPost && (
             <div
@@ -1196,7 +1211,35 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             myVote={postMyVote as -1 | 0 | 1}
             onUp={() => setPostVote(1)}
             onDown={() => setPostVote(-1)}
+            variant="text"
+            size="sm"
           />
+          {post?.title?.trim() && (
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(post.title.trim());
+                showToast("تم نسخ العنوان");
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full hover:bg-nf-hover text-[11px] text-nf-muted hover:text-nf-text transition-colors"
+            >
+              <Copy size={12} />
+              نسخ العنوان
+            </button>
+          )}
+          {(displayBody || post?.body)?.trim() && (
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText((displayBody || post.body || "").trim());
+                showToast("تم نسخ النص");
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full hover:bg-nf-hover text-[11px] text-nf-muted hover:text-nf-text transition-colors"
+            >
+              <Copy size={12} />
+              نسخ النص
+            </button>
+          )}
           <div className="relative" onMouseLeave={() => setShowShareMenu(false)}>
             <button onClick={() => setShowShareMenu(!showShareMenu)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Share2 size={14} /> {t("pc.share")}</button>
             <AnimatePresence>
@@ -1264,13 +1307,11 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         <NorthFallAiResult
           loading={aiLoading}
           text={aiDisplayText}
-          postTitle={displayTitle || post?.title}
           actionLabel="ملخص"
           onClose={() => {
             setAiResult(null);
             setAiDisplayText("");
           }}
-          showToast={showToast}
         />
       )}
 
@@ -1420,6 +1461,19 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       </AnimatePresence>
 
       {/* Lightbox */}
+      {showVersionCompare && prevLivingVersion && activeVersion && (
+        <BeforeAfterSlider
+          before={prevLivingVersion.imageUrl}
+          after={activeVersion.imageUrl}
+          beforeLabel={`v${prevLivingVersion.version}`}
+          afterLabel={`v${activeVersion.version}`}
+          onClose={() => setShowVersionCompare(false)}
+          authorName={post?.authorName}
+          authorPhoto={post?.authorPhoto}
+          title={postTranslated?.title ?? displayTitle}
+        />
+      )}
+
       {lightboxImg && (
         <ImageLightbox
           src={lightboxImg.urls?.[lightboxImg.idx] ?? lightboxImg.src}
@@ -1428,6 +1482,9 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           allImages={lightboxImg.urls}
           currentIndex={lightboxImg.idx}
           onNavigate={(idx) => setLightboxImg({ ...lightboxImg, idx })}
+          authorName={post?.authorName}
+          authorPhoto={post?.authorPhoto}
+          title={postTranslated?.title ?? displayTitle}
         />
       )}
 

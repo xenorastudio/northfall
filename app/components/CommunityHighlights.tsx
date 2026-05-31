@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs, query, where, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ArrowUp, MessageSquare, Flame, Clock, TrendingUp } from "lucide-react";
+import { MessageSquare, Flame, Clock, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { textDirAttr } from "@/lib/display-text";
 
@@ -187,14 +187,8 @@ export default function CommunityHighlights({
                 </p>
 
                 <div className="flex items-center gap-2.5 text-[10px] nf-highlight-meta">
-                  <span className="flex items-center gap-0.5">
-                    <ArrowUp size={10} className={cn((post.votes || 0) > 0 && "text-orange-400")} />
-                    {post.votes || 0}
-                  </span>
-                  <span className="flex items-center gap-0.5">
-                    <MessageSquare size={9} />
-                    {post.commentCount || 0}
-                  </span>
+                  <span>{post.votes || 0} تصويت</span>
+                  <span>{post.commentCount || 0} تعليق</span>
                   {post.createdAt && <span className="mr-auto opacity-75">{timeAgo(post.createdAt)}</span>}
                 </div>
               </div>

@@ -5567,6 +5567,9 @@ ${modePrompts[aiMode] || ""}`;
           allImages={lightboxImg.urls}
           currentIndex={lightboxImg.idx}
           onNavigate={(idx) => setLightboxImg(prev => prev ? { ...prev, idx, src: prev.urls[idx] } : null)}
+          authorName={activeThread?.authorName}
+          authorPhoto={activeThread?.authorPhoto}
+          title={activeThread?.title}
         />
       )}
     </div>

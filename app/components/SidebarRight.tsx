@@ -10,7 +10,7 @@ import {
 import { resolveCategoryDisplay } from "@/lib/community-categories";
 import { collection, getDocs, query, orderBy, limit, getDoc, doc, getCountFromServer, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Flame, TrendingUp, Bookmark, ExternalLink, ChevronDown, Mail, Calendar, Users, Globe, ArrowUp, MessageCircle } from "lucide-react";
+import { Flame, TrendingUp, Bookmark, ExternalLink, ChevronDown, Mail, Calendar, Users, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import { useI18n } from "./I18nProvider";
 import { useData } from "./DataProvider";
@@ -462,14 +462,8 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
                       </p>
                     )}
                     <div className="flex items-center gap-3 mt-1.5 text-[10px] text-nf-dim">
-                      <span className="inline-flex items-center gap-0.5">
-                        <ArrowUp size={11} className="opacity-70" />
-                        {post.votes || 0}
-                      </span>
-                      <span className="inline-flex items-center gap-0.5">
-                        <MessageCircle size={11} className="opacity-70" />
-                        {post.commentCount || 0}
-                      </span>
+                      <span>{post.votes || 0} تصويت</span>
+                      <span>{post.commentCount || 0} تعليق</span>
                     </div>
                   </div>
                 </motion.a>

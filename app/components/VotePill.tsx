@@ -9,12 +9,57 @@ type Props = {
   onUp: () => void;
   onDown: () => void;
   size?: "sm" | "md";
+  variant?: "icons" | "text";
   className?: string;
 };
 
-export default function VotePill({ count, myVote, onUp, onDown, size = "md", className }: Props) {
+export default function VotePill({
+  count,
+  myVote,
+  onUp,
+  onDown,
+  size = "md",
+  variant = "icons",
+  className,
+}: Props) {
   const icon = size === "sm" ? 12 : 14;
   const displayCount = Math.max(0, count);
+  const textSize = size === "sm" ? "text-[11px]" : "text-xs";
+
+  if (variant === "text") {
+    return (
+      <div
+        className={cn("inline-flex items-center gap-1.5", className)}
+        onDoubleClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onUp();
+          }}
+          className={cn(
+            textSize,
+            "font-medium transition-colors",
+            myVote === 1 ? "text-nf-accent" : "text-nf-dim hover:text-nf-muted"
+          )}
+        >
+          تصويت
+        </button>
+        <span
+          dir="ltr"
+          className={cn(
+            textSize,
+            "font-bold tabular-nums",
+            myVote === 1 ? "text-nf-accent" : myVote === -1 ? "text-nf-muted" : displayCount > 0 ? "text-nf-text" : "text-nf-dim"
+          )}
+        >
+          {displayCount}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn("inline-flex items-center gap-0.5 bg-transparent border border-nf-border-2/50 rounded-full px-1.5 py-0.5", className)}

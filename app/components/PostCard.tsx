@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, EyeOff, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BookOpen, Languages, FileText, X, ChevronDown, Settings, Key, Check, AlertCircle, Quote, GitBranch } from "lucide-react";
+import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, EyeOff, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BookOpen, Languages, FileText, X, ChevronDown, Settings, Key, Check, AlertCircle, Quote, GitBranch, Copy } from "lucide-react";
 import { isPollExpired, pollStatusLabel, type PollData } from "@/lib/poll";
+import { recordPostView } from "@/lib/record-post-view";
 import { cn } from "@/lib/utils";
 import { firestoreCommunityIdFromDisplay, isUserDestinationPath } from "@/lib/post-target";
 import { motion } from "framer-motion";
@@ -648,6 +649,30 @@ export default function PostCard({
     return () => el.removeEventListener("dragstart", onDragStart);
   }, [postId, title]);
 
+  // Count a view when the card is actually seen in the feed (not only on open)
+  useEffect(() => {
+    if (!postId) return;
+    const el = articleRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.some((e) => e.isIntersecting && e.intersectionRatio >= 0.45);
+        if (!visible) return;
+        void recordPostView(postId, {
+          viewerUid: user?.uid,
+          authorUid,
+          countOwn: true,
+        }).then((next) => {
+          if (next !== null) setViews(next);
+        });
+        observer.disconnect();
+      },
+      { threshold: [0.45, 0.6] }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [postId, user?.uid, authorUid]);
+
   return (
     <motion.article
       ref={articleRef as any}
@@ -864,10 +889,12 @@ export default function PostCard({
             myVote={myVote as -1 | 0 | 1}
             onUp={() => handleVote(1)}
             onDown={() => handleVote(-1)}
+            variant="text"
+            size="sm"
           />
         </div>
-        <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors">
-          <MessageSquare size={14} /><span>{comments} {t("pc.comments")}</span>
+        <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="hover:text-nf-text text-[11px] text-nf-dim transition-colors">
+          {comments} تعليق
         </button>
         <button onClick={(e) => { e.stopPropagation(); onQuoteClick?.(postId || ""); }} className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors">
           <Quote size={14} /><span>اقتباس</span>
@@ -906,6 +933,32 @@ export default function PostCard({
                 {user && (authorUid === user.uid || isStaff) && onDeleteClick && (
                   <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onDeleteClick(postId || ""); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-red-400 hover:bg-red-400/10 transition-colors">
                     <Trash2 size={12} /> حذف المنشور
+                  </button>
+                )}
+                {title?.trim() && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      void navigator.clipboard.writeText(title.trim());
+                      toast("تم نسخ العنوان", "success");
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"
+                  >
+                    <Copy size={12} /> نسخ العنوان
+                  </button>
+                )}
+                {body?.trim() && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      void navigator.clipboard.writeText(body.trim());
+                      toast("تم نسخ النص", "success");
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"
+                  >
+                    <Copy size={12} /> نسخ النص
                   </button>
                 )}
                 <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); navigator.clipboard?.writeText(`${window.location.origin}/app?view=post&postId=${postId}`); toast("تم نسخ الرابط", "success"); }} className="flex items-center gap-2 w-full px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
@@ -960,13 +1013,11 @@ export default function PostCard({
         <NorthFallAiResult
           loading={aiLoading}
           text={aiDisplayText}
-          postTitle={title}
           actionLabel="ملخص"
           onClose={() => {
             setAiResult(null);
             setAiDisplayText("");
           }}
-          showToast={(msg) => toast(msg, "success")}
         />
       )}
 

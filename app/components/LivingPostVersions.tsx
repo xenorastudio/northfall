@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { History, ChevronDown, X, Clock, AtSign, Check, ArrowLeftRight, GitCommitHorizontal, Upload, Trash2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ConfirmModal from "./ConfirmModal";
+import BeforeAfterSlider from "./BeforeAfterSlider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,9 @@ interface LivingPostVersionsProps {
   canManageVersions?: boolean;
   onUpgradeClick?: () => void;
   compact?: boolean;
+  authorName?: string;
+  authorPhoto?: string;
+  postTitle?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -67,113 +71,6 @@ function resolveVersionIndex(versions: PostVersion[], currentVersion: number): n
   // Back-compat: treat as 0-based index only when it points at a real entry
   if (currentVersion >= 0 && currentVersion < versions.length) return currentVersion;
   return versions.length - 1;
-}
-
-// ─── Before/After Slider — z-[1100] above Navbar (z-[1001]) ──────────────────
-
-function BeforeAfterSlider({
-  before, after, beforeLabel, afterLabel, onClose,
-}: {
-  before: string; after: string;
-  beforeLabel: string; afterLabel: string;
-  onClose: () => void;
-}) {
-  const [pct, setPct] = useState(50);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
-
-  const calc = useCallback((clientX: number) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setPct(Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100)));
-  }, []);
-
-  useEffect(() => {
-    const move = (e: MouseEvent) => { if (dragging.current) calc(e.clientX); };
-    const touch = (e: TouchEvent) => { if (dragging.current) calc(e.touches[0].clientX); };
-    const up = () => { dragging.current = false; };
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
-    window.addEventListener("touchmove", touch, { passive: true });
-    window.addEventListener("touchend", up);
-    return () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
-      window.removeEventListener("touchmove", touch);
-      window.removeEventListener("touchend", up);
-    };
-  }, [calc]);
-
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") setPct(p => Math.max(0, p - 5));
-      if (e.key === "ArrowRight") setPct(p => Math.min(100, p + 5));
-    };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
-
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, []);
-
-  const overlay = (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="absolute top-0 inset-x-0 flex items-center justify-between px-5 h-12 z-10 border-b border-white/8">
-        <div className="flex items-center gap-2 text-[11px] text-white/60">
-          <span>{beforeLabel}</span>
-          <span className="text-white/30">·</span>
-          <span className="text-white/80 font-semibold">{afterLabel}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] text-white/25 tabular-nums">{Math.round(pct)}%</span>
-          <button onClick={onClose} className="text-[11px] text-white/50 hover:text-white/90 transition-colors px-2 py-1">
-            إغلاق
-          </button>
-        </div>
-      </div>
-      <div
-        ref={containerRef}
-        className="relative select-none overflow-hidden cursor-col-resize rounded-lg border border-white/10 bg-black"
-        style={{ width: "min(96vw, 1400px)", height: "min(86vh, 900px)" }}
-        onMouseDown={(e) => { dragging.current = true; calc(e.clientX); }}
-        onTouchStart={(e) => { dragging.current = true; calc(e.touches[0].clientX); }}
-      >
-        <img
-          src={after}
-          alt={afterLabel}
-          draggable={false}
-          className="absolute inset-0 m-auto w-full h-full pointer-events-none"
-          style={{ objectFit: "contain" }}
-        />
-        <img
-          src={before}
-          alt={beforeLabel}
-          draggable={false}
-          className="absolute inset-0 m-auto w-full h-full pointer-events-none"
-          style={{ objectFit: "contain", clipPath: `inset(0 ${100 - pct}% 0 0)` }}
-        />
-        <div className="absolute top-0 bottom-0 w-px pointer-events-none" style={{ left: `${pct}%`, background: "rgba(255,255,255,0.5)" }} />
-        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 pointer-events-none z-10 bg-white/95 border border-black/15 shadow-xl" style={{ left: `${pct}%`, width: 28, height: 28, borderRadius: 4 }} />
-        <span className="absolute top-2 left-2 text-[10px] pointer-events-none px-2 py-0.5 rounded" style={{ color: "rgba(255,255,255,0.5)", background: "rgba(0,0,0,0.55)" }}>{beforeLabel}</span>
-        <span className="absolute top-2 right-2 text-[10px] pointer-events-none px-2 py-0.5 rounded" style={{ color: "rgba(255,255,255,0.5)", background: "rgba(0,0,0,0.55)" }}>{afterLabel}</span>
-      </div>
-      <p className="absolute bottom-4 text-[10px] select-none text-white/30">اسحب للمقارنة · Esc للإغلاق</p>
-    </motion.div>
-  );
-
-  if (typeof document === "undefined") return null;
-  return createPortal(overlay, document.body);
 }
 
 // ─── Text Diff Viewer ─────────────────────────────────────────────────────────
@@ -265,6 +162,9 @@ export default function LivingPostVersions({
   canManageVersions = false,
   onUpgradeClick,
   compact = false,
+  authorName,
+  authorPhoto,
+  postTitle,
 }: LivingPostVersionsProps) {
   const [activeIdx, setActiveIdx] = useState(() => resolveVersionIndex(versions, currentVersion));
   const [showChangelog, setShowChangelog] = useState(false);
@@ -344,125 +244,108 @@ export default function LivingPostVersions({
   // ── Full mode (PostDetail) ───────────────────────────────────────────────
   return (
     <>
-      {/* ── Version bar ── */}
-      <div className="border border-nf-border-2/50 rounded-lg overflow-hidden">
+      <div className="mt-3">
+        <p className="text-[10px] font-semibold text-emerald-400/85 mb-2">منشور حي</p>
 
-        {/* Main row */}
-        <div className="flex items-stretch min-h-[40px]">
-
-          {/* Label */}
-          <div className="flex items-center px-3 border-l border-nf-border-2/40 shrink-0 bg-nf-secondary/20">
-            <span className="text-[11px] font-semibold text-nf-accent whitespace-nowrap">منشور حي</span>
-          </div>
-
-          {/* Version pills + arrows */}
-          <div className="flex items-center gap-1 px-2 flex-1 min-w-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-            <button
-              onClick={handlePrev}
-              disabled={!canGoBack}
-              className={cn("w-6 h-6 rounded flex items-center justify-center text-[13px] transition-colors shrink-0 select-none font-bold",
-                canGoBack ? "text-nf-muted hover:text-nf-text hover:bg-nf-hover" : "text-nf-border-2/25 cursor-not-allowed"
-              )}
-            >‹</button>
-
-            <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+        <div className="rounded-lg border border-nf-border-2/40 px-2.5 py-2 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-0.5 min-w-0 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              <button
+                type="button"
+                onClick={handlePrev}
+                disabled={!canGoBack}
+                className={cn(
+                  "w-6 h-6 rounded-md text-[12px] font-bold shrink-0",
+                  canGoBack ? "text-nf-muted hover:bg-nf-hover hover:text-nf-text" : "text-nf-border-2/30 cursor-not-allowed"
+                )}
+              >
+                ‹
+              </button>
               {versions.map((v, idx) => {
                 const isActive = idx === safeIdx;
-                const isLast = idx === versions.length - 1;
                 return (
                   <button
                     key={idx}
+                    type="button"
                     onClick={() => handleChange(idx)}
                     className={cn(
-                      "px-2.5 py-1 rounded text-[11px] font-medium whitespace-nowrap transition-all shrink-0",
-                      isActive
-                        ? "bg-nf-accent/15 text-nf-accent font-bold"
-                        : "text-nf-dim hover:text-nf-muted hover:bg-nf-hover"
+                      "px-2 py-1 rounded-md text-[11px] font-medium whitespace-nowrap shrink-0 transition-colors",
+                      isActive ? "bg-nf-accent/15 text-nf-accent" : "text-nf-dim hover:bg-nf-hover hover:text-nf-muted"
                     )}
                   >
                     v{v.version}
-                    {isLast && !isActive && <span className="mr-0.5 text-[8px] text-nf-dim/50">●</span>}
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={!canGoForward}
+                className={cn(
+                  "w-6 h-6 rounded-md text-[12px] font-bold shrink-0",
+                  canGoForward ? "text-nf-muted hover:bg-nf-hover hover:text-nf-text" : "text-nf-border-2/30 cursor-not-allowed"
+                )}
+              >
+                ›
+              </button>
             </div>
 
-            <button
-              onClick={handleNext}
-              disabled={!canGoForward}
-              className={cn("w-6 h-6 rounded flex items-center justify-center text-[13px] transition-colors shrink-0 select-none font-bold",
-                canGoForward ? "text-nf-muted hover:text-nf-text hover:bg-nf-hover" : "text-nf-border-2/25 cursor-not-allowed"
+            <div className="flex flex-wrap items-center gap-1 mr-auto text-[11px]">
+              {hasMultiple && prevVersion?.imageUrl && activeVersion?.imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setShowSlider(true)}
+                  className="px-2 py-1 rounded-md text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors"
+                >
+                  قبل/بعد
+                </button>
               )}
-            >›</button>
+              {hasMultiple && prevVersion?.body && activeVersion?.body && (
+                <button
+                  type="button"
+                  onClick={() => setShowDiff(true)}
+                  className="px-2 py-1 rounded-md text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors"
+                >
+                  فرق النص
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCopyVersionLink}
+                className="px-2 py-1 rounded-md text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors"
+              >
+                {copiedLink ? "تم النسخ" : "رابط"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowChangelog(!showChangelog)}
+                className={cn(
+                  "px-2 py-1 rounded-md transition-colors",
+                  showChangelog ? "text-nf-accent bg-nf-accent/10" : "text-nf-dim hover:text-nf-text hover:bg-nf-hover"
+                )}
+              >
+                السجل
+              </button>
+              {canManageVersions && onUpgradeClick && (
+                <button
+                  type="button"
+                  onClick={onUpgradeClick}
+                  className="px-2 py-1 rounded-md text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                >
+                  إصدار جديد
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-stretch border-r border-nf-border-2/40 shrink-0 text-[11px]">
-            {hasMultiple && prevVersion?.imageUrl && activeVersion?.imageUrl && (
-              <button
-                onClick={() => setShowSlider(true)}
-                className="flex items-center px-3 text-nf-dim hover:text-nf-muted hover:bg-nf-hover transition-colors border-l border-nf-border-2/30"
-                title="مقارنة الصور"
-              >
-                <span className="hidden sm:inline">قبل/بعد</span>
-                <span className="sm:hidden">ق/ب</span>
-              </button>
-            )}
-            {hasMultiple && prevVersion?.body && activeVersion?.body && (
-              <button
-                onClick={() => setShowDiff(true)}
-                className="flex items-center gap-1.5 px-3 text-nf-dim hover:text-nf-muted hover:bg-nf-hover transition-colors border-l border-nf-border-2/30"
-                title="فرق النص"
-              >
-                <GitCommitHorizontal size={12} />
-                <span className="hidden sm:inline">فرق النص</span>
-              </button>
-            )}
-            <button
-              onClick={handleCopyVersionLink}
-              className="flex items-center gap-1.5 px-3 text-nf-dim hover:text-nf-muted hover:bg-nf-hover transition-colors border-l border-nf-border-2/30"
-              title="نسخ رابط هذا الإصدار"
-            >
-              {copiedLink ? <Check size={12} className="text-green-400" /> : <Upload size={12} />}
-              <span className="hidden sm:inline">{copiedLink ? "تم" : "رابط"}</span>
-            </button>
-            <button
-              onClick={() => setShowChangelog(!showChangelog)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 transition-colors border-l border-nf-border-2/30",
-                showChangelog ? "text-nf-accent bg-nf-accent/8" : "text-nf-dim hover:text-nf-muted hover:bg-nf-hover"
-              )}
-              title="سجل الإصدارات"
-            >
-              <History size={12} />
-              <span className="hidden sm:inline">السجل</span>
-              <ChevronDown size={10} className={cn("transition-transform duration-200", showChangelog && "rotate-180")} />
-            </button>
-            {canManageVersions && onUpgradeClick && (
-              <button
-                onClick={onUpgradeClick}
-                className="flex items-center gap-1.5 px-3 text-emerald-400 hover:bg-emerald-500/10 transition-colors border-l border-nf-border-2/30"
-                title="إصدار جديد"
-              >
-                <Upload size={12} />
-                <span className="hidden sm:inline">إصدار جديد</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Changelog strip — active version's note */}
-        {activeVersion?.changelog && activeVersion.changelog !== `تحديث v${activeVersion.version}` && (
-          <div className="flex items-start justify-between gap-3 px-3 py-2 border-t border-nf-border-2/30 bg-nf-secondary/10">
-            <p className="text-[11px] text-nf-muted leading-relaxed flex-1 line-clamp-2">
+          {activeVersion?.changelog && activeVersion.changelog !== `تحديث v${activeVersion.version}` && (
+            <p className="text-[11px] text-nf-dim leading-relaxed line-clamp-2 pt-1">
               {activeVersion.changelog}
+              <span className="text-nf-border-2 mx-1.5">·</span>
+              <span className="text-nf-dim/80">{timeAgo(activeVersion.publishedAt)}</span>
             </p>
-            <span className="text-[10px] text-nf-dim shrink-0 flex items-center gap-1 mt-0.5">
-              <Clock size={9} />
-              {timeAgo(activeVersion.publishedAt)}
-            </span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Old version notice */}
@@ -602,6 +485,9 @@ export default function LivingPostVersions({
             beforeLabel={`v${prevVersion.version}`}
             afterLabel={`v${activeVersion.version}`}
             onClose={() => setShowSlider(false)}
+            authorName={authorName}
+            authorPhoto={authorPhoto}
+            title={postTitle}
           />
         )}
       </AnimatePresence>

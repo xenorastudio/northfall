@@ -9,7 +9,7 @@ export default function PostComposer({ onFocus }: { onFocus?: () => void; onPost
   const { t } = useI18n();
 
   return (
-    <div className="mb-2.5 px-3 py-3 border-b border-nf-border-2/25">
+    <div className="mb-2 rounded-lg border border-nf-border-2/55 px-3 py-3">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-nf-secondary flex items-center justify-center shrink-0">
           {user?.photoURL ? (
