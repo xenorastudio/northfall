@@ -31,8 +31,12 @@ const config = {
         },
       },
       fontFamily: {
-        cairo: ['var(--font-cairo)', 'system-ui', 'sans-serif'],
-        inter: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        'noto-kufi': ['var(--font-noto-kufi)', 'system-ui', 'sans-serif'],
+        cairo: ['var(--font-noto-kufi)', 'system-ui', 'sans-serif'],
+        roboto: ['var(--font-roboto)', 'system-ui', 'sans-serif'],
+        en: ['var(--font-en)', 'var(--font-roboto)', 'system-ui', 'sans-serif'],
+        inter: ['var(--font-roboto)', 'system-ui', 'sans-serif'], // alias for backward compat
+        sans: ['var(--font-noto-kufi)', 'var(--font-en)', 'system-ui', 'sans-serif'],
       },
     },
   },

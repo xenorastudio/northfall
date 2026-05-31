@@ -2,37 +2,149 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── خط حسب الحرف (عربي + إنجليزي في نفس الجملة) ─────────────────
+   font-family: Noto Kufi, Plus Jakarta, …
+   • حروف عربية → Noto Kufi Arabic
+   • حروف لاتينية/إنجليزية → Plus Jakarta Sans
+   يعمل حتى لو واجهة الموقع بالعربية.
+──────────────────────────────────────────────────────────────────── */
+
 @layer base {
   :root {
-    --bg-body: #1a1a1c;
-    --bg-primary: #1e1e20;
-    --bg-secondary: #252527;
-    --bg-nav: #1a1a1c;
-    --bg-card: #222224;
-    --bg-hover: rgba(255, 255, 255, 0.05);
-    --bg-input: #252527;
-    --border-primary: #333335;
-    --border-secondary: #2e2e30;
-    --border-subtle: rgba(255, 255, 255, 0.06);
+    --bg-body: #151515;
+    --bg-primary: #202020;
+    --bg-secondary: #2a2a2a;
+    --bg-nav: #151515;
+    --bg-card: #121212;
+    --bg-hover: rgba(255, 255, 255, 0.035);
+    --bg-input: #3b3b3b;
+    --border-primary: #3a3a3d;
+    --border-secondary: #323235;
+    --border-subtle: rgba(255, 255, 255, 0.07);
     --text-primary: #ffffff;
-    --text-secondary: #d4d4d4;
-    --text-muted: #878a8c;
-    --text-dim: #8a8d8f;
-    --accent: #a0a0a0;
+    --text-secondary: #e8e8e8;
+    --text-muted: #a8aaac;
+    --text-dim: #9a9d9f;
+    --accent: var(--nf-accent, #c0c0c0);
     --radius: 0.5rem;
-
-    /* Top layout variable heights */
+    --font-ui: var(--font-noto-kufi), system-ui, sans-serif;
     --banner-height: 0px;
     --navbar-top: 0px;
     --navbar-height: 48px;
     --nav-total-height: 48px;
     --forum-nav-total-height: 56px;
   }
+
+  /* /games — يتبع ثيم الموقع (فاتح أو داكن) */
+  .games-catalog-theme {
+    min-height: 100vh;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+  }
+
+  html.dark .games-catalog-theme {
+    --bg-body: #151515;
+    --bg-primary: #202020;
+    --bg-secondary: #2a2a2a;
+    --bg-nav: #151515;
+    --bg-card: #202020;
+    --bg-hover: rgba(255, 255, 255, 0.06);
+    --bg-input: #3b3b3b;
+    --border-primary: #3a3a3d;
+    --border-secondary: #323235;
+    --border-subtle: rgba(255, 255, 255, 0.07);
+    --text-primary: #ffffff;
+    --text-secondary: #e8e8e8;
+    --text-muted: #a8aaac;
+    --text-dim: #9a9d9f;
+    background-color: #151515;
+    color: #ffffff;
+    color-scheme: dark;
+  }
+
+  html.light .games-catalog-theme {
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    color-scheme: light;
+  }
+
+  html.light .games-catalog-theme .text-nf-text {
+    color: var(--text-primary);
+  }
+  html.light .games-catalog-theme .text-nf-muted {
+    color: var(--text-muted);
+  }
+  html.light .games-catalog-theme .text-nf-dim {
+    color: var(--text-dim);
+  }
+
+  html.light .games-catalog-theme .bg-nf-body,
+  html.light .games-catalog-theme .bg-nf-primary,
+  html.light .games-catalog-theme .bg-nf-card {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+  }
+  html.light .games-catalog-theme .bg-nf-secondary {
+    background-color: var(--bg-secondary);
+  }
+  html.light .games-catalog-theme .bg-nf-input {
+    background-color: var(--bg-input);
+  }
+  html.light .games-catalog-theme .hover\:bg-nf-hover:hover,
+  html.light .games-catalog-theme .hover\:bg-nf-secondary\/60:hover,
+  html.light .games-catalog-theme .hover\:bg-nf-secondary\/80:hover {
+    background-color: var(--bg-hover);
+  }
+  html.light .games-catalog-theme .border-nf-border-2,
+  html.light .games-catalog-theme .border-nf-border-subtle {
+    border-color: var(--border-subtle);
+  }
+  html.light .games-catalog-theme .hover\:text-white:hover,
+  html.light .games-catalog-theme .hover\:text-white\/90:hover,
+  html.light .games-catalog-theme .hover\:text-white\/80:hover {
+    color: var(--text-primary);
+  }
+
+  .games-catalog-theme ::selection {
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+  }
+  .games-catalog-theme input:focus,
+  .games-catalog-theme button:focus,
+  .games-catalog-theme a:focus {
+    outline: none !important;
+  }
+  .games-catalog-theme *:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.22) !important;
+    outline-offset: 2px;
+    box-shadow: none !important;
+  }
+  .games-catalog-theme input[type="search"]::-webkit-search-decoration,
+  .games-catalog-theme input[type="search"]::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  /* شريط بحث /games — طبقة واحدة بدون لون ورا لون */
+  .games-catalog-theme .games-search-bar input[type="text"] {
+    background-color: transparent !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    transition: none !important;
+  }
+  .games-catalog-theme .games-search-bar input[type="text"]:-webkit-autofill,
+  .games-catalog-theme .games-search-bar input[type="text"]:-webkit-autofill:hover,
+  .games-catalog-theme .games-search-bar input[type="text"]:-webkit-autofill:focus {
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-box-shadow: 0 0 0 1000px #252525 inset !important;
+    caret-color: #ffffff;
+  }
   
   html.light {
-    --bg-body: #F4F6F8;
-    --bg-primary: #FFFFFF;
-    --bg-secondary: #F0F2F5;
+    --bg-body: #eef1f4;
+    --bg-primary: #f8f9fb;
+    --bg-secondary: #e8ecf0;
     --bg-nav: #FFFFFF;
     --bg-card: #FFFFFF;
     --bg-hover: rgba(0, 0, 0, 0.05);
@@ -40,11 +152,20 @@
     --border-primary: #E2E5E9;
     --border-secondary: #E8EAED;
     --border-subtle: rgba(0, 0, 0, 0.06);
-    --text-primary: #111111;
-    --text-secondary: #2D3748;
-    --text-muted: #4A5568;
-    --text-dim: #718096;
-    --accent: #111111; /* Sleek Monochromatic Accent */
+    --text-primary: #0a0a0a;
+    --text-secondary: #1c1c1c;
+    --text-muted: #2d3748;
+    --text-dim: #4a5568;
+    --accent: var(--nf-accent, #111111); /* Sleek Monochromatic Accent */
+  }
+
+  /* Light theme — lighter font weight for crisp rendering on white backgrounds */
+  html.light body {
+    font-weight: 400;
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+  html.light h1, html.light h2, html.light h3, html.light h4 {
+    font-weight: 700;
   }
 
   /* Light theme — fix dark hardcoded hover colors */
@@ -111,13 +232,6 @@
   html.light .text-blue-400 {
     color: #111111 !important;
   }
-  html.light .mention-link {
-    color: #111111 !important;
-    text-decoration: underline;
-  }
-  html.light .mention-link:hover {
-    color: #444444 !important;
-  }
 
   
   html.has-donate-banner {
@@ -139,33 +253,470 @@
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
   }
   body {
-    font-family: var(--font-cairo), system-ui, sans-serif;
+    /* عربي → Noto Kufi | إنجليزي/لاتيني فقط → Plus Jakarta (حسب الحرف) */
+    font-family: var(--font-noto-kufi), var(--font-en), system-ui, sans-serif;
     background-color: var(--bg-body);
-    line-height: 1.7;
-    letter-spacing: -0.01em;
+    line-height: 1.65;
+    letter-spacing: 0em;
     overscroll-behavior-y: contain;
     font-feature-settings: "kern" 1;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    font-synthesis: none;
+    font-weight: 450;
+    font-size: 0.9375rem;
+  }
+  strong, b {
+    font-weight: 700 !important;
+  }
+  em, i {
+    font-style: italic !important;
   }
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   h1, h2, h3, h4, .font-inter {
-    font-family: var(--font-inter), system-ui, sans-serif;
+    font-family: var(--font-noto-kufi), var(--font-en), system-ui, sans-serif;
     letter-spacing: -0.02em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-weight: 700;
   }
-  html.lang-en body {
-    font-family: var(--font-inter), system-ui, sans-serif;
+  /* Arabic headings — use Noto Kufi for crisp rendering */
+  [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4 {
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.45;
+    color: var(--text-primary);
   }
-  html.lang-en h1, html.lang-en h2, html.lang-en h3, html.lang-en h4 {
-    font-family: var(--font-inter), system-ui, sans-serif;
+
+  /* Explicit text hierarchy — crisp contrast at every level */
+  h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+  h2 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
+  h3 { font-size: 1.05rem; font-weight: 600; color: var(--text-primary); }
+  h4 { font-size: 0.9375rem; font-weight: 600; color: var(--text-primary); }
+
+  .nf-post-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.38;
   }
+  .nf-post-title-detail {
+    font-size: clamp(1.125rem, 2.2vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+  /* معاينة المنشور في الفيد */
+  /* نص عربي/إنجليزي — الإنجليزي يقرأ LTR ويظهر على يمين الصفحة مثل العربي */
+  .nf-bidi-text {
+    unicode-bidi: plaintext;
+    text-align: right;
+  }
+  .nf-bidi-text[dir="ltr"] {
+    direction: ltr;
+    text-align: right;
+    unicode-bidi: isolate;
+  }
+  .nf-bidi-text[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+  }
+
+  .nf-post-preview-title {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: -0.012em;
+    line-height: 1.38;
+    text-align: right;
+    -webkit-font-smoothing: antialiased;
+  }
+  .group:hover .nf-post-preview-title {
+    color: var(--text-primary);
+  }
+  .nf-post-preview-body {
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    font-weight: 400;
+    text-align: right;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+  .group:hover .nf-post-preview-body {
+    color: var(--text-muted);
+  }
+
+  /* صور الفيد — ضباب الجوانب مثل Reddit */
+  .nf-feed-media {
+    background: var(--bg-secondary);
+  }
+  .nf-feed-media-frame {
+    min-height: 120px;
+  }
+  .nf-feed-media-backdrop {
+    filter: blur(40px) saturate(1.15);
+    opacity: 0.85;
+  }
+  .nf-feed-media-img {
+    max-width: 100%;
+  }
+
+  /* بطاقة المنشور — فاصل هادئ، radius عند hover */
+  .nf-post-card {
+    border: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 22%, transparent);
+    border-radius: 0;
+    transition: background 0.14s ease, border-radius 0.14s ease, border-color 0.14s ease;
+  }
+  .nf-post-card:hover {
+    background: var(--bg-hover);
+    border-radius: 0.625rem;
+    border-bottom-color: transparent;
+  }
+  html.light .nf-post-card {
+    border-bottom-color: color-mix(in srgb, var(--border-primary) 55%, transparent);
+  }
+  html.light .nf-post-card:hover {
+    background: rgba(0, 0, 0, 0.035);
+  }
+
+  /* بطاقة منشور بإطار — من إعدادات المستخدم */
+  .nf-post-card--bordered {
+    border: 1px solid var(--border-primary) !important;
+    border-radius: 0.625rem !important;
+    margin-bottom: 0.5rem;
+    padding-inline: 0.25rem;
+  }
+  .nf-post-card--bordered:hover {
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border-primary)) !important;
+  }
+
+  /* تلاشي "عرض المزيد" — يتبع الثيم وليس أسود ثابت */
+  .nf-read-more-fade {
+    background: linear-gradient(
+      to top,
+      var(--bg-primary) 0%,
+      color-mix(in srgb, var(--bg-primary) 92%, transparent) 45%,
+      transparent 100%
+    );
+  }
+  html.light .nf-read-more-fade {
+    background: linear-gradient(
+      to top,
+      var(--bg-card) 0%,
+      color-mix(in srgb, var(--bg-card) 95%, transparent) 50%,
+      transparent 100%
+    );
+  }
+
+  /* قائمة اقتراح الهاشتاق / المنشن — لون موحّد */
+  .nf-hashtag-suggest-menu,
+  .nf-editor-suggest-menu {
+    border: 1px solid var(--border-primary);
+    background: var(--bg-card);
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+    font-size: 12px;
+    color: var(--text-primary);
+    overflow: hidden;
+  }
+  .nf-editor-suggest-menu--tag {
+    width: 240px;
+    max-width: 240px;
+  }
+  .nf-editor-suggest-menu--mention {
+    width: 280px;
+    max-width: 280px;
+  }
+  .nf-hashtag-suggest-menu .nf-hashtag-suggest-head,
+  .nf-editor-suggest-menu .nf-editor-suggest-head {
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-card);
+    color: var(--text-dim);
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+  .nf-editor-suggest-menu--tag ul {
+    max-height: 220px !important;
+    overflow-y: auto;
+  }
+  .nf-editor-suggest-menu--mention ul {
+    max-height: 280px !important;
+    overflow-y: auto;
+  }
+  .nf-hashtag-suggest-menu ul,
+  .nf-editor-suggest-menu ul {
+    overflow-y: auto;
+  }
+  .nf-hashtag-suggest-menu button,
+  .nf-editor-suggest-menu button {
+    padding: 7px 10px !important;
+    font-size: 12px !important;
+    color: var(--text-secondary) !important;
+    border-radius: 0;
+    width: 100%;
+    text-align: start;
+  }
+  .nf-hashtag-suggest-menu button:hover,
+  .nf-hashtag-suggest-menu button[aria-selected="true"],
+  .nf-editor-suggest-menu button:hover,
+  .nf-editor-suggest-menu button[aria-selected="true"] {
+    background: var(--bg-hover) !important;
+    color: var(--text-primary) !important;
+  }
+  .nf-hashtag-suggest-menu .nf-hashtag,
+  .nf-editor-suggest-menu .nf-suggest-tag {
+    color: var(--accent) !important;
+    font-weight: 600;
+  }
+  html.light .nf-hashtag-suggest-menu .nf-hashtag,
+  html.light .nf-editor-suggest-menu .nf-suggest-tag {
+    color: #1a73e8 !important;
+  }
+  .nf-editor-suggest-menu .nf-suggest-handle {
+    color: var(--text-dim) !important;
+    font-size: 10px !important;
+    font-weight: 500;
+    margin-top: 1px;
+  }
+
+  .nf-link-bubble {
+    background: var(--bg-card) !important;
+    border-color: var(--border-primary) !important;
+  }
+
+  /* ضباب NSFW مثل Reddit */
+  .nf-nsfw-blurred img,
+  .nf-nsfw-blurred video {
+    filter: blur(52px) saturate(0.5) brightness(0.65);
+    transform: scale(1.12);
+    pointer-events: none;
+  }
+
+  /* ثيم فاتح — hover/borders كانت white/opacity ولا تظهر */
+  html.light .hover\:bg-white\/\[0\.025\]:hover,
+  html.light .hover\:bg-white\/\[0\.03\]:hover {
+    background-color: var(--bg-hover) !important;
+  }
+  html.light .border-white\/\[0\.03\],
+  html.light .border-white\/\[0\.06\],
+  html.light .border-white\/\[0\.08\] {
+    border-color: var(--border-subtle) !important;
+  }
+  html.light .bg-white\/\[0\.04\],
+  html.light .bg-white\/\[0\.05\],
+  html.light .bg-white\/\[0\.06\] {
+    background-color: var(--bg-secondary) !important;
+  }
+  html.light .divide-white\/\[0\.03\] > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--border-subtle) !important;
+  }
+
+  /* خلفيات داكنة ثابتة — تتكيف مع الثيم الفاتح */
+  html.light .bg-\[\#121212\],
+  html.light .bg-\[\#1a1a1a\] {
+    background-color: var(--bg-card) !important;
+  }
+  html.light .focus-within\:bg-\[\#1a1a1a\]:focus-within {
+    background-color: var(--bg-input) !important;
+  }
+  html.light .placeholder\:text-white\/35::placeholder {
+    color: var(--text-dim) !important;
+  }
+  html.light .text-white\/40,
+  html.light .text-white\/35,
+  html.light .text-white\/45,
+  html.light .text-white\/30,
+  html.light .text-white\/60 {
+    color: var(--text-dim) !important;
+  }
+
+  html.light .games-catalog-theme .bg-\[\#1a1a1a\],
+  html.light .games-catalog-theme .bg-\[\#1e1e1e\],
+  html.light .games-catalog-theme .bg-\[\#151515\] {
+    background-color: var(--bg-card) !important;
+  }
+  html.light .games-catalog-theme .text-white {
+    color: var(--text-primary) !important;
+  }
+  html.light .games-catalog-theme .text-white\/65,
+  html.light .games-catalog-theme .text-white\/70,
+  html.light .games-catalog-theme .text-white\/75,
+  html.light .games-catalog-theme .text-white\/85,
+  html.light .games-catalog-theme .text-white\/90 {
+    color: var(--text-secondary) !important;
+  }
+  html.light .games-catalog-theme .bg-white\/8,
+  html.light .games-catalog-theme .bg-white\/6,
+  html.light .games-catalog-theme .bg-white\/5,
+  html.light .games-catalog-theme .bg-white\/12 {
+    background-color: var(--bg-secondary) !important;
+  }
+  html.light .games-catalog-theme .border-white\/8,
+  html.light .games-catalog-theme .border-white\/10,
+  html.light .games-catalog-theme .border-white\/20 {
+    border-color: var(--border-subtle) !important;
+  }
+  html.light .games-catalog-theme .hover\:bg-white\/8:hover,
+  html.light .games-catalog-theme .hover\:bg-white\/12:hover {
+    background-color: var(--bg-hover) !important;
+  }
+  html.light .games-catalog-theme .hover\:text-white:hover {
+    color: var(--text-primary) !important;
+  }
+
+  /* منشن — لون مميز */
+  .nf-md-mention,
+  .mention-link {
+    color: var(--mention-color, #6eb5ff) !important;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .nf-md-mention:hover,
+  .mention-link:hover {
+    color: var(--mention-color-hover, #93c9ff) !important;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  html.light .nf-md-mention,
+  html.light .mention-link {
+    color: #1565c0 !important;
+  }
+  html.light .nf-md-mention:hover,
+  html.light .mention-link:hover {
+    color: #0d47a1 !important;
+  }
+
+  /* هاشتاغ داخل المنشور — أزرق واضح */
+  .nf-hashtag {
+    color: #4a9eff !important;
+    font-weight: 600;
+    font-size: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .group:hover .nf-hashtag,
+  .group-hover\:text-nf-accent .nf-hashtag {
+    color: #4a9eff !important;
+  }
+  .nf-hashtag:hover {
+    color: #6bb3ff !important;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: rgba(74, 158, 255, 0.45);
+  }
+  button.nf-hashtag {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+  }
+  span.nf-hashtag {
+    cursor: text;
+  }
+  span.nf-hashtag:hover {
+    color: #6bb3ff !important;
+  }
+  html.light .nf-hashtag { color: #1a73e8; }
+  html.light .nf-hashtag:hover { color: #1557b0; }
+
+  /* بطاقات الشريط الجانبي — ليست سوداء صريحة */
+  .nf-sidebar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  .nf-sidebar-card-divider {
+    border-color: var(--border-subtle);
+  }
+  html.light .nf-sidebar-card {
+    background: #ffffff;
+    border-color: var(--border-primary);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+
+  /* إنجليزي أوضح — وزن ونعومة */
+  .nf-latin-text {
+    font-family: var(--font-en), var(--font-roboto), system-ui, sans-serif;
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .nf-community-desc {
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+  html.light .nf-community-desc { color: var(--text-dim); }
+
+  /* /launches — ثيم itch.io فاتح (منطقة المحتوى فقط) */
+  .nf-launches-canvas {
+    color: #0f172a;
+    font-family: var(--font-en), var(--font-roboto), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .nf-launches-canvas a.nf-launch-card {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Muted / secondary text — clearly readable, not invisible */
+  .text-muted, [class*="text-nf-muted"] { color: var(--text-muted); font-weight: 500; }
+  .text-dim,   [class*="text-nf-dim"]   { color: var(--text-dim);   font-weight: 400; }
   /* Smooth transitions globally */
   button, a, input, textarea {
     transition: all 0.15s ease;
+  }
+
+  /* Sharp text rendering everywhere — like Reddit/Discord */
+  *, *::before, *::after {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Arabic text — optimized rendering */
+  p, span, div, li, td, th, label, button, a {
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Arabic fonts — antialiased for crisp dark-bg rendering */
+  :lang(ar), [dir="rtl"] {
+    font-family: var(--font-noto-kufi), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Small descriptive text — comfortable line height and tracking */
+  small, .text-xs, .text-sm {
+    line-height: 1.8;
+    letter-spacing: 0.01em;
+    font-weight: 500;
+  }
+
+  /* Body text weight */
+  body {
+    font-weight: 500;
   }
   /* Prevent browser user-agent styles or autofills from leaking white background on inputs and textareas */
   input[type="text"], input[type="url"], input[type="email"], input[type="password"], textarea, select {
@@ -194,6 +745,91 @@
 
 ::-webkit-scrollbar { width: 0; height: 0; }
 html, body, * { scrollbar-width: none; }
+
+/* ─── Classic / Retro Theme ─────────────────────────────────────────────────
+   Toggle-only: applies warm parchment palette via CSS variables.
+   No component overrides — everything uses var(--*) already.
+──────────────────────────────────────────────────────────────────────────── */
+html.classic {
+  --bg-body:         #e8e4dc;
+  --bg-primary:      #f5f2ec;
+  --bg-secondary:    #ede9e0;
+  --bg-nav:          #f5f2ec;
+  --bg-card:         #f5f2ec;
+  --bg-hover:        #dedad2;
+  --bg-input:        #ede9e0;
+  --border-primary:  #b8b4ac;
+  --border-secondary:#c4c0b8;
+  --border-subtle:   rgba(0,0,0,0.12);
+  --text-primary:    #1a1814;
+  --text-secondary:  #2c2820;
+  --text-muted:      #4a4640;
+  --text-dim:        #6a6660;
+  --accent:          #1a1814;
+  --radius:          0rem;
+}
+
+/* Fix hardcoded dark backgrounds */
+html.classic .bg-\[\#1a1a1d\],
+html.classic .bg-\[\#222225\],
+html.classic .bg-\[\#2a2a2d\],
+html.classic .bg-\[\#16161a\],
+html.classic .bg-\[\#1c1c22\],
+html.classic .bg-\[\#2e2e30\],
+html.classic .bg-\[\#242427\] {
+  background-color: var(--bg-secondary) !important;
+}
+html.classic .hover\:bg-\[\#2e2e30\]:hover,
+html.classic .hover\:bg-\[\#1c1c22\]:hover,
+html.classic .hover\:bg-\[\#16161a\]:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Fix white text invisible on light bg */
+html.classic .text-white,
+html.classic .text-white\/90,
+html.classic .text-white\/80,
+html.classic .text-white\/70,
+html.classic .text-white\/60,
+html.classic .text-white\/50 {
+  color: var(--text-primary) !important;
+}
+html.classic .hover\:text-white:hover { color: var(--text-primary) !important; }
+html.classic .group:hover .group-hover\:text-white     { color: var(--text-primary)   !important; }
+html.classic .group:hover .group-hover\:text-white\/90 { color: var(--text-secondary) !important; }
+
+/* Keep white text on dark overlays (NSFW/Spoiler) */
+html.classic [class*="bg-black"] .text-white,
+html.classic [class*="bg-black"] .text-white\/60,
+html.classic [class*="bg-black"] .text-white\/50 { color: #fff !important; }
+
+/* Fix other hardcoded light colors */
+html.classic .text-\[\#f0f0f0\],
+html.classic .text-\[\#e8e8e8\],
+html.classic .text-\[\#e4e6ea\],
+html.classic .text-\[\#c0c0c0\] { color: var(--text-primary) !important; }
+
+/* Fix vote colors */
+html.classic .text-orange-500 { color: #b45309 !important; }
+html.classic .text-blue-400   { color: #1d4ed8 !important; }
+
+/* FeedHighlights no-cover card */
+html.classic .nf-highlight-no-cover { background: var(--bg-secondary) !important; }
+html.classic .nf-highlight-title    { color: var(--text-primary) !important; }
+html.classic .nf-highlight-meta     { color: var(--text-muted)   !important; }
+
+/* ── FeedHighlights: no-cover card (dark theme) ─────────────────── */
+.nf-highlight-no-cover {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+}
+.nf-highlight-title { color: #fff; }
+.nf-highlight-meta  { color: rgba(255,255,255,0.55); }
+button:has(.nf-highlight-no-cover) .nf-highlight-title { color: var(--text-primary); }
+button:has(.nf-highlight-no-cover) .nf-highlight-meta  { color: var(--text-muted); }
+html.light .nf-highlight-title { color: #fff; }
+html.light .nf-highlight-meta  { color: rgba(255,255,255,0.6); }
+html.light button:has(.nf-highlight-no-cover) .nf-highlight-title { color: var(--text-primary); }
+html.light button:has(.nf-highlight-no-cover) .nf-highlight-meta  { color: var(--text-muted); }
 
 /* Landing page animations */
 @keyframes fadeInUp {
@@ -374,7 +1010,7 @@ html, body, * { scrollbar-width: none; }
   padding: 0.15em 0.45em;
   border-radius: 5px;
   font-size: 0.88em;
-  font-family: var(--font-inter), monospace;
+  font-family: var(--font-roboto), monospace;
   border: 1px solid rgba(255,255,255,0.06);
 }
 .ai-markdown pre {
@@ -570,4 +1206,310 @@ html.lightbox-open nav,
 html.lightbox-open .fixed-nav,
 html.lightbox-open [role="navigation"] {
   display: none !important;
+}
+
+/* ─── NorthFall Custom Video Slider ─────────────────────────────────────────
+   Minimal dark player — orange accent like the reference image.
+   Uses --pct CSS variable for the filled track.
+──────────────────────────────────────────────────────────────────────────── */
+.nf-video-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 0;
+  outline: none;
+  cursor: pointer;
+  display: block;
+  background: linear-gradient(
+    to right,
+    #e8a020 0%,
+    #e8a020 var(--pct, 0%),
+    rgba(255,255,255,0.2) var(--pct, 0%),
+    rgba(255,255,255,0.2) 100%
+  );
+  transition: height 0.12s ease;
+}
+.nf-video-slider:hover { height: 5px; }
+
+/* Thumb — WebKit */
+.nf-video-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: opacity 0.12s;
+  margin-top: -4.5px;
+}
+.nf-video-slider:hover::-webkit-slider-thumb,
+.nf-video-slider:active::-webkit-slider-thumb { opacity: 1; }
+
+/* WebKit track */
+.nf-video-slider::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Thumb — Firefox */
+.nf-video-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.nf-video-slider:hover::-moz-range-thumb,
+.nf-video-slider:active::-moz-range-thumb { opacity: 1; }
+
+/* Track — Firefox */
+.nf-video-slider::-moz-range-track {
+  height: 3px;
+  border-radius: 0;
+  background: rgba(255,255,255,0.2);
+}
+.nf-video-slider::-moz-range-progress {
+  height: 3px;
+  background: #e8a020;
+  border-radius: 0;
+}
+
+/* Volume slider — thinner, white only */
+.nf-video-slider.vol {
+  background: linear-gradient(
+    to right,
+    rgba(255,255,255,0.85) 0%,
+    rgba(255,255,255,0.85) var(--pct, 0%),
+    rgba(255,255,255,0.2) var(--pct, 0%),
+    rgba(255,255,255,0.2) 100%
+  );
+}
+.nf-video-slider.vol::-webkit-slider-thumb { background: #fff; box-shadow: none; }
+.nf-video-slider.vol::-moz-range-progress  { background: rgba(255,255,255,0.85); }
+
+/* Spoiler tags styling */
+.nf-spoiler {
+  background-color: #374151;
+  color: transparent !important;
+  text-shadow: 0 0 8px rgba(255,255,255,0.8);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 4px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+html.light .nf-spoiler {
+  background-color: #e2e8f0;
+  text-shadow: 0 0 8px rgba(0,0,0,0.8);
+}
+.nf-spoiler.revealed {
+  background-color: transparent;
+  color: inherit !important;
+  text-shadow: none;
+  user-select: text;
+}
+
+/* Rich content editor (WYSIWYG) */
+.nf-rich-editor {
+  min-height: inherit;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--text-primary);
+  outline: none;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.nf-rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.nf-rich-editor p { margin: 0.25rem 0; }
+.nf-rich-editor p:first-child { margin-top: 0; }
+.nf-rich-editor p:last-child { margin-bottom: 0; }
+.nf-md-h1 { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin: 0.75rem 0 0.375rem; }
+.nf-md-h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0.625rem 0 0.3rem; }
+.nf-md-h3 { font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin: 0.5rem 0 0.25rem; }
+.nf-md-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.nf-md-inline-code {
+  display: inline !important;
+  padding: 0.125rem 0.375rem;
+  margin: 0 0.12em;
+  border-radius: 0.375rem;
+  font-size: 0.85em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-secondary) 70%, transparent);
+  border: 1px solid var(--border-subtle);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.nf-md-ul, .nf-md-ol { margin: 0.375rem 0; padding-inline-start: 1.25rem; }
+.nf-md-ul { list-style: disc; }
+.nf-md-ol { list-style: decimal; }
+.nf-md-ul li, .nf-md-ol li { margin: 0.125rem 0; }
+.nf-md-quote {
+  border-inline-start: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  padding-inline-start: 0.75rem;
+  margin: 0.375rem 0;
+  font-style: italic;
+  color: var(--text-muted);
+}
+.nf-md-hr { border: none; border-top: 1px solid var(--border-subtle); margin: 0.75rem 0; }
+.nf-editor-pre {
+  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  margin: 0.375rem 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.6875rem;
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--text-primary);
+}
+.nf-editor-pre code { background: none; border: none; padding: 0; font: inherit; color: inherit; }
+.nf-editor-table-wrap { margin: 0.375rem 0; overflow-x: auto; border-radius: 0.5rem; }
+.nf-editor-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.nf-editor-table th {
+  padding: 0.375rem 0.625rem;
+  text-align: start;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-secondary) 55%, transparent);
+}
+.nf-editor-table td { padding: 0.375rem 0.625rem; color: var(--text-muted); }
+.nf-editor-table tr + tr td,
+.nf-editor-table tr + tr th { border-top: 1px solid var(--border-subtle); }
+.nf-editor-img {
+  display: block;
+  max-width: min(100%, 520px);
+  height: auto;
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+.nf-rich-editor .nf-hashtag { cursor: text; }
+
+/* NorthFall AI — حد ملوّن دوّار رفيع أثناء الكتابة فقط */
+@keyframes nf-ai-border-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.nf-ai-box {
+  margin: 0.5rem 1rem;
+  border-radius: 12px;
+}
+
+.nf-ai-box-inner {
+  border-radius: 11px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.nf-ai-box--loading {
+  position: relative;
+  padding: 2px;
+  border-radius: 13px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.nf-ai-box--loading::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 160%;
+  height: 160%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    #4285f4,
+    #34a853,
+    #fbbc04,
+    #ea4335,
+    #ab47bc,
+    #4285f4
+  );
+  animation: nf-ai-border-spin 2.2s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.nf-ai-box--loading .nf-ai-box-inner {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: var(--bg-primary);
+}
+
+.nf-ai-box-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
+/* حقل محادثة AI */
+.nf-ai-gemini-input-wrap {
+  position: relative;
+  border-radius: 20px;
+  margin: 0;
+}
+
+.nf-ai-gemini-input-inner {
+  position: relative;
+  z-index: 1;
+  border-radius: 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.nf-ai-gemini-input-wrap.nf-ai-box--loading {
+  padding: 2px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.nf-ai-gemini-input-wrap.nf-ai-box--loading::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 160%;
+  height: 160%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    #4285f4,
+    #34a853,
+    #fbbc04,
+    #ea4335,
+    #ab47bc,
+    #4285f4
+  );
+  animation: nf-ai-border-spin 2.2s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.nf-ai-gemini-input-wrap.nf-ai-box--loading .nf-ai-gemini-input-inner {
+  border: none;
+  background: var(--bg-card);
 }

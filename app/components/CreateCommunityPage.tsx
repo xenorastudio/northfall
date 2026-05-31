@@ -2,10 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { ArrowRight, ArrowLeft, Globe, Lock, Eye, Check, X, Image, Users } from "lucide-react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
+import { useData } from "./DataProvider";
 import { cn } from "@/lib/utils";
+import { COMMUNITY_CATEGORIES, categoryToStoreValue } from "@/lib/community-categories";
+import {
+  buildCommunityTagsField,
+  saveExplicitInterestsFromCategory,
+} from "@/lib/user-interests";
+import {
+  canonicalCommunityId,
+  firstAvailableCommunityNames,
+  isCommunityNameTaken,
+  normalizeCommunityNameKey,
+} from "@/lib/community-name";
 
 interface CreateCommunityPageProps {
   onBack: () => void;
@@ -13,36 +25,9 @@ interface CreateCommunityPageProps {
   showToast: (msg: string, type?: "success" | "error" | "info") => void;
 }
 
-const TOPICS = [
-  { id: "gamedev",     emoji: "🎮", label: "تطوير ألعاب" },
-  { id: "gaming",      emoji: "🕹️", label: "ألعاب" },
-  { id: "art3d",       emoji: "🎨", label: "فن وتصميم" },
-  { id: "programming", emoji: "💻", label: "برمجة" },
-  { id: "showcase",    emoji: "✨", label: "عرض مشاريع" },
-  { id: "discussion",  emoji: "💬", label: "نقاشات" },
-  { id: "tutorial",    emoji: "📚", label: "تعليم وشروحات" },
-  { id: "news",        emoji: "📰", label: "أخبار وتقنية" },
-  { id: "music",       emoji: "🎵", label: "موسيقى وصوتيات" },
-  { id: "animation",   emoji: "🎬", label: "أنيميشن وفيديو" },
-  { id: "hardware",    emoji: "🖥️", label: "أجهزة وهاردوير" },
-  { id: "mobile",      emoji: "📱", label: "تطبيقات موبايل" },
-  { id: "ai",          emoji: "🤖", label: "ذكاء اصطناعي" },
-  { id: "security",    emoji: "🔐", label: "أمن معلومات" },
-  { id: "science",     emoji: "🔬", label: "علوم وبحوث" },
-  { id: "sports",      emoji: "⚽", label: "رياضة" },
-  { id: "photography", emoji: "📷", label: "تصوير" },
-  { id: "writing",     emoji: "✍️", label: "كتابة وقصص" },
-  { id: "finance",     emoji: "💰", label: "مال وأعمال" },
-  { id: "health",      emoji: "🏥", label: "صحة ولياقة" },
-  { id: "travel",      emoji: "✈️", label: "سفر وسياحة" },
-  { id: "food",        emoji: "🍕", label: "طعام وطبخ" },
-  { id: "movies",      emoji: "🎥", label: "أفلام ومسلسلات" },
-  { id: "books",       emoji: "📖", label: "كتب وقراءة" },
-];
-
 const COMMUNITY_TYPES = [
   { id: "public",     icon: Globe, label: "عام",   desc: "أي شخص يمكنه المشاهدة والمشاركة والتعليق" },
-  { id: "restricted", icon: Eye,   label: "مقيد",  desc: "أي شخص يمكنه المشاهدة، لكن فقط الأعضاء المعتمدون يمكنهم المشاركة" },
+  { id: "restricted", icon: Eye,   label: "مقيد",  desc: "أي شخص يمكنه المشاهدة، لكن فقط المشرفين يمكنهم المشاركة" },
   { id: "private",    icon: Lock,  label: "خاص",   desc: "فقط الأعضاء المعتمدون يمكنهم المشاهدة والمشاركة" },
 ];
 
@@ -50,48 +35,79 @@ const TOTAL_STEPS = 3;
 
 export default function CreateCommunityPage({ onBack, onSuccess, showToast }: CreateCommunityPageProps) {
   const { user } = useAuth();
+  const { communities: allComms } = useData();
   const [step, setStep] = useState(1);
   const [previewMode, setPreviewMode] = useState(false);
-
-  // Step 1
   const [selectedTopic, setSelectedTopic] = useState("");
-
-  // Step 2
   const [communityType, setCommunityType] = useState("public");
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState("");
+  const [nameConflictId, setNameConflictId] = useState("");
+  const [nameSuggestions, setNameSuggestions] = useState<string[]>([]);
   const [checkingName, setCheckingName] = useState(false);
-
-  // Step 3
   const [logoUrl, setLogoUrl] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
   const [shortDesc, setShortDesc] = useState("");
   const [showInForum, setShowInForum] = useState(true);
+  const [isMature, setIsMature] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Live name validation
   useEffect(() => {
-    if (!name.trim()) { setNameError(""); return; }
+    if (!name.trim()) {
+      setNameError("");
+      setNameConflictId("");
+      setNameSuggestions([]);
+      return;
+    }
     const nameRegex = /^[\u0600-\u06FFa-zA-Z0-9_]+$/;
     if (!nameRegex.test(name.trim())) {
       setNameError("حروف وأرقام وشرطة سفلية فقط، بدون مسافات");
+      setNameConflictId("");
+      setNameSuggestions([]);
       return;
     }
-    if (name.trim().length < 3) { setNameError("3 أحرف على الأقل"); return; }
-    if (name.trim().length > 32) { setNameError("الحد الأقصى 32 حرف"); return; }
+    if (name.trim().length < 3) {
+      setNameError("3 أحرف على الأقل");
+      setNameConflictId("");
+      setNameSuggestions([]);
+      return;
+    }
+    if (name.trim().length > 32) {
+      setNameError("الحد الأقصى 32 حرف");
+      setNameConflictId("");
+      setNameSuggestions([]);
+      return;
+    }
     const timer = setTimeout(async () => {
       setCheckingName(true);
       try {
-        const snap = await getDoc(doc(db, "communities", name.trim()));
-        setNameError(snap.exists() ? "هذا الاسم مستخدم بالفعل" : "");
-      } catch { }
+        const { taken, existingId } = await isCommunityNameTaken(name, allComms);
+        if (taken) {
+          const conflict = existingId || normalizeCommunityNameKey(name);
+          setNameConflictId(conflict);
+          setNameError(`n/${conflict} موجود مسبقاً`);
+          const suggestions = await firstAvailableCommunityNames(name, 5);
+          setNameSuggestions(suggestions);
+        } else {
+          setNameError("");
+          setNameConflictId("");
+          setNameSuggestions([]);
+        }
+      } catch {
+        setNameError("");
+        setNameConflictId("");
+        setNameSuggestions([]);
+      }
       setCheckingName(false);
     }, 500);
     return () => clearTimeout(timer);
-  }, [name]);
+  }, [name, allComms]);
 
   const goNext = () => {
     if (step === 1 && !selectedTopic) { showToast("اختر تصنيفاً أولاً", "error"); return; }
+    if (step === 1 && selectedTopic && user) {
+      void saveExplicitInterestsFromCategory(user.uid, selectedTopic);
+    }
     if (step === 2) {
       if (!name.trim()) { showToast("أدخل اسم المجتمع", "error"); return; }
       if (nameError) { showToast("صحح اسم المجتمع أولاً", "error"); return; }
@@ -103,12 +119,17 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
     if (!user) { showToast("يجب تسجيل الدخول أولاً", "error"); return; }
     setLoading(true);
     try {
-      const cleanName = name.trim();
-      const snap = await getDoc(doc(db, "communities", cleanName));
-      if (snap.exists()) { showToast("هذا الاسم مستخدم بالفعل", "error"); setLoading(false); return; }
+      const cleanName = canonicalCommunityId(name);
+      const { taken, existingId } = await isCommunityNameTaken(name, allComms);
+      if (taken) {
+        showToast(`n/${existingId || cleanName} موجود مسبقاً`, "error");
+        setLoading(false);
+        return;
+      }
 
       await setDoc(doc(db, "communities", cleanName), {
         name: cleanName,
+        nameKey: normalizeCommunityNameKey(name),
         label: `n/${cleanName}`,
         shortDesc: shortDesc.trim(),
         desc: shortDesc.trim() || `أهلاً بكم في مجتمع n/${cleanName}`,
@@ -116,7 +137,7 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
         banner: bannerUrl.trim(),
         founded: new Date().getFullYear().toString(),
         rules: ["احترام الجميع وعدم الإساءة"],
-        tags: [],
+        tags: buildCommunityTagsField(categoryToStoreValue(selectedTopic)),
         bookmarks: [],
         stats: [],
         creatorUid: user.uid,
@@ -125,33 +146,31 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
         createdAt: new Date().toISOString(),
         memberCount: 1,
         members: 0,
-        category: selectedTopic,
+        category: categoryToStoreValue(selectedTopic),
         communityType,
         showInForum,
+        isMature: !!isMature,
         modLevel: communityType === "private" ? "restrict" : communityType === "restricted" ? "moderate" : "open",
       });
 
       await setDoc(doc(db, "communities", cleanName, "members", user.uid), {
-        uid: user.uid, joinedAt: new Date().toISOString(),
+        uid: user.uid, joinedAt: new Date().toISOString(), role: "owner",
       });
       await setDoc(doc(db, "users", user.uid, "communities", cleanName), {
-        name: cleanName, joinedAt: new Date().toISOString(),
+        name: cleanName, joinedAt: new Date().toISOString(), isFavorite: false,
       });
 
       showToast(`تم إنشاء مجتمع n/${cleanName} بنجاح!`, "success");
       onSuccess(cleanName);
-    } catch (e: any) {
-      showToast(`حدث خطأ: ${e?.message || "حاول مرة أخرى"}`, "error");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "حاول مرة أخرى";
+      showToast(`حدث خطأ: ${msg}`, "error");
     }
     setLoading(false);
   };
 
-  const topicLabel = TOPICS.find(t => t.id === selectedTopic)?.label || "";
-  const topicEmoji = TOPICS.find(t => t.id === selectedTopic)?.emoji || "";
-
   return (
     <div className="w-full max-w-[640px] mx-auto px-4 py-6" style={{ direction: "rtl" }}>
-      {/* Progress header */}
       <div className="flex items-center gap-3 mb-7">
         <button
           onClick={step === 1 ? onBack : () => setStep(s => s - 1)}
@@ -167,25 +186,30 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
         <span className="text-[11px] text-nf-dim shrink-0">{step} / {TOTAL_STEPS}</span>
       </div>
 
-      {/* ── Step 1: Topic ── */}
       {step === 1 && (
         <div>
           <h2 className="text-[20px] font-bold text-nf-text mb-1">عن ماذا سيكون مجتمعك؟</h2>
           <p className="text-[12px] text-nf-dim mb-5">اختر تصنيفاً يساعد الأعضاء على اكتشاف مجتمعك</p>
-          <div className="flex flex-wrap gap-2 mb-8">
-            {TOPICS.map(t => (
-              <button key={t.id} onClick={() => setSelectedTopic(t.id)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-xl border text-[12px] font-semibold transition-all",
-                  selectedTopic === t.id
-                    ? "border-nf-accent bg-nf-accent/10 text-nf-text"
-                    : "border-nf-border-2 text-nf-muted hover:border-nf-accent/40 hover:text-nf-text"
-                )}>
-                <span>{t.emoji}</span>
-                <span>{t.label}</span>
-                {selectedTopic === t.id && <Check size={11} className="text-nf-accent" />}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2 mb-8 max-h-[min(520px,70vh)] overflow-y-auto pr-1">
+            {COMMUNITY_CATEGORIES.map((label) => {
+              const isSelected = selectedTopic === label;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setSelectedTopic(label)}
+                  className={cn(
+                    "inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[12px] font-semibold transition-all text-right",
+                    isSelected
+                      ? "border-nf-accent bg-nf-accent/10 text-nf-text"
+                      : "border-nf-border-2 text-nf-muted hover:border-nf-accent/40 hover:text-nf-text hover:bg-nf-secondary/40"
+                  )}
+                >
+                  <span className="leading-snug whitespace-normal">{label}</span>
+                  {isSelected && <Check size={11} className="text-nf-accent shrink-0" />}
+                </button>
+              );
+            })}
           </div>
           <div className="flex justify-end">
             <button onClick={goNext}
@@ -196,17 +220,15 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
         </div>
       )}
 
-      {/* ── Step 2: Type + Name ── */}
       {step === 2 && (
         <div>
           <h2 className="text-[20px] font-bold text-nf-text mb-1">ما نوع مجتمعك؟</h2>
           <p className="text-[12px] text-nf-dim mb-5">حدد من يمكنه المشاهدة والمشاركة</p>
-
           <div className="space-y-2 mb-6">
             {COMMUNITY_TYPES.map(type => {
               const Icon = type.icon;
               return (
-                <button key={type.id} onClick={() => setCommunityType(type.id)}
+                <button key={type.id} type="button" onClick={() => setCommunityType(type.id)}
                   className={cn(
                     "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border text-right transition-all",
                     communityType === type.id ? "border-nf-accent/50 bg-nf-secondary" : "border-nf-border-2 hover:border-nf-accent/20"
@@ -216,156 +238,98 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
                     <p className={cn("text-[13px] font-bold", communityType === type.id ? "text-nf-text" : "text-nf-muted")}>{type.label}</p>
                     <p className="text-[11px] text-nf-dim mt-0.5">{type.desc}</p>
                   </div>
-                  <div className={cn("w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center",
-                    communityType === type.id ? "border-nf-accent" : "border-nf-border")}>
-                    {communityType === type.id && <div className="w-2 h-2 rounded-full bg-nf-accent" />}
-                  </div>
                 </button>
               );
             })}
           </div>
-
-          {/* Name */}
           <div className="mb-6">
-            <label className="text-[12px] font-bold text-nf-text block mb-2">
-              اسم المجتمع <span className="text-red-400">*</span>
-            </label>
+            <label className="text-[12px] font-bold text-nf-text block mb-2">اسم المجتمع <span className="text-red-400">*</span></label>
             <div className="relative">
               <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-nf-accent font-mono">n/</span>
               <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="اسم_المجتمع"
                 className={cn(
-                  "w-full !bg-nf-secondary border rounded-xl pr-9 pl-10 py-3 text-[13px] text-nf-text placeholder:text-nf-dim/50 outline-none transition-all font-mono",
-                  nameError ? "border-red-500/60" : "border-nf-border-2 focus:border-nf-accent"
+                  "w-full !bg-nf-secondary border rounded-xl pr-9 pl-10 py-3 text-[13px] text-nf-text outline-none font-mono",
+                  nameError ? "border-nf-border-2" : "border-nf-border-2 focus:border-nf-accent"
                 )} />
-              {checkingName && <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] text-nf-dim animate-pulse">جاري التحقق...</span>}
-              {!checkingName && name && !nameError && <Check size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-green-400" />}
             </div>
-            {nameError
-              ? <p className="text-[11px] text-red-400 mt-1.5 flex items-center gap-1"><X size={11} /> {nameError}</p>
-              : <p className="text-[10px] text-nf-dim mt-1.5">الاسم لا يمكن تغييره بعد الإنشاء · حروف وأرقام وشرطة سفلية فقط</p>
-            }
+            {checkingName && !nameError && (
+              <p className="text-[11px] text-nf-dim mt-1.5">جاري التحقق من الاسم...</p>
+            )}
+            {nameError && (
+              <div className="mt-2 rounded-lg border border-nf-border-2/50 bg-nf-secondary/30 px-3 py-2">
+                <p className="text-[11px] text-nf-muted">{nameError}</p>
+                {nameSuggestions.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-[10px] text-nf-dim mb-1">أسماء متاحة:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {nameSuggestions.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setName(s)}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold bg-nf-secondary border border-nf-border-2 text-nf-accent hover:bg-nf-accent/10 hover:border-nf-accent/30 transition-colors"
+                        >
+                          n/{s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {!nameError && !checkingName && name.trim().length >= 3 && (
+              <p className="text-[11px] text-green-400/90 mt-1.5 flex items-center gap-1">
+                <Check size={12} /> n/{canonicalCommunityId(name)} متاح
+              </p>
+            )}
           </div>
-
           <div className="flex justify-end">
             <button onClick={goNext} disabled={!!nameError || !name.trim() || checkingName}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-nf-accent text-nf-primary text-[13px] font-bold hover:bg-nf-accent/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-nf-accent text-nf-primary text-[13px] font-bold disabled:opacity-40">
               التالي <ArrowLeft size={14} />
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Step 3: Identity + Description ── */}
       {step === 3 && (
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="text-[20px] font-bold text-nf-text">هوية مجتمعك</h2>
-            <button onClick={() => setPreviewMode(p => !p)}
-              className={cn("text-[11px] font-bold px-3 py-1.5 rounded-lg border transition-all",
-                previewMode ? "bg-nf-accent/10 text-nf-accent border-nf-accent/30" : "text-nf-dim border-nf-border-2 hover:text-nf-text")}>
-              {previewMode ? "✏️ تعديل" : "👁 معاينة"}
-            </button>
-          </div>
-          <p className="text-[12px] text-nf-dim mb-5">أضف صورة وبانر ووصف لمجتمعك (اختياري)</p>
-
-          {previewMode ? (
-            /* ── Preview ── */
-            <div className="rounded-xl border border-nf-border-2 mb-6">
-              {/* Banner */}
-              <div className="relative h-[130px] rounded-t-xl overflow-hidden">
-                {bannerUrl
-                  ? <img src={bannerUrl} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display="none")} />
-                  : <div className="w-full h-full bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]" />
-                }
-                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-nf-card to-transparent" />
+          <h2 className="text-[20px] font-bold text-nf-text mb-5">هوية مجتمعك</h2>
+          {!previewMode ? (
+            <div className="space-y-4 mb-6">
+              <input type="text" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="رابط الشعار (اختياري)"
+                className="w-full !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] text-nf-text outline-none" />
+              <input type="text" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} placeholder="رابط البانر (اختياري)"
+                className="w-full !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] text-nf-text outline-none" />
+              <textarea value={shortDesc} onChange={e => setShortDesc(e.target.value)} rows={3} maxLength={300} placeholder="وصف مختصر..."
+                className="w-full !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] resize-none outline-none" />
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-nf-border-2">
+                <span className="text-[13px] font-bold">الظهور في المنتدى</span>
+                <button type="button" onClick={() => setShowInForum(p => !p)} className={cn("w-11 h-6 rounded-full relative", showInForum ? "bg-nf-accent" : "bg-nf-border-2")}>
+                  <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", showInForum ? "left-[22px]" : "left-0.5")} />
+                </button>
               </div>
-              {/* Info below banner */}
-              <div className="bg-nf-card rounded-b-xl px-4 pb-4">
-                <div className="flex items-end gap-3 -mt-6 mb-2">
-                  {logoUrl
-                    ? <img src={logoUrl} alt="" className="w-12 h-12 rounded-full border-[3px] border-nf-card object-cover shrink-0 shadow-lg" onError={e => (e.currentTarget.style.display="none")} />
-                    : <div className="w-12 h-12 rounded-full border-[3px] border-nf-card bg-gradient-to-br from-nf-accent/40 to-nf-secondary flex items-center justify-center text-nf-accent font-black text-sm shrink-0 shadow-lg">n/</div>
-                  }
-                  <div className="flex-1 pb-0.5">
-                    <p className="text-[14px] font-black text-nf-text">n/{name}</p>
-                    <div className="flex items-center gap-2 text-[10px] text-nf-dim">
-                      <span className="flex items-center gap-1"><Users size={9} /> 1 عضو</span>
-                      {topicEmoji && <span>{topicEmoji} {topicLabel}</span>}
-                    </div>
+              <div className="px-4 py-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[13px] font-bold text-nf-text">مجتمع مخصص لفئة +18</p>
+                    <p className="text-[11px] text-nf-dim mt-1.5 leading-relaxed">
+                      تفعيل هذا الخيار يعني أن مجتمعك قد يحتوي على مناقشات حساسة، تجارب معقدة، أو لقطات ألعاب قوية.
+                      سيُطلب من الزوار تأكيد عمرهم قبل الدخول أو التفاعل.
+                    </p>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-nf-accent text-nf-primary text-[11px] font-bold mb-0.5">انضم</span>
+                  <button type="button" onClick={() => setIsMature(p => !p)} className={cn("w-11 h-6 rounded-full relative shrink-0", isMature ? "bg-amber-500" : "bg-nf-border-2")}>
+                    <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", isMature ? "left-[22px]" : "left-0.5")} />
+                  </button>
                 </div>
-                {shortDesc && <p className="text-[11px] text-nf-muted leading-relaxed">{shortDesc}</p>}
               </div>
             </div>
           ) : (
-            /* ── Edit fields ── */
-            <div className="space-y-4 mb-6">
-              {/* Logo */}
-              <div>
-                <label className="text-[12px] font-bold text-nf-text block mb-1.5">
-                  <Image size={12} className="inline ml-1" />
-                  رابط صورة الشعار
-                </label>
-                <div className="flex items-center gap-2">
-                  <input type="text" value={logoUrl} onChange={e => setLogoUrl(e.target.value)}
-                    placeholder="https://example.com/logo.png"
-                    className="flex-1 !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent transition-colors font-mono" />
-                  {logoUrl && (
-                    <img src={logoUrl} alt="" className="w-9 h-9 rounded-full object-cover border border-nf-border-2 shrink-0"
-                      onError={e => (e.currentTarget.style.display = "none")} />
-                  )}
-                </div>
-                <p className="text-[10px] text-nf-dim mt-1">صورة دائرية للمجتمع · يفضل 512×512</p>
-              </div>
-
-              {/* Banner */}
-              <div>
-                <label className="text-[12px] font-bold text-nf-text block mb-1.5">
-                  <Image size={12} className="inline ml-1" />
-                  رابط صورة البانر
-                </label>
-                <input type="text" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)}
-                  placeholder="https://example.com/banner.jpg"
-                  className="w-full !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent transition-colors font-mono" />
-                {bannerUrl && (
-                  <div className="mt-2 h-[60px] rounded-lg overflow-hidden border border-nf-border-2">
-                    <img src={bannerUrl} alt="" className="w-full h-full object-cover"
-                      onError={e => (e.currentTarget.style.display = "none")} />
-                  </div>
-                )}
-                <p className="text-[10px] text-nf-dim mt-1">صورة الغلاف العريضة · يفضل 1200×400</p>
-              </div>
-
-              {/* Short description */}
-              <div>
-                <label className="text-[12px] font-bold text-nf-text block mb-1.5">وصف المجتمع</label>
-                <textarea value={shortDesc} onChange={e => setShortDesc(e.target.value)}
-                  placeholder="اكتب وصفاً مختصراً يعرّف بمجتمعك..."
-                  rows={3}
-                  className="w-full !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent transition-colors resize-none leading-relaxed" />
-                <p className="text-[10px] text-nf-dim mt-1">{shortDesc.length} / 300 حرف</p>
-              </div>
-
-              {/* Show in forum toggle */}
-              <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-nf-border-2 bg-nf-secondary/30">
-                <div>
-                  <p className="text-[13px] font-bold text-nf-text">الظهور في المنتدى</p>
-                  <p className="text-[11px] text-nf-dim mt-0.5">يظهر مجتمعك في قائمة المجتمعات للجميع</p>
-                </div>
-                <button onClick={() => setShowInForum(p => !p)}
-                  className={cn("w-11 h-6 rounded-full transition-all relative shrink-0",
-                    showInForum ? "bg-nf-accent" : "bg-nf-border-2")}>
-                  <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all",
-                    showInForum ? "left-[22px]" : "left-0.5")} />
-                </button>
-              </div>
-            </div>
+            <p className="text-[12px] text-nf-dim mb-4">n/{name} · {selectedTopic}</p>
           )}
-
-          <div className="flex justify-end">
-            <button onClick={handleCreate} disabled={loading}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-nf-accent text-nf-primary text-[13px] font-bold hover:bg-nf-accent/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setPreviewMode(p => !p)} className="px-4 py-2 rounded-xl border border-nf-border-2 text-[12px]">{previewMode ? "تعديل" : "معاينة"}</button>
+            <button type="button" onClick={handleCreate} disabled={loading} className="px-6 py-2.5 rounded-xl bg-nf-accent text-nf-primary text-[13px] font-bold disabled:opacity-40">
               {loading ? "جاري الإنشاء..." : "إنشاء المجتمع ✓"}
             </button>
           </div>

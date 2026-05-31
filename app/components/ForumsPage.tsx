@@ -10,7 +10,7 @@ import {
   ArrowLeft, ArrowUp, ThumbsUp, ThumbsDown, Share2, Reply, Home, Star,
   HelpCircle, Lightbulb, Bug, Sparkles, BookOpen, Menu, Calendar, MessageCirclePlus,
   LogIn, Settings, Bell, TrendingUp, Shield, Award, Trophy, BarChart3, Users, Activity, RotateCcw, ChevronDown, Check,
-  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft, Quote, Gamepad2
+  FileCode, TextQuote, Strikethrough, Heading2, List, ListOrdered, AlertTriangle, Minus, Filter, UserPlus, SlidersHorizontal, Flag, Key, Zap, RefreshCw, Globe, Megaphone, Maximize2, Minimize2, Download, FileText, ChevronLeft, Quote, Gamepad2, Monitor
 } from "lucide-react";
 import { collection, getDocs, query, orderBy, limit, addDoc, doc, updateDoc, deleteDoc, setDoc, increment, getDoc, where, writeBatch, runTransaction } from "firebase/firestore";
 import { calcSaitGain, getLevel } from "@/lib/ranking";
@@ -24,12 +24,17 @@ import {
   type ForumThread as ForumThreadType, type ReplyData as ReplyDataType, type UserProfile as UserProfileType
 } from "@/lib/firebase-forum";
 import { cn } from "@/lib/utils";
+import { setDocumentTitle, truncateTabLabel } from "@/lib/document-title";
 import { useAuth } from "./AuthProvider";
 import { GAMES } from "./GamesPage";
 import ShareModal from "./ShareModal";
 import ReportModal from "./ReportModal";
 import ReactMarkdown from "react-markdown";
 import ImageLightbox from "./ImageLightbox";
+import { translateText } from "@/lib/translate";
+import TranslateLangPicker from "./TranslateLangPicker";
+import DeviceSpecsTooltip from "./DeviceSpecsTooltip";
+import { getDeviceSpecs } from "@/lib/deviceSpecs";
 
 const AI_PROMPT = `أنت مساعد NorthFall — مساعد ذكي احترافي لمنصة مجتمعية عربية متخصصة في تطوير الألعاب والمحتوى الرقمي.
 
@@ -213,7 +218,16 @@ function timeAgo(ts: any): string {
 
 function formatDate(ts: any): string {
   if (!ts) return "";
-  try { const d = typeof ts === "string" ? new Date(ts) : (ts.toDate ? ts.toDate() : new Date(ts)); return d.toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return ""; }
+  try {
+    const d = typeof ts === "string" ? new Date(ts) : (ts.toDate ? ts.toDate() : new Date(ts));
+    const day = d.getDate();
+    const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    const h = d.getHours().toString().padStart(2,"0");
+    const m = d.getMinutes().toString().padStart(2,"0");
+    return `${day} ${month} ${year} في ${h}:${m}`;
+  } catch { return ""; }
 }
 
 function getTypeInfo(type?: string) { return threadTypes.find(tt => tt.id === type) || threadTypes[0]; }
@@ -998,16 +1012,13 @@ export default function ForumsPage() {
     setViewMode(newView);
     const url = getForumUrl(newView, extra);
     window.history.pushState({ view: newView, ...extra }, "", url);
-    // Update browser tab title (like Reddit)
-    const titleMap: Record<string, string> = {
-      list: extra.community ? `n/${extra.community}` : "المنتدى",
-      thread: extra.threadTitle || "موضوع",
-      new: "موضوع جديد",
-      profile: extra.profileName || "بروفايل",
-      community: extra.community ? `n/${extra.community}` : "مجتمع",
-      ai: "ذكاء اصطناعي",
-    };
-    document.title = (titleMap[newView] || "المنتدى") + " — Northfall Forum";
+    if (newView === "thread" && extra.threadTitle) {
+      setDocumentTitle(truncateTabLabel(extra.threadTitle));
+    } else if ((newView === "list" || newView === "community") && extra.community) {
+      setDocumentTitle(truncateTabLabel(`n/${extra.community}`));
+    } else {
+      setDocumentTitle();
+    }
   };
 
   // Read URL params on mount
@@ -1019,17 +1030,10 @@ export default function ForumsPage() {
       const c = params.get("community"); if (c) setSelectedCommunity(c);
       const t = params.get("threadId"); if (t) { setActiveThreadId(t); openThread(t); }
       const u = params.get("profileUid"); if (u) { setProfileUid(u); setViewMode("profile"); }
-      // Set tab title on direct URL load (new tab)
       const tt = params.get("threadTitle");
-      const titleMap: Record<string, string> = {
-        list: c ? `n/${c}` : "المنتدى",
-        thread: tt || "موضوع",
-        new: "موضوع جديد",
-        profile: "بروفايل",
-        community: c ? `n/${c}` : "مجتمع",
-        ai: "ذكاء اصطناعي",
-      };
-      document.title = (titleMap[v] || "المنتدى") + " — Northfall Forum";
+      if (v === "thread" && tt) setDocumentTitle(truncateTabLabel(tt));
+      else if ((v === "list" || v === "community") && c) setDocumentTitle(truncateTabLabel(`n/${c}`));
+      else setDocumentTitle();
     }
   }, []);
 
@@ -1243,6 +1247,14 @@ export default function ForumsPage() {
   const [aiToolLoading, setAiToolLoading] = useState(false);
   const [aiReplyResult, setAiReplyResult] = useState<Record<string, { label: string; text: string }>>({});
   const [aiReplyLoading, setAiReplyLoading] = useState<string | null>(null);
+  // Translation
+  const [threadTranslated, setThreadTranslated] = useState<{ title?: string; body?: string } | null>(null);
+  const [threadTranslating, setThreadTranslating] = useState(false);
+  const [replyTranslations, setReplyTranslations] = useState<Record<string, string>>({});
+  const [replyTranslating, setReplyTranslating] = useState<string | null>(null);
+  // Device specs & quoted reply
+  const [shareReplySpecs, setShareReplySpecs] = useState(false);
+  const [quotedReplyId, setQuotedReplyId] = useState<string | null>(null);
   const AI_MODELS = [
     { name: "GPT-3.5 تجريبي", provider: "chatanywhere", model: "gpt-3.5-turbo", free: true },
     { name: "DeepSeek Chat", provider: "deepseek", model: "deepseek-chat", free: true },
@@ -2390,7 +2402,7 @@ ${modePrompts[aiMode] || ""}`;
     votingThreadRef.current.delete(threadId);
   };
   const handleCreateThread = async () => { if (!newTitle.trim()) return; setCreating(true); setCreateBlur(true); try { const tagsArr = newTags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 5); const threadData = { title: newTitle.trim(), body: newBody.trim(), authorName, authorUid, authorPhoto, community: newCommunity, pinned: false, locked: false, solved: false, replyCount: 0, views: 0, votes: 0, createdAt: new Date().toISOString(), tags: tagsArr, type: newType }; const docId = await createThread(newCommunity, threadData); if (newCommunity === selectedCommunity) setThreads(prev => [{ id: docId, ...threadData }, ...prev]); if (authorUid) await updateDoc(doc(db, "users", authorUid), { forumXp: increment(3), postCount: increment(1) }).catch(() => {}); setNewTitle(""); setNewBody(""); setNewTags(""); setNewType("discussion"); setCreating(false); setTimeout(() => { setViewMode("list"); setTimeout(() => setCreateBlur(false), 100); }, 500); } catch { setCreateBlur(false); setCreating(false); } };
-  const handleReply = async (threadId: string) => { if (!replyText.trim()) return; try { const rd = { text: replyText.trim(), authorName, authorUid, authorPhoto, createdAt: new Date().toISOString(), votes: 0, ...(quotedThreadId ? { quotedThreadId } : {}) }; await addReply(selectedCommunity, threadId, rd); if (authorUid) await updateDoc(doc(db, "users", authorUid), { forumXp: increment(1) }).catch(() => {}); setReplies(prev => ({ ...prev, [threadId]: [...(prev[threadId] || []), { id: "temp-" + Date.now(), ...rd }] })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: th.replyCount + 1, lastReplyAt: new Date().toISOString(), lastReplyBy: authorName } : th)); setReplyText(""); setReplyingTo(null); setQuotedThreadId(null); setTimeout(() => replyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {} };
+  const handleReply = async (threadId: string) => { if (!replyText.trim()) return; try { const rd: any = { text: replyText.trim(), authorName, authorUid, authorPhoto, createdAt: new Date().toISOString(), votes: 0, ...(quotedThreadId ? { quotedThreadId } : {}), ...(quotedReplyId ? { quotedReplyId } : {}) }; if (shareReplySpecs) { try { rd.deviceSpecs = getDeviceSpecs(); } catch {} } await addReply(selectedCommunity, threadId, rd); if (authorUid) await updateDoc(doc(db, "users", authorUid), { forumXp: increment(1) }).catch(() => {}); setReplies(prev => ({ ...prev, [threadId]: [...(prev[threadId] || []), { id: "temp-" + Date.now(), ...rd }] })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: th.replyCount + 1, lastReplyAt: new Date().toISOString(), lastReplyBy: authorName } : th)); setReplyText(""); setReplyingTo(null); setQuotedThreadId(null); setQuotedReplyId(null); setShareReplySpecs(false); setTimeout(() => replyEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {} };
   const handleDeleteReply = async (threadId: string, replyId: string) => { try { await deleteReplyHelper(selectedCommunity, threadId, replyId); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).filter(r => r.id !== replyId) })); setThreads(p => p.map(th => th.id === threadId ? { ...th, replyCount: Math.max(0, th.replyCount - 1) } : th)); setMenuOpen(null); } catch {} };
   const handleEditReply = async (threadId: string, replyId: string) => { if (!editText.trim()) return; try { await updateReply(selectedCommunity, threadId, replyId, editText.trim()); setReplies(p => ({ ...p, [threadId]: (p[threadId] || []).map(r => r.id === replyId ? { ...r, text: editText.trim(), edited: true } : r) })); setEditingReply(null); setEditText(""); setMenuOpen(null); } catch {} };
 
@@ -2550,10 +2562,9 @@ ${modePrompts[aiMode] || ""}`;
   const activeThread = activeThreadId ? findThreadById(activeThreadId) : null;
   const activeReplies = activeThreadId ? (replies[activeThreadId] || []) : [];
 
-  // Update tab title when thread data loads (important for new tabs)
   useEffect(() => {
     if (viewMode === "thread" && activeThread?.title) {
-      document.title = `${activeThread.title} — Northfall Forum`;
+      setDocumentTitle(truncateTabLabel(activeThread.title));
     }
   }, [activeThread?.title, viewMode]);
   const sortedReplies = (() => { let f = [...activeReplies]; if (replyTimeFilter !== "all") { const now = Date.now(); const cutoff = replyTimeFilter === "today" ? now - 86400000 : replyTimeFilter === "week" ? now - 86400000 * 7 : now - 86400000 * 30; f = f.filter(r => new Date(r.createdAt).getTime() > cutoff); } if (replySort === "newest") f.reverse(); return f; })();
@@ -2798,7 +2809,7 @@ ${modePrompts[aiMode] || ""}`;
         </aside>
 
         {/* MAIN content */}
-        <main className="flex-1 py-5 px-6 overflow-y-auto">
+        <main className="flex-1 py-5 px-6 overflow-y-auto bg-nf-body">
           <div className="w-full max-w-none">
             <AnimatePresence mode="wait">
 
@@ -3060,11 +3071,17 @@ ${modePrompts[aiMode] || ""}`;
                         </div>
                       </div>
 
-                      <h1 className="text-[26px] font-bold text-nf-text leading-[1.3] mb-5">{activeThread.title}</h1>
+                      <h1 className="text-[26px] font-bold text-nf-text leading-[1.3] mb-5">{threadTranslated?.title || activeThread.title}</h1>
                       
                       <div className="w-full">
                         <div className="w-full">
-                        {activeThread.body && <div className="text-[16px] leading-[2.2] text-nf-text">{renderBody(activeThread.body, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); }, (src) => setLightboxImg({ src, urls: [src], idx: 0 }))}</div>}
+                        {activeThread.body && (
+                          <div className="text-[16px] leading-[2.2] text-nf-text">
+                            {threadTranslated?.body
+                              ? <p className="whitespace-pre-wrap">{threadTranslated.body}</p>
+                              : renderBody(activeThread.body, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); }, (src) => setLightboxImg({ src, urls: [src], idx: 0 }))}
+                          </div>
+                        )}
 
                         {/* Inline AI Summary */}
                         <AnimatePresence>
@@ -3134,6 +3151,32 @@ ${modePrompts[aiMode] || ""}`;
 
                         <div className="flex items-center justify-between mt-5 pt-3 border-t border-nf-border">
                           <div className="flex items-center gap-2 flex-wrap">
+                            {/* Translate thread */}
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={async () => {
+                                  if (threadTranslated) { setThreadTranslated(null); return; }
+                                  setThreadTranslating(true);
+                                  try {
+                                    const [tTitle, tBody] = await Promise.all([
+                                      activeThread.title ? translateText(activeThread.title) : Promise.resolve(""),
+                                      activeThread.body ? translateText(activeThread.body) : Promise.resolve(""),
+                                    ]);
+                                    setThreadTranslated({ title: tTitle || undefined, body: tBody || undefined });
+                                  } catch {}
+                                  finally { setThreadTranslating(false); }
+                                }}
+                                disabled={threadTranslating}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors disabled:opacity-40"
+                              >
+                                {threadTranslating
+                                  ? <span className="w-3 h-3 border border-nf-dim border-t-transparent rounded-full animate-spin" />
+                                  : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+                                }
+                                {threadTranslated ? "إلغاء" : "ترجمة"}
+                              </button>
+                              {!threadTranslated && <TranslateLangPicker />}
+                            </div>
                             <button onClick={() => setReplyingTo(activeThread.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-bold transition-colors"><Reply size={13} /> رد</button>
                             <button onClick={() => { setQuotedThreadId(activeThread.id); setReplyingTo(activeThread.id); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-bold transition-colors"><Quote size={13} /> اقتباس</button>
                             <button onClick={() => openShare(activeThread.id, activeThread.title)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors"><Share2 size={12} /> مشاركة</button>
@@ -3267,6 +3310,11 @@ ${modePrompts[aiMode] || ""}`;
                                 <span className="text-[13px] font-medium text-nf-accent hover:text-nf-accent/80 transition-colors inline-flex items-center gap-1">{reply.authorName}{(reply.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span>
                                 {reply.authorUid === activeThread.authorUid && <span className="text-[9px] px-1.5 py-0.5 rounded bg-nf-accent/10 text-nf-accent font-bold">صاحب</span>}
                               </span>
+                              {(reply as any).deviceSpecs && (
+                                <span onClick={e => e.stopPropagation()} className="inline-flex">
+                                  <DeviceSpecsTooltip specs={(reply as any).deviceSpecs} />
+                                </span>
+                              )}
                               {/* Hover Profile Card */}
                               <div className="absolute top-full mt-1 right-0 w-[480px] bg-nf-card rounded-xl shadow-2xl border border-nf-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                                 {/* Banner */}
@@ -3382,43 +3430,45 @@ ${modePrompts[aiMode] || ""}`;
                                   </div>
                                 );
                               })()}
-                              <div className="text-[16px] text-nf-text leading-[2.2]">{renderBody(reply.text, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); }, (src) => setLightboxImg({ src, urls: [src], idx: 0 }))}</div>
+                              <div className="text-[16px] text-nf-text leading-[2.2]">
+                                {replyTranslations[reply.id]
+                                  ? <p className="whitespace-pre-wrap">{replyTranslations[reply.id]}</p>
+                                  : renderBody(reply.text, (name) => { const t = threads.find(t => t.authorName === name); if (t) openProfile(t.authorUid, name, t.authorPhoto); }, (src) => setLightboxImg({ src, urls: [src], idx: 0 }))}
+                              </div>
                             </>}
-                            <div className="flex items-center gap-4 mt-4">
+                            <div className="flex items-center gap-3 mt-4 flex-wrap">
                               <button onClick={() => { setReplyingTo(reply.id); setReplyText(`@${reply.authorName} `); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-bold transition-colors"><Reply size={12} /> رد</button>
-                              <button onClick={() => { setQuotedThreadId(activeThread.id); setReplyingTo(activeThreadId); setReplyText(`@${reply.authorName} `); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-bold transition-colors"><Quote size={12} /> اقتباس</button>
+                              <button onClick={() => { setQuotedReplyId(reply.id); setQuotedThreadId(null); setReplyingTo(activeThreadId); setReplyText(""); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-bold transition-colors"><Quote size={12} /> اقتباس</button>
                               <button onClick={() => { copyText(reply.text); }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Copy size={11} /> نسخ</button>
-                              <button onClick={() => openShare(activeThread.id, activeThread.title)} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Share2 size={11} /> مشاركة</button>
-                              {/* AI tools for reply - per-reply state */}
-                              <button onClick={async () => {
-                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
-                                try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `لخّص ما قاله هذا الشخص في رده بشكل مختصر (3-4 أسطر). اشرح الفكرة الرئيسية ببساطة:\n\n${reply.text}` }], "أنت مساعد في منتدى. لخّص رد الشخص بشكل مختصر ومفيد. أجب بالعربية فقط بدون إيموجي."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "شرح", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
-                              }} className={cn("flex items-center gap-1.5 text-[12px] font-medium transition-all", aiReplyLoading === reply.id ? "text-nf-accent/40" : "text-nf-dim hover:text-nf-accent")}><Sparkles size={11} className={aiReplyLoading === reply.id ? "animate-spin" : ""} /> شرح</button>
-                              <button onClick={async () => {
-                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
-                                try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `ترجم هذا الرد ل${({en:"الإنجليزية",ar:"العربية",fr:"الفرنسية",de:"الألمانية",es:"الإسبانية",tr:"التركية",ja:"اليابانية",ko:"الكورية",zh:"الصينية",ru:"الروسية"})[localStorage.getItem("nf-ai-translate-lang")||"en"]||"الإنجليزية"} بشكل احترافي:\n\n${reply.text}` }], "أنت مترجم محترف. ترجم النص فقط بدون أي شرح. إذا النص بنفس لغة الهدف، ترجمه للعربية."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "ترجمة", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
-                              }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Globe size={11} /> ترجم</button>
-                              <button onClick={async () => {
-                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
-                                try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `صحح الأخطاء اللغوية والنحوية في هذا الرد:\n\n${reply.text}` }], "أنت مدقق لغوي. صحح الأخطاء فقط وأعد النص المصحح. بدون شرح."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "تصحيح", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
-                              }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Edit3 size={11} /> صحح</button>
-                              <button onClick={async () => {
-                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
-                                try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `استخرج أهم النقاط الرئيسية من هذا الرد كقائمة مختصرة:\n\n${reply.text}` }], "أنت مساعد بيستخرج النقاط الرئيسية. اكتب قائمة مختصرة بالعربية بدون إيموجي."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "نقاط", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
-                              }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><FileText size={11} /> نقاط</button>
-                              <button onClick={async () => {
-                                                                setAiReplyLoading(reply.id); setAiReplyResult(p => { const n = {...p}; delete n[reply.id]; return n; });
-                                try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `حسّن هذا الرد بأسلوب احترافي وجذاب مع الحفاظ على المعنى:\n\n${reply.text}` }], "أنت محرر محترف. حسّن النص بأسلوب احترافي. أجب بالنص المحسّن فقط بدون شرح."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "تحسين", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); }
-                              }} className="flex items-center gap-1.5 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors"><Sparkles size={11} /> حسّن</button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={async () => {
+                                    if (replyTranslations[reply.id]) { setReplyTranslations(p => { const n = {...p}; delete n[reply.id]; return n; }); return; }
+                                    setReplyTranslating(reply.id);
+                                    try { const result = await translateText(reply.text); if (result?.trim()) setReplyTranslations(p => ({ ...p, [reply.id]: result })); } catch {}
+                                    finally { setReplyTranslating(null); }
+                                  }}
+                                  disabled={replyTranslating === reply.id}
+                                  className="flex items-center gap-1 text-[12px] text-nf-dim hover:text-nf-accent font-medium transition-colors disabled:opacity-40"
+                                >
+                                  {replyTranslating === reply.id ? <span className="w-2.5 h-2.5 border border-nf-dim border-t-transparent rounded-full animate-spin" /> : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>}
+                                  {replyTranslations[reply.id] ? "إلغاء" : "ترجمة"}
+                                </button>
+                                {!replyTranslations[reply.id] && <TranslateLangPicker />}
+                              </div>
                               <div className="relative ml-auto" ref={menuOpen === reply.id ? menuRef : undefined}>
-                                <button onClick={() => setMenuOpen(menuOpen === reply.id ? null : reply.id)} className="text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40"><MoreHorizontal size={14} /></button>
+                                <button onClick={() => setMenuOpen(menuOpen === reply.id ? null : reply.id)} className="flex items-center gap-1 text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40 transition-colors"><MoreHorizontal size={14} /></button>
                                 {menuOpen === reply.id && (
-                                  <div className="absolute left-0 top-7 bg-nf-card rounded-lg py-1.5 z-20 min-w-[130px] shadow-lg border border-nf-border" ref={menuRef}>
-                                    <button onClick={() => { copyText(reply.text); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text font-medium"><Copy size={11} /> نسخ</button>
-                                    <button onClick={() => { setReplyingTo(reply.id); setReplyText(`@${reply.authorName} `); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text font-medium"><Reply size={11} /> رد</button>
-                                    <button onClick={() => { setEditingReply(reply.id); setEditText(reply.text); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text font-medium"><Edit3 size={11} /> تعديل</button>
-                                    <button onClick={() => handleDeleteReply(activeThreadId!, reply.id)} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-red-400 hover:bg-red-400/10 font-medium"><Trash2 size={11} /> حذف</button>
-                                    <button onClick={() => { setReportTarget("reply"); setReportTargetId(reply.id); setReportModalOpen(true); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3.5 py-2 text-[12px] text-red-400 hover:bg-red-400/10 font-medium"><Flag size={11} /> أبلغ</button>
+                                  <div className="absolute left-0 top-7 bg-nf-card rounded-xl py-1.5 z-20 min-w-[160px] shadow-xl border border-nf-border/30" ref={menuRef}>
+                                    <div className="px-3 pt-1.5 pb-1 flex items-center gap-1"><Sparkles size={9} className="text-nf-accent/40" /><span className="text-[8px] font-bold text-nf-dim/40 uppercase tracking-wider">AI</span></div>
+                                    <button onClick={async () => { setMenuOpen(null); setAiReplyLoading(reply.id); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `لخّص هذا الرد في جملة أو جملتين:\n\n${reply.text}` }], "أنت مساعد. لخّص الرد بشكل مختصر بالعربية بدون إيموجي."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "ملخص", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); } }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text transition-colors"><List size={10} className="text-nf-accent/50" /> لخّص الرد</button>
+                                    <button onClick={async () => { setMenuOpen(null); setAiReplyLoading(reply.id); try { const r = await callAI(AI_MODELS[aiModel].provider, AI_MODELS[aiModel].model, [{ role: "user", content: `اشرح هذا الرد بطريقة مبسطة:\n\n${reply.text}` }], "أنت معلم. اشرح ببساطة بالعربية بدون إيموجي."); if (r?.trim()) setAiReplyResult(p => ({ ...p, [reply.id]: { label: "شرح", text: r.trim() } })); } catch (e: any) { showToast(`خطأ: ${(e?.message || "").slice(0, 60)}`); } finally { setAiReplyLoading(null); } }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text transition-colors"><BookOpen size={10} className="text-nf-accent/50" /> اشرح الرد</button>
+                                    <div className="h-px bg-nf-border/30 my-1" />
+                                    {user?.uid === reply.authorUid && <>
+                                      <button onClick={() => { setEditingReply(reply.id); setEditText(reply.text); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-nf-dim hover:bg-nf-secondary/40 hover:text-nf-text transition-colors"><Edit3 size={10} /> تعديل</button>
+                                      <button onClick={() => { handleDeleteReply(activeThreadId!, reply.id); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-red-400 hover:bg-red-400/10 transition-colors"><Trash2 size={10} /> حذف</button>
+                                    </>}
+                                    <button onClick={() => { setReportTarget("reply"); setReportTargetId(reply.id); setReportModalOpen(true); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-red-400 hover:bg-red-400/10 transition-colors"><Flag size={10} /> أبلغ</button>
                                   </div>
                                 )}
                               </div>
@@ -3517,18 +3567,33 @@ ${modePrompts[aiMode] || ""}`;
                       onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
                       onDrop={e => { e.preventDefault(); e.stopPropagation(); const text = e.dataTransfer.getData('text/plain'); if (text) setReplyText(prev => prev + text); const files = e.dataTransfer.files; if (files.length > 0) { Array.from(files).forEach(f => { if (f.type.startsWith('image/')) { setReplyText(prev => `${prev}\n![${f.name}](اسحب الصورة هنا)\n`); showToast(`تم إضافة ${f.name} — ارفع الصورة أولاً ثم ضع الرابط`); } }); } }}>
                       {/* Reply-to indicator */}
-                      {replyingTo && !quotedThreadId && (
+                      {replyingTo && !quotedThreadId && !quotedReplyId && (
                         <div className="flex items-center justify-between px-4 py-2 mb-4 bg-nf-accent/5 rounded-lg">
                           <span className="flex items-center gap-1.5 text-[12px] text-nf-accent font-bold"><Reply size={12} /> رد على {activeReplies.find(r => r.id === replyingTo)?.authorName || "الموضوع"}</span>
                           <button onClick={() => { setReplyingTo(null); setReplyText(""); }} className="text-nf-dim hover:text-nf-accent p-1 rounded hover:bg-nf-secondary/40"><X size={14} /></button>
                         </div>
                       )}
-                      {/* Quote preview */}
+                      {/* Quoted reply preview */}
+                      {quotedReplyId && (() => {
+                        const qr = activeReplies.find(r => r.id === quotedReplyId);
+                        if (!qr) return null;
+                        return (
+                          <div className="mb-4 rounded-lg border-r-2 border-nf-accent/40 bg-nf-secondary/20 px-3 py-2">
+                            <div className="flex items-center gap-1.5 text-[10px] mb-1">
+                              <Quote size={9} className="text-nf-accent/60" />
+                              <span className="text-nf-accent/70 font-semibold">u/{qr.authorName}</span>
+                            </div>
+                            <p className="text-[12px] text-nf-text/60 leading-relaxed line-clamp-2">{qr.text.replace(/[#*_`\[\]\(\)]/g, "").slice(0, 150)}</p>
+                            <button onClick={() => setQuotedReplyId(null)} className="text-[9px] text-nf-dim hover:text-red-400 flex items-center gap-1 mt-1 transition-colors"><X size={9} />إزالة</button>
+                          </div>
+                        );
+                      })()}
+                      {/* Quote thread preview */}
                       {quotedThreadId && (() => {
                         const qt = findThreadById(quotedThreadId);
                         if (!qt) return null;
                         return (
-                          <div className="mb-4 rounded-lg border border-nf-border-2/40 bg-[#16161a] overflow-hidden">
+                          <div className="mb-4 rounded-lg border border-nf-border-2/40 bg-nf-secondary/20 overflow-hidden">
                             <div className="px-3 pt-2.5 pb-2">
                               <div className="flex items-center gap-1.5 text-[11px] mb-1">
                                 <Quote size={10} className="text-nf-accent" />
@@ -3536,8 +3601,8 @@ ${modePrompts[aiMode] || ""}`;
                                 <span className="text-nf-dim">·</span>
                                 <span className="text-nf-muted">u/{qt.authorName}</span>
                               </div>
-                              {qt.title && <h4 className="text-[13px] font-bold text-white/80 leading-snug mb-0.5">{qt.title}</h4>}
-                              {qt.body && <p className="text-[11px] text-nf-text-2/80 leading-relaxed line-clamp-2">{qt.body.replace(/[#*_`\[\]\(\)]/g, "").slice(0, 100)}</p>}
+                              {qt.title && <h4 className="text-[13px] font-bold text-nf-text/80 leading-snug mb-0.5">{qt.title}</h4>}
+                              {qt.body && <p className="text-[11px] text-nf-text/60 leading-relaxed line-clamp-2">{qt.body.replace(/[#*_`\[\]\(\)]/g, "").slice(0, 100)}</p>}
                             </div>
                             <div className="flex items-center justify-between px-3 py-1 border-t border-nf-border-2/30">
                               <span className="text-[9px] text-nf-dim">سيتم اقتباس هذا الموضوع</span>
@@ -3632,7 +3697,17 @@ ${modePrompts[aiMode] || ""}`;
                             }} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold text-nf-accent/60 hover:text-nf-accent hover:bg-nf-accent/10 transition-colors"><Sparkles size={10} /> حسّن</button>
                           )}
                         </div>
-                        <button onClick={() => handleReply(activeThreadId!)} disabled={!replyText.trim()} className={cn("flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-bold transition-colors", replyText.trim() ? "bg-nf-accent hover:bg-nf-accent/80 text-white" : "bg-nf-secondary text-nf-dim cursor-not-allowed")}><Send size={14} /> نشر الرد</button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setShareReplySpecs(!shareReplySpecs)}
+                            title={shareReplySpecs ? "إلغاء مشاركة المواصفات" : "شارك مواصفات جهازك مع الرد"}
+                            className={cn("flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-all border", shareReplySpecs ? "bg-nf-accent/10 text-nf-accent border-nf-accent/30" : "text-nf-dim/50 border-nf-border/20 hover:text-nf-dim hover:border-nf-border/40")}
+                          >
+                            <Monitor size={11} />
+                            {shareReplySpecs ? "✓ مواصفاتك" : "مواصفاتك"}
+                          </button>
+                          <button onClick={() => handleReply(activeThreadId!)} disabled={!replyText.trim()} className={cn("flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-bold transition-colors", replyText.trim() ? "bg-nf-accent hover:bg-nf-accent/80 text-white" : "bg-nf-secondary text-nf-dim cursor-not-allowed")}><Send size={14} /> نشر الرد</button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -3845,17 +3920,11 @@ ${modePrompts[aiMode] || ""}`;
                     {aiMessages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full gap-5 px-2">
                         {/* Hero — clean and minimal */}
-                        <div className="flex flex-col items-center gap-3 relative">
-                          <div className="absolute w-[140px] h-[140px] bg-nf-accent/8 blur-[80px] rounded-full pointer-events-none" />
-                          <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }}
-                            className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-white/10 via-nf-accent/15 to-nf-accent/5 flex items-center justify-center border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.3),0_0_40px_rgba(var(--nf-accent-rgb),0.06)]"
-                          >
-                            <Sparkles size={24} className="text-nf-accent relative z-10" style={{ filter: "drop-shadow(0 0 8px rgba(160,160,160,0.3))" }} />
-                          </motion.div>
-                          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.35 }} className="text-center relative z-10">
-                            <h2 className="text-[24px] font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-nf-dim/50 mb-1 tracking-tight leading-tight">NorthFall AI</h2>
-                            <p className="text-[12px] text-nf-dim/40 leading-relaxed max-w-[340px]">{aiConnected === "ok" ? "مساعدك الذكي — جاهز لمساعدتك" : aiApiKey ? "اختبر الاتصال من الإعدادات أولاً" : "أضف مفتاح API من الإعدادات لبدء المحادثة"}</p>
+                        <div className="flex flex-col items-center gap-2 relative">
+                          <div className="absolute w-[120px] h-[120px] bg-nf-accent/6 blur-[70px] rounded-full pointer-events-none" />
+                          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05, duration: 0.35 }} className="text-center relative z-10">
+                            <h2 className="text-[17px] font-bold text-nf-text mb-1 tracking-tight leading-tight">NorthFall AI</h2>
+                            <p className="text-[11px] text-nf-dim/50 leading-relaxed max-w-[320px]">{aiConnected === "ok" ? "مساعدك الذكي — جاهز لمساعدتك" : aiApiKey ? "اختبر الاتصال من الإعدادات أولاً" : "أضف مفتاح API من الإعدادات لبدء المحادثة"}</p>
                           </motion.div>
                         </div>
                         {/* Quick suggestion cards */}
@@ -3912,8 +3981,8 @@ ${modePrompts[aiMode] || ""}`;
                             {msg.role === "assistant" && (
                               <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }} className="mt-5 mb-1">
                                 <div className="flex gap-2.5">
-                                <div className={cn("flex-shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-nf-accent/15 to-nf-accent/5 border border-nf-accent/10 flex items-center justify-center mt-1 transition-all", msg.isTyping && "animate-pulse border-nf-accent/30 shadow-[0_0_12px_rgba(var(--nf-accent-rgb),0.15)]")}>
-                                  <Sparkles size={12} className="text-nf-accent/80" />
+                                <div className={cn("flex-shrink-0 w-6 h-6 rounded-lg bg-nf-secondary/60 border border-nf-border/30 flex items-center justify-center mt-1 text-[8px] font-bold text-nf-muted transition-all", msg.isTyping && "border-nf-accent/25")}>
+                                  AI
                                 </div>
                                 <div className="flex-1 min-w-0 text-nf-text">
                                   {/* Content type badge */}
@@ -4133,10 +4202,10 @@ ${modePrompts[aiMode] || ""}`;
                                               return <h3 className="text-[18px] font-bold text-nf-text/90 mt-3 mb-2" style={{ animation: 'headingReveal 0.4s ease-out' }} {...props}>{children}</h3>;
                                             },
                                             ul({ children, ...props }: any) {
-                                              return <ul className="list-disc list-outside mr-4 space-y-0.5 my-1" {...props}>{children}</ul>;
+                                              return <ul className="list-disc list-outside pr-5 mr-0 pl-0 space-y-0.5 my-1" {...props}>{children}</ul>;
                                             },
                                             ol({ children, ...props }: any) {
-                                              return <ol className="list-decimal list-outside mr-4 space-y-0.5 my-1" {...props}>{children}</ol>;
+                                              return <ol className="list-decimal list-outside pr-5 mr-0 pl-0 space-y-0.5 my-1" {...props}>{children}</ol>;
                                             },
                                             li({ children, ...props }: any) {
                                               return <li className="text-nf-dim/80 leading-[1.8]" {...props}>{children}</li>;
@@ -4364,7 +4433,8 @@ ${modePrompts[aiMode] || ""}`;
                         </motion.div>
                       )}
                     </AnimatePresence>
-                    <div className="relative bg-nf-card/90 rounded-2xl border border-nf-border/8 focus-within:border-nf-accent/20 focus-within:shadow-[0_0_24px_rgba(var(--nf-accent-rgb),0.08)] transition-all" style={{ backdropFilter: "blur(16px)" }}>
+                    <div className={cn("nf-ai-gemini-input-wrap transition-all", aiGenerating && "nf-ai-box--loading")}>
+                    <div className="nf-ai-gemini-input-inner relative focus-within:shadow-[0_0_20px_rgba(var(--nf-accent-rgb),0.06)] transition-all">
                       {/* Context hint bar — shows when viewing a thread */}
                       {activeThread && showAiPanel && (
                         <div className="flex items-center gap-2 px-4 pt-3 pb-1">
@@ -4380,7 +4450,7 @@ ${modePrompts[aiMode] || ""}`;
                         onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); aiChatSend(); } }}
                         placeholder="اكتب رسالتك لـ NorthFall AI..."
                         rows={1}
-                        className="ai-chat-input w-full bg-transparent text-nf-text text-[14px] placeholder:text-nf-dim/35 outline-none min-w-0 font-medium resize-none overflow-hidden px-4 pt-3 pb-2 leading-[1.8]"
+                        className="ai-chat-input w-full bg-transparent text-nf-text text-[13px] placeholder:text-nf-dim/35 outline-none min-w-0 font-medium resize-none overflow-hidden px-4 pt-3 pb-2 leading-[1.7]"
                         style={{ maxHeight: "160px" }}
                       />
                       <div className="flex items-center justify-between px-3 pb-2.5 pt-0.5">
@@ -4466,6 +4536,7 @@ ${modePrompts[aiMode] || ""}`;
                         </div>
                       </div>
                     </div>
+                    </div>
                     <div className="flex items-center justify-center mt-1.5 px-0.5">
                       <span className="text-[9px] text-nf-dim/20">NorthFall AI قد يُنتج معلومات غير دقيقة. تحقق من المعلومات المهمة.</span>
                     </div>
@@ -4539,11 +4610,23 @@ ${modePrompts[aiMode] || ""}`;
                     {communityViewData.rules && communityViewData.rules.length > 0 && (
                       <div className="mb-4">
                         <h4 className="text-[11px] text-nf-dim mb-2 flex items-center gap-1.5"><Shield size={11} className="text-nf-accent" /> قوانين المجتمع</h4>
-                        <ol className="space-y-1 mr-4">
-                          {communityViewData.rules.map((rule, i) => (
-                            <li key={i} className="text-[11px] text-nf-dim leading-[1.8] list-decimal">{rule}</li>
-                          ))}
-                        </ol>
+                        <div className="space-y-2 mt-2">
+                          {communityViewData.rules.map((rule: any, i: number) => {
+                            const title = typeof rule === "string" ? (rule.includes(" || ") ? rule.split(" || ")[0] : rule) : (rule.title || "");
+                            const detail = typeof rule === "string" ? (rule.includes(" || ") ? rule.split(" || ")[1] : "") : (rule.body || "");
+                            return (
+                              <div key={i} className="flex items-start gap-2.5 text-[11px] text-nf-muted leading-[1.8]">
+                                <span className="w-5 h-5 rounded-full bg-nf-accent/15 border border-nf-accent/35 flex items-center justify-center text-[10px] font-black text-nf-accent shrink-0 mt-0.5 shadow-sm select-none">
+                                  {i + 1}
+                                </span>
+                                <div className="flex-1 mt-0.5">
+                                  <p className="font-bold text-nf-text">{title}</p>
+                                  {detail && <p className="text-[10px] text-nf-dim mt-0.5 leading-relaxed">{detail}</p>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
 
@@ -4899,17 +4982,12 @@ ${modePrompts[aiMode] || ""}`;
 
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border/20 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="relative">
-                  <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-nf-accent/30 to-nf-accent/10 flex items-center justify-center border border-nf-accent/20">
-                    <Sparkles size={14} className="text-nf-accent" />
-                  </div>
+              <div className="flex items-center gap-2">
+                <div className="relative pl-0.5">
+                  <p className="text-[12px] font-semibold text-nf-text leading-none tracking-tight">NorthFall AI</p>
                   {aiConnected === "ok" && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-400 border border-nf-body" />
+                    <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-400" />
                   )}
-                </div>
-                <div>
-                  <p className="text-[13px] font-bold text-nf-text leading-none">NorthFall AI</p>
                   <p className="text-[9px] text-nf-dim mt-0.5">
                     {aiConnected === "ok" ? "متصل" : aiConnected === "testing" ? "جاري الاتصال..." : "غير متصل"}
                   </p>
@@ -4949,16 +5027,10 @@ ${modePrompts[aiMode] || ""}`;
 
               {aiMessages.length === 0 ? (
                 /* Empty state */
-                <div className="flex flex-col items-center justify-center h-full gap-5 px-2 text-center">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-nf-accent/10 blur-2xl rounded-full scale-150" />
-                    <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-nf-accent/20 to-nf-accent/5 border border-nf-accent/20 flex items-center justify-center shadow-lg">
-                      <Sparkles size={24} className="text-nf-accent" />
-                    </div>
-                  </div>
+                <div className="flex flex-col items-center justify-center h-full gap-4 px-2 text-center">
                   <div>
-                    <p className="text-[16px] font-black text-nf-text">NorthFall AI</p>
-                    <p className="text-[11px] text-nf-dim mt-1.5 leading-relaxed max-w-[260px]">
+                    <p className="text-[14px] font-semibold text-nf-text tracking-tight">NorthFall AI</p>
+                    <p className="text-[10px] text-nf-dim mt-1 leading-relaxed max-w-[260px]">
                       {aiConnected === "ok"
                         ? "مساعدك الذكي — يعرف كل شيء عن المنصة والتطوير"
                         : "أضف مفتاح API من الإعدادات للبدء"}
@@ -4995,8 +5067,8 @@ ${modePrompts[aiMode] || ""}`;
                       )}
                       {msg.role === "assistant" && (
                         <div className="flex gap-2.5">
-                          <div className="w-6 h-6 rounded-lg bg-nf-accent/10 border border-nf-accent/15 flex items-center justify-center shrink-0 mt-0.5">
-                            <Sparkles size={11} className="text-nf-accent" />
+                          <div className="w-5 h-5 rounded-md bg-nf-secondary/50 border border-nf-border/25 flex items-center justify-center shrink-0 mt-0.5 text-[7px] font-bold text-nf-muted">
+                            AI
                           </div>
                           <div className="flex-1 min-w-0">
                             {msg.isTyping ? (
@@ -5036,9 +5108,10 @@ ${modePrompts[aiMode] || ""}`;
 
             {/* Input area */}
             <div className="shrink-0 px-3 pb-3 pt-2 border-t border-nf-border/20">
+              <div className={cn("nf-ai-gemini-input-wrap", aiGenerating && "nf-ai-box--loading")}>
               <div className={cn(
-                "flex items-end gap-2 rounded-2xl px-3.5 py-2.5 transition-all border",
-                "bg-nf-secondary/20 border-nf-border/20 focus-within:border-nf-accent/30 focus-within:bg-nf-secondary/30"
+                "nf-ai-gemini-input-inner flex items-end gap-2 px-3.5 py-2.5 transition-all",
+                "focus-within:shadow-[0_0_16px_rgba(var(--nf-accent-rgb),0.06)]"
               )}>
                 <textarea
                   ref={aiTextareaRef}
@@ -5063,6 +5136,7 @@ ${modePrompts[aiMode] || ""}`;
                   )}>
                   {aiGenerating ? <X size={14} /> : <Send size={14} />}
                 </button>
+              </div>
               </div>
               <p className="text-[9px] text-nf-dim/30 text-center mt-1.5">Enter للإرسال · Shift+Enter لسطر جديد</p>
             </div>
@@ -5094,23 +5168,29 @@ ${modePrompts[aiMode] || ""}`;
             </div>
           </div>
 
-          {/* What's New - Card */}
-          <div className="bg-nf-secondary/30 rounded-xl p-3.5 border border-nf-border/20">
-            <div className="flex items-center gap-2 mb-2.5">
-              <TrendingUp size={14} className="text-nf-accent" />
-              <h3 className="text-[12px] font-semibold text-nf-muted">إيش الجديد؟</h3>
+          {/* What's New */}
+          <div className="rounded-xl bg-nf-card/50 overflow-hidden">
+            <div className="px-3 py-2.5 border-b border-nf-border-2/25">
+              <h3 className="text-[13px] font-bold text-nf-text">إيش الجديد؟</h3>
             </div>
-            <div className="space-y-0.5">
-              {(allThreads.length > 0 ? allThreads : sortedThreads).slice(0, 5).map((thread) => (
-                <button key={thread.id} onClick={() => openThread(thread.id)} className="w-full text-right p-2 rounded-lg hover:bg-nf-secondary/40 transition-colors group">
-                  <p className="text-[11px] text-nf-muted leading-relaxed group-hover:text-nf-accent transition-colors line-clamp-2">{thread.title}</p>
-                  <div className="flex items-center gap-1.5 mt-1 text-[9px] text-nf-dim">
-                    <span className="text-nf-accent/70">{thread.community}</span>
-                    <span>·</span>
+            <div className="divide-y divide-nf-border-2/20">
+              {(allThreads.length > 0 ? allThreads : sortedThreads).slice(0, 6).map((thread) => (
+                <button
+                  key={thread.id}
+                  type="button"
+                  onClick={() => openThread(thread.id)}
+                  className="w-full text-right px-3 py-2.5 hover:bg-nf-hover/50 transition-colors group"
+                >
+                  <p className="text-[12px] font-semibold text-nf-text leading-snug line-clamp-2 group-hover:text-nf-accent transition-colors">
+                    {thread.title}
+                  </p>
+                  <p className="text-[10px] text-nf-dim mt-1">
+                    <span className="text-nf-accent/80">{thread.community}</span>
+                    <span> · </span>
                     <span>{thread.authorName}</span>
-                    <span>·</span>
+                    <span> · </span>
                     <span>{timeAgo(thread.createdAt)}</span>
-                  </div>
+                  </p>
                 </button>
               ))}
             </div>

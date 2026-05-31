@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 const SITE_URL = 'https://www.northfall.blog';
 
 export const metadata: Metadata = {
-  title: 'المنتدى — نقاشات الألعاب والتقنية',
+  title: 'NorthFall',
   description: 'تبغى تسأل عن شي يخص الألعاب أو البرمجة أو التصميم؟ هذا مكانك. نتناقش عن تطوير الألعاب والبرمجة وكل شي يخص مطورين الألعاب العرب.',
   keywords: ['منتدى', 'منتدى ألعاب', 'نقاشات ألعاب', 'نقاشات تقنية', 'منتدى مطورين', 'منتدى GameDev', 'سؤال وجواب', 'Q&A', 'forum', 'game forum', 'gaming forum arabic', 'منتدى عربي', 'مجتمع مطورين عرب', 'تطوير ألعاب', 'برمجة', 'تصميم ألعاب', 'ألعاب فيديو', 'GameDev عربي'],
   alternates: { canonical: `${SITE_URL}/forum` },

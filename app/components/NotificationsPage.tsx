@@ -2,15 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  Bell, MessageSquare, ArrowUp, UserPlus, Award, Hash,
+  Bell, MessageSquare, ArrowUp, UserPlus, Award,
   CheckCheck, Trash2, Eye, Heart, AtSign, Users, Shield,
-  Megaphone, Star, Gift, X, Check
+  Megaphone, Gift, X,
 } from "lucide-react";
 import { collection, query, orderBy, limit, onSnapshot, updateDoc, deleteDoc, doc, writeBatch, setDoc, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 
 function timeAgo(ts: any): string {
   if (!ts) return "";
@@ -160,27 +159,30 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
     <div className="w-full max-w-[640px] mx-auto" style={{ direction: "rtl" }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-nf-accent/10 flex items-center justify-center">
-            <Bell size={16} className="text-nf-accent" />
-          </div>
-          <div>
-            <h1 className="text-[16px] font-bold text-nf-text leading-tight">الإشعارات</h1>
-            {unreadCount > 0 && (
-              <p className="text-[10px] text-nf-dim">{unreadCount} غير مقروء</p>
-            )}
-          </div>
+        <div className="flex items-center gap-2">
+          <h1 className="text-[16px] font-bold text-nf-text leading-tight">الإشعارات</h1>
+          {unreadCount > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold border border-nf-accent/20">
+              {unreadCount}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           {unreadCount > 0 && (
-            <button onClick={markAllRead}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-nf-accent bg-nf-accent/10 hover:bg-nf-accent/20 transition-colors">
+            <button
+              type="button"
+              onClick={markAllRead}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-nf-accent bg-nf-accent/10 hover:bg-nf-accent/20 transition-colors"
+            >
               <CheckCheck size={12} /> قراءة الكل
             </button>
           )}
           {notifications.length > 0 && (
-            <button onClick={clearAll}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-nf-dim hover:text-red-400 hover:bg-red-400/10 transition-colors">
+            <button
+              type="button"
+              onClick={clearAll}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-nf-dim hover:text-red-400 hover:bg-red-400/10 transition-colors"
+            >
               <Trash2 size={12} /> مسح الكل
             </button>
           )}
@@ -195,15 +197,25 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
             : f.id === "social" ? notifications.filter(n => SOCIAL_TYPES.has(n.type)).length
             : notifications.filter(n => CONTENT_TYPES.has(n.type)).length;
           return (
-            <button key={f.id} onClick={() => setFilter(f.id)}
-              className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border",
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border",
                 filter === f.id
                   ? "bg-nf-accent/10 text-nf-accent border-nf-accent/30"
-                  : "text-nf-dim border-nf-border-2 hover:text-nf-text hover:border-nf-accent/20")}>
+                  : "text-nf-dim border-nf-border-2 hover:text-nf-text hover:border-nf-accent/20"
+              )}
+            >
               {f.label}
               {count > 0 && (
-                <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full font-bold",
-                  filter === f.id ? "bg-nf-accent/20 text-nf-accent" : "bg-nf-secondary text-nf-dim")}>
+                <span
+                  className={cn(
+                    "text-[9px] px-1.5 py-0.5 rounded-full font-bold",
+                    filter === f.id ? "bg-nf-accent/20 text-nf-accent" : "bg-nf-secondary text-nf-dim"
+                  )}
+                >
                   {count}
                 </span>
               )}
@@ -214,138 +226,152 @@ export default function NotificationsPage({ onBack }: { onBack: () => void }) {
 
       {/* Content */}
       {loading ? (
-        <div className="flex flex-col gap-2">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-nf-secondary/20 animate-pulse">
-              <div className="w-9 h-9 rounded-xl bg-nf-secondary/60 shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-3 bg-nf-secondary/60 rounded w-3/4" />
-                <div className="h-2.5 bg-nf-secondary/40 rounded w-1/2" />
+        <div className="divide-y divide-nf-border-2/40">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="flex items-center gap-2.5 px-1 py-2.5 animate-pulse">
+              <div className="w-8 h-8 rounded-full bg-nf-secondary/50 shrink-0" />
+              <div className="flex-1 space-y-1">
+                <div className="h-2.5 bg-nf-secondary/50 rounded w-[85%]" />
+                <div className="h-2 bg-nf-secondary/30 rounded w-[40%]" />
               </div>
             </div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-nf-secondary/30 flex items-center justify-center mb-4">
-            <Bell size={28} className="text-nf-dim/40" />
-          </div>
-          <p className="text-[14px] font-bold text-nf-muted">
-            {filter === "all" ? "لا توجد إشعارات" : filter === "unread" ? "كل الإشعارات مقروءة ✓" : "لا توجد إشعارات هنا"}
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Bell size={24} className="text-nf-dim/30 mb-3" />
+          <p className="text-[13px] font-semibold text-nf-muted">
+            {filter === "all" ? "لا توجد إشعارات" : filter === "unread" ? "كل الإشعارات مقروءة" : "لا توجد إشعارات هنا"}
           </p>
-          <p className="text-[11px] text-nf-dim mt-1.5">تفاعل مع المجتمع لتظهر إشعاراتك هنا</p>
+          <p className="text-[11px] text-nf-dim mt-1">تفاعل مع المجتمع لتظهر إشعاراتك هنا</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          <AnimatePresence mode="popLayout">
-            {grouped.map(group => (
-              <div key={group.label}>
-                {/* Group label */}
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] font-bold text-nf-dim uppercase tracking-wider">{group.label}</span>
-                  <div className="flex-1 h-px bg-nf-border-2/40" />
-                </div>
+        <div>
+          {grouped.map((group, gi) => (
+            <div key={group.label}>
+              <p className="px-1 pt-3 pb-1 text-[11px] font-bold text-nf-dim">{group.label}</p>
+              <div className="divide-y divide-nf-border-2/40">
+                {group.items.map((n, ni) => {
+                  const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.general;
+                  const Icon = cfg.icon;
+                  const isLastInList = gi === grouped.length - 1 && ni === group.items.length - 1;
+                  return (
+                    <div
+                      key={n.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => markRead(n)}
+                      onKeyDown={(e) => e.key === "Enter" && markRead(n)}
+                      className={cn(
+                        "group relative flex items-start gap-2.5 px-1 py-2 cursor-pointer transition-colors",
+                        !n.read ? "bg-nf-hover/50 hover:bg-nf-hover" : "hover:bg-nf-hover/35",
+                        isLastInList && "border-b-0"
+                      )}
+                    >
+                      {!n.read && (
+                        <span className="absolute start-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-nf-accent" aria-hidden />
+                      )}
 
-                <div className="space-y-1">
-                  {group.items.map(n => {
-                    const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.general;
-                    const Icon = cfg.icon;
-                    return (
-                      <motion.div
-                        key={n.id}
-                        layout
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: -20, height: 0 }}
-                        transition={{ duration: 0.15 }}
-                        onClick={() => markRead(n)}
-                        className={cn(
-                          "group relative flex items-start gap-3 px-3.5 py-3 rounded-xl cursor-pointer transition-all",
-                          !n.read
-                            ? "bg-nf-accent/5 border border-nf-accent/10 hover:bg-nf-accent/10"
-                            : "hover:bg-nf-secondary/30 border border-transparent"
-                        )}>
-
-                        {/* Unread indicator */}
-                        {!n.read && (
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-nf-accent" />
-                        )}
-
-                        {/* Icon or avatar */}
-                        <div className="shrink-0 mt-0.5">
-                          {n.fromPhoto ? (
-                            <div className="relative">
-                              <img src={n.fromPhoto} alt="" className="w-9 h-9 rounded-full object-cover border border-nf-border-2" />
-                              <div className={cn("absolute -bottom-0.5 -left-0.5 w-4 h-4 rounded-full flex items-center justify-center border border-nf-primary", cfg.bg)}>
-                                <Icon size={8} className={cfg.color} />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", cfg.bg)}>
-                              <Icon size={16} className={cfg.color} />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <p className={cn("text-[12px] leading-relaxed",
-                            n.read ? "text-nf-muted" : "text-nf-text font-medium")}>
-                            {n.text || n.message || "إشعار جديد"}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full border", cfg.bg, cfg.color,
-                              cfg.color.replace("text-", "border-").replace("400", "400/30"))}>
-                              {cfg.label}
-                            </span>
-                            <span className="text-[10px] text-nf-dim">{timeAgo(n.createdAt)}</span>
-                            {n.community && (
-                              <span className="text-[10px] text-nf-accent">n/{n.community}</span>
-                            )}
+                      <div className="shrink-0">
+                        {n.fromPhoto ? (
+                          <img
+                            src={n.fromPhoto}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", cfg.bg)}>
+                            <Icon size={14} className={cfg.color} />
                           </div>
-                          {/* Invite accept/decline buttons */}
-                          {n.type === "invite" && n.communityInvite && n.community && !handledInvites[n.id] && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <button
-                                onClick={e => { e.stopPropagation(); acceptInvite(n); }}
-                                className="flex items-center gap-1 px-3 py-1 rounded-lg bg-nf-accent text-nf-primary text-[11px] font-bold hover:bg-nf-accent/80 transition-colors">
-                                <Check size={11} /> قبول
-                              </button>
-                              <button
-                                onClick={e => { e.stopPropagation(); declineInvite(n); }}
-                                className="px-3 py-1 rounded-lg border border-nf-border-2 text-nf-dim text-[11px] font-semibold hover:text-red-400 hover:border-red-400/30 transition-colors">
-                                رفض
-                              </button>
-                            </div>
-                          )}
-                          {n.type === "invite" && n.communityInvite && handledInvites[n.id] && (
-                            <p className={cn("text-[10px] mt-1.5 font-semibold",
-                              handledInvites[n.id] === "accepted" ? "text-green-400" : "text-nf-dim")}>
-                              {handledInvites[n.id] === "accepted" ? `✓ انضممت إلى n/${n.community}` : "تم الرفض"}
-                            </p>
-                          )}
-                        </div>
+                        )}
+                      </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {!n.read && (
-                            <button onClick={e => { e.stopPropagation(); markRead(n); }}
-                              className="p-1.5 rounded-lg text-nf-dim hover:text-nf-accent hover:bg-nf-accent/10 transition-colors" title="تحديد كمقروء">
-                              <Eye size={12} />
-                            </button>
+                      <div className="flex-1 min-w-0 pe-6">
+                        <p
+                          className={cn(
+                            "text-[13px] leading-snug line-clamp-2",
+                            n.read ? "text-nf-muted" : "text-nf-text font-medium"
                           )}
-                          <button onClick={e => deleteNotif(n.id, e)}
-                            className="p-1.5 rounded-lg text-nf-dim hover:text-red-400 hover:bg-red-400/10 transition-colors" title="حذف">
-                            <X size={12} />
+                        >
+                          {n.text || n.message || "إشعار جديد"}
+                        </p>
+                        <p className="text-[11px] text-nf-dim mt-0.5">
+                          {timeAgo(n.createdAt)}
+                          {n.community && (
+                            <>
+                              <span className="mx-1 text-nf-border-2">·</span>
+                              <span className="text-nf-accent">n/{n.community}</span>
+                            </>
+                          )}
+                        </p>
+
+                        {n.type === "invite" && n.communityInvite && n.community && !handledInvites[n.id] && (
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                acceptInvite(n);
+                              }}
+                              className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-nf-accent text-nf-primary hover:opacity-90"
+                            >
+                              قبول
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                declineInvite(n);
+                              }}
+                              className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-nf-dim hover:text-nf-text border border-nf-border-2"
+                            >
+                              رفض
+                            </button>
+                          </div>
+                        )}
+                        {n.type === "invite" && n.communityInvite && handledInvites[n.id] && (
+                          <p
+                            className={cn(
+                              "text-[10px] mt-1 font-semibold",
+                              handledInvites[n.id] === "accepted" ? "text-green-400" : "text-nf-dim"
+                            )}
+                          >
+                            {handledInvites[n.id] === "accepted"
+                              ? `انضممت إلى n/${n.community}`
+                              : "تم الرفض"}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="absolute end-1 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {!n.read && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markRead(n);
+                            }}
+                            className="p-1 text-nf-dim hover:text-nf-text"
+                            title="تحديد كمقروء"
+                          >
+                            <Eye size={13} />
                           </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => deleteNotif(n.id, e)}
+                          className="p-1 text-nf-dim hover:text-red-400"
+                          title="حذف"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </AnimatePresence>
+            </div>
+          ))}
         </div>
       )}
     </div>

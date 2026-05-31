@@ -132,11 +132,7 @@ export default function CommunityMembersPage({ communityName, onBack }: { commun
     const m = members.find(x => x.uid === uid);
     if (!m) return;
     const newPerms = { ...(m.permissions || {}), [permId]: !current };
-    // Determine role from permissions
-    const hasAll = ALL_PERMISSIONS.every(p => newPerms[p.id]);
-    const hasNone = ALL_PERMISSIONS.every(p => !newPerms[p.id]);
-    const newRole: Member["role"] = hasAll ? "admin" : hasNone ? "member" : "moderator";
-    saveMember(uid, { permissions: newPerms, role: newRole });
+    saveMember(uid, { permissions: newPerms });
   };
 
   const toggleShowInModerators = (uid: string, current: boolean) => {

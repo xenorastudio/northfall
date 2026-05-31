@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowUp, ArrowDown, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, Flag, Code2, Trash2, Pencil, ExternalLink, ArrowUpCircle, Link2, BarChart3, Clock, Sparkles, BookOpen, Languages, FileText, X, Settings, Key, Quote } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { ArrowRight, ArrowUp, ArrowDown, Share2, Bookmark, MessageSquare, ChevronDown, ChevronUp, Flag, Code2, Trash2, Pencil, ArrowUpCircle, Link2, BarChart3, Clock, Sparkles, BookOpen, Languages, FileText, X, Quote, MoreHorizontal, GitCommitHorizontal } from "lucide-react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import type { ReactNode } from "react";
 import { doc, getDoc, getDocs, collection, query, orderBy, addDoc, updateDoc, increment, setDoc, deleteDoc, runTransaction } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
@@ -11,8 +12,11 @@ import { useI18n } from "./I18nProvider";
 import { cn } from "@/lib/utils";
 import ReportModal from "./ReportModal";
 import HoverCard from "./HoverCard";
-import { renderFormattedBody } from "./PostFormatter";
+import PostBodyContent from "./PostBodyContent";
 import ImageLightbox from "./ImageLightbox";
+import TranslateLangPicker from "./TranslateLangPicker";
+import LivingPostVersions, { type PostVersion } from "./LivingPostVersions";
+import { translateText } from "@/lib/translate";
 
 interface PostDetailProps {
   postId: string;
@@ -22,6 +26,8 @@ interface PostDetailProps {
   onEditClick?: (id: string) => void;
   onDeleteClick?: (id: string) => void;
   onQuoteClick?: (id: string) => void;
+  onUpgradeClick?: (postId: string) => void;
+  onHashtagClick?: (tag: string) => void;
 }
 
 interface Comment {
@@ -35,6 +41,54 @@ interface Comment {
   createdAt?: string;
   votes?: number;
   replies?: Comment[];
+}
+
+function OverflowMenu({
+  items,
+}: {
+  items: { label: string; icon: ReactNode; onClick: () => void; danger?: boolean }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"
+        aria-label="المزيد"
+      >
+        <MoreHorizontal size={14} />
+      </button>
+      {open && (
+        <div className="absolute top-full mt-1 left-0 z-50 min-w-[150px] rounded-xl border border-nf-border-2 bg-nf-primary shadow-xl overflow-hidden py-0.5">
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => { item.onClick(); setOpen(false); }}
+              className={cn(
+                "w-full flex items-center gap-2 px-3 py-2 text-[11px] transition-colors text-right",
+                item.danger ? "text-red-400 hover:bg-red-500/10" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
+              )}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function buildTree(comments: Comment[]): Comment[] {
@@ -54,7 +108,7 @@ function buildTree(comments: Comment[]): Comment[] {
   return roots;
 }
 
-function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, postId: commentPostId, showToast, forceCollapse }: { comment: Comment; depth?: number; onReply: (parentId: string, authorName: string) => void; onProfileClick?: (uid: string) => void; onDelete?: (commentId: string) => void; postId?: string; showToast?: (msg: string) => void; forceCollapse?: boolean }) {
+function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, onHashtagClick, postId: commentPostId, showToast, forceCollapse }: { comment: Comment; depth?: number; onReply: (parentId: string, authorName: string) => void; onProfileClick?: (uid: string) => void; onDelete?: (comment: Comment) => Promise<void> | void; onHashtagClick?: (tag: string) => void; postId?: string; showToast?: (msg: string) => void; forceCollapse?: boolean }) {
   const { user } = useAuth();
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(false);
@@ -66,8 +120,26 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(comment.text);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [translated, setTranslated] = useState<string | null>(null);
+  const [translating, setTranslating] = useState(false);
   const isOwn = user?.uid === comment.authorUid;
   const hasReplies = comment.replies && comment.replies.length > 0;
+
+  const runTranslate = async () => {
+    if (translated) {
+      setTranslated(null);
+      return;
+    }
+    setTranslating(true);
+    try {
+      const result = await translateText(comment.text);
+      if (result?.trim()) setTranslated(result);
+    } catch {
+      /* ignore */
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   // Load user's existing vote on this comment
   useEffect(() => {
@@ -160,9 +232,12 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
                 </div>
               </div>
             ) : (
-              <div className="text-sm text-nf-text-2 leading-relaxed mb-1.5">
-                {renderFormattedBody(comment.text)}
-              </div>
+              <PostBodyContent
+                text={translated ?? comment.text}
+                className={cn("text-nf-text-2 mb-1.5", translated && "opacity-90")}
+                onHashtagClick={onHashtagClick}
+                onProfileClick={onProfileClick}
+              />
             )}
 
             {/* Delete Confirm */}
@@ -170,7 +245,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
               <div className="mb-1.5 p-2 bg-[#ff4444]/10 border border-[#ff4444]/20 rounded-lg">
                 <p className="text-xs text-[#ff8888] mb-1.5">{t("pd.deleteConfirm")}</p>
                 <div className="flex items-center gap-2">
-                  <button onClick={async () => { try { await deleteDoc(doc(db, "posts", comment.postId || commentPostId || "", "comments", comment.id)); onDelete?.(comment.id); } catch (e) { console.error(e); } setShowDeleteConfirm(false); }} className="px-3 py-1 rounded-lg bg-[#ff4444] text-white text-xs font-bold">{t("pd.delete")}</button>
+                  <button onClick={async () => { try { await deleteDoc(doc(db, "posts", comment.postId || commentPostId || "", "comments", comment.id)); await onDelete?.(comment); } catch (e) { console.error(e); } setShowDeleteConfirm(false); }} className="px-3 py-1 rounded-lg bg-[#ff4444] text-white text-xs font-bold">{t("pd.delete")}</button>
                   <button onClick={() => setShowDeleteConfirm(false)} className="px-3 py-1 rounded-lg bg-nf-secondary text-nf-muted text-xs hover:text-nf-text">{t("pd.cancel")}</button>
                 </div>
               </div>
@@ -186,28 +261,38 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
               <button onClick={() => onReply(comment.id, comment.authorName || t("gen.user"))} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
                 <MessageSquare size={11} /><span>{t("pd.reply")}</span>
               </button>
-              <button onClick={() => { navigator.clipboard?.writeText(comment.text); showToast?.(t("pd.textCopied")); }} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
-                <Share2 size={11} /><span>{t("pd.copy")}</span>
+              <button
+                type="button"
+                onClick={runTranslate}
+                disabled={translating}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors disabled:opacity-40"
+              >
+                {translating ? (
+                  <span className="w-3 h-3 border border-nf-dim border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Languages size={11} />
+                )}
+                <span>{translated ? "إلغاء" : "ترجمة"}</span>
               </button>
-              <button onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/app?view=post&postId=${commentPostId || comment.postId}`); showToast?.(t("pd.linkCopied")); }} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
-                <Link2 size={11} /><span>{t("pd.link")}</span>
-              </button>
-              <button onClick={() => setSaved(!saved)} className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full transition-colors", saved ? "text-nf-accent" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text")}>
-                <Bookmark size={11} /><span>{saved ? t("pd.saved") : t("pd.saveBtn")}</span>
-              </button>
-              {isOwn && (
-                <>
-                  <button onClick={() => setEditing(true)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
-                    <Pencil size={11} /><span>{t("pd.edit")}</span>
-                  </button>
-                  <button onClick={() => setShowDeleteConfirm(true)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
-                    <Trash2 size={11} /><span>{t("pd.delete")}</span>
-                  </button>
-                </>
-              )}
+              {!translated && <TranslateLangPicker />}
               <button onClick={() => setShowReport(true)} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
                 <Flag size={11} /><span>{t("pd.report")}</span>
               </button>
+              <OverflowMenu
+                items={
+                  isOwn
+                    ? [
+                        { label: t("pd.copy"), icon: <Share2 size={11} />, onClick: () => { navigator.clipboard?.writeText(comment.text); showToast?.(t("pd.textCopied")); } },
+                        { label: t("pd.edit"), icon: <Pencil size={11} />, onClick: () => setEditing(true) },
+                        { label: t("pd.delete"), icon: <Trash2 size={11} />, onClick: () => setShowDeleteConfirm(true), danger: true },
+                      ]
+                    : [
+                        { label: t("pd.copy"), icon: <Share2 size={11} />, onClick: () => { navigator.clipboard?.writeText(comment.text); showToast?.(t("pd.textCopied")); } },
+                        { label: t("pd.link"), icon: <Link2 size={11} />, onClick: () => { navigator.clipboard?.writeText(`${window.location.origin}/app?view=post&postId=${commentPostId || comment.postId}`); showToast?.(t("pd.linkCopied")); } },
+                        { label: saved ? t("pd.saved") : t("pd.saveBtn"), icon: <Bookmark size={11} />, onClick: () => setSaved(!saved) },
+                      ]
+                }
+              />
             </div>
           </>
         )}
@@ -221,7 +306,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
         {!effectiveCollapsed && hasReplies && (
           <motion.div initial={false} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             {comment.replies!.map((reply) => (
-              <CommentNode key={reply.id} comment={reply} depth={depth + 1} onReply={onReply} onProfileClick={onProfileClick} onDelete={onDelete} postId={commentPostId} showToast={showToast} forceCollapse={forceCollapse} />
+              <CommentNode key={reply.id} comment={reply} depth={depth + 1} onReply={onReply} onProfileClick={onProfileClick} onDelete={onDelete} onHashtagClick={onHashtagClick} postId={commentPostId} showToast={showToast} forceCollapse={forceCollapse} />
             ))}
           </motion.div>
         )}
@@ -230,7 +315,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, po
   );
 }
 
-export default function PostDetail({ postId, onBack, onCommunityClick, onProfileClick, onEditClick, onDeleteClick, onQuoteClick }: PostDetailProps) {
+export default function PostDetail({ postId, onBack, onCommunityClick, onProfileClick, onEditClick, onDeleteClick, onQuoteClick, onUpgradeClick, onHashtagClick }: PostDetailProps) {
   const { user } = useAuth();
   const { t } = useI18n();
   const [post, setPost] = useState<any>(null);
@@ -252,7 +337,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [commentSearch, setCommentSearch] = useState("");
   const [quotedPost, setQuotedPost] = useState<any>(null);
-  const [views, setViews] = useState(0);
+  const [views, setViews] = useState<number | null>(null);
+  const [commentCount, setCommentCount] = useState(0);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   // AI
@@ -264,6 +350,58 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   const [aiModel, setAiModel] = useState(0);
   const [aiConnected, setAiConnected] = useState<"unknown" | "testing" | "ok" | "fail">("unknown");
   const aiDropRef = useRef<HTMLDivElement>(null);
+
+  const [postTranslated, setPostTranslated] = useState<{ title?: string; body?: string } | null>(null);
+  const [postTranslating, setPostTranslating] = useState(false);
+  const [livingIdx, setLivingIdx] = useState(-1);
+
+  const livingVersions: PostVersion[] = useMemo(() => {
+    if (!post?.versions || !Array.isArray(post.versions)) return [];
+    return post.versions as PostVersion[];
+  }, [post]);
+
+  const activeLivingIdx = useMemo(() => {
+    if (livingVersions.length === 0) return -1;
+    if (livingIdx >= 0 && livingIdx < livingVersions.length) return livingIdx;
+    return livingVersions.length - 1;
+  }, [livingVersions, livingIdx]);
+
+  const activeVersion = livingVersions[activeLivingIdx];
+
+  const displayTitle = activeVersion?.title ?? post?.title ?? "";
+  const displayBody = activeVersion?.body ?? post?.body ?? "";
+  const displayImageUrls = useMemo(() => {
+    if (activeVersion?.imageUrls?.length) {
+      return activeVersion.imageUrls.filter((u: string) => u?.trim());
+    }
+    if (activeVersion?.imageUrl?.trim()) return [activeVersion.imageUrl];
+    if (post?.imageUrls?.length) return post.imageUrls.filter((u: string) => u?.trim());
+    if (post?.imageUrl?.trim()) return [post.imageUrl];
+    return [];
+  }, [activeVersion, post]);
+
+  const togglePostTranslate = useCallback(async () => {
+    if (!post) return;
+    if (postTranslated) {
+      setPostTranslated(null);
+      return;
+    }
+    setPostTranslating(true);
+    try {
+      const [tTitle, tBody] = await Promise.all([
+        displayTitle ? translateText(displayTitle) : Promise.resolve(""),
+        displayBody ? translateText(displayBody) : Promise.resolve(""),
+      ]);
+      setPostTranslated({
+        title: tTitle || undefined,
+        body: tBody || undefined,
+      });
+    } catch {
+      /* ignore */
+    } finally {
+      setPostTranslating(false);
+    }
+  }, [post, postTranslated, displayTitle, displayBody]);
 
   const AI_MODELS = [
     { name: "GPT-3.5 تجريبي", provider: "chatanywhere" as const, model: "gpt-3.5-turbo", free: true, desc: "مجاني للتجربة — لا يحتاج مفتاح مدفوع" },
@@ -319,16 +457,31 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     return () => window.removeEventListener("keydown", handler);
   }, [onBack]);
 
-  // Increment view count
+  // Increment view count (skip own post and keep UI number accurate)
   useEffect(() => {
     if (!postId) return;
-    const viewed = sessionStorage.getItem(`viewed-${postId}`);
-    if (!viewed) {
-      updateDoc(doc(db, "posts", postId), { views: increment(1) }).catch(() => {});
-      sessionStorage.setItem(`viewed-${postId}`, "1");
-    }
-    getDoc(doc(db, "posts", postId)).then(s => { if (s.exists()) setViews(s.data()?.views || 0); }).catch(() => {});
-  }, [postId]);
+    const loadViews = async () => {
+      try {
+        const snap = await getDoc(doc(db, "posts", postId));
+        if (!snap.exists()) return;
+        const data = snap.data() as any;
+        const currentViews = data?.views || 0;
+        const viewed = sessionStorage.getItem(`viewed-${postId}`);
+        const isOwnPost = !!(user?.uid && data?.authorUid && user.uid === data.authorUid);
+
+        if (!viewed && !isOwnPost) {
+          await updateDoc(doc(db, "posts", postId), { views: increment(1) }).catch(() => {});
+          sessionStorage.setItem(`viewed-${postId}`, "1");
+          setViews(currentViews + 1);
+        } else {
+          setViews(currentViews);
+        }
+      } catch {
+        setViews((prev) => prev ?? 0);
+      }
+    };
+    loadViews();
+  }, [postId, user?.uid]);
 
   // Check if post is saved on mount
   useEffect(() => {
@@ -515,6 +668,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           const data: any = { id: postSnap.id, ...postSnap.data() };
           setPost(data);
           setPostVoteCount(data.votes || 0);
+          setCommentCount(data.commentCount || 0);
+          setViews(data.views ?? 0);
         }
         // Load user's existing vote
         if (user) {
@@ -545,6 +700,15 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     fetch();
   }, [postId]);
 
+  useEffect(() => {
+    setPostTranslated(null);
+    setLivingIdx(-1);
+  }, [postId]);
+
+  useEffect(() => {
+    setPostTranslated(null);
+  }, [livingIdx]);
+
   const refreshComments = async () => {
     const cSnap = await getDocs(query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc")));
     setComments(cSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Comment)));
@@ -565,6 +729,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       });
       console.log("[PostDetail] Comment saved with ID:", commentRef.id);
       await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
+      setCommentCount((prev) => prev + 1);
       // Update user comment count + XP
       await updateDoc(doc(db, "users", user.uid), { commentCount: increment(1), xp: increment(1) }).catch(() => {});
       console.log("[PostDetail] Comment count updated");
@@ -584,10 +749,41 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     setCommentText(`@${authorName} `);
   };
 
+  const countCommentTreeNodes = (node: Comment): number =>
+    1 + (node.replies?.reduce((acc, child) => acc + countCommentTreeNodes(child), 0) || 0);
+
+  const removeCommentRecursively = (list: Comment[], targetId: string): { next: Comment[]; removed: Comment | null } => {
+    let removed: Comment | null = null;
+    const next = list
+      .map((item) => {
+        if (item.id === targetId) {
+          removed = item;
+          return null;
+        }
+        if (!item.replies?.length) return item;
+        const child = removeCommentRecursively(item.replies, targetId);
+        if (child.removed) removed = child.removed;
+        return { ...item, replies: child.next };
+      })
+      .filter(Boolean) as Comment[];
+    return { next, removed };
+  };
+
+  const handleCommentDelete = async (target: Comment) => {
+    const removeResult = removeCommentRecursively(comments, target.id);
+    if (!removeResult.removed) return;
+    const removedCount = countCommentTreeNodes(removeResult.removed);
+    setComments(removeResult.next);
+    setCommentCount((prev) => Math.max(0, prev - removedCount));
+    await updateDoc(doc(db, "posts", postId), { commentCount: increment(-removedCount) }).catch(() => {});
+  };
+
   if (loading) return <div className="text-center py-8 text-nf-muted text-sm">{t("gen.loading")}</div>;
   if (!post) return <div className="text-center py-8 text-nf-muted">{t("pd.postNotFound")}</div>;
 
-  const readingTime = Math.max(1, Math.ceil(((post?.body || "").split(/\s+/).length) / 200));
+  const readingTime = Math.max(1, Math.ceil(((displayBody || "").split(/\s+/).length) / 200));
+  const isLivingPost = !!(post?.isLiving || livingVersions.length > 0);
+  const activePoll = activeVersion?.poll ?? post?.poll;
 
   const tree = (() => {
     let built = buildTree(comments);
@@ -638,13 +834,71 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             <span className="text-nf-dim">·</span>
             <span className="text-nf-muted">{timeAgoShort(post.createdAt)}</span>
             {post.flair && <><span className="text-nf-dim">·</span><span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-nf-accent/20 text-nf-accent">{post.flair}</span></>}
+            {isLivingPost && (
+              <>
+                <span className="text-nf-dim">·</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex items-center gap-0.5">
+                  <GitCommitHorizontal size={9} /> منشور حي
+                  {livingVersions.length > 0 && <span className="text-emerald-400/70">v{activeVersion?.version ?? post.currentVersion ?? 1}</span>}
+                </span>
+              </>
+            )}
             <span className="text-nf-dim">·</span>
-            <span className="text-nf-muted">{views || post.views || 0} {t("pd.views")}</span>
+            <span className="text-nf-muted">{views ?? post.views ?? 0} {t("pd.views")}</span>
           </div>
-          <h2 className="text-[16px] sm:text-[18px] font-bold text-nf-text leading-snug mb-2">{post.title}</h2>
-          {post.body && (
-            <div className="text-sm text-nf-text-2 leading-relaxed relative group/body">
-              {renderFormattedBody(post.body)}
+
+          {isLivingPost && livingVersions.length > 0 && (
+            <div className="mb-3">
+              <LivingPostVersions
+                versions={livingVersions}
+                currentVersion={activeVersion?.version ?? post.currentVersion ?? 1}
+                onVersionChange={(idx) => setLivingIdx(idx)}
+                postId={postId}
+                canManageVersions={!!(user && post?.authorUid === user.uid)}
+                onVersionsUpdated={(next) => {
+                  const latest = next[next.length - 1];
+                  setPost((p: any) => ({
+                    ...p,
+                    versions: next,
+                    currentVersion: latest?.version ?? p?.currentVersion,
+                    title: latest?.title ?? p?.title,
+                    body: latest?.body ?? p?.body,
+                    imageUrl: latest?.imageUrl ?? p?.imageUrl,
+                    imageUrls: latest?.imageUrls ?? p?.imageUrls,
+                  }));
+                }}
+                onUpgradeClick={user && post?.authorUid === user.uid && onUpgradeClick ? () => onUpgradeClick(postId) : undefined}
+              />
+            </div>
+          )}
+
+          <h2 className="text-[16px] sm:text-[18px] font-bold text-nf-text leading-snug mb-2">
+            {postTranslated?.title ?? displayTitle}
+          </h2>
+          {(displayBody || postTranslated?.body) && (
+            <div className="relative group/body">
+              <PostBodyContent
+                text={postTranslated?.body ?? displayBody}
+                className={cn("text-nf-text-2", postTranslated?.body && "opacity-90")}
+                onHashtagClick={onHashtagClick}
+                onProfileClick={onProfileClick}
+              />
+              <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={togglePostTranslate}
+                  disabled={postTranslating}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors disabled:opacity-40"
+                >
+                  {postTranslating ? (
+                    <span className="w-3 h-3 border border-nf-dim border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Languages size={12} />
+                  )}
+                  {postTranslated ? "إلغاء الترجمة" : "ترجمة"}
+                </button>
+                {!postTranslated && <TranslateLangPicker />}
+              </div>
               <div className="mt-4 pt-3 border-t border-nf-border-2/30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] text-nf-dim bg-nf-secondary/40 px-2 py-1 rounded-md flex items-center gap-1.5">
@@ -655,9 +909,27 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
               </div>
             </div>
           )}
+          {!displayBody && !postTranslated?.body && displayTitle && (
+            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={togglePostTranslate}
+                disabled={postTranslating}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] text-nf-dim hover:text-nf-accent hover:bg-nf-secondary/40 font-medium transition-colors disabled:opacity-40"
+              >
+                {postTranslating ? (
+                  <span className="w-3 h-3 border border-nf-dim border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Languages size={12} />
+                )}
+                {postTranslated ? "إلغاء الترجمة" : "ترجمة"}
+              </button>
+              {!postTranslated && <TranslateLangPicker />}
+            </div>
+          )}
           {/* Poll */}
-          {post.poll && post.poll.options?.length >= 2 && (() => {
-            const pollVotes = post.poll.votes || post.poll.options.map(() => 0);
+          {activePoll && activePoll.options?.length >= 2 && (() => {
+            const pollVotes = activePoll.votes || activePoll.options.map(() => 0);
             const total = pollVotes.reduce((a: number, b: number) => a + b, 0);
             return (
               <div className="mt-3 space-y-2">
@@ -665,7 +937,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                   <BarChart3 size={14} className="text-nf-accent" />
                   <span>استطلاع</span>
                 </div>
-                {post.poll.options.map((opt: string, idx: number) => {
+                {activePoll.options.map((opt: string, idx: number) => {
                   const pct = total > 0 ? Math.round(((pollVotes[idx] || 0) / total) * 100) : 0;
                   return (
                     <div key={idx} className="w-full relative flex items-center gap-3 px-4 py-2.5 rounded-lg border border-nf-border-2 text-right overflow-hidden">
@@ -679,14 +951,14 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                 <div className="flex items-center gap-2 text-[11px] text-nf-dim mt-1">
                   <span>{total} صوت</span>
                   <span>·</span>
-                  <span>{post.poll.duration === "24h" ? "ينتهي خلال يوم" : post.poll.duration === "3d" ? "ينتهي خلال 3 أيام" : "ينتهي خلال أسبوع"}</span>
+                  <span>{activePoll.duration === "24h" ? "ينتهي خلال يوم" : activePoll.duration === "3d" ? "ينتهي خلال 3 أيام" : "ينتهي خلال أسبوع"}</span>
                 </div>
               </div>
             );
           })()}
           {/* Multiple images */}
           {(() => {
-            const urls = post.imageUrls?.length > 0 ? post.imageUrls.filter((u: string) => u?.trim()) : (post.imageUrl ? [post.imageUrl] : []);
+            const urls = displayImageUrls;
             const isBlurred = (post.isNsfw || post.isSpoiler) && !detailBlurRevealed;
             return urls.map((url: string, i: number) => (
               <div key={i} className="relative mt-3 rounded-lg overflow-hidden group">
@@ -750,7 +1022,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             <span className={cn("text-xs font-bold min-w-[20px] text-center", postMyVote === 1 ? "text-orange-500" : postMyVote === -1 ? "text-blue-400" : postVoteCount > 0 ? "text-orange-500" : postVoteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{postVoteCount}</span>
             <button onClick={() => setPostVote(-1)} className={cn("p-1 rounded-md transition-colors duration-150", postMyVote === -1 ? "text-blue-400" : "text-nf-dim hover:text-nf-muted")}><ArrowDown size={16} /></button>
           </div>
-          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {post.commentCount || 0} {t("pc.comments")}</button>
+          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><MessageSquare size={14} /> {commentCount} {t("pc.comments")}</button>
           <div className="relative" onMouseLeave={() => setShowShareMenu(false)}>
             <button onClick={() => setShowShareMenu(!showShareMenu)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Share2 size={14} /> {t("pc.share")}</button>
             <AnimatePresence>
@@ -783,46 +1055,44 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           </div>
           <button onClick={togglePostSave} className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-colors", postSaved ? "text-nf-accent" : "hover:bg-nf-hover")}><Bookmark size={14} /> {postSaved ? "محفوظ" : "حفظ"}</button>
           <button onClick={() => onQuoteClick?.(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Quote size={14} /> اقتباس</button>
-          <button onClick={() => setShowPostReport(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Flag size={14} /> بلّغ</button>
-          {/* AI Dropdown */}
           <div className="relative" ref={aiDropRef}>
-            <button onClick={() => setAiDropOpen(!aiDropOpen)} className={cn("ai-btn", aiDropOpen && "ai-btn-active")} style={{ fontSize: 10, padding: "2px 8px" }}>
-              <Sparkles size={10} className="ai-btn-icon" />
-              <span className="ai-btn-letter">AI</span>
-              <ChevronDown size={8} className={cn("shrink-0 transition-transform opacity-60", aiDropOpen && "rotate-180")} />
+            <button onClick={() => setAiDropOpen(!aiDropOpen)} className={cn("flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition-colors", aiDropOpen ? "bg-nf-accent/15 text-nf-accent" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text")}>
+              <Sparkles size={12} />
+              <span>AI</span>
+              <ChevronDown size={10} className={cn("transition-transform", aiDropOpen && "rotate-180")} />
             </button>
             {aiDropOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-nf-border-2 bg-nf-primary shadow-xl min-w-[200px] overflow-hidden">
-                <div className="py-0.5">
-                  <button onClick={() => handleAiExplain("explain")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text")}>
-                    <BookOpen size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">اشرح لي</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("summarize")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text")}>
-                    <FileText size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">لخّص</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("translate")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text")}>
-                    <Languages size={10} className="text-nf-accent/40" /> <span className="flex-1 text-right">ترجمة</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("correct")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text")}>
-                    <FileText size={10} className="text-amber-400/40" /> <span className="flex-1 text-right">تصحيح</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("tags")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text")}>
-                    <BookOpen size={10} className="text-blue-400/40" /> <span className="flex-1 text-right">وسوم</span>
-                  </button>
-                  <button onClick={() => handleAiExplain("morefeatures")} disabled={aiLoading} className={cn("w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] transition-all", aiLoading ? "opacity-30" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text")}>
-                    <Sparkles size={10} className="text-purple-400/40" /> <span className="flex-1 text-right">نص محسّن</span>
-                  </button>
-                </div>
+              <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-nf-border-2 bg-nf-primary shadow-xl min-w-[170px] overflow-hidden py-0.5">
+                <button onClick={() => handleAiExplain("summarize")} disabled={aiLoading} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors disabled:opacity-40">
+                  <FileText size={12} className="text-nf-accent/70 shrink-0" />
+                  <span className="flex-1 text-right">لخّص المنشور</span>
+                </button>
+                <button onClick={() => handleAiExplain("explain")} disabled={aiLoading} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors disabled:opacity-40">
+                  <BookOpen size={12} className="text-nf-accent/70 shrink-0" />
+                  <span className="flex-1 text-right">اشرح لي</span>
+                </button>
+                <button onClick={() => handleAiExplain("improve")} disabled={aiLoading} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors disabled:opacity-40">
+                  <Sparkles size={12} className="text-nf-accent/70 shrink-0" />
+                  <span className="flex-1 text-right">حسّن الصياغة</span>
+                </button>
               </div>
             )}
           </div>
-          {user && post?.authorUid === user.uid && onEditClick && (
-            <button onClick={() => onEditClick(postId)} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Pencil size={14} /> تعديل</button>
-          )}
-          {user && post?.authorUid === user.uid && onDeleteClick && (
-            <button onClick={async () => { await deleteDoc(doc(db, "posts", postId)); onBack(); }} className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-red-400/10 text-xs text-nf-muted hover:text-red-400 transition-colors"><Trash2 size={14} /> حذف</button>
-          )}
-          <button onClick={() => { const embed = `<blockquote class="northfall-embed" data-post-id="${postId}"><a href="${window.location.origin}/app?view=post&postId=${postId}">NorthFall Post</a></blockquote>`; navigator.clipboard?.writeText(embed); showToast(t("pd.embedCopied")); }} className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-nf-hover text-xs transition-colors"><Code2 size={14} /> Embed</button>
+          <OverflowMenu
+            items={
+              user && post?.authorUid === user.uid
+                ? [
+                    { label: "تعديل", icon: <Pencil size={12} />, onClick: () => onEditClick?.(postId) },
+                    { label: "حذف", icon: <Trash2 size={12} />, onClick: async () => { await deleteDoc(doc(db, "posts", postId)); onBack(); }, danger: true },
+                    { label: "Embed", icon: <Code2 size={12} />, onClick: () => { const embed = `<blockquote class="northfall-embed" data-post-id="${postId}"><a href="${window.location.origin}/app?view=post&postId=${postId}">NorthFall Post</a></blockquote>`; navigator.clipboard?.writeText(embed); showToast(t("pd.embedCopied")); } },
+                  ]
+                : [
+                    { label: "بلّغ", icon: <Flag size={12} />, onClick: () => setShowPostReport(true) },
+                    { label: t("pd.copyLink"), icon: <Link2 size={12} />, onClick: () => { navigator.clipboard?.writeText(window.location.href); showToast(t("pd.linkCopied")); } },
+                    { label: "Embed", icon: <Code2 size={12} />, onClick: () => { const embed = `<blockquote class="northfall-embed" data-post-id="${postId}"><a href="${window.location.origin}/app?view=post&postId=${postId}">NorthFall Post</a></blockquote>`; navigator.clipboard?.writeText(embed); showToast(t("pd.embedCopied")); } },
+                  ]
+            }
+          />
         </div>
         <ReportModal open={showPostReport} onClose={() => setShowPostReport(false)} type="post" targetId={postId} />
       </article>
@@ -897,7 +1167,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           {allCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
           {allCollapsed ? t("pd.expandAll") : t("pd.collapseAll")}
         </button>
-        <span className="text-xs text-nf-dim mr-auto">{comments.length} {t("pc.comments")}</span>
+        <span className="text-xs text-nf-dim mr-auto">{commentCount} {t("pc.comments")}</span>
         <div className="relative w-full mt-1">
           <input type="text" value={commentSearch} onChange={(e) => setCommentSearch(e.target.value)} placeholder={t("pd.searchComments")} className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-1.5 text-xs text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-border transition-colors" />
           {commentSearch && <button onClick={() => setCommentSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-nf-dim hover:text-nf-text text-xs">✕</button>}
@@ -910,7 +1180,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           <div className="text-center py-6 text-nf-muted text-sm">{t("pd.noCommentsYet")}</div>
         ) : (
           tree.map((c) => (
-            <CommentNode key={c.id} comment={c} onReply={handleReply} onProfileClick={onProfileClick} postId={postId} onDelete={(id) => setComments(prev => prev.filter(c => c.id !== id))} showToast={showToast} forceCollapse={allCollapsed} />
+            <CommentNode key={c.id} comment={c} onReply={handleReply} onProfileClick={onProfileClick} onHashtagClick={onHashtagClick} postId={postId} onDelete={handleCommentDelete} showToast={showToast} forceCollapse={allCollapsed} />
           ))
         )}
       </div>

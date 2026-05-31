@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, ArrowRight, Search, RefreshCw, FileText, MessageSquare, User, Clock, Eye, CheckCircle, RotateCcw, Trash2, X, ExternalLink, Ban, Wrench } from "lucide-react";
-import { doc, getDoc, getDocs, updateDoc, deleteDoc, setDoc, collection, query, orderBy, limit, writeBatch, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, getDocs, updateDoc, deleteDoc, setDoc, collection, query, orderBy, limit, writeBatch, onSnapshot, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { deletePostCompletely, deleteCommentCompletely } from "@/lib/delete-content";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
 import { cn } from "@/lib/utils";
@@ -177,11 +178,7 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
       } else if (action === "delete-post" && targetId) {
         if (!confirm("حذف المنشور وجميع تعليقاته نهائياً؟")) return;
         setDeletingPost(true);
-        const commentsSnap = await getDocs(collection(db, "posts", targetId, "comments"));
-        const batch = writeBatch(db);
-        commentsSnap.docs.forEach(c => batch.delete(c.ref));
-        batch.delete(doc(db, "posts", targetId));
-        await batch.commit();
+        await deletePostCompletely(targetId);
         await updateDoc(doc(db, "reports", reportId), { status: "reviewed", reviewedAt: new Date().toISOString() });
         showToast("تم حذف المنشور والتعليقات");
         setDeletingPost(false);
@@ -189,7 +186,8 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
         if (!confirm("حذف التعليق نهائياً؟")) return;
         const parts = targetId.split("|");
         if (parts.length === 2) {
-          await deleteDoc(doc(db, "posts", parts[0], "comments", parts[1]));
+          await deleteCommentCompletely(parts[0], parts[1]);
+          await updateDoc(doc(db, "posts", parts[0]), { commentCount: increment(-1) }).catch(() => {});
           await updateDoc(doc(db, "reports", reportId), { status: "reviewed", reviewedAt: new Date().toISOString() });
           showToast("تم حذف التعليق");
         }

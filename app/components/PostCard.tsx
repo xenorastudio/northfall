@@ -1,7 +1,9 @@
 "use client";
 
-import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BarChart3, BookOpen, Languages, FileText, X, ChevronDown, Settings, Key, Check, AlertCircle, Quote } from "lucide-react";
+import { ArrowUp, ArrowDown, MessageSquare, Share2, Bookmark, Flag, Code, MoreHorizontal, ChevronLeft, ChevronRight, Star, Heart, Sparkles, Zap, Trophy, Eye, Send, Pencil, Trash2, AlertTriangle, Link2, Flame, BookOpen, Languages, FileText, X, ChevronDown, Settings, Key, Check, AlertCircle, Quote, GitBranch } from "lucide-react";
+import { isPollExpired, pollStatusLabel, type PollData } from "@/lib/poll";
 import { cn } from "@/lib/utils";
+import { firestoreCommunityIdFromDisplay, isUserDestinationPath } from "@/lib/post-target";
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { doc, updateDoc, setDoc, deleteDoc, getDoc, collection, addDoc, getDocs, query, where, increment, runTransaction } from "firebase/firestore";
@@ -12,8 +14,16 @@ import ShareModal from "./ShareModal";
 import ReportModal from "./ReportModal";
 import HoverCard from "./HoverCard";
 import { renderFormattedBody } from "./PostFormatter";
+import PostHashtagText from "./PostHashtagText";
+import { postBodyPreviewText } from "@/lib/post-preview";
+import { textHasHashtags } from "@/lib/hashtags";
+import VideoPlayer from "./VideoPlayer";
+import NsfwMediaCover from "./NsfwMediaCover";
+import FeedMediaFrame from "./FeedMediaFrame";
 import { useToast } from "./ToastProvider";
 import { calcSaitGain } from "@/lib/ranking";
+import { displayFeedTitle, textDirAttr } from "@/lib/display-text";
+import { getPostBorderedPref } from "@/lib/user-display-prefs";
 
 interface QuotedPostData {
   id: string;
@@ -38,13 +48,21 @@ interface PostCardProps {
   body?: string;
   image?: string;
   imageUrls?: string[];
+  linkUrl?: string;
+  videoUrl?: string;
+  mediaItems?: {type:"image"|"video", url:string}[];
   flair?: string;
+  flairBg?: string | null;
+  flairTextColor?: string | null;
   isNsfw?: boolean;
   isSpoiler?: boolean;
+  isLiving?: boolean;
+  currentVersion?: number;
+  versionsCount?: number;
   votes?: number;
   comments?: number;
   awards?: any[];
-  poll?: { options: string[]; votes: number[]; duration: string } | null;
+  poll?: PollData | null;
   quotedPost?: QuotedPostData | null;
   quotedPostId?: string;
   onCommunityClick?: (name: string) => void;
@@ -53,6 +71,9 @@ interface PostCardProps {
   onEditClick?: (id: string) => void;
   onDeleteClick?: (id: string) => void;
   onQuoteClick?: (id: string) => void;
+  onFlairClick?: (flair: string) => void;
+  hashtags?: string[];
+  onHashtagClick?: (tag: string) => void;
 }
 
 export default function PostCard({
@@ -66,9 +87,17 @@ export default function PostCard({
   body,
   image,
   imageUrls,
+  linkUrl,
+  videoUrl,
+  mediaItems: mediaItemsProp,
   flair,
+  flairBg,
+  flairTextColor,
   isNsfw,
   isSpoiler,
+  isLiving,
+  currentVersion,
+  versionsCount,
   votes = 0,
   comments = 0,
   awards,
@@ -81,6 +110,8 @@ export default function PostCard({
   onQuoteClick,
   quotedPost: quotedPostProp,
   quotedPostId,
+  onFlairClick,
+  onHashtagClick,
 }: PostCardProps) {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -94,11 +125,24 @@ export default function PostCard({
   const [isStaff, setIsStaff] = useState(false);
   const [fetchedQuotedPost, setFetchedQuotedPost] = useState<QuotedPostData | null>(null);
   const quotedPost = quotedPostProp || fetchedQuotedPost;
+  const isUserDest = isUserDestinationPath(community);
+  const communityDocId = firestoreCommunityIdFromDisplay(community);
+  const [postBordered, setPostBordered] = useState(false);
 
-  // Check if user is staff in this community
   useEffect(() => {
-    if (!user || !community) return;
-    const commName = community.replace(/^n\//, "");
+    setPostBordered(getPostBorderedPref());
+    const onPrefs = () => setPostBordered(getPostBorderedPref());
+    window.addEventListener("nf-display-prefs", onPrefs);
+    return () => window.removeEventListener("nf-display-prefs", onPrefs);
+  }, []);
+
+  // Check if user is staff in this community (ليس منشورات u/)
+  useEffect(() => {
+    if (!user || !communityDocId) {
+      setIsStaff(false);
+      return;
+    }
+    const commName = communityDocId;
     getDoc(doc(db, "communities", commName)).then(commSnap => {
       if (commSnap.exists() && commSnap.data().creatorUid === user.uid) { setIsStaff(true); return; }
       getDoc(doc(db, "communities", commName, "members", user.uid)).then(s => {
@@ -109,7 +153,7 @@ export default function PostCard({
         }
       }).catch(() => {});
     }).catch(() => {});
-  }, [user?.uid, community]);
+  }, [user?.uid, communityDocId]);
 
   // Fetch quoted post if quotedPostId provided but no quotedPost prop
   useEffect(() => {
@@ -159,9 +203,11 @@ export default function PostCard({
   const [showQuickReply, setShowQuickReply] = useState(false);
   const [quickReplyText, setQuickReplyText] = useState("");
   const [blurRevealed, setBlurRevealed] = useState(false);
+
+  useEffect(() => {
+    setBlurRevealed(false);
+  }, [imgIdx]);
   const [dblClickAnim, setDblClickAnim] = useState(false);
-  const [pollVotes, setPollVotes] = useState<number[]>(poll?.votes || []);
-  const [myPollVote, setMyPollVote] = useState<number | null>(null);
   // AI
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -219,29 +265,37 @@ export default function PostCard({
     if (aiApiKey) testAiConnection();
   };
 
-  // Check if user already voted in poll
-  useEffect(() => {
-    if (!user || !postId || !poll) return;
-    getDoc(doc(db, "posts", postId, "pollVotes", user.uid)).then(s => {
-      if (s.exists()) setMyPollVote(s.data().optionIndex);
-    }).catch(() => {});
-  }, [user, postId, poll]);
-
-  const handlePollVote = async (idx: number) => {
-    if (!user || !postId || !poll || myPollVote !== null) return;
-    const newVotes = [...pollVotes];
-    newVotes[idx] = (newVotes[idx] || 0) + 1;
-    setPollVotes(newVotes);
-    setMyPollVote(idx);
+  const isSafeMediaUrl = (url: string) => {
+    const u = (url || "").trim();
+    if (!u) return false;
+    if (u.startsWith("/") || u.startsWith("data:image/")) return true;
     try {
-      await updateDoc(doc(db, "posts", postId), { "poll.votes": newVotes });
-      await setDoc(doc(db, "posts", postId, "pollVotes", user.uid), { optionIndex: idx, votedAt: new Date().toISOString() });
-    } catch {}
+      const p = new URL(u);
+      return p.protocol === "http:" || p.protocol === "https:";
+    } catch {
+      return false;
+    }
   };
 
-  // Support multiple images
-  const allImages = imageUrls && imageUrls.length > 0 ? imageUrls.filter(u => u && u.trim()) : (image ? [image] : []);
+  // Support multiple images + unified mediaItems (text / image / link — no exclusion)
+  const allImages =
+    imageUrls && imageUrls.length > 0
+      ? imageUrls.filter((u) => isSafeMediaUrl(u))
+      : image && isSafeMediaUrl(image)
+        ? [image]
+        : [];
   const hasMultiple = allImages.length > 1;
+  // Feed always shows carousel — the setting only affects PostDetail (full post view)
+
+  // Build unified media list
+  const unifiedMedia: {type:"image"|"video", url:string}[] = (() => {
+    if (mediaItemsProp && mediaItemsProp.length > 0) {
+      return mediaItemsProp.filter((m) => m.url.trim() && isSafeMediaUrl(m.url));
+    }
+    const imgs = allImages.map(u => ({type:"image" as const, url:u}));
+    const vid = videoUrl?.trim();
+    return vid ? [...imgs, {type:"video" as const, url:vid}] : imgs;
+  })();
 
   const handleDblClickVote = () => {
     if (!user || !postId) return;
@@ -506,16 +560,38 @@ export default function PostCard({
     if (e.button === 0) { e.preventDefault(); onPostClick?.(postId || ""); }
   };
 
+  // Ctrl+Drag to pin as tab — attach via native event to avoid framer-motion type conflict
+  const articleRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = articleRef.current;
+    if (!el) return;
+    const onDragStart = (e: DragEvent) => {
+      if (!e.ctrlKey) { e.preventDefault(); return; }
+      const label = title ? title.slice(0, 22) + (title.length > 22 ? "…" : "") : "منشور";
+      e.dataTransfer?.setData("application/nf-item-id",      `post:${postId}`);
+      e.dataTransfer?.setData("application/nf-item-label",   label);
+      e.dataTransfer?.setData("application/nf-item-view",    "post");
+      e.dataTransfer?.setData("application/nf-item-payload", JSON.stringify({ postId }));
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = "copy";
+    };
+    el.setAttribute("draggable", "true");
+    el.addEventListener("dragstart", onDragStart);
+    return () => el.removeEventListener("dragstart", onDragStart);
+  }, [postId, title]);
+
   return (
     <motion.article
+      ref={articleRef as any}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       onClick={handleClick}
-      className={cn("group bg-transparent border rounded-lg mb-2.5 cursor-pointer transition-all duration-200 relative",
-        voteCount >= 10 ? "border-orange-400/20 hover:bg-nf-accent/5 hover:border-orange-400/35" : "border-nf-border-2 hover:bg-nf-accent/5 hover:border-nf-accent/20")}
+      className={cn(
+        "group cursor-pointer nf-post-card relative mx-0.5 sm:mx-1",
+        postBordered && "nf-post-card--bordered"
+      )}
     >
-      <div className="px-4 pt-3 pb-2 relative" onDoubleClick={handleDblClickVote}>
+      <div className="px-3 pt-2.5 pb-1.5 relative" onDoubleClick={handleDblClickVote}>
         {/* Double-click heart animation */}
         {dblClickAnim && (
           <motion.div initial={{ opacity: 1, scale: 0.5, y: 0 }} animate={{ opacity: 0, scale: 1.8, y: -30 }} transition={{ duration: 0.7 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
@@ -523,7 +599,7 @@ export default function PostCard({
           </motion.div>
         )}
         {/* Header */}
-        <div className="flex items-center gap-2 text-[13px] mb-1.5">
+        <div className="flex items-center gap-2 text-[12px] mb-1">
           <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
             {authorPhoto ? (
               <img src={authorPhoto} alt="" className="w-full h-full object-cover" />
@@ -531,92 +607,148 @@ export default function PostCard({
               <div className="w-full h-full flex items-center justify-center text-[9px] text-nf-muted font-bold">n/</div>
             )}
           </div>
-          <HoverCard type="community" name={community.replace("n/", "")} onCommunityClick={onCommunityClick}><span className="font-semibold text-nf-accent cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onCommunityClick?.(community.replace("n/", "")); }}>{community}</span></HoverCard>
+          {isUserDest ? (
+            <HoverCard type="user" name={community.slice(2)} uid={authorUid} onProfileClick={onProfileClick}>
+              <span className="font-semibold text-nf-accent cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onProfileClick?.(authorUid || undefined); }}>{community}</span>
+            </HoverCard>
+          ) : communityDocId ? (
+            <HoverCard type="community" name={communityDocId} onCommunityClick={onCommunityClick}>
+              <span className="font-semibold text-nf-accent cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); onCommunityClick?.(communityDocId); }}>{community}</span>
+            </HoverCard>
+          ) : (
+            <span className="font-semibold text-nf-muted">{community}</span>
+          )}
           <span className="text-nf-dim">·</span>
           <HoverCard type="user" name={author} uid={authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted hover:text-nf-text hover:underline cursor-pointer inline-flex items-center gap-1" onClick={(e) => { e.stopPropagation(); onProfileClick?.(authorUid || undefined); }}>u/{author}{(authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span></HoverCard>
           <span className="text-nf-dim">·</span>
           <span className="text-nf-muted">{time}</span>
-          {flair && <><span className="text-nf-dim">·</span><span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-nf-accent/20 text-nf-accent">{flair}</span></>}
+          {flair && (
+            <>
+              <span className="text-nf-dim">·</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFlairClick?.(flair);
+                }}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold hover:opacity-80 active:scale-95 transition-all cursor-pointer"
+                style={{
+                  background: (flairBg as any) || "rgba(var(--accent-rgb,160,160,160),0.2)",
+                  color: (flairTextColor as any) || "var(--accent)"
+                }}
+              >
+                {flair}
+              </button>
+            </>
+          )}
           {voteCount >= 10 && <><span className="text-nf-dim">·</span><span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-400/15 text-orange-400 flex items-center gap-0.5"><Flame size={9} />رائج</span></>}
+          {isLiving && (
+            <>
+              <span className="text-nf-dim">·</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-nf-accent/10 text-nf-accent border border-nf-accent/20">
+                حي{currentVersion ? ` v${currentVersion}` : ""}
+                {versionsCount && versionsCount > 1 ? ` (${versionsCount})` : ""}
+              </span>
+            </>
+          )}
         </div>
 
-        {/* Title - MY title first */}
-        <h3 className="text-[18px] font-bold text-nf-text leading-snug mb-1">{title}</h3>
+        {/* Title */}
+        <h3
+          className="nf-post-title nf-post-preview-title nf-bidi-text font-sans mb-1.5 line-clamp-1"
+          dir={textDirAttr(title)}
+          title={title}
+        >
+          {textHasHashtags(title) ? (
+            <PostHashtagText text={displayFeedTitle(title)} onHashtagClick={onHashtagClick} />
+          ) : (
+            displayFeedTitle(title)
+          )}
+        </h3>
 
-        {/* Body - MY body */}
-        {body && (
-          <div className="flex items-start gap-2">
-            <div className="text-sm text-nf-text-2 leading-relaxed line-clamp-3 flex-1">{renderFormattedBody(body)}</div>
-            {body.split(/\s+/).length > 50 && <span className="text-[10px] text-nf-dim shrink-0 mt-0.5">{Math.max(1, Math.ceil(body.split(/\s+/).length / 200))} {t("pd.minRead")}</span>}
-          </div>
-        )}
-
-        {/* Poll */}
-        {poll && poll.options.length >= 2 && (
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-1.5 text-[13px] font-bold text-nf-text mb-1">
-              <BarChart3 size={14} className="text-nf-accent" />
-              <span>استطلاع</span>
-            </div>
-            {poll.options.map((opt, idx) => {
-              const total = pollVotes.reduce((a, b) => a + b, 0);
-              const pct = total > 0 ? Math.round(((pollVotes[idx] || 0) / total) * 100) : 0;
-              const isVoted = myPollVote === idx;
-              const hasVoted = myPollVote !== null;
+        {/* Body — معاينة نصية فقط في الفيد */}
+        {body && (() => {
+          const preview = postBodyPreviewText(body);
+          if (!preview) {
+            if (/```|using |public class|function /.test(body)) {
               return (
-                <button key={idx} onClick={(e) => { e.stopPropagation(); handlePollVote(idx); }}
-                  className={cn("w-full relative flex items-center gap-3 px-4 py-2.5 rounded-lg border text-right overflow-hidden transition-all",
-                    !hasVoted ? "cursor-pointer hover:border-nf-accent/40 hover:bg-nf-accent/5" : "cursor-default",
-                    isVoted ? "border-nf-accent/30" : "border-nf-border-2")}
-                  disabled={hasVoted}
-                >
-                  {hasVoted && (
-                    <div className={cn("absolute top-0 right-0 h-full transition-all duration-500", isVoted ? "bg-nf-accent/15" : "bg-nf-secondary/30")} style={{ width: `${pct}%` }} />
-                  )}
-                  {!hasVoted && (
-                    <div className="w-4 h-4 rounded-full border-2 border-nf-border shrink-0 relative z-10" />
-                  )}
-                  {hasVoted && (
-                    <div className={cn("w-4 h-4 rounded-full border-2 shrink-0 relative z-10 flex items-center justify-center", isVoted ? "border-nf-accent" : "border-nf-border")}>
-                      {isVoted && <div className="w-2 h-2 rounded-full bg-nf-accent" />}
-                    </div>
-                  )}
-                  <span className="text-[13px] text-nf-text relative z-10 flex-1">{opt}</span>
-                  {hasVoted && (
-                    <span className={cn("text-[13px] font-bold relative z-10 tabular-nums", isVoted ? "text-nf-accent" : "text-nf-dim")}>{pct}%</span>
-                  )}
-                </button>
+                <p className="nf-post-preview-body mt-0.5">💻 كود · اضغط لفتح المنشور</p>
               );
-            })}
-            <div className="flex items-center gap-2 text-[11px] text-nf-dim mt-1">
-              <span>{pollVotes.reduce((a, b) => a + b, 0)} صوت</span>
-              <span>·</span>
-              <span>{poll.duration === "24h" ? "ينتهي خلال يوم" : poll.duration === "3d" ? "ينتهي خلال 3 أيام" : "ينتهي خلال أسبوع"}</span>
-            </div>
+            }
+            return null;
+          }
+          return (
+            <p className="nf-post-preview-body nf-bidi-text mt-0.5" dir={textDirAttr(preview)}>
+              {onHashtagClick && preview.includes("#") ? (
+                <PostHashtagText text={preview} onHashtagClick={onHashtagClick} />
+              ) : (
+                preview
+              )}
+            </p>
+          );
+        })()}
+
+        {/* Link post — فقط إذا ما في نص ولا وسائط */}
+        {linkUrl?.trim() && unifiedMedia.length === 0 && !postBodyPreviewText(body || "") && isSafeMediaUrl(linkUrl) && (
+          <a
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg border border-nf-border-2/50 bg-nf-secondary/40 text-[12px] text-nf-accent hover:bg-nf-secondary/70 transition-colors"
+            dir="ltr"
+          >
+            <Link2 size={14} className="shrink-0" />
+            <span className="truncate">{linkUrl.replace(/^https?:\/\//, "")}</span>
+          </a>
+        )}
+
+        {/* Poll — شارة مختصرة في الفيد */}
+        {poll && poll.options.length >= 2 && (
+          <div className="mt-2">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] text-nf-dim border border-nf-border-2/35">
+              استطلاع · {poll.options.length} خيارات
+              {isPollExpired(poll, time) && " · انتهى"}
+            </span>
           </div>
         )}
 
-        {/* Images - full width, supports carousel */}
-        {allImages.length > 0 && (
-          <div className="mt-2 -mx-4 relative overflow-hidden">
-            <img src={allImages[imgIdx]} alt="" className={cn("w-full h-auto max-h-[600px] object-cover transition-all duration-300",
-              (isNsfw || isSpoiler) && !blurRevealed ? "blur-2xl scale-105" : "cursor-zoom-in hover:opacity-92")} />
-            {(isNsfw || isSpoiler) && !blurRevealed && (
-              <div onClick={(e) => { e.stopPropagation(); setBlurRevealed(true); }} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 cursor-pointer hover:bg-black/40 transition-colors z-10">
-                <span className="text-white text-[13px] font-bold mb-1">{isNsfw ? "محتوى حساس" : "Spoiler - اضغط للعرض"}</span>
-                <span className="text-white/60 text-[10px]">اضغط لكشف الصورة</span>
+        {/* Unified Media Carousel — صورة كاملة مع حد أقصى للكبيرة */}
+        {unifiedMedia.length > 0 && (
+          <div className="mt-2 relative overflow-hidden rounded-lg nf-feed-media">
+            {unifiedMedia[imgIdx]?.type === "image" ? (
+              <NsfwMediaCover
+                blurred={!!((isNsfw || isSpoiler) && !blurRevealed)}
+                isNsfw={!!isNsfw}
+                isSpoiler={!!isSpoiler}
+                onReveal={() => setBlurRevealed(true)}
+                className="rounded-lg"
+              >
+                <FeedMediaFrame
+                  src={unifiedMedia[imgIdx].url}
+                  alt=""
+                  imgClassName="nf-feed-media-img"
+                />
+              </NsfwMediaCover>
+            ) : (
+              <div onClick={(e) => e.stopPropagation()}>
+                <VideoPlayer url={unifiedMedia[imgIdx].url} compact />
               </div>
             )}
-            {hasMultiple && (
+            {/* Navigation */}
+            {unifiedMedia.length > 1 && (
               <>
-                <button onClick={(e) => { e.stopPropagation(); setImgIdx((imgIdx - 1 + allImages.length) % allImages.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"><ChevronLeft size={16} /></button>
-                <button onClick={(e) => { e.stopPropagation(); setImgIdx((imgIdx + 1) % allImages.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"><ChevronRight size={16} /></button>
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                  {allImages.map((_, i) => (
-                    <button key={i} onClick={(e) => { e.stopPropagation(); setImgIdx(i); }} className={cn("w-1.5 h-1.5 rounded-full transition-colors", i === imgIdx ? "bg-white" : "bg-white/40")} />
+                <button onClick={(e) => { e.stopPropagation(); setImgIdx((imgIdx - 1 + unifiedMedia.length) % unifiedMedia.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"><ChevronLeft size={16} /></button>
+                <button onClick={(e) => { e.stopPropagation(); setImgIdx((imgIdx + 1) % unifiedMedia.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"><ChevronRight size={16} /></button>
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                  {unifiedMedia.map((m, i) => (
+                    <button key={i} onClick={(e) => { e.stopPropagation(); setImgIdx(i); }}
+                      className={cn("rounded-full transition-all duration-200", i === imgIdx ? "w-3 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/40 hover:bg-white/70")} />
                   ))}
                 </div>
-                <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/50 text-[10px] text-white font-medium">{imgIdx + 1}/{allImages.length}</span>
+                <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/50 text-[10px] text-white font-medium z-10">
+                  {imgIdx + 1}/{unifiedMedia.length}{unifiedMedia[imgIdx]?.type === "video" ? " 🎬" : ""}
+                </span>
               </>
             )}
           </div>
@@ -647,7 +779,7 @@ export default function PostCard({
               </div>
               {quotedPost.title && <h3 className="text-[18px] font-bold text-nf-text-2 leading-snug mb-1">{quotedPost.title}</h3>}
               {quotedPost.body && <p className="text-sm text-nf-text-2/80 leading-relaxed line-clamp-3">{quotedPost.body}</p>}
-              {quotedPost.imageUrl && <div className="mt-2 -mx-4"><img src={quotedPost.imageUrl} alt="" className="w-full max-h-[300px] object-cover" /></div>}
+              {quotedPost.imageUrl && <div className="mt-2 rounded-lg overflow-hidden"><img src={quotedPost.imageUrl} alt="" className="w-full max-h-[300px] object-cover" /></div>}
             </div>
             {/* Quote actions */}
             <div className="flex items-center gap-1 px-3 py-1.5 border-t border-nf-border-2/30 text-nf-dim">
@@ -658,7 +790,7 @@ export default function PostCard({
       </div>
 
       {/* Footer - always visible */}
-      <div className="flex items-center gap-3 px-3 sm:px-4 py-1.5 text-nf-muted flex-wrap opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+      <div className="flex items-center gap-3 px-2 sm:px-3 py-1 text-nf-muted flex-wrap opacity-80 group-hover:opacity-100 transition-opacity duration-300">
         <div className="flex items-center gap-0.5 bg-nf-secondary rounded-full px-1.5 py-0.5">
           <button onClick={(e) => { e.stopPropagation(); handleVote(1); }} className={cn("p-1 rounded-md transition-colors duration-150", myVote === 1 ? "text-orange-500" : "text-nf-dim hover:text-nf-muted")}><ArrowUp size={16} /></button>
           <span className={cn("text-xs font-bold min-w-[20px] text-center", myVote === 1 ? "text-orange-500" : myVote === -1 ? "text-blue-400" : voteCount > 0 ? "text-orange-500" : voteCount < 0 ? "text-blue-400" : "text-nf-dim")}>{voteCount}</span>
@@ -673,6 +805,19 @@ export default function PostCard({
         <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors">
           <Share2 size={14} /><span>{t("pc.share")}</span>
         </button>
+        {postId && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              window.open(`/embed-generator?postId=${postId}`, "_blank", "noopener,noreferrer");
+            }}
+            className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors"
+            title="إنشاء Embed"
+          >
+            <Code size={14} /><span>Embed</span>
+          </button>
+        )}
         <button onClick={(e) => { e.stopPropagation(); toggleSave(); }} className={cn("flex items-center gap-1 text-xs transition-all duration-200", saved ? "text-nf-accent" : "hover:text-nf-accent")}>
           <Bookmark size={14} fill={saved ? "currentColor" : "none"} /><span>{saved ? "محفوظ" : "حفظ"}</span>
         </button>
@@ -710,7 +855,7 @@ export default function PostCard({
 
       {/* Quick Reply */}
       {showQuickReply && (
-        <div className="flex items-center gap-2 px-4 py-2 border-t border-nf-border-2/50">
+        <div className="flex items-center gap-2 px-4 py-2">
           {user?.photoURL ? (
             <img src={user.photoURL} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
           ) : (
@@ -731,22 +876,34 @@ export default function PostCard({
         </div>
       )}
 
-      {/* AI Result with typing animation */}
+      {/* AI Result — إطار قوس قزح دوّار */}
       {(aiResult || aiLoading) && (
-        <div className="px-4 py-2.5 border-t border-nf-border-2/50">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Sparkles size={10} className={cn("text-nf-accent/60", aiLoading && "animate-pulse")} />
-            <span className="text-[9px] text-nf-accent/60 font-bold">{aiLoading ? "بكتبلك..." : "NorthFall AI"}</span>
-            {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="mr-auto text-nf-dim hover:text-nf-text transition-colors"><X size={10} /></button>}
-          </div>
-          {aiLoading && !aiResult && (
-            <div className="flex items-center gap-1">
-              <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-              <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-              <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+        <div className={cn("nf-ai-box", aiLoading && "nf-ai-box--loading")}>
+          <div className="nf-ai-box-inner">
+            <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-nf-border-2/30">
+              <span className="nf-ai-box-label">{aiLoading ? "بكتبلك..." : "NorthFall AI"}</span>
+              {aiResult && !aiLoading && (
+                <button type="button" onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="text-nf-dim/50 hover:text-nf-dim transition-colors shrink-0">
+                  <X size={11} />
+                </button>
+              )}
             </div>
-          )}
-          {aiDisplayText && <p className="text-[11px] text-nf-muted leading-relaxed">{aiDisplayText}<span className="inline-block w-[2px] h-[11px] bg-nf-accent/60 ml-0.5 animate-pulse" /></p>}
+            <div className="px-3 py-2.5 min-h-[2rem]">
+              {aiLoading && !aiDisplayText && (
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-nf-dim/50 animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-nf-dim/50 animate-bounce" style={{ animationDelay: "140ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-nf-dim/50 animate-bounce" style={{ animationDelay: "280ms" }} />
+                </div>
+              )}
+              {aiDisplayText && (
+                <p className="text-[12px] text-nf-text-2 leading-relaxed">
+                  {aiDisplayText}
+                  {aiLoading && <span className="inline-block w-[2px] h-[13px] bg-nf-muted/60 mr-0.5 animate-pulse rounded-full align-middle" />}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

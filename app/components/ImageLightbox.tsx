@@ -20,6 +20,7 @@ export default function ImageLightbox({ src, alt, onClose, allImages, currentInd
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [loaded, setLoaded] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const imageAreaRef = useRef<HTMLDivElement>(null);
 
   const hasMultiple = allImages && allImages.length > 1;
   const canPrev = hasMultiple && currentIndex > 0;
@@ -30,13 +31,14 @@ export default function ImageLightbox({ src, alt, onClose, allImages, currentInd
     setPos({ x: 0, y: 0 });
   }, []);
 
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+
   useEffect(() => {
     setLoaded(false);
     resetView();
   }, [src, resetView]);
 
   useEffect(() => {
-    // Add class to hide navbar and prevent scroll
     document.documentElement.classList.add("lightbox-open");
     document.body.style.overflow = "hidden";
     return () => {
@@ -50,22 +52,29 @@ export default function ImageLightbox({ src, alt, onClose, allImages, currentInd
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowLeft" && canPrev && onNavigate) onNavigate(currentIndex - 1);
       if (e.key === "ArrowRight" && canNext && onNavigate) onNavigate(currentIndex + 1);
-      if (e.key === "+" || e.key === "=") setZoom(z => Math.min(z + 0.25, 4));
-      if (e.key === "-") setZoom(z => Math.max(z - 0.25, 0.5));
+      if (e.key === "+" || e.key === "=") setZoom((z) => Math.min(z + 0.25, 4));
+      if (e.key === "-") setZoom((z) => Math.max(z - 0.25, 0.5));
       if (e.key === "0") resetView();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose, canPrev, canNext, onNavigate, currentIndex, resetView]);
 
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.15 : 0.15;
-    setZoom(z => Math.min(Math.max(z + delta, 0.5), 5));
-  };
+  useEffect(() => {
+    const el = imageAreaRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.12 : 0.12;
+      setZoom((z) => Math.min(Math.max(z + delta, 0.5), 5));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (zoom <= 1) return;
+    e.preventDefault();
     setDragging(true);
     setDragStart({ x: e.clientX - pos.x, y: e.clientY - pos.y });
   };
@@ -77,7 +86,8 @@ export default function ImageLightbox({ src, alt, onClose, allImages, currentInd
 
   const handleMouseUp = () => setDragging(false);
 
-  const handleDownload = async () => {
+  const handleDownload = async (e: React.MouseEvent) => {
+    stop(e);
     try {
       const response = await fetch(src);
       const blob = await response.blob();
@@ -99,121 +109,112 @@ export default function ImageLightbox({ src, alt, onClose, allImages, currentInd
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.18 }}
-        className="fixed inset-0 z-[99999] flex flex-col"
-        style={{ background: "rgba(0,0,0,0.96)" }}
-        onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+        transition={{ duration: 0.15 }}
+        className="fixed inset-0 z-[99999] flex flex-col bg-black"
+        onClick={(e) => {
+          if (e.target === overlayRef.current) onClose();
+        }}
       >
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-5 py-3 shrink-0 z-10" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <p className="text-white/70 text-sm truncate max-w-[50vw]">{alt || ""}</p>
-          <div className="flex items-center gap-2">
-            {/* Zoom controls */}
-            <button onClick={() => setZoom(z => Math.max(z - 0.25, 0.5))} className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all" title="تصغير (-)">
-              <ZoomOut size={17} />
+        <div
+          className="flex items-center justify-between px-4 py-2.5 shrink-0 border-b border-white/[0.06]"
+          onClick={stop}
+        >
+          <p className="text-white/50 text-xs truncate max-w-[50vw]">{alt || ""}</p>
+          <div className="flex items-center gap-0.5">
+            <button type="button" onClick={(e) => { stop(e); setZoom((z) => Math.max(z - 0.25, 0.5)); }} className="p-2 rounded-md text-white/55 hover:text-white hover:bg-white/[0.08] transition-colors" title="تصغير">
+              <ZoomOut size={16} />
             </button>
-            <span className="text-white/50 text-xs font-mono w-10 text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom(z => Math.min(z + 0.25, 4))} className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all" title="تكبير (+)">
-              <ZoomIn size={17} />
+            <span className="text-white/45 text-[11px] font-mono w-9 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+            <button type="button" onClick={(e) => { stop(e); setZoom((z) => Math.min(z + 0.25, 4)); }} className="p-2 rounded-md text-white/55 hover:text-white hover:bg-white/[0.08] transition-colors" title="تكبير">
+              <ZoomIn size={16} />
             </button>
-            <button onClick={resetView} className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all" title="إعادة ضبط (0)">
-              <RotateCcw size={15} />
+            <button type="button" onClick={(e) => { stop(e); resetView(); }} className="p-2 rounded-md text-white/55 hover:text-white hover:bg-white/[0.08] transition-colors" title="إعادة ضبط">
+              <RotateCcw size={14} />
             </button>
-            <button onClick={() => window.open(src, "_blank")} className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all" title="فتح في تبويب جديد">
-              <Maximize2 size={15} />
+            <button type="button" onClick={(e) => { stop(e); window.open(src, "_blank"); }} className="p-2 rounded-md text-white/55 hover:text-white hover:bg-white/[0.08] transition-colors" title="فتح في تبويب">
+              <Maximize2 size={14} />
             </button>
-            <button onClick={handleDownload} className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all" title="تحميل">
-              <Download size={17} />
+            <button type="button" onClick={handleDownload} className="p-2 rounded-md text-white/55 hover:text-white hover:bg-white/[0.08] transition-colors" title="تحميل">
+              <Download size={16} />
             </button>
-            <div className="w-px h-5 bg-white/10 mx-1" />
-            <button onClick={onClose} className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all" title="إغلاق (Esc)">
-              <X size={18} />
+            <div className="w-px h-4 bg-white/10 mx-1" />
+            <button type="button" onClick={(e) => { stop(e); onClose(); }} className="p-2 rounded-md text-white/55 hover:text-white hover:bg-white/[0.08] transition-colors" title="إغلاق">
+              <X size={17} />
             </button>
           </div>
         </div>
 
-        {/* Image area */}
         <div
-          className="flex-1 flex items-center justify-center overflow-hidden relative"
-          onWheel={handleWheel}
+          ref={imageAreaRef}
+          className="flex-1 flex items-center justify-center overflow-hidden relative select-none"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
           style={{ cursor: zoom > 1 ? (dragging ? "grabbing" : "grab") : "default" }}
-          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
         >
-          {/* Prev arrow */}
           {canPrev && onNavigate && (
             <button
-              onClick={(e) => { e.stopPropagation(); onNavigate(currentIndex - 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white/80 hover:text-white transition-all border border-white/10 hover:border-white/25 backdrop-blur-sm"
+              type="button"
+              onClick={(e) => { stop(e); onNavigate(currentIndex - 1); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 text-white/80 hover:bg-black/70 border border-white/10"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" /></svg>
             </button>
           )}
-          {/* Next arrow */}
           {canNext && onNavigate && (
             <button
-              onClick={(e) => { e.stopPropagation(); onNavigate(currentIndex + 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white/80 hover:text-white transition-all border border-white/10 hover:border-white/25 backdrop-blur-sm"
+              type="button"
+              onClick={(e) => { stop(e); onNavigate(currentIndex + 1); }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 text-white/80 hover:bg-black/70 border border-white/10"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
           )}
 
           {!loaded && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-10 h-10 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-8 h-8 border-2 border-white/15 border-t-white/50 rounded-full animate-spin" />
             </div>
           )}
 
-          <motion.img
+          <img
             key={src}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: loaded ? 1 : 0, scale: 1 }}
-            transition={{ duration: 0.22 }}
             src={src}
             alt={alt || ""}
             onLoad={() => setLoaded(true)}
             draggable={false}
+            onClick={stop}
+            className="max-w-[min(96vw,1400px)] max-h-[calc(100vh-88px)] w-auto h-auto object-contain transition-opacity duration-200"
             style={{
+              opacity: loaded ? 1 : 0,
               transform: `translate(${pos.x}px, ${pos.y}px) scale(${zoom})`,
-              transition: dragging ? "none" : "transform 0.15s ease",
-              maxWidth: "90vw",
-              maxHeight: "85vh",
-              objectFit: "contain",
-              userSelect: "none",
-              borderRadius: "10px",
-              boxShadow: "0 25px 80px rgba(0,0,0,0.6)",
+              transition: dragging ? "none" : "transform 0.12s ease-out, opacity 0.2s",
             }}
-            onClick={(e) => e.stopPropagation()}
           />
         </div>
 
-        {/* Bottom strip: index */}
         {hasMultiple && (
-          <div className="flex items-center justify-center gap-1.5 py-3 shrink-0">
+          <div className="flex items-center justify-center gap-1.5 py-2 shrink-0" onClick={stop}>
             {allImages!.map((_, i) => (
               <button
                 key={i}
-                onClick={() => onNavigate && onNavigate(i)}
+                type="button"
+                onClick={(e) => { stop(e); onNavigate?.(i); }}
                 className="transition-all duration-200"
                 style={{
-                  width: i === currentIndex ? 20 : 6,
-                  height: 6,
+                  width: i === currentIndex ? 18 : 5,
+                  height: 5,
                   borderRadius: 99,
-                  background: i === currentIndex ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.25)",
+                  background: i === currentIndex ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)",
                 }}
               />
             ))}
           </div>
         )}
-
-        {/* Keyboard hint */}
-        <div className="text-center text-white/20 text-[10px] pb-2 shrink-0 pointer-events-none">
-          ESC للإغلاق · +/- للتكبير · تمرير الفأرة للزوم{hasMultiple ? " · ← → للتنقل" : ""}
-        </div>
       </motion.div>
     </AnimatePresence>
   );

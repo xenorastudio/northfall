@@ -1,10 +1,29 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Cairo, Inter } from 'next/font/google';
-import DonateBanner from './components/DonateBanner';
+import { Noto_Kufi_Arabic, Roboto, Plus_Jakarta_Sans } from 'next/font/google';
+import Script from 'next/script';
 
-const cairo = Cairo({ subsets: ['arabic', 'latin'], variable: '--font-cairo', weight: ['300', '400', '500', '600', '700'] });
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: ['400', '500', '600', '700', '800', '900'] });
+const notoKufiArabic = Noto_Kufi_Arabic({
+  subsets: ['arabic'],
+  variable: '--font-noto-kufi',
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  display: 'swap',
+  preload: true,
+});
+const roboto = Roboto({
+  subsets: ['latin'],
+  variable: '--font-roboto',
+  weight: ['300', '400', '500', '700', '900'],
+  display: 'swap',
+  preload: true,
+});
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-en',
+  weight: ['500', '600', '700'],
+  display: 'swap',
+  preload: true,
+});
 
 const SITE_URL = 'https://www.northfall.blog';
 const SITE_NAME = 'NorthFall';
@@ -77,8 +96,8 @@ const KEYWORDS = [
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — مجتمعك العربي`,
-    template: `%s — ${SITE_NAME}`,
+    default: SITE_NAME,
+    template: "%s",
   },
   description: SITE_DESCRIPTION,
   keywords: KEYWORDS,
@@ -212,12 +231,15 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
+        <meta charSet="utf-8" />
         <link rel="icon" href="/favicon.ico" sizes="48x48" />
         <link rel="icon" href="/assets/favicon/favicon.svg" type="image/svg+xml" sizes="any" />
         <link rel="icon" href="/assets/favicon/favicon-96x96.png" type="image/png" sizes="96x96" />
         <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" sizes="180x180" />
         <link rel="manifest" href="/assets/favicon/site.webmanifest" />
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
@@ -231,6 +253,9 @@ export default function RootLayout({
                     document.documentElement.classList.add('light');
                     document.documentElement.classList.remove('dark');
                   }
+                  if (localStorage.getItem('nf-classic') === 'true') {
+                    document.documentElement.classList.add('classic');
+                  }
                 } catch (e) {}
               })();
             `
@@ -241,8 +266,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${cairo.variable} ${inter.variable} font-cairo min-h-screen w-full bg-nf-body text-nf-text-2 antialiased overflow-x-hidden`}>
-        <DonateBanner />
+      <body className={`${notoKufiArabic.variable} ${roboto.variable} ${plusJakarta.variable} min-h-screen w-full bg-nf-body text-nf-text antialiased overflow-x-hidden`}>
         {children}
       </body>
     </html>

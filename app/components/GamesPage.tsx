@@ -78,6 +78,8 @@ export const GAMES: Game[] = [
   // === Racing / Driving ===
   { id: "beamng-drive", name: "BeamNG.drive", cover: "/assets/GameCovor/BeamNG.drive.png", publisher: "BeamNG", developer: "BeamNG GmbH", genre: ["سباق", "محاكاة"], rating: 4.5, releaseYear: 2015, description: "محاكاة فيزياء السيارات الأكثر واقعية! تحطم مذهل، أوضاع لعب متنوعة، ومجتمع مودات ضخم.", platforms: ["PC"], players: "1-8", steamUrl: "https://store.steampowered.com/app/284160/BeamNGdrive/" },
   { id: "carx-drift", name: "CarX Drift Racing Online", cover: "/assets/GameCovor/CarX Drift Racing OnlineCarX Drift Racing Online.png", publisher: "CarX Technologies", developer: "CarX Technologies", genre: ["سباق", "محاكاة"], rating: 3.9, releaseYear: 2017, description: "سباقات دريفت أونلاين! فيزياء انزلاق واقعية، تخصيص سيارات، ومنافسات عالمية.", platforms: ["PC", "PS", "Xbox"], players: "1-16", steamUrl: "https://store.steampowered.com/app/641990/CarX_Drift_Racing_Online/" },
+  { id: "dirt-rally-2", name: "DiRT Rally 2.0", cover: "/assets/GameCovor/Forza Horizon 5.png", publisher: "Codemasters", developer: "Codemasters", genre: ["سباق", "رياضة", "محاكاة"], rating: 4.3, releaseYear: 2019, description: "رالي واقعي على طرق وعرة وطينية. مراحل حقيقية، سيارات WRC، وتحكم دقيق.", platforms: ["PC", "PS", "Xbox"], players: "1-8", steamUrl: "https://store.steampowered.com/app/690790/DiRT_Rally_20/" },
+  { id: "the-crew-2", name: "The Crew 2", cover: "/assets/GameCovor/Need for Speed Heat.png", publisher: "Ubisoft", developer: "Ivory Tower", genre: ["سباق", "عالم مفتوح", "رياضة"], rating: 3.7, releaseYear: 2018, description: "عالم مفتوح أمريكي للسباقات: سيارات، قوارب، طائرات. حرية استكشاف وسباقات جماعية.", platforms: ["PC", "PS", "Xbox"], players: "1-32", steamUrl: "https://store.steampowered.com/app/646910/The_Crew_2/" },
   { id: "assetto-corsa", name: "Assetto Corsa", cover: "/assets/GameCovor/Assetto Corsa.png", publisher: "Kunos Simulazioni", developer: "Kunos Simulazioni", genre: ["سباق", "محاكاة"], rating: 4.4, releaseYear: 2014, description: "محاكاة سباقات واقعية مع فيزياء دقيقة! مودات ضخمة، سيارات كثيرة، وحلقات حقيقية.", platforms: ["PC", "PS", "Xbox"], players: "1-16", steamUrl: "https://store.steampowered.com/app/244210/Assetto_Corsa/" },
   { id: "assetto-corsa-comp", name: "Assetto Corsa Competizione", cover: "/assets/GameCovor/Assetto Corsa Competizione.png", publisher: "505 Games", developer: "Kunos Simulazioni", genre: ["سباق", "محاكاة"], rating: 4.2, releaseYear: 2019, description: "محاكاة GT الرسمية! رسومات مذهلة، فيزياء إطارات واقعية، وبطولات BLANCPAIN الحقيقية.", platforms: ["PC", "PS", "Xbox"], players: "1-16", steamUrl: "https://store.steampowered.com/app/805550/Assetto_Corsa_Competizione/" },
 
@@ -588,104 +590,20 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
 
   return (
     <div ref={pageRef} className="w-full" style={{ direction: "rtl" }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <button onClick={onBack} className="p-2 rounded-xl text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors border border-nf-border-2"><ArrowLeft size={16} /></button>
-          <div>
-            <h1 className="text-lg sm:text-xl font-black text-nf-text tracking-tight">مكتبة الألعاب</h1>
-            <p className="text-[9px] text-nf-dim/50">اكتشف ألعابك المفضلة وتابعها</p>
-          </div>
+      {/* Header — flat, no back button, just title */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-[17px] font-bold text-nf-text tracking-tight">مكتبة الألعاب</h1>
+          <span className="text-[12px] text-nf-dim">{GAMES.length} لعبة</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")} className={cn("p-1.5 rounded-lg text-nf-dim hover:text-nf-text transition-colors border", layout === "grid" ? "bg-nf-secondary/20 border-nf-border-2" : "bg-nf-accent/10 border-nf-accent/20 text-nf-accent")}>
+          <button onClick={() => setLayout(layout === "grid" ? "list" : "grid")}
+            className={cn("p-1.5 rounded-lg text-nf-dim hover:text-nf-text transition-colors border",
+              layout === "grid" ? "bg-nf-secondary/20 border-nf-border-2" : "bg-nf-accent/10 border-nf-accent/20 text-nf-accent")}>
             {layout === "grid" ? <LayoutList size={14} /> : <Grid3X3 size={14} />}
           </button>
         </div>
       </div>
-
-      {/* Stats Bar */}
-      <div className="flex items-center gap-3 mb-4 p-2.5 rounded-xl bg-nf-secondary/5 border border-nf-border-2">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold border border-nf-accent/20">{GAMES.length} لعبة</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-[8px] text-nf-dim/40">
-          <span>{allGenres.length} نوع</span>
-          <span>·</span>
-          <span>{allPlatforms.length} منصة</span>
-          <span>·</span>
-          <span>{GAMES.filter(g => g.releaseYear >= 2023).length} لعبة جديدة 2023+</span>
-        </div>
-        <div className="mr-auto flex items-center gap-1 text-[8px] text-nf-dim/30">
-          <Trophy size={8} className="text-amber-400/60" />
-          <span>{GAMES.filter(g => g.rating >= 4.5).length} لعبة ممتازة</span>
-        </div>
-      </div>
-
-      {/* Hero Banner — full cover like Steam */}
-      {heroGame && !genreFilter && !platformFilter && activeTab === "all" && (
-        <motion.div key={heroGame.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
-          className="relative rounded-xl overflow-hidden mb-5 cursor-pointer group"
-          onClick={() => { if (heroGame.steamUrl) window.open(heroGame.steamUrl, "_blank"); }}>
-          {/* Full background image */}
-          <div className="relative h-[220px] sm:h-[280px]">
-            <img src={heroGame.cover} alt={heroGame.name}
-              className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.02] select-none pointer-events-none" />
-            {/* Dark overlay — full coverage */}
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.92) 100%)" }} />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to left, transparent 40%, rgba(0,0,0,0.7) 100%)" }} />
-
-            {/* Content */}
-            <div className="absolute bottom-0 right-0 left-0 p-4 sm:p-5">
-              <div className="flex items-end justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-[20px] sm:text-[26px] font-bold text-white mb-1.5 leading-tight drop-shadow-lg">{heroGame.name}</h2>
-                  <p className="text-[11px] text-white/60 leading-relaxed line-clamp-2 mb-2.5 max-w-[500px]">{heroGame.description}</p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {/* Rating dots */}
-                    <div className="flex items-center gap-1">
-                      <div className="flex gap-0.5">
-                        {[1,2,3,4,5].map(s => (
-                          <div key={s} className={cn("w-2 h-2 rounded-sm", s <= Math.round(heroGame.rating) ? "bg-emerald-400" : "bg-white/20")} />
-                        ))}
-                      </div>
-                      <span className="text-[10px] text-emerald-400 font-bold mr-1">{heroGame.rating}</span>
-                    </div>
-                    <span className="text-white/25">·</span>
-                    <span className="text-[10px] text-white/50">{heroGame.releaseYear}</span>
-                    <span className="text-white/25">·</span>
-                    {heroGame.genre.slice(0, 2).map(g => (
-                      <span key={g} className="text-[9px] px-2 py-0.5 rounded text-white/70 border border-white/15 bg-white/8">{g}</span>
-                    ))}
-                  </div>
-                </div>
-                {/* Actions */}
-                <div className="flex flex-col gap-2 shrink-0">
-                  {heroGame.steamUrl && (
-                    <a href={heroGame.steamUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium text-white/80 hover:text-white transition-all border border-white/20 hover:border-white/40 bg-white/8 hover:bg-white/12">
-                      <ExternalLink size={11} /> Steam
-                    </a>
-                  )}
-                  <div className="flex gap-1">
-                    {heroGame.platforms.slice(0, 3).map(p => (
-                      <span key={p} className="text-[8px] px-1.5 py-1 rounded bg-white/8 text-white/40 border border-white/10">{platformShort[p] || p}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Dots */}
-            <div className="absolute top-3 left-3 flex items-center gap-1.5">
-              {featured.map((_, i) => (
-                <button key={i} onClick={(e) => { e.stopPropagation(); setHeroIdx(i); }}
-                  className={cn("rounded-full transition-all", i === heroIdx ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/30 hover:bg-white/60")} />
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       {/* Top Picks Row */}
       {!genreFilter && !platformFilter && activeTab === "all" && topPicks.length > 0 && (
@@ -716,7 +634,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
           { id: "trending" as const, label: "رائج", icon: <TrendingUp size={10} /> },
           { id: "new" as const, label: "جديد", icon: <Zap size={10} /> },
           { id: "best" as const, label: "الأفضل", icon: <Crown size={10} /> },
-          { id: "hot" as const, label: "شو رائج؟", icon: <Flame size={10} /> },
+          { id: "hot" as const, label: "رائج", icon: <Flame size={10} /> },
         ].map(tab => {
           const count = tab.id === "all" ? GAMES.length : tab.id === "followed" ? favoriteIds.length : tab.id === "trending" ? GAMES.filter(g => g.rating >= 4.5).length : tab.id === "new" ? GAMES.filter(g => g.releaseYear >= 2022).length : tab.id === "best" ? GAMES.filter(g => g.rating >= 4.7).length : GAMES.filter(g => g.rating >= 4.3 && g.releaseYear >= 2020).length;
           return (

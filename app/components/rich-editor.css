@@ -1,0 +1,528 @@
+/* Compose form — bordered rounded boxes, transparent inside */
+.nf-compose-field {
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+  border-radius: 0.5rem;
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.12s;
+}
+.nf-compose-field:focus-within {
+  border-color: color-mix(in srgb, var(--text-primary) 22%, var(--border-subtle));
+}
+.nf-compose-field--editor {
+  padding: 0;
+  overflow: hidden;
+}
+.nf-compose-field--editor .nf-rich-editor {
+  padding: 0.625rem 0.75rem;
+}
+.nf-compose-plain input[type="text"],
+.nf-compose-plain input[type="url"],
+.nf-compose-plain select {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  width: 100%;
+}
+.nf-compose-plain input[type="text"]:focus,
+.nf-compose-plain input[type="url"]:focus,
+.nf-compose-plain select:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.nf-compose-plain input:-webkit-autofill,
+.nf-compose-plain input:-webkit-autofill:hover,
+.nf-compose-plain input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+.nf-compose-plain select {
+  appearance: auto;
+  cursor: pointer;
+}
+.nf-compose-field--select {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.625rem;
+  min-width: 7rem;
+}
+.nf-compose-field--select select {
+  color-scheme: dark;
+  cursor: pointer;
+}
+.nf-compose-field--select select option {
+  background: var(--bg-primary, #0d0d0d);
+  color: var(--text-primary, #e8e8e8);
+}
+
+/* Compose tabs — بدون خط، active يضوي */
+.nf-compose-tabs {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+.nf-compose-tab {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  transition: color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.nf-compose-tab--active {
+  color: color-mix(in srgb, var(--text-primary) 88%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+.nf-compose-tab--idle {
+  color: color-mix(in srgb, var(--text-muted) 72%, transparent);
+}
+.nf-compose-tab--idle:hover {
+  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+
+/* Compose select — بدون أزرق النظام */
+.nf-compose-select-menu {
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+}
+.nf-compose-select-option--active {
+  color: color-mix(in srgb, var(--text-primary) 88%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+.nf-compose-select-option--idle {
+  color: color-mix(in srgb, var(--text-muted) 72%, transparent);
+}
+.nf-compose-select-option--idle:hover {
+  color: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+
+/* Settings — بدون خطوط، ألوان الموقع */
+.nf-settings-panel select {
+  color-scheme: dark;
+  background: transparent !important;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.625rem;
+  font-size: 11px;
+  color: var(--text-primary);
+  outline: none;
+}
+.nf-settings-panel select option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.nf-settings-subtabs {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  padding: 1rem 1rem 0;
+}
+.nf-settings-subtab {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  transition: color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.nf-settings-subtab--active {
+  color: color-mix(in srgb, var(--text-primary) 88%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+.nf-settings-subtab--idle {
+  color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+}
+.nf-settings-subtab--idle:hover {
+  color: color-mix(in srgb, var(--text-primary) 50%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+
+.nf-rich-editor {
+  min-height: inherit;
+  padding: 0.625rem 0.75rem;
+  font-family: var(--font-noto-kufi), var(--font-en), system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 450;
+  line-height: 1.65;
+  color: var(--text-primary);
+  outline: none;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+}
+.nf-rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.nf-rich-editor p { margin: 0.25rem 0; }
+.nf-rich-editor p:first-child { margin-top: 0; }
+.nf-rich-editor p:last-child { margin-bottom: 0; }
+.nf-rich-editor h1 { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin: 0.75rem 0 0.375rem; }
+.nf-rich-editor h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0.625rem 0 0.3rem; }
+.nf-rich-editor h3 { font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin: 0.5rem 0 0.25rem; }
+.nf-rich-editor blockquote {
+  border-inline-start: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  padding-inline-start: 0.75rem;
+  margin: 0.375rem 0;
+  font-style: italic;
+  color: var(--text-muted);
+}
+.nf-rich-editor ul, .nf-rich-editor ol { margin: 0.375rem 0; padding-inline-start: 1.25rem; }
+.nf-rich-editor ul { list-style: disc; }
+.nf-rich-editor ol { list-style: decimal; }
+.nf-rich-editor strong, .nf-rich-editor b { font-weight: 700; }
+.nf-rich-editor em, .nf-rich-editor i { font-style: italic; }
+.nf-rich-editor .nf-md-strike { text-decoration: line-through; opacity: 0.65; }
+.nf-md-h1 { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin: 0.75rem 0 0.375rem; }
+.nf-md-h2 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0.625rem 0 0.3rem; }
+.nf-md-h3 { font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin: 0.5rem 0 0.25rem; }
+.nf-md-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.nf-md-inline-code {
+  display: inline !important;
+  width: auto !important;
+  max-width: 100%;
+  padding: 0.125rem 0.375rem;
+  margin: 0 0.12em;
+  border-radius: 0.375rem;
+  font-size: 0.85em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 400;
+  line-height: 1.45;
+  vertical-align: baseline;
+  white-space: break-spaces;
+  word-break: break-word;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-secondary) 70%, transparent);
+  border: 1px solid var(--border-subtle);
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
+.nf-md-mention {
+  color: var(--mention-color, #6eb5ff);
+  font-weight: 600;
+  cursor: pointer;
+}
+.nf-md-mention:hover {
+  color: var(--mention-color-hover, #93c9ff);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.nf-rich-editor code.nf-md-inline-code {
+  display: inline !important;
+}
+.nf-code-block {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate;
+}
+/* GitHub-style fenced code block layout (colors stay theme-aware) */
+.nf-gh-code-block {
+  margin: 0 0 1rem;
+  border-radius: 6px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
+  border: 1px solid var(--border-subtle);
+}
+.nf-code-block-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.nf-code-block-scroll {
+  overflow: auto;
+}
+.nf-code-block-scroll--collapsed {
+  overflow: hidden;
+}
+.nf-code-block-fade {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 56px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--bg-secondary) 72%, transparent) 75%
+  );
+}
+.nf-code-block-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-secondary) 45%, transparent);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+.nf-code-block-toggle:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-secondary) 65%, transparent);
+}
+.nf-gh-code-block .nf-code-block-pre {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: plaintext;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  tab-size: 4;
+  white-space: pre;
+  word-wrap: normal;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+}
+.nf-gh-code-block .nf-code-block-pre code.nf-hl-code {
+  display: block;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  white-space: pre;
+  border-radius: 0;
+}
+.nf-gh-code-block .nf-code-block-pre code.nf-hl-code span {
+  font: inherit;
+}
+.nf-code-block-pre,
+.nf-code-block pre {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: plaintext;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  margin: 0;
+}
+.nf-editor-pre {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate;
+  background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 16px;
+  margin: 0 0 1rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 4;
+  color: var(--text-primary);
+}
+.nf-post-body .nf-code-block,
+.nf-post-body pre.nf-editor-pre {
+  direction: ltr !important;
+  unicode-bidi: plaintext;
+}
+.nf-md-ul, .nf-md-ol { margin: 0.375rem 0; padding-inline-start: 1.25rem; }
+.nf-md-ul { list-style: disc; }
+.nf-md-ol { list-style: decimal; }
+.nf-md-ul li, .nf-md-ol li { margin: 0.125rem 0; }
+.nf-md-quote {
+  border-inline-start: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  padding-inline-start: 0.75rem;
+  margin: 0.375rem 0;
+  font-style: italic;
+  color: var(--text-muted);
+}
+.nf-md-hr { border: none; border-top: 1px solid var(--border-subtle); margin: 0.75rem 0; }
+pre.nf-editor-pre > code.nf-hl-code {
+  display: block;
+  background: none !important;
+  border: none !important;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  white-space: pre;
+  border-radius: 0;
+}
+pre.nf-editor-pre > code.nf-hl-code span {
+  font: inherit;
+}
+/* Preview tables — isolated from editor table / code block styles */
+.nf-post-table-wrap {
+  isolation: isolate;
+}
+.nf-post-table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: auto;
+}
+.nf-post-table-cell {
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+  vertical-align: top;
+  text-align: start;
+}
+.nf-post-table code.nf-md-inline-code {
+  display: inline !important;
+  background: rgba(110, 118, 129, 0.28);
+  color: #e6edf3;
+}
+.nf-post-table pre,
+.nf-post-table .nf-code-block {
+  margin: 0.35rem 0;
+  max-width: 100%;
+}
+.nf-post-body pre,
+.nf-post-body .nf-code-block {
+  direction: ltr;
+  text-align: left;
+  white-space: pre;
+}
+.nf-post-body code.nf-md-inline-code {
+  display: inline !important;
+}
+.nf-editor-table-wrap { margin: 0.5rem 0; overflow-x: auto; border-radius: 0.5rem; position: relative; }
+.nf-table-quick-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.35rem;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--bg-secondary) 40%, transparent);
+  user-select: none;
+}
+.nf-table-qbtn {
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.3rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+.nf-table-qbtn:hover { border-color: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--accent); }
+.nf-table-hint { font-size: 0.625rem; color: var(--text-muted); opacity: 0.75; margin-inline-start: auto; }
+.nf-editor-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.8125rem; table-layout: fixed; }
+.nf-editor-table .nf-tcell {
+  min-width: 88px;
+  min-height: 2rem;
+  vertical-align: top;
+  position: relative;
+}
+.nf-editor-table th.nf-tcell {
+  padding: 0.5rem 0.625rem;
+  text-align: start;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.nf-editor-table td.nf-tcell {
+  padding: 0.5rem 0.625rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.nf-editor-table .nf-tcell:empty::before,
+.nf-editor-table .nf-tcell:has(br:only-child)::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  opacity: 0.42;
+  pointer-events: none;
+}
+.nf-editor-table-wrap:focus-within { outline: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); outline-offset: 2px; border-radius: 0.5rem; }
+.nf-editor-img {
+  display: block;
+  max-width: min(100%, 520px);
+  height: auto;
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+.nf-rich-editor a.nf-md-link,
+.nf-post-body a.nf-md-link {
+  color: #4a9eff !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.nf-rich-editor a.nf-md-link:hover,
+.nf-post-body a.nf-md-link:hover {
+  color: #6bb3ff !important;
+}
+html.light .nf-rich-editor a.nf-md-link,
+html.light .nf-post-body a.nf-md-link {
+  color: #1565c0 !important;
+}
+
+.nf-link-toolbar {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+html.light .nf-link-toolbar {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.nf-rich-editor .nf-hashtag {
+  cursor: text;
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline;
+  color: #4a9eff !important;
+  font-weight: 600;
+  background: transparent;
+}
+html.light .nf-rich-editor .nf-hashtag {
+  color: #1a73e8 !important;
+}
+/* هاشتاق أثناء الكتابة — # لوحده */
+.nf-rich-editor {
+  color: var(--text-primary);
+}
+
+.nf-table-dots-btn {
+  position: fixed;
+  z-index: 10035;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: background 0.12s, color 0.12s;
+}
+.nf-table-dots-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+.nf-editor-table td:focus,
+.nf-editor-table th:focus {
+  outline: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  outline-offset: -1px;
+}

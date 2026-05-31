@@ -30,7 +30,13 @@ export default function CommunityDashboard({ communityName: rawName, onBack, onE
         if (!isOwner) {
           const memberSnap = await getDoc(doc(db, "communities", communityName, "members", user!.uid)).catch(() => null);
           const role = memberSnap?.data()?.role;
-          if (role !== "admin" && role !== "moderator") {
+          const perms = memberSnap?.data()?.permissions || {};
+          const canManage =
+            role === "owner" ||
+            role === "admin" ||
+            role === "moderator" ||
+            perms.manageSettings === true;
+          if (!canManage) {
             showToast("ليس لديك صلاحية للوصول", "error"); onBack(); return;
           }
         }
@@ -68,9 +74,9 @@ export default function CommunityDashboard({ communityName: rawName, onBack, onE
             <p className="text-[11px] text-nf-muted mt-0.5">{meta?.shortDesc || ""}</p>
           </div>
         </div>
-        <button onClick={onEdit} className="px-5 py-2 rounded-lg text-xs font-bold bg-nf-text text-nf-body border border-nf-text hover:opacity-90 transition-opacity">
+        <a href={`/community/${encodeURIComponent(rawName)}/edit`} className="px-5 py-2 rounded-lg text-xs font-bold bg-nf-text text-nf-body border border-nf-text hover:opacity-90 transition-opacity" style={{ textDecoration: "none" }}>
           تعديل المجتمع
-        </button>
+        </a>
       </div>
     </div>
   );

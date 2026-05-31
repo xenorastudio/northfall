@@ -1,9 +1,10 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { collection, query, where, limit, onSnapshot } from "firebase/firestore";
+import { collection, query, where, limit, onSnapshot, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
+import { mergeInterestsOrdered, normalizeInterestTags } from "@/lib/user-interests";
 
 interface CachedCommunity {
   name: string;
@@ -11,11 +12,19 @@ interface CachedCommunity {
   img: string;
   members: number;
   creatorUid?: string;
+  category?: string;
+  shortDesc?: string;
+  showInForum?: boolean;
+  isMature?: boolean;
+  communityType?: string;
 }
 
 interface CachedData {
   communities: CachedCommunity[];
   joinedCommunities: string[];
+  favoriteCommunities: string[];
+  userInterests: string[];
+  pushUserInterests: (tags: string[]) => void;
   unreadCount: number;
   loading: boolean;
   refreshCommunities: () => void;
@@ -25,6 +34,9 @@ interface CachedData {
 const DataContext = createContext<CachedData>({
   communities: [],
   joinedCommunities: [],
+  favoriteCommunities: [],
+  userInterests: [],
+  pushUserInterests: () => {},
   unreadCount: 0,
   loading: true,
   refreshCommunities: () => {},
@@ -38,6 +50,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [communities, setCommunities] = useState<CachedCommunity[]>([]);
   const [joinedCommunities, setJoinedCommunities] = useState<string[]>([]);
+  const [favoriteCommunities, setFavoriteCommunities] = useState<string[]>([]);
+  const [userInterests, setUserInterests] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +63,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .map((d) => {
           const data = d.data();
           const name = data.name || d.id;
-          return { name, label: `n/${name}`, img: data.img || "", members: data.memberCount || 0, creatorUid: data.creatorUid || undefined, showInForum: data.showInForum !== false };
+          const communityType =
+            data.communityType ||
+            (data.modLevel === "restrict" ? "private" : data.modLevel === "moderate" ? "restricted" : "public");
+          return {
+            name, label: `n/${name}`, img: data.img || "", members: data.memberCount || 0,
+            creatorUid: data.creatorUid || undefined, showInForum: data.showInForum !== false,
+            category: data.category || "", shortDesc: data.shortDesc || "",
+            isMature: !!data.isMature,
+            communityType,
+          };
         })
         .filter((c) => !isExcluded(c.name) && c.showInForum)
       );
@@ -61,10 +84,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!user) { setJoinedCommunities([]); return; }
+    if (!user) {
+      setUserInterests([]);
+      return;
+    }
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      const raw = snap.exists() ? snap.data().userInterests : [];
+      setUserInterests(
+        Array.isArray(raw) ? normalizeInterestTags(raw.map(String)) : []
+      );
+    }, () => setUserInterests([]));
+    return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) { setJoinedCommunities([]); setFavoriteCommunities([]); return; }
     const unsub = onSnapshot(collection(db, "users", user.uid, "communities"), (snap) => {
-      setJoinedCommunities(snap.docs.map((d) => d.data().name || d.id));
-    }, () => setJoinedCommunities([]));
+      const joined: string[] = [];
+      const favs: string[] = [];
+      snap.docs.forEach((d) => {
+        const n = d.data().name || d.id;
+        joined.push(n);
+        if (d.data().isFavorite) favs.push(n);
+      });
+      setJoinedCommunities(joined);
+      setFavoriteCommunities(favs);
+    }, () => { setJoinedCommunities([]); setFavoriteCommunities([]); });
     return () => unsub();
   }, [user]);
 
@@ -85,7 +130,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .map((d) => {
           const data = d.data();
           const name = data.name || d.id;
-          return { name, label: `n/${name}`, img: data.img || "", members: data.memberCount || 0, creatorUid: data.creatorUid || undefined, showInForum: data.showInForum !== false };
+          const communityType =
+            data.communityType ||
+            (data.modLevel === "restrict" ? "private" : data.modLevel === "moderate" ? "restricted" : "public");
+          return {
+            name, label: `n/${name}`, img: data.img || "", members: data.memberCount || 0,
+            creatorUid: data.creatorUid || undefined, showInForum: data.showInForum !== false,
+            category: data.category || "", shortDesc: data.shortDesc || "",
+            isMature: !!data.isMature,
+            communityType,
+          };
         })
         .filter((c) => !isExcluded(c.name) && c.showInForum)
       );
@@ -97,8 +151,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUnread = useCallback(() => {}, []);
 
+  const pushUserInterests = useCallback((tags: string[]) => {
+    setUserInterests((prev) => mergeInterestsOrdered(prev, tags));
+  }, []);
+
+  useEffect(() => {
+    const onPush = (e: Event) => {
+      const detail = (e as CustomEvent<string[]>).detail;
+      if (!Array.isArray(detail) || !detail.length) return;
+      setUserInterests((prev) => mergeInterestsOrdered(prev, detail));
+    };
+    window.addEventListener("nf-push-interests", onPush);
+    return () => window.removeEventListener("nf-push-interests", onPush);
+  }, []);
+
   return (
-    <DataContext.Provider value={{ communities, joinedCommunities, unreadCount, loading, refreshCommunities, refreshUnread }}>
+    <DataContext.Provider value={{ communities, joinedCommunities, favoriteCommunities, userInterests, pushUserInterests, unreadCount, loading, refreshCommunities, refreshUnread }}>
       {children}
     </DataContext.Provider>
   );

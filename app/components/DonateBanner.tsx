@@ -2,13 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import { Heart, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 
+/** يظهر في /app فقط — الإغلاق للجلسة الحالية؛ بعد refresh يعود */
 export default function DonateBanner() {
-  // استخدام state فقط — يرجع البانر تلقائياً عند أي تحميل جديد للصفحة
+  const pathname = usePathname();
   const [dismissed, setDismissed] = useState(false);
+  const [isStandalone] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone;
+  });
+
+  // Hide on embed routes, embed-generator, and feed settings
+  const isEmbed = pathname?.startsWith("/embed") || pathname === "/embed-generator" || pathname?.startsWith("/feeds/");
 
   useEffect(() => {
-    if (!dismissed) {
+    if (!dismissed && !isEmbed) {
       document.documentElement.classList.add("has-donate-banner");
     } else {
       document.documentElement.classList.remove("has-donate-banner");
@@ -16,9 +25,10 @@ export default function DonateBanner() {
     return () => {
       document.documentElement.classList.remove("has-donate-banner");
     };
-  }, [dismissed]);
+  }, [dismissed, isEmbed]);
 
-  if (dismissed) return null;
+  const isApp = pathname?.startsWith("/app");
+  if (!isApp || dismissed || isEmbed || isStandalone) return null;
 
   return (
     <div

@@ -1,16 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Bell, User, ChevronDown, X, FileText, Users, Hash, TrendingUp, Clock, ArrowUp, MessageSquare, Sparkles, RotateCcw, Flame, Settings, LogOut, Bookmark, Shield, HelpCircle, Plus, Sun, Moon } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { useData } from "./DataProvider";
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, orderBy, limit, where, getCountFromServer, doc, getDoc, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, where, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
+import { updateAccountCache } from "@/lib/account-switcher";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useI18n } from "./I18nProvider";
+import { resolveCategoryDisplay } from "@/lib/community-categories";
+import { fetchSearchTrending, type SearchTrendingSnapshot, type TrendingTopic } from "@/lib/search-trending";
+import { textDirAttr } from "@/lib/display-text";
 
 
 const sortOptions = [
@@ -55,7 +60,7 @@ function timeAgoShort(ts: any): string {
   } catch { return ""; }
 }
 
-export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick, onPostClick, onNotifsClick, onSettingsClick, onCreateClick, onAdminClick, onSeoClick, topOffset = 40 }: {
+export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick, onPostClick, onNotifsClick, onSettingsClick, onCreateClick, onAdminClick, onSeoClick, activeCommunity, activeCommunityImg, topOffset = 40 }: {
   onProfileClick: (uid?: string) => void;
   onLoginClick: () => void;
   onCommunityClick?: (name: string) => void;
@@ -65,9 +70,12 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   onCreateClick?: () => void;
   onAdminClick?: () => void;
   onSeoClick?: () => void;
+  activeCommunity?: string;
+  activeCommunityImg?: string;
   topOffset?: number;
 }) {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, linkedAccounts, switchingUid, switchAccount, addAccount, removeAccount } = useAuth();
   const { t, lang } = useI18n();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -85,6 +93,11 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
     return true;
   });
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const [searchTrending, setSearchTrending] = useState<SearchTrendingSnapshot | null>(null);
+  const [trendingLoading, setTrendingLoading] = useState(false);
+
+  const MAX_ACCOUNTS = 4;
   const [userKarma, setUserKarma] = useState(0);
   const [userXp, setUserXp] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -120,11 +133,17 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   // Real-time unread count (from DataProvider)
   const { unreadCount, communities: allComms } = useData();
 
-  // Fetch real karma from Firestore
+  // Fetch real karma from Firestore + cache for account picker
   useEffect(() => {
     if (!user) { setUserKarma(0); return; }
     const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
-      if (snap.exists()) { setUserKarma(snap.data().karma || 0); setUserXp(snap.data().xp || 0); }
+      if (snap.exists()) {
+        const karma = snap.data().karma || 0;
+        const xp = snap.data().xp || 0;
+        setUserKarma(karma);
+        setUserXp(xp);
+        updateAccountCache(user.uid, { xp, karma });
+      }
     }, () => {});
     return () => unsub();
   }, [user]);
@@ -151,13 +170,51 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
   }, []);
 
   const handleSignOut = async () => {
-    try { await signOut(auth); } catch {}
+    try { await signOut(auth); router.refresh(); } catch {}
     setShowUserMenu(false);
   };
 
   const toggleTheme = () => setDarkMode(!darkMode);
 
-  // Search logic (debounced 500ms, limited results)
+  useEffect(() => {
+    if (!showDropdown || searchQuery.trim()) return;
+    let cancelled = false;
+    setTrendingLoading(true);
+    fetchSearchTrending(
+      allComms.map((c) => ({
+        name: c.name,
+        members: c.members,
+        category: c.category,
+        label: c.label,
+      })),
+      activeCommunity
+    )
+      .then((data) => {
+        if (!cancelled) setSearchTrending(data);
+      })
+      .finally(() => {
+        if (!cancelled) setTrendingLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showDropdown, searchQuery, activeCommunity, allComms]);
+
+  const applyTrendingTopic = (topic: TrendingTopic) => {
+    if (topic.kind === "community") {
+      const name = topic.key.replace(/^c:/, "");
+      addHistory(name);
+      onCommunityClick?.(name);
+      setShowDropdown(false);
+      setSearchQuery("");
+      return;
+    }
+    const q = topic.label.replace(/^#/, "").trim();
+    setSearchQuery(q);
+    inputRef.current?.focus();
+  };
+
+  // Search logic (debounced 300ms, limited results)
   useEffect(() => {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
     const timer = setTimeout(async () => {
@@ -165,24 +222,59 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
       try {
         const qLower = searchQuery.toLowerCase();
 
-        // Fetch limited posts for search (not all fields)
-        const postsQuery = searchSort === "top"
-          ? query(collection(db, "posts"), orderBy("votes", "desc"), limit(10))
-          : query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10));
+        // Fetch limited posts for search — scope to community if active
+        let postsQuery;
+        if (activeCommunity) {
+          // No orderBy to avoid composite index requirement — sort client-side
+          postsQuery = query(
+            collection(db, "posts"),
+            where("community", "==", activeCommunity),
+            limit(30)
+          );
+        } else {
+          postsQuery = searchSort === "top"
+            ? query(collection(db, "posts"), orderBy("votes", "desc"), limit(10))
+            : query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10));
+        }
         const snap = await getDocs(postsQuery);
 
         let postResults = snap.docs
           .map((d) => {
             const data = d.data();
-            return { id: d.id, title: data.title, body: data.body, community: data.community, authorName: data.authorName, authorUid: data.authorUid, votes: data.votes, _type: "post" as const };
+            return { id: d.id, title: data.title, body: data.body, community: data.community, authorName: data.authorName, authorUid: data.authorUid, votes: data.votes, createdAt: data.createdAt, _type: "post" as const };
           })
-          .filter((d) =>
-            d.title?.toLowerCase().includes(qLower) ||
-            d.community?.toLowerCase().includes(qLower) ||
-            d.authorName?.toLowerCase().includes(qLower)
-          );
+          .filter((d) => {
+            if (activeCommunity) {
+              // In community scope — filter by search text across title, body, author
+              if (!qLower.trim()) return true;
+              return d.title?.toLowerCase().includes(qLower) ||
+                d.body?.toLowerCase().includes(qLower) ||
+                d.authorName?.toLowerCase().includes(qLower);
+            }
+            return d.title?.toLowerCase().includes(qLower) ||
+              d.community?.toLowerCase().includes(qLower) ||
+              d.authorName?.toLowerCase().includes(qLower);
+          });
 
-        if (searchSort === "relevance") {
+        // Sort client-side for community scope
+        if (activeCommunity) {
+          if (searchSort === "top") {
+            postResults.sort((a: any, b: any) => (b.votes || 0) - (a.votes || 0));
+          } else if (searchSort === "relevance" && qLower.trim()) {
+            postResults.sort((a: any, b: any) => {
+              let sa = 0, sb = 0;
+              if (a.title?.toLowerCase().includes(qLower)) sa += 3;
+              if (b.title?.toLowerCase().includes(qLower)) sb += 3;
+              if (a.authorName?.toLowerCase().includes(qLower)) sa += 1;
+              if (b.authorName?.toLowerCase().includes(qLower)) sb += 1;
+              sa += (a.votes || 0) * 0.01;
+              sb += (b.votes || 0) * 0.01;
+              return sb - sa;
+            });
+          } else {
+            postResults.sort((a: any, b: any) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+          }
+        } else if (searchSort === "relevance") {
           postResults.sort((a: any, b: any) => {
             let sa = 0, sb = 0;
             if (a.title?.toLowerCase().includes(qLower)) sa += 3;
@@ -197,38 +289,75 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
           });
         }
 
-        // Community matches
-        const commMatches = allComms
-          .filter(c => c.name.toLowerCase().includes(qLower))
+        // Community matches — only show when NOT in community scope
+        const commMatches = activeCommunity ? [] : allComms
+          .filter(c => {
+            const cat = resolveCategoryDisplay(c.category || "").toLowerCase();
+            const desc = (c.shortDesc || "").toLowerCase();
+            return c.name.toLowerCase().includes(qLower)
+              || c.label.toLowerCase().includes(qLower)
+              || cat.includes(qLower)
+              || desc.includes(qLower);
+          })
           .map(c => ({
             id: `comm-${c.name}`,
             name: c.name,
             img: c.img,
+            category: resolveCategoryDisplay(c.category || ""),
             _type: "community" as const,
             members: c.members || 0
           }));
 
-        // User matches
+        // User matches — in community scope, only members of this community
         const userMap = new Map<string, any>();
-        try {
-          const uSnap = await getDocs(query(collection(db, "users"), limit(15)));
-          uSnap.docs.forEach(d => {
+        if (activeCommunity) {
+          // Extract authors from the community posts we already fetched
+          snap.docs.forEach(d => {
             const data = d.data();
-            if (data.displayName?.toLowerCase().includes(qLower) && !userMap.has(d.id)) {
-              userMap.set(d.id, { id: `user-${d.id}`, uid: d.id, name: data.displayName, photo: data.photoURL || "", karma: data.karma || 0, _type: "user" as const });
+            if (data.authorUid && !userMap.has(data.authorUid)) {
+              const nameMatch = !qLower.trim() || data.authorName?.toLowerCase().includes(qLower);
+              if (nameMatch) {
+                userMap.set(data.authorUid, {
+                  id: `user-${data.authorUid}`,
+                  uid: data.authorUid,
+                  name: data.authorName,
+                  photo: data.authorPhoto || "",
+                  _type: "user" as const
+                });
+              }
             }
           });
-        } catch {}
-        snap.docs.forEach(d => {
-          const data = d.data();
-          if (data.authorUid && data.authorName?.toLowerCase().includes(qLower) && !userMap.has(data.authorUid)) {
-            userMap.set(data.authorUid, { id: `user-${data.authorUid}`, uid: data.authorUid, name: data.authorName, photo: data.authorPhoto || "", _type: "user" as const });
-          }
-        });
+        } else {
+          try {
+            const uSnap = await getDocs(query(collection(db, "users"), limit(15)));
+            uSnap.docs.forEach(d => {
+              const data = d.data();
+              if (data.displayName?.toLowerCase().includes(qLower) && !userMap.has(d.id)) {
+                userMap.set(d.id, { id: `user-${d.id}`, uid: d.id, name: data.displayName, photo: data.photoURL || "", karma: data.karma || 0, _type: "user" as const });
+              }
+            });
+          } catch {}
+          snap.docs.forEach(d => {
+            const data = d.data();
+            if (data.authorUid && data.authorName?.toLowerCase().includes(qLower) && !userMap.has(data.authorUid)) {
+              userMap.set(data.authorUid, { id: `user-${data.authorUid}`, uid: data.authorUid, name: data.authorName, photo: data.authorPhoto || "", _type: "user" as const });
+            }
+          });
+        }
         const userResults = Array.from(userMap.values());
 
         let results: any[] = [];
-        if (searchFilter === "following" && user) {
+        if (activeCommunity) {
+          // Community scope — only posts and members of this community
+          if (searchFilter === "posts") {
+            results = postResults;
+          } else if (searchFilter === "users") {
+            results = userResults;
+          } else {
+            // "all" or "following" — posts first, then members
+            results = [...postResults, ...userResults];
+          }
+        } else if (searchFilter === "following" && user) {
           try {
             const fSnap = await getDocs(collection(db, "users", user.uid, "following"));
             const followingIds = fSnap.docs.map(d => d.id);
@@ -252,7 +381,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
       setSearching(false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, searchFilter, searchSort, user]);
+  }, [searchQuery, searchFilter, searchSort, user, activeCommunity]);
 
   // Close on outside click
   useEffect(() => {
@@ -303,8 +432,6 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
     setSearchQuery("");
   };
 
-  const trendingTags = ["#GameDev", "#تطوير_ألعاب", "#برمجة"];
-
   return (
     <nav className="fixed left-0 right-0 h-12 border-b border-nf-border z-[1001] flex items-center px-4 transition-top duration-300" style={{ direction: "rtl", top: "var(--navbar-top)", backgroundColor: "var(--bg-nav)", borderBottomColor: "var(--border-subtle)" }}>
       {/* Logo */}
@@ -314,13 +441,44 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
 
       {/* Search */}
       <div className="flex-1 max-w-[560px] mx-auto relative z-10" ref={searchRef} style={{ direction: "rtl" }}>
-        <div className={cn(
-          "group flex items-center h-10 rounded-xl px-4 gap-2.5 transition-all border",
-          showDropdown
-            ? "bg-nf-primary border-nf-border rounded-b-none shadow-lg shadow-black/20"
-            : "bg-nf-secondary border-nf-border-2 hover:bg-nf-secondary focus-within:bg-nf-primary focus-within:border-nf-accent focus-within:shadow-lg focus-within:shadow-black/20"
-        )}>
-          <Search size={16} className={cn("shrink-0 transition-colors", showDropdown ? "text-nf-accent" : "text-nf-dim group-focus-within:text-nf-accent")} />
+        <div
+          className={cn(
+            "group flex items-center h-10 rounded-full px-4 gap-2.5 transition-all border",
+            "bg-nf-input/80 border-nf-border-2/60",
+            "hover:bg-nf-hover hover:border-nf-border-2",
+            "focus-within:bg-nf-card focus-within:border-nf-border-2 focus-within:ring-1 focus-within:ring-nf-border-2/80",
+            activeCommunity && "border-nf-accent/35 bg-nf-accent/[0.06]"
+          )}
+        >
+          <Search
+            size={16}
+            className={cn(
+              "shrink-0 transition-colors text-nf-dim",
+              "group-focus-within:text-nf-accent",
+              activeCommunity && "text-nf-accent/80"
+            )}
+          />
+          {/* Community scope chip — shown when inside a community */}
+          {activeCommunity && (() => {
+            const commImg = allComms.find(c => c.name.toLowerCase() === activeCommunity.toLowerCase())?.img || "";
+            return (
+              <div className="flex items-center gap-1 bg-white/[0.06] border border-nf-accent/30 rounded-full px-2 py-0.5 shrink-0 max-w-[140px]">
+                {commImg ? (
+                  <img src={commImg} alt={activeCommunity} className="w-3.5 h-3.5 rounded-sm object-cover shrink-0" />
+                ) : (
+                  <Hash size={10} className="text-nf-accent shrink-0" />
+                )}
+                <span className="text-[11px] font-semibold text-nf-text truncate">n/{activeCommunity}</span>
+                <button
+                  onClick={() => { setSearchQuery(""); setShowDropdown(false); }}
+                  className="text-nf-dim hover:text-nf-text transition-colors shrink-0"
+                  title="بحث عام"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            );
+          })()}
           <input
             ref={inputRef}
             type="text"
@@ -328,8 +486,8 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
             onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }}
             onFocus={() => setShowDropdown(true)}
             onKeyDown={handleKeyDown}
-            placeholder={t("nav.search")}
-            className="flex-1 !bg-transparent border-none outline-none text-[14px] text-nf-text placeholder:text-nf-dim/70 py-1"
+            placeholder={activeCommunity ? `ابحث في n/${activeCommunity}...` : t("nav.search")}
+            className="flex-1 min-w-0 !bg-transparent border-none outline-none text-[14px] text-nf-text placeholder:text-nf-dim py-1"
           />
           {searching && <div className="w-4 h-4 border-2 border-nf-accent/30 border-t-nf-accent rounded-full animate-spin shrink-0" />}
           {searchQuery && (
@@ -338,7 +496,9 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
             </button>
           )}
           {!searchQuery && !showDropdown && (
-            <kbd className="hidden sm:inline-flex items-center px-2 py-1 rounded-md bg-nf-secondary/60 text-[10px] text-nf-dim font-mono border border-nf-border-2">⌘K</kbd>
+            <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-nf-secondary/60 text-[10px] text-nf-dim font-mono border border-nf-border-2/50">
+              ⌘K
+            </kbd>
           )}
         </div>
 
@@ -349,11 +509,13 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -2 }}
               transition={{ duration: 0.1 }}
-              className="absolute mt-0 left-0 right-0 bg-nf-primary border border-t-0 border-nf-border-2 rounded-b-xl overflow-hidden shadow-xl shadow-black/30"
+              className="absolute top-[calc(100%+8px)] left-0 right-0 rounded-2xl bg-nf-card border border-nf-border-2 overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.18)] min-h-[min(480px,72vh)] flex flex-col"
             >
-              {/* Filter tabs */}
-              <div className="flex items-center border-b border-nf-border-2/50">
-                {filterOptions.map((f) => (
+              {/* Filter tabs — in community scope, hide communities/users tabs */}
+              <div className="flex items-center border-b border-nf-border-2/60 bg-nf-secondary/25">
+                {filterOptions
+                  .filter(f => !activeCommunity || !["communities", "users"].includes(f.id))
+                  .map((f) => (
                   <button key={f.id} onClick={() => setSearchFilter(f.id)}
                     className={cn("px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-colors",
                       searchFilter === f.id ? "text-nf-accent border-nf-accent" : "text-nf-dim border-transparent hover:text-nf-muted")}>
@@ -362,7 +524,13 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                 ))}
               </div>
               {/* Sort row */}
-              <div className="flex items-center gap-1 px-3 py-1 border-b border-nf-border-2/30 bg-nf-secondary/10">
+              <div className="flex items-center gap-1 px-3 py-1.5 border-b border-nf-border-2/60">
+                {activeCommunity && (
+                  <span className="flex items-center gap-1 text-[11px] text-nf-accent font-semibold mr-auto">
+                    <Hash size={10} />
+                    n/{activeCommunity}
+                  </span>
+                )}
                 <span className="text-[11px] text-nf-dim ml-1">{t("search.sortBy")}:</span>
                 {sortOptions.map((s) => {
                   const Icon = s.icon;
@@ -378,9 +546,9 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
 
               {/* Content */}
               {!searchQuery.trim() ? (
-                <div className="py-1.5">
+                <div className="flex-1 overflow-y-auto py-2 min-h-[300px]">
                   {searchHistory.length > 0 && (
-                    <div className="px-3 py-1.5">
+                    <div className="px-3 pb-2">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[12px] font-bold text-nf-dim uppercase tracking-wider">{t("search.recent")}</span>
                         <button onClick={clearHistory} className="text-[11px] text-nf-dim hover:text-nf-accent transition-colors flex items-center gap-1">
@@ -398,20 +566,96 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       ))}
                     </div>
                   )}
-                  <div className="px-3 py-1.5 border-t border-nf-border-2/30">
-                    <span className="text-[12px] font-bold text-nf-dim uppercase tracking-wider mb-1.5 block">{t("search.trending")}</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {trendingTags.map(tag => (
-                        <button key={tag} onClick={() => setSearchQuery(tag.replace("#", ""))}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-nf-secondary/40 text-[12px] text-nf-muted hover:text-nf-accent hover:bg-nf-accent/10 transition-all">
-                          <TrendingUp size={11} className="text-nf-accent" />{tag}
-                        </button>
-                      ))}
+                  <div className={cn("px-3", searchHistory.length > 0 && "pt-2 mt-1 border-t border-nf-border-2/40")}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Flame size={13} className="text-nf-accent shrink-0" />
+                      <span className="text-[12px] font-bold text-nf-dim uppercase tracking-wider">{t("search.trending")}</span>
+                      {trendingLoading && (
+                        <div className="w-3.5 h-3.5 border-2 border-nf-accent/30 border-t-nf-accent rounded-full animate-spin ms-auto" />
+                      )}
                     </div>
+
+                    {trendingLoading && !searchTrending ? (
+                      <div className="space-y-2 py-1">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="h-9 rounded-xl bg-nf-secondary/40 animate-pulse" />
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        {(searchTrending?.topics.length ?? 0) > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {searchTrending!.topics.map((topic) => (
+                              <button
+                                key={topic.key}
+                                type="button"
+                                onClick={() => applyTrendingTopic(topic)}
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-nf-secondary/50 border border-nf-border-2/60 text-[12px] text-nf-muted hover:text-nf-accent hover:border-nf-accent/30 hover:bg-nf-accent/10 transition-all max-w-full"
+                              >
+                                {topic.kind === "community" ? (
+                                  <Hash size={11} className="text-nf-accent shrink-0" />
+                                ) : (
+                                  <TrendingUp size={11} className="text-nf-accent shrink-0" />
+                                )}
+                                <span className="truncate">{topic.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[12px] text-nf-dim py-2">{t("search.noResults")}</p>
+                        )}
+
+                        {(searchTrending?.posts.length ?? 0) > 0 && (
+                          <div className="space-y-0.5">
+                            <span className="text-[11px] font-bold text-nf-dim uppercase tracking-wider px-0.5 block mb-1">
+                              منشورات رائجة
+                            </span>
+                            {searchTrending!.posts.map((p) => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => {
+                                  addHistory(p.title);
+                                  onPostClick?.(p.id);
+                                  setShowDropdown(false);
+                                  setSearchQuery("");
+                                }}
+                                className="flex items-start gap-2.5 w-full px-2 py-2 rounded-xl hover:bg-nf-hover/60 transition-colors text-right"
+                              >
+                                <div className="w-8 h-8 rounded-lg bg-nf-accent/10 flex items-center justify-center shrink-0 mt-0.5">
+                                  <Flame size={14} className="text-nf-accent" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p
+                                    className="text-[13px] font-semibold text-nf-text nf-bidi-text line-clamp-2 leading-snug"
+                                    dir={textDirAttr(p.title || "")}
+                                  >
+                                    {p.title}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                    {p.community && (
+                                      <span className="text-[10px] text-nf-accent">n/{p.community}</span>
+                                    )}
+                                    <span className="text-[10px] text-nf-dim">
+                                      <ArrowUp size={9} className="inline text-green-400" />
+                                      {p.votes}
+                                    </span>
+                                    <span className="text-[10px] text-nf-dim">
+                                      <MessageSquare size={9} className="inline" />
+                                      {p.commentCount}
+                                    </span>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               ) : searchResults.length > 0 ? (
-                <div ref={resultsRef} className="py-1 max-h-[320px] overflow-y-auto">
+                <div ref={resultsRef} className="py-1 flex-1 overflow-y-auto max-h-[min(400px,55vh)]">
                   {/* Communities */}
                   {searchResults.filter(r => r._type === "community").length > 0 && (
                     <>
@@ -495,15 +739,17 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                   )}
                 </div>
               ) : !searching ? (
-                <div className="p-6 text-center">
+                <div className="p-6 text-center flex-1 flex flex-col justify-center min-h-[200px]">
                   <Search size={18} className="mx-auto text-nf-dim/30 mb-2" />
-                  <p className="text-[12px] text-nf-muted">{t("search.noResults")}</p>
+                  <p className="text-[12px] text-nf-muted">
+                    {activeCommunity ? `لا نتائج في n/${activeCommunity}` : t("search.noResults")}
+                  </p>
                   <p className="text-[10px] text-nf-dim mt-1">"{searchQuery}"</p>
                 </div>
               ) : null}
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-4 py-2 border-t border-nf-border-2/30 bg-nf-secondary/20">
+              <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06] bg-white/[0.02]">
                 <div className="flex items-center gap-3 text-[11px] text-nf-dim">
                   <span><kbd className="px-1.5 py-0.5 rounded bg-nf-secondary text-[10px]">↵</kbd> {t("search.open")}</span>
                   <span><kbd className="px-1.5 py-0.5 rounded bg-nf-secondary text-[10px]">↑↓</kbd> {t("search.navigate")}</span>
@@ -525,7 +771,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
           <Bell size={15} />
           {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center px-0.5">{unreadCount > 9 ? "9+" : unreadCount}</span>}
         </button>
-        <button onClick={onCreateClick} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-all duration-200">
+        <button onClick={onCreateClick} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-all duration-200 whitespace-nowrap">
           <Plus size={12} /> {t("pc.createPlaceholder")}
         </button>
         {user ? (
@@ -540,7 +786,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
             </button>
             <AnimatePresence>
               {showUserMenu && (
-                <motion.div initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.1 }} className="absolute top-full mt-1 left-0 w-[240px] bg-nf-primary border border-nf-border-2 rounded-lg z-50 overflow-hidden" style={{ direction: "rtl" }}>
+                <motion.div initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.1 }} className="absolute top-full mt-1 left-0 w-[260px] bg-nf-primary border border-nf-border-2 rounded-lg z-50 overflow-hidden" style={{ direction: "rtl" }}>
                   {/* User info header */}
                   <div className="px-3 py-2.5 border-b border-nf-border-2">
                     <div className="flex items-center gap-2.5">
@@ -553,6 +799,14 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                         <p className="text-[13px] font-bold text-nf-text truncate flex items-center gap-1">{user.displayName || t("gen.user")}{(user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] inline" />}</p>
                         <p className="text-[10px] text-nf-dim truncate">{user.email || ""}</p>
                       </div>
+                      {/* Account switcher toggle */}
+                      <button
+                        onClick={() => setShowAccountSwitcher(p => !p)}
+                        className="p-1 rounded-md text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors shrink-0"
+                        title="تبديل الحسابات"
+                      >
+                        <ChevronDown size={12} className={cn("transition-transform", showAccountSwitcher && "rotate-180")} />
+                      </button>
                     </div>
                     <div className="flex items-center gap-3 mt-2">
                       <span className="text-[10px] text-nf-dim"><span className="text-nf-text font-bold">{Math.max(0, Math.round(userKarma))}</span> صيت</span>
@@ -560,6 +814,58 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                       <span className="text-[10px] text-green-400 flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />متصل</span>
                     </div>
                   </div>
+
+                  {/* ── Account Switcher Panel ── */}
+                  <AnimatePresence>
+                    {showAccountSwitcher && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="overflow-hidden border-b border-nf-border-2"
+                      >
+                        <div className="px-3 py-2 space-y-1">
+                          <p className="text-[9px] font-bold text-nf-dim uppercase tracking-wider mb-1.5">الحسابات المربوطة ({linkedAccounts.length}/{MAX_ACCOUNTS})</p>
+                          {linkedAccounts.map(acc => (
+                            <div key={acc.uid}
+                              className={cn("flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors group", acc.uid === user.uid ? "bg-nf-accent/10" : "hover:bg-nf-hover cursor-pointer")}
+                              onClick={() => acc.uid !== user.uid && !switchingUid && switchAccount(acc.uid)}>
+                              <div className="relative shrink-0">
+                                {acc.photoURL
+                                  ? <img src={acc.photoURL} alt="" className="w-7 h-7 rounded-full object-cover" />
+                                  : <div className="w-7 h-7 rounded-full bg-nf-secondary flex items-center justify-center"><User size={12} className="text-nf-muted" /></div>
+                                }
+                                {switchingUid === acc.uid && (
+                                  <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-semibold text-nf-text truncate">{acc.displayName || "مستخدم"}</p>
+                                <p className="text-[9px] text-nf-dim truncate">{acc.email}</p>
+                              </div>
+                              {acc.uid === user.uid
+                                ? <span className="text-[9px] text-nf-accent font-bold shrink-0">نشط</span>
+                                : <div className="flex items-center gap-1 shrink-0">
+                                    {!switchingUid && <span className="text-[9px] text-nf-dim opacity-0 group-hover:opacity-100 transition-opacity">تبديل</span>}
+                                    <button onClick={(e) => { e.stopPropagation(); removeAccount(acc.uid); }} className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-nf-dim hover:text-red-400 transition-all"><X size={10} /></button>
+                                  </div>
+                              }
+                            </div>
+                          ))}
+                          {linkedAccounts.length < MAX_ACCOUNTS && (
+                            <button onClick={addAccount} className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[11px] text-nf-dim hover:bg-nf-hover hover:text-nf-accent transition-colors border border-dashed border-nf-border-2 mt-1">
+                              <Plus size={11} />
+                              <span>إضافة حساب جديد</span>
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   {/* Menu items */}
                   <div className="py-0.5">
                     {[

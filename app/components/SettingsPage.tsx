@@ -4,11 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthProvider";
 import { doc, updateDoc, getDoc, deleteDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Camera, AlertTriangle, Sparkles, Key, ChevronDown } from "lucide-react";
+import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, AlertTriangle, Sparkles, Key, ChevronDown, Monitor, Heart, ExternalLink } from "lucide-react";
+import { getShowAccountPickerSetting, setShowAccountPickerSetting } from "@/lib/account-switcher";
+import { getPostBorderedPref, setPostBorderedPref } from "@/lib/user-display-prefs";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useI18n } from "./I18nProvider";
 import { useToast } from "./ToastProvider";
+import TranslateLangPicker from "./TranslateLangPicker";
+import { useClassicTabs } from "./ClassicTabsProvider";
+import ComposeSelect from "./ComposeSelect";
+import "./rich-editor.css";
 
 function IconX() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="#fff"/></svg>; }
 function IconYouTube() { return <svg width="14" height="14" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z" fill="#FF0000"/><path d="M9.545 15.568V8.432L15.818 12z" fill="#fff"/></svg>; }
@@ -24,11 +30,44 @@ const TRANSLATE_LANGS = [
   { id: "fr", label: "Français", sub: "فرنسي", flag: "🇫🇷" },
   { id: "de", label: "Deutsch", sub: "ألماني", flag: "🇩🇪" },
   { id: "es", label: "Español", sub: "إسباني", flag: "🇪🇸" },
+  { id: "pt", label: "Português", sub: "برتغالي", flag: "🇧🇷" },
+  { id: "it", label: "Italiano", sub: "إيطالي", flag: "🇮🇹" },
+  { id: "nl", label: "Nederlands", sub: "هولندي", flag: "🇳🇱" },
+  { id: "pl", label: "Polski", sub: "بولندي", flag: "🇵🇱" },
+  { id: "ru", label: "Русский", sub: "روسي", flag: "🇷🇺" },
   { id: "tr", label: "Türkçe", sub: "تركي", flag: "🇹🇷" },
+  { id: "fa", label: "فارسی", sub: "فارسي", flag: "🇮🇷" },
+  { id: "ur", label: "اردو", sub: "أردو", flag: "🇵🇰" },
+  { id: "hi", label: "हिन्दी", sub: "هندي", flag: "🇮🇳" },
+  { id: "bn", label: "বাংলা", sub: "بنغالي", flag: "🇧🇩" },
+  { id: "id", label: "Indonesia", sub: "إندونيسي", flag: "🇮🇩" },
+  { id: "ms", label: "Melayu", sub: "ملايو", flag: "🇲🇾" },
+  { id: "th", label: "ภาษาไทย", sub: "تايلاندي", flag: "🇹🇭" },
+  { id: "vi", label: "Tiếng Việt", sub: "فيتنامي", flag: "🇻🇳" },
   { id: "ja", label: "日本語", sub: "ياباني", flag: "🇯🇵" },
   { id: "ko", label: "한국어", sub: "كوري", flag: "🇰🇷" },
-  { id: "zh", label: "中文", sub: "صيني", flag: "🇨🇳" },
-  { id: "ru", label: "Русский", sub: "روسي", flag: "🇷🇺" },
+  { id: "zh", label: "中文 (简体)", sub: "صيني مبسط", flag: "🇨🇳" },
+  { id: "zh-TW", label: "中文 (繁體)", sub: "صيني تقليدي", flag: "🇹🇼" },
+  { id: "uk", label: "Українська", sub: "أوكراني", flag: "🇺🇦" },
+  { id: "cs", label: "Čeština", sub: "تشيكي", flag: "🇨🇿" },
+  { id: "sv", label: "Svenska", sub: "سويدي", flag: "🇸🇪" },
+  { id: "no", label: "Norsk", sub: "نرويجي", flag: "🇳🇴" },
+  { id: "da", label: "Dansk", sub: "دنماركي", flag: "🇩🇰" },
+  { id: "fi", label: "Suomi", sub: "فنلندي", flag: "🇫🇮" },
+  { id: "el", label: "Ελληνικά", sub: "يوناني", flag: "🇬🇷" },
+  { id: "he", label: "עברית", sub: "عبري", flag: "🇮🇱" },
+  { id: "ro", label: "Română", sub: "روماني", flag: "🇷🇴" },
+  { id: "hu", label: "Magyar", sub: "مجري", flag: "🇭🇺" },
+  { id: "sk", label: "Slovenčina", sub: "سلوفاكي", flag: "🇸🇰" },
+  { id: "bg", label: "Български", sub: "بلغاري", flag: "🇧🇬" },
+  { id: "hr", label: "Hrvatski", sub: "كرواتي", flag: "🇭🇷" },
+  { id: "sr", label: "Српски", sub: "صربي", flag: "🇷🇸" },
+  { id: "lt", label: "Lietuvių", sub: "ليتواني", flag: "🇱🇹" },
+  { id: "lv", label: "Latviešu", sub: "لاتفي", flag: "🇱🇻" },
+  { id: "et", label: "Eesti", sub: "إستوني", flag: "🇪🇪" },
+  { id: "sw", label: "Kiswahili", sub: "سواحيلي", flag: "🇰🇪" },
+  { id: "am", label: "አማርኛ", sub: "أمهري", flag: "🇪🇹" },
+  { id: "af", label: "Afrikaans", sub: "أفريكانز", flag: "🇿🇦" },
 ];
 
 function TranslationLangSelector() {
@@ -46,7 +85,7 @@ function TranslationLangSelector() {
       <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all border bg-nf-secondary/30 border-nf-border/10 hover:border-nf-border/25">
         <span className="text-lg leading-none">{current.flag}</span>
         <span className="flex-1 text-right text-nf-text">{current.label}</span>
-        <span className="text-[9px] text-nf-dim/40">{current.sub}</span>
+        <span className="text-[11px] text-nf-dim/40">{current.sub}</span>
         <ChevronDown size={12} className={cn("shrink-0 transition-transform opacity-40", open && "rotate-180")} />
       </button>
       {open && (
@@ -56,7 +95,7 @@ function TranslationLangSelector() {
               <button key={l.id} onClick={() => { setLang(l.id); localStorage.setItem("nf-ai-translate-lang", l.id); setOpen(false); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-semibold transition-all", lang === l.id ? "bg-nf-accent/10 text-nf-accent" : "text-nf-muted hover:bg-nf-hover")}>
                 <span className="text-lg leading-none">{l.flag}</span>
                 <span className="flex-1 text-right text-nf-text">{l.label}</span>
-                <span className="text-[9px] opacity-40 text-nf-dim">{l.sub}</span>
+                <span className="text-[11px] opacity-40 text-nf-dim">{l.sub}</span>
                 {lang === l.id && <Check size={10} className="text-nf-accent shrink-0" />}
               </button>
             ))}
@@ -78,20 +117,20 @@ const socialFields = [
 
 function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} className={cn("w-9 h-5 rounded-full transition-colors relative shrink-0", on ? "bg-nf-accent" : "bg-nf-border")}>
-      <span className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all", on ? "left-0.5" : "left-[18px]")} />
+    <button onClick={onToggle} className={cn("w-9 h-5 rounded-full transition-colors relative shrink-0 direction-ltr", on ? "bg-nf-accent" : "bg-nf-border")} style={{ direction: "ltr" }}>
+      <span className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200", on ? "left-[18px]" : "left-0.5")} />
     </button>
   );
 }
 
 function SettingRow({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-3">
-      <div className="min-w-0">
-        <p className="text-[12px] text-nf-text font-medium">{label}</p>
-        {sub && <p className="text-[10px] text-nf-dim mt-0.5">{sub}</p>}
+    <div className="flex items-center justify-between py-3 gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-[12px] text-nf-muted font-medium">{label}</p>
+        {sub && <p className="text-[10px] text-nf-dim/80 mt-0.5">{sub}</p>}
       </div>
-      {children}
+      <div className="shrink-0">{children}</div>
     </div>
   );
 }
@@ -99,6 +138,7 @@ function SettingRow({ label, sub, children }: { label: string; sub?: string; chi
 export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const { user, logout } = useAuth();
   const { t, lang, setLang } = useI18n();
+  const { isClassic, setIsClassic } = useClassicTabs();
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState("account");
   const [displayName, setDisplayName] = useState(user?.displayName || "");
@@ -109,7 +149,6 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const [notifMentions, setNotifMentions] = useState(true);
   const [notifFollows, setNotifFollows] = useState(true);
   const [notifAwards, setNotifAwards] = useState(true);
-  const [emailNotifs, setEmailNotifs] = useState(false);
   const [saved, setSaved] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -119,10 +158,26 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const [showOnline, setShowOnline] = useState(true);
   const [langLocal, setLangLocal] = useState("ar");
   const [compactMode, setCompactMode] = useState(false);
+  const [imageCarousel, setImageCarousel] = useState(true);
+  const [postBordered, setPostBordered] = useState(false);
   const [accentColor, setAccentColor] = useState("#a0a0a0");
   const [bannerUrl, setBannerUrl] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({ twitter: "", youtube: "", github: "", steam: "", discord: "", website: "" });
+  const [mutedWords, setMutedWords] = useState<string[]>([]);
+  const [mutedWordInput, setMutedWordInput] = useState("");
+  // Advanced privacy states
+  const [allowFollowers, setAllowFollowers] = useState(true);
+  const [showPostHistory, setShowPostHistory] = useState(true);
+  const [showVoteHistory, setShowVoteHistory] = useState(false);
+  const [hideSaved, setHideSaved] = useState(false);
+  const [allowMentions, setAllowMentions] = useState<"all" | "following" | "none">("all");
+  const [allowDirectMessages, setAllowDirectMessages] = useState<"all" | "following" | "none">("all");
+  const [hideFromSearch, setHideFromSearch] = useState(false);
+  const [showKarma, setShowKarma] = useState(true);
+  const [privacyTab, setPrivacyTab] = useState<"profile" | "content" | "muted">("profile");
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ visibility: true, interactions: true, data: false });
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
 
   useEffect(() => {
     const s = localStorage.getItem("nf-dark");
@@ -131,8 +186,12 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
     if (l) setLangLocal(l);
     const c = localStorage.getItem("nf-compact");
     if (c) setCompactMode(c === "true");
+    const ic = localStorage.getItem("nf-image-carousel");
+    if (ic !== null) setImageCarousel(ic !== "false");
+    setPostBordered(getPostBorderedPref());
     const ac = localStorage.getItem("nf-accent");
     if (ac) setAccentColor(ac);
+    setShowAccountPicker(getShowAccountPickerSetting());
     if (!user) return;
     getDoc(doc(db, "users", user.uid)).then(s => {
       if (s.exists()) {
@@ -149,7 +208,16 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
         setNotifMentions(d.notifMentions !== false);
         setNotifFollows(d.notifFollows !== false);
         setNotifAwards(d.notifAwards !== false);
-        setEmailNotifs(d.emailNotifs || false);
+        setMutedWords(d.mutedWords || []);
+        setAllowFollowers(d.allowFollowers !== false);
+        setShowPostHistory(d.showPostHistory !== false);
+        setShowVoteHistory(d.showVoteHistory || false);
+        setHideSaved(d.hideSaved || false);
+        setAllowMentions(d.allowMentions || "all");
+        setAllowDirectMessages(d.allowDirectMessages || "all");
+        setHideFromSearch(d.hideFromSearch || false);
+        setShowKarma(d.showKarma !== false);
+        if (d.showAccountPicker !== undefined) setShowAccountPicker(d.showAccountPicker);
       }
     }).catch(() => {});
   }, [user]);
@@ -159,7 +227,9 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
     try {
       await updateDoc(doc(db, "users", user.uid), {
         displayName, photoURL: photoUrl, bio, bannerUrl, profilePrivate, hideActivity, showOnline, socialLinks,
-        notifVotes, notifComments, notifMentions, notifFollows, notifAwards, emailNotifs,
+        notifVotes, notifComments, notifMentions, notifFollows, notifAwards, mutedWords,
+        allowFollowers, showPostHistory, showVoteHistory, hideSaved, allowMentions, allowDirectMessages, hideFromSearch, showKarma,
+        showAccountPicker,
       });
       // Update Firebase Auth profile too
       try { const { updateProfile } = await import("firebase/auth"); if (user) await updateProfile(user, { displayName, photoURL: photoUrl || undefined }); } catch {}
@@ -195,6 +265,22 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
 
   const updateSocial = (id: string, val: string) => {
     setSocialLinks(prev => ({ ...prev, [id]: val }));
+  };
+
+  const addMutedWord = async () => {
+    const word = mutedWordInput.trim().toLowerCase();
+    if (!word || mutedWords.includes(word) || !user) return;
+    const updated = [...mutedWords, word];
+    setMutedWords(updated);
+    setMutedWordInput("");
+    try { await updateDoc(doc(db, "users", user.uid), { mutedWords: updated }); } catch {}
+  };
+
+  const removeMutedWord = async (word: string) => {
+    if (!user) return;
+    const updated = mutedWords.filter(w => w !== word);
+    setMutedWords(updated);
+    try { await updateDoc(doc(db, "users", user.uid), { mutedWords: updated }); } catch {}
   };
 
   const handleDownloadData = async () => {
@@ -361,7 +447,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
 
       <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
         {/* Sidebar - horizontal on mobile, vertical on desktop */}
-        <div className="sm:w-[160px] shrink-0 flex sm:flex-col gap-0.5 sm:border-r border-nf-border-2/50 sm:pr-3 overflow-x-auto pb-2 sm:pb-0">
+        <div className="sm:w-[160px] shrink-0 flex sm:flex-col gap-0.5 sm:pr-3 overflow-x-auto pb-2 sm:pb-0">
           {sections.map((s) => {
             const Icon = s.icon;
             return (
@@ -382,160 +468,453 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 text-[13px] leading-relaxed nf-settings-panel">
           {activeSection === "account" && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+
+              {/* Profile card */}
               <div className="p-4">
-                <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">{t("sp.accountInfo")}</h3>
-                  {/* Banner Preview */}
-                  <div className="relative h-[80px] rounded-lg overflow-hidden mb-3 bg-nf-secondary/30">
-                    {bannerUrl ? <img src={bannerUrl} alt="" className="w-full h-full object-cover" /> : null}
-                    <div className="absolute inset-0 bg-gradient-to-t from-nf-primary/90 to-transparent" />
+                <p className="text-[13px] font-semibold text-nf-text mb-4">معلومات الحساب</p>
+
+                {/* Banner */}
+                <div className="relative h-[72px] rounded-xl overflow-hidden mb-4 bg-nf-secondary/40 border border-nf-border-2/50">
+                  {bannerUrl && <img src={bannerUrl} alt="" className="w-full h-full object-cover" />}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
-                <div className="mb-3">
-                  <label className="text-[10px] text-nf-dim mb-1 block">رابط البانر</label>
-                  <input type="url" value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} placeholder="https://example.com/banner.jpg" className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
-                </div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="relative">
-                    <div className="w-14 h-14 rounded-full bg-nf-secondary overflow-hidden border border-nf-border-2">
-                      {photoUrl || user?.photoURL ? <img src={photoUrl || user?.photoURL || ""} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl text-nf-muted font-bold">{(displayName || t("gen.user"))[0]}</div>}
-                    </div>
+
+                {/* Avatar + name row */}
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-12 h-12 rounded-full bg-nf-secondary overflow-hidden border-2 border-nf-border-2 shrink-0">
+                    {photoUrl || user?.photoURL
+                      ? <img src={photoUrl || user?.photoURL || ""} alt="" className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-lg font-bold text-nf-muted">{(displayName || "U")[0]}</div>}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-nf-text truncate">{displayName || t("gen.user")}</p>
-                    <p className="text-[10px] text-nf-dim truncate">{user?.email || ""}</p>
-                    <p className="text-[10px] text-green-400 flex items-center gap-0.5 mt-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />متصل</p>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-bold text-nf-text truncate">{displayName || t("gen.user")}</p>
+                    <p className="text-[11px] text-nf-dim truncate">{user?.email || ""}</p>
                   </div>
                 </div>
+
+                {/* Fields */}
                 <div className="space-y-3">
                   <div>
-                    <label className="text-[10px] text-nf-dim mb-1 block">رابط الصورة الشخصية</label>
-                    <input type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
+                    <label className="text-[10px] font-semibold text-nf-dim mb-1.5 block">رابط الصورة الشخصية</label>
+                    <input type="url" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)}
+                      placeholder="https://example.com/photo.jpg"
+                      className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent/50 transition-colors" />
                   </div>
                   <div>
-                    <label className="text-[10px] text-nf-dim mb-1 block">{t("sp.displayName")}</label>
-                    <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text outline-none focus:border-nf-accent/40 transition-colors" />
+                    <label className="text-[10px] font-semibold text-nf-dim mb-1.5 block">رابط البانر</label>
+                    <input type="url" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)}
+                      placeholder="https://example.com/banner.jpg"
+                      className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent/50 transition-colors" />
                   </div>
                   <div>
-                    <label className="text-[10px] text-nf-dim mb-1 block">{t("sp.bio")}</label>
-                    <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={200} rows={2} placeholder={t("sp.bioPlaceholder")} className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors resize-none" />
-                    <span className="text-[9px] text-nf-dim">{bio.length}/200</span>
+                    <label className="text-[10px] font-semibold text-nf-dim mb-1.5 block">{t("sp.displayName")}</label>
+                    <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
+                      className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text outline-none focus:border-nf-accent/50 transition-colors" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-nf-dim mb-1.5 block">{t("sp.bio")}</label>
+                    <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={200} rows={3}
+                      placeholder={t("sp.bioPlaceholder")}
+                      className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent/50 transition-colors resize-none" />
+                    <p className="text-[10px] text-nf-dim/50 mt-1 text-left">{bio.length}/200</p>
                   </div>
                 </div>
               </div>
 
               <div className="p-4">
-                <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">{t("sp.socialLinks")}</h3>
-                <div className="space-y-2">
-                  {socialFields.map((f) => {
-                    const IconComp = f.icon;
-                    const label = f.labelKey ? t(f.labelKey) : (typeof f.label === "string" ? f.label : "");
-                    return (
-                      <div key={f.id} className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-nf-secondary/50 text-nf-muted">
-                           <IconComp />
-                        </div>
-                        <input type="url" value={socialLinks[f.id] || ""} onChange={(e) => updateSocial(f.id, e.target.value)} placeholder={f.placeholder}
-                          className="flex-1 bg-nf-input border border-nf-border-2 rounded-lg px-3 py-1.5 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors" />
-                      </div>
-                    );
-                  })}
+                <p className="text-[13px] font-semibold text-nf-text mb-1">دعم المشروع</p>
+                <p className="text-[12px] text-nf-dim mb-3 leading-relaxed">
+                  شريط التبرع يظهر أعلى التطبيق ويمكن إغلاقه مؤقتاً؛ يعود بعد تحديث الصفحة.
+                </p>
+                <a
+                  href="https://ko-fi.com/northfallcommunity"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium text-nf-text bg-white/[0.05] border border-white/[0.08] hover:border-nf-accent/30 transition-colors"
+                >
+                  <Heart size={14} className="text-red-400" fill="currentColor" />
+                  تبرع عبر Ko-fi
+                  <ExternalLink size={12} className="text-nf-dim" />
+                </a>
+              </div>
+
+              {/* Account Picker */}
+              <div className="p-4">
+                <p className="text-[13px] font-semibold text-nf-text mb-3">شاشة الإقلاع</p>
+                <SettingRow label="إظهار شاشة اختيار الحساب عند الدخول" sub="تظهر عند فتح الموقع إذا كان لديك أكثر من حساب مرتبط — مثل شاشة اختيار المستخدم في البلايستيشن">
+                  <Toggle on={showAccountPicker} onToggle={() => { const next = !showAccountPicker; setShowAccountPicker(next); setShowAccountPickerSetting(next); }} />
+                </SettingRow>
+              </div>
+
+              {/* Danger zone */}
+              <div className="p-4">
+                <p className="text-[13px] font-semibold text-red-400 mb-3">منطقة الخطر</p>
+                <div className="flex items-center justify-between py-1">
+                  <div>
+                    <p className="text-[12px] text-nf-text font-medium">حذف الحساب</p>
+                    <p className="text-[10px] text-nf-dim mt-0.5">هذا الإجراء لا يمكن التراجع عنه</p>
+                  </div>
+                  <button onClick={() => setShowDeleteConfirm(true)}
+                    className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-400 bg-red-400/5 border border-red-400/20 hover:bg-red-400/10 transition-colors">
+                    حذف
+                  </button>
                 </div>
               </div>
 
-              <div className="p-4">
-                <h3 className="text-[11px] font-bold text-red-400 uppercase tracking-wider mb-2">منطقة الخطر</h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] text-nf-text font-medium">حذف الحساب</p>
-                    <p className="text-[9px] text-nf-dim">هذا الإجراء لا يمكن التراجع عنه</p>
-                  </div>
-                  <button onClick={() => setShowDeleteConfirm(true)} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-400 bg-red-400/5 border border-red-400/20 hover:bg-red-400/10 transition-colors">حذف</button>
-                </div>
-              </div>
             </div>
           )}
 
           {activeSection === "appearance" && (
-            <div className="p-4">
-              <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">{t("sp.appearance")}</h3>
-              <SettingRow label={t("sp.darkMode")} sub="قريباً">
-                <span className="text-[10px] text-nf-dim/50 font-bold tracking-widest uppercase">SOON</span>
-              </SettingRow>
-              <SettingRow label={t("sp.compactFont")} sub="تصغير حجم الخط">
-                <Toggle on={compactMode} onToggle={() => { setCompactMode(!compactMode); document.documentElement.classList.toggle("text-sm"); }} />
-              </SettingRow>
-              <SettingRow label="لون التمييز" sub="اختر لون accent">
-                <div className="flex gap-1">
-                  {["#a0a0a0", "#ff4444", "#4488ff", "#44cc88", "#ff8800", "#cc44ff"].map(c => (
-                    <button key={c} onClick={() => changeAccent(c)} className={cn("w-5 h-5 rounded-full border-2 hover:scale-110 transition-transform", accentColor === c ? "border-white scale-110" : "border-nf-border-2")} style={{ backgroundColor: c }} />
+            <div className="p-4 space-y-6">
+              <div>
+                <p className="text-[13px] font-semibold text-nf-text mb-3">{t("sp.appearance")}</p>
+                <SettingRow label={t("sp.darkMode")} sub="تبديل بين الوضع الداكن والمضيء">
+                  <Toggle on={darkMode} onToggle={toggleDark} />
+                </SettingRow>
+                <SettingRow label="الثيم الكلاسيكي" sub="تبويبات مستقلة + تصميم كثيف بدون حواف دائرية">
+                  <Toggle on={isClassic} onToggle={() => setIsClassic(!isClassic)} />
+                </SettingRow>
+                <SettingRow label={t("sp.compactFont")} sub="تصغير حجم الخط لعرض أكثر">
+                  <Toggle on={compactMode} onToggle={() => { setCompactMode(!compactMode); document.documentElement.classList.toggle("text-sm"); }} />
+                </SettingRow>
+                <SettingRow label="عرض الصور كسلايدر" sub="تنقل بين الصور بسهم — أو اعرضها كلها تحت بعض">
+                  <Toggle on={imageCarousel} onToggle={() => { const next = !imageCarousel; setImageCarousel(next); localStorage.setItem("nf-image-carousel", String(next)); }} />
+                </SettingRow>
+                <SettingRow label="إطار حول المنشورات" sub="مربع بحدود واضح حول كل منشور في الفيد — لتجربة قراءة أوضح">
+                  <Toggle
+                    on={postBordered}
+                    onToggle={() => {
+                      const next = !postBordered;
+                      setPostBordered(next);
+                      setPostBorderedPref(next);
+                    }}
+                  />
+                </SettingRow>
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold text-nf-text mb-2">لون التمييز</p>
+                <p className="text-[12px] text-nf-dim mb-3">يؤثر على الأزرار والروابط والعناصر التفاعلية</p>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { color: "#a0a0a0", label: "رمادي" },
+                    { color: "#ff4444", label: "أحمر" },
+                    { color: "#4488ff", label: "أزرق" },
+                    { color: "#44cc88", label: "أخضر" },
+                    { color: "#ff8800", label: "برتقالي" },
+                    { color: "#cc44ff", label: "بنفسجي" },
+                  ].map(({ color, label }) => (
+                    <button key={color} onClick={() => changeAccent(color)}
+                      title={label}
+                      className={cn(
+                        "w-7 h-7 rounded-full border-2 hover:scale-110 transition-all",
+                        accentColor === color ? "border-white scale-110 shadow-lg" : "border-transparent hover:border-white/40"
+                      )}
+                      style={{ backgroundColor: color }} />
                   ))}
                 </div>
-              </SettingRow>
+                {/* Preview */}
+                <div className="mt-4 p-3 rounded-lg bg-nf-secondary/30 border border-nf-border-2/50">
+                  <p className="text-[10px] text-nf-dim mb-2">معاينة</p>
+                  <div className="flex items-center gap-2">
+                    <button className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white transition-colors" style={{ backgroundColor: accentColor }}>زر رئيسي</button>
+                    <span className="text-[11px] font-semibold" style={{ color: accentColor }}>رابط نصي</span>
+                    <div className="w-8 h-4 rounded-full relative" style={{ backgroundColor: accentColor }}>
+                      <span className="absolute top-0.5 left-[18px] w-3 h-3 rounded-full bg-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {activeSection === "notifications" && (
-            <div className="p-4">
-              <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">{t("sp.notifications")}</h3>
-              <p className="text-[9px] text-nf-dim mb-2">إشعارات الموقع</p>
-              <SettingRow label={t("sp.notifVotes")} sub="عند تصويت منشورك">
-                <Toggle on={notifVotes} onToggle={() => setNotifVotes(!notifVotes)} />
-              </SettingRow>
-              <SettingRow label={t("sp.notifComments")} sub="عند التعليق على منشورك">
-                <Toggle on={notifComments} onToggle={() => setNotifComments(!notifComments)} />
-              </SettingRow>
-              <SettingRow label={t("sp.notifMentions")} sub="عند الإشارة إليك">
-                <Toggle on={notifMentions} onToggle={() => setNotifMentions(!notifMentions)} />
-              </SettingRow>
-              <SettingRow label="متابعين جدد" sub="عند متابعة حسابك">
-                <Toggle on={notifFollows} onToggle={() => setNotifFollows(!notifFollows)} />
-              </SettingRow>
-              <SettingRow label="جوائز" sub="عند حصولك على جائزة">
-                <Toggle on={notifAwards} onToggle={() => setNotifAwards(!notifAwards)} />
-              </SettingRow>
-              <div className="mt-3 pt-3">
-                <p className="text-[9px] text-nf-dim mb-2">إشعارات البريد</p>
-                <SettingRow label="إشعارات البريد" sub="استلام إشعارات عبر البريد">
-                  <Toggle on={emailNotifs} onToggle={() => setEmailNotifs(!emailNotifs)} />
+            <div>
+              <div className="px-4 py-4">
+                <p className="text-[13px] font-semibold text-nf-text mb-3">إشعارات النشاط</p>
+                <SettingRow label={t("sp.notifVotes")} sub="عند تصويت أحد على منشورك">
+                  <Toggle on={notifVotes} onToggle={() => setNotifVotes(!notifVotes)} />
+                </SettingRow>
+                <SettingRow label={t("sp.notifComments")} sub="عند تعليق أحد على منشورك">
+                  <Toggle on={notifComments} onToggle={() => setNotifComments(!notifComments)} />
+                </SettingRow>
+                <SettingRow label={t("sp.notifMentions")} sub="عند الإشارة إليك بـ @">
+                  <Toggle on={notifMentions} onToggle={() => setNotifMentions(!notifMentions)} />
+                </SettingRow>
+                <SettingRow label="متابعون جدد" sub="عند متابعة شخص لحسابك">
+                  <Toggle on={notifFollows} onToggle={() => setNotifFollows(!notifFollows)} />
+                </SettingRow>
+                <SettingRow label="جوائز" sub="عند حصولك على جائزة من مستخدم">
+                  <Toggle on={notifAwards} onToggle={() => setNotifAwards(!notifAwards)} />
                 </SettingRow>
               </div>
             </div>
           )}
 
           {activeSection === "privacy" && (
-            <div className="p-4">
-              <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">{t("sp.privacy")}</h3>
-              <SettingRow label={t("sp.privateProfile")} sub="إخفاء الملف الشخصي">
-                <Toggle on={profilePrivate} onToggle={() => setProfilePrivate(!profilePrivate)} />
-              </SettingRow>
-              <SettingRow label={t("sp.hideActivity")} sub="إخفاء النشاط الأخير">
-                <Toggle on={hideActivity} onToggle={() => setHideActivity(!hideActivity)} />
-              </SettingRow>
-              <SettingRow label="إظهار حالة الاتصال" sub="السماح للآخرين برؤية أنك متصل">
-                <Toggle on={showOnline} onToggle={() => setShowOnline(!showOnline)} />
-              </SettingRow>
-              <div className="mt-3 pt-3">
-                <p className="text-[9px] text-nf-dim mb-2">بياناتك</p>
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <span className="text-[11px] text-nf-text font-medium">تحميل بياناتك</span>
-                    <p className="text-[9px] text-nf-dim">تصدير جميع بياناتك كملف JSON</p>
-                  </div>
-                  <button onClick={handleDownloadData} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-nf-accent bg-nf-accent/5 border border-nf-accent/20 hover:bg-nf-accent/10 transition-colors">تحميل</button>
-                </div>
+            <div>
+              <div className="nf-settings-subtabs">
+                {([
+                  { id: "profile", label: "الملف الشخصي" },
+                  { id: "content", label: "المحتوى" },
+                  { id: "muted",   label: "الكلمات المكتومة" },
+                ] as const).map(tab => (
+                  <button key={tab.id} onClick={() => setPrivacyTab(tab.id)}
+                    className={cn("nf-settings-subtab",
+                      privacyTab === tab.id ? "nf-settings-subtab--active" : "nf-settings-subtab--idle")}>
+                    {tab.label}
+                  </button>
+                ))}
               </div>
+
+              {privacyTab === "profile" && (
+                <div className="px-4 pb-4 space-y-1">
+
+                  {/* Section: Visibility */}
+                  <div>
+                    <button onClick={() => setOpenSections(p => ({ ...p, visibility: !p.visibility }))}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-nf-hover/40 transition-colors">
+                      <span className="text-[11px] font-bold text-nf-dim uppercase tracking-wider">الظهور والاكتشاف</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                        className={cn("text-nf-dim transition-transform", openSections.visibility ? "rotate-180" : "")}>
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </button>
+                    {openSections.visibility && (
+                      <div className="px-4 pb-3 space-y-0">
+                        <SettingRow label="ملف شخصي خاص" sub="فقط المتابعون يمكنهم رؤية منشوراتك">
+                          <Toggle on={profilePrivate} onToggle={() => setProfilePrivate(!profilePrivate)} />
+                        </SettingRow>
+                        <SettingRow label="إخفاء من نتائج البحث" sub="لن يظهر حسابك في بحث المستخدمين">
+                          <Toggle on={hideFromSearch} onToggle={() => setHideFromSearch(!hideFromSearch)} />
+                        </SettingRow>
+                        <SettingRow label="إظهار حالة الاتصال" sub="السماح للآخرين برؤية أنك متصل الآن">
+                          <Toggle on={showOnline} onToggle={() => setShowOnline(!showOnline)} />
+                        </SettingRow>
+                        <SettingRow label="إظهار الصيت" sub="عرض رصيد الصيت على ملفك الشخصي">
+                          <Toggle on={showKarma} onToggle={() => setShowKarma(!showKarma)} />
+                        </SettingRow>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section: Interactions */}
+                  <div>
+                    <button onClick={() => setOpenSections(p => ({ ...p, interactions: !p.interactions }))}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-nf-hover/40 transition-colors">
+                      <span className="text-[11px] font-bold text-nf-dim uppercase tracking-wider">التفاعلات والتواصل</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                        className={cn("text-nf-dim transition-transform", openSections.interactions ? "rotate-180" : "")}>
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </button>
+                    {openSections.interactions && (
+                      <div className="px-4 pb-3 space-y-0">
+                        <SettingRow label="السماح بالمتابعة" sub="يمكن للآخرين متابعة حسابك">
+                          <Toggle on={allowFollowers} onToggle={() => setAllowFollowers(!allowFollowers)} />
+                        </SettingRow>
+                        <SettingRow label="إخفاء النشاط الأخير" sub="إخفاء آخر وقت نشاط لك">
+                          <Toggle on={hideActivity} onToggle={() => setHideActivity(!hideActivity)} />
+                        </SettingRow>
+                        <SettingRow label="من يمكنه الإشارة إليك" sub="التحكم في من يستطيع @mention حسابك">
+                          <ComposeSelect
+                            value={allowMentions}
+                            onChange={setAllowMentions}
+                            options={[
+                              { value: "all", label: "الجميع" },
+                              { value: "following", label: "المتابَعون فقط" },
+                              { value: "none", label: "لا أحد" },
+                            ]}
+                            className="min-w-[8rem]"
+                          />
+                        </SettingRow>
+                        <SettingRow label="من يمكنه مراسلتك" sub="التحكم في من يستطيع إرسال رسائل مباشرة">
+                          <ComposeSelect
+                            value={allowDirectMessages}
+                            onChange={setAllowDirectMessages}
+                            options={[
+                              { value: "all", label: "الجميع" },
+                              { value: "following", label: "المتابَعون فقط" },
+                              { value: "none", label: "لا أحد" },
+                            ]}
+                            className="min-w-[8rem]"
+                          />
+                        </SettingRow>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section: Data */}
+                  <div>
+                    <button onClick={() => setOpenSections(p => ({ ...p, data: !p.data }))}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-nf-hover/40 transition-colors">
+                      <span className="text-[11px] font-bold text-nf-dim uppercase tracking-wider">بياناتك</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                        className={cn("text-nf-dim transition-transform", openSections.data ? "rotate-180" : "")}>
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </button>
+                    {openSections.data && (
+                      <div className="px-4 pb-3 space-y-0">
+                        <div className="flex items-center justify-between py-3">
+                          <div>
+                            <p className="text-[12px] text-nf-text font-medium">تحميل بياناتك</p>
+                            <p className="text-[10px] text-nf-dim mt-0.5">تصدير جميع بياناتك كملف JSON</p>
+                          </div>
+                          <button onClick={handleDownloadData} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-nf-accent bg-nf-accent/5 border border-nf-accent/20 hover:bg-nf-accent/10 transition-colors">تحميل</button>
+                        </div>
+                        <div className="flex items-center justify-between py-3 mt-1">
+                          <div>
+                            <p className="text-[12px] text-red-400 font-medium">حذف الحساب</p>
+                            <p className="text-[10px] text-nf-dim mt-0.5">هذا الإجراء لا يمكن التراجع عنه</p>
+                          </div>
+                          <button onClick={() => setShowDeleteConfirm(true)} className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-red-400 bg-red-400/5 border border-red-400/20 hover:bg-red-400/10 transition-colors">حذف</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+              {/* ── Content Privacy ── */}
+              {privacyTab === "content" && (
+                <div className="space-y-6">
+                  {/* Post history */}
+                  <div className="px-4 py-4">
+                    <p className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">سجل المنشورات</p>
+                    <SettingRow label="إظهار منشوراتك للعموم" sub="يمكن لأي شخص رؤية منشوراتك وتعليقاتك">
+                      <Toggle on={showPostHistory} onToggle={() => setShowPostHistory(!showPostHistory)} />
+                    </SettingRow>
+                    <SettingRow label="إخفاء سجل التصويت" sub="لا يرى أحد المنشورات التي صوّت عليها">
+                      <Toggle on={!showVoteHistory} onToggle={() => setShowVoteHistory(!showVoteHistory)} />
+                    </SettingRow>
+                    <SettingRow label="إخفاء المحفوظات" sub="لا يظهر تبويب المحفوظات لأي شخص آخر في ملفك">
+                      <Toggle on={hideSaved} onToggle={() => setHideSaved(!hideSaved)} />
+                    </SettingRow>
+                  </div>
+
+                  {/* Social links — redesigned */}
+                  <div className="px-4 py-4">
+                    <p className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-4">الروابط الاجتماعية</p>
+                    <div className="space-y-3">
+                      {socialFields.map((f) => {
+                        const IconComp = f.icon;
+                        const label = f.labelKey ? t(f.labelKey) : (typeof f.label === "string" ? f.label : "");
+                        const val = socialLinks[f.id] || "";
+                        return (
+                          <div key={f.id}>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: f.bg }}>
+                                <IconComp />
+                              </div>
+                              <span className="text-[11px] font-semibold text-nf-text">{label}</span>
+                              {val && (
+                                <a href={val} target="_blank" rel="noopener noreferrer"
+                                  className="mr-auto text-[10px] text-nf-accent hover:underline truncate max-w-[120px]">
+                                  مفتوح
+                                </a>
+                              )}
+                            </div>
+                            <input
+                              type="url"
+                              value={val}
+                              onChange={e => updateSocial(f.id, e.target.value)}
+                              placeholder={f.placeholder}
+                              className="w-full bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[11px] text-nf-text placeholder:text-nf-dim/40 outline-none focus:border-nf-accent/50 transition-colors"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Export data */}
+                  <div className="px-4 py-4">
+                    <p className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">بياناتك</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[12px] text-nf-text font-medium">تحميل بياناتك</p>
+                        <p className="text-[10px] text-nf-dim mt-0.5">تصدير جميع بياناتك كملف JSON</p>
+                      </div>
+                      <button onClick={handleDownloadData}
+                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-nf-accent bg-nf-accent/5 border border-nf-accent/20 hover:bg-nf-accent/10 transition-colors">
+                        تحميل
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Muted Words ── */}
+              {privacyTab === "muted" && (
+                <div className="px-4 py-4">
+                  <p className="text-[12px] font-semibold text-nf-text mb-1">الكلمات المكتومة</p>
+                  <p className="text-[11px] text-nf-dim mb-4">المنشورات التي تحتوي على هذه الكلمات لن تظهر في الفيد الخاص بك</p>
+
+                  {/* Input */}
+                  <div className="flex gap-2 mb-4">
+                    <input
+                      type="text"
+                      value={mutedWordInput}
+                      onChange={e => setMutedWordInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addMutedWord(); } }}
+                      placeholder="اكتب كلمة أو عبارة ثم اضغط Enter..."
+                      className="flex-1 bg-nf-input border border-nf-border-2 rounded-lg px-3 py-2 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/40 transition-colors"
+                    />
+                    <button
+                      onClick={addMutedWord}
+                      disabled={!mutedWordInput.trim()}
+                      className="px-4 py-2 rounded-lg text-[11px] font-bold bg-nf-accent/10 text-nf-accent border border-nf-accent/20 hover:bg-nf-accent/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      إضافة
+                    </button>
+                  </div>
+
+                  {/* Count badge */}
+                  {mutedWords.length > 0 && (
+                    <p className="text-[10px] text-nf-dim mb-2">{mutedWords.length} كلمة مكتومة</p>
+                  )}
+
+                  {/* Tags */}
+                  {mutedWords.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {mutedWords.map(word => (
+                        <span key={word} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-nf-secondary border border-nf-border-2 text-[12px] text-nf-text font-medium">
+                          {word}
+                          <button onClick={() => removeMutedWord(word)}
+                            className="text-nf-dim hover:text-red-400 transition-colors">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-nf-border-2/50 rounded-xl">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-nf-dim/40 mb-2">
+                        <path d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z"/>
+                      </svg>
+                      <p className="text-[12px] text-nf-dim">لا توجد كلمات مكتومة</p>
+                      <p className="text-[10px] text-nf-dim/50 mt-1">أضف كلمات لإخفاء المنشورات التي تحتوي عليها</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           )}
 
           {activeSection === "ai" && (
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-6">
               <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">إعدادات الذكاء الاصطناعي</h3>
-              <p className="text-[9px] text-nf-dim/50 mb-4">اختر المزود والنموذج وأضف مفتاح API لاستخدام أدوات AI في المنشورات والمنتدى</p>
+              <p className="text-[11px] text-nf-dim/50 mb-4">اختر المزود والنموذج وأضف مفتاح API لاستخدام أدوات AI في المنشورات والمنتدى</p>
               {/* Provider */}
               <div>
-                <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">المزود</label>
+                <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">المزود</label>
                 <p className="text-[8px] text-nf-dim/40 mb-2">الشركة التي توفر خدمة الذكاء الاصطناعي</p>
                 <div className="grid grid-cols-3 gap-1.5">
                   {(["chatanywhere", "deepseek", "groq", "mistral", "gemini", "chatgpt", "claude"] as const).map(p => (
@@ -546,7 +925,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
               {/* Model */}
               {AI_MODELS.filter(m => m.provider === aiProvider).length > 0 && (
                 <div>
-                  <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">النموذج</label>
+                  <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">النموذج</label>
                   <p className="text-[8px] text-nf-dim/40 mb-2">النموذج المستخدم — المجانية أسرع، المدفوعة أذكى</p>
                   <div className="flex flex-col gap-1">
                     {AI_MODELS.filter(m => m.provider === aiProvider).map(m => {
@@ -565,19 +944,24 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
               {AI_MODELS[aiModel] && (
                 <div className="bg-nf-secondary/20 rounded-lg p-3 border border-white/5">
                   <p className="text-[10px] text-nf-dim font-bold">{AI_MODELS[aiModel].name}</p>
-                  <p className="text-[9px] text-nf-dim/50">{AI_MODELS[aiModel].desc}</p>
+                  <p className="text-[11px] text-nf-dim/50">{AI_MODELS[aiModel].desc}</p>
                 </div>
               )}
-              {/* Translation */}
-              <div className="border-t border-nf-border/10 pt-4">
-                <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">لغة الترجمة</label>
-                <p className="text-[8px] text-nf-dim/40 mb-2">عند استخدام أداة الترجمة، يترجم لهذه اللغة — أو العكس إذا كانت اللغة نفسها</p>
+              {/* Translation — AI lang (for AI translate tool) */}
+              <div>
+                <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">لغة ترجمة AI</label>
+                <p className="text-[8px] text-nf-dim/40 mb-2">لغة الهدف عند استخدام أداة الترجمة بالذكاء الاصطناعي</p>
                 <TranslationLangSelector />
-                <p className="text-[8px] text-nf-dim/30 mt-2">ذكي: إذا المنشور عربي يترجم للغة المختارة، وإذا المنشور بنفس اللغة يترجم للعربية</p>
+              </div>
+              {/* Free translation lang */}
+              <div>
+                <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">لغة الترجمة المجانية</label>
+                <p className="text-[8px] text-nf-dim/40 mb-2">لغة الهدف لزر "ترجمة" في التعليقات والمنشورات — ذكي: يكتشف اللغة ويترجم للعكس تلقائياً</p>
+                <TranslateLangPicker fullWidth />
               </div>
               {/* API Key */}
-              <div className="border-t border-nf-border/10 pt-4">
-                <label className="text-[9px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">مفتاح API</label>
+              <div>
+                <label className="text-[11px] text-nf-dim font-bold mb-1.5 block uppercase tracking-wider">مفتاح API</label>
                 <p className="text-[8px] text-nf-dim/40 mb-2">مفتاح الدخول — احصل عليه مجاناً من موقع المزود</p>
                 <div className="relative">
                   <input type="password" value={aiApiKey} onChange={e => setAiApiKey(e.target.value)} placeholder="sk-..." className="w-full bg-nf-secondary/30 rounded-lg px-4 py-2.5 text-[11px] text-nf-text placeholder:text-nf-dim/30 outline-none focus:ring-1 focus:ring-nf-accent/20 font-mono border border-nf-border/10 focus:border-nf-accent/20 transition-all" dir="ltr" />
@@ -601,7 +985,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
 
           {activeSection === "language" && (
             <div className="p-4">
-              <h3 className="text-[11px] font-bold text-nf-dim uppercase tracking-wider mb-3">{t("sp.language")}</h3>
+              <h3 className="text-[13px] font-semibold text-nf-text mb-3">{t("sp.language")}</h3>
               {[
                 { id: "ar", label: "العربية", sub: "Arabic", flag: "🇸🇦" },
                 { id: "en", label: "English", sub: "الإنجليزية", flag: "🇺🇸" },

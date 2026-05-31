@@ -1,6 +1,7 @@
 "use client";
 
-import { Home, Flame, Clock, TrendingUp, User, Bookmark, Bell, Settings, HelpCircle, Shield, Plus, Search, MessageSquare, Gamepad2, X, Rss, Pencil, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
+import { Home, Flame, Clock, TrendingUp, User, Bookmark, Bell, Settings, HelpCircle, Shield, Plus, Search, MessageSquare, Gamepad2, X, Rss, Pencil, ChevronDown, ChevronUp, Settings2, Star } from "lucide-react";
+import { setCommunityFavorite } from "@/lib/user-community-prefs";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -17,7 +18,7 @@ const navHrefMap: Record<string, string> = {
   new: "/app?view=new",
   top: "/app?view=top",
   forums: "/forum",
-  games: "/app?view=games",
+  games: "/games",
   profile: "/app?view=profile",
   saved: "/app?view=saved",
   notifs: "/app?view=notifs",
@@ -55,6 +56,23 @@ function NavSection({ title, items, active, onSelect, badges }: {
             )}
           </>
         );
+        if (item.id === "games" && href) {
+          return (
+            <a
+              key={item.id}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "relative flex items-center gap-3 px-3.5 py-2 rounded-lg text-[13px] font-medium mx-2 transition-colors duration-150",
+                "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
+              )}
+              aria-label={label}
+            >
+              {inner}
+            </a>
+          );
+        }
         return href ? (
           <Link
             key={item.id}
@@ -89,7 +107,7 @@ function NavSection({ title, items, active, onSelect, badges }: {
   );
 }
 
-export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, onCreateCommunity, onDashboardClick, onCustomFeedClick, onCreateCustomFeed, onEditCustomFeed, customFeeds, activeCustomFeedId }: {
+export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, onCreateCommunity, onDashboardClick, onCustomFeedClick, onCreateCustomFeed, customFeeds, activeCustomFeedId }: {
   onNavClick: (id: string) => void;
   onCommunityClick: (name: string) => void;
   activeNav: string;
@@ -97,25 +115,43 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
   onDashboardClick?: (name: string) => void;
   onCustomFeedClick?: (feed: CustomFeed) => void;
   onCreateCustomFeed?: () => void;
-  onEditCustomFeed?: (feed: CustomFeed) => void;
   customFeeds?: CustomFeed[];
   activeCustomFeedId?: string | null;
 }) {
   const { t, lang } = useI18n();
   const { user } = useAuth();
-  const { unreadCount, communities: allComms, joinedCommunities: joinedNames } = useData();
+  const { unreadCount, communities: allComms, joinedCommunities: joinedNames, favoriteCommunities } = useData();
   const [commSearch, setCommSearch] = useState("");
+  const [commSectionOpen, setCommSectionOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
-  const createdComms = allComms.filter((c) => c.creatorUid === user?.uid);
-  const joinedComms = allComms.filter((c) => joinedNames.includes(c.name) && c.creatorUid !== user?.uid);
+  const favSet = new Set(favoriteCommunities);
+  const sortByFavorite = (list: typeof allComms) =>
+    [...list].sort((a, b) => {
+      const af = favSet.has(a.name) ? 0 : 1;
+      const bf = favSet.has(b.name) ? 0 : 1;
+      if (af !== bf) return af - bf;
+      return a.name.localeCompare(b.name, "ar");
+    });
+  const createdComms = sortByFavorite(allComms.filter((c) => c.creatorUid === user?.uid));
+  const joinedComms = sortByFavorite(allComms.filter((c) => joinedNames.includes(c.name) && c.creatorUid !== user?.uid));
+  const myCommunities = sortByFavorite(
+    [...createdComms, ...joinedComms.filter((j) => !createdComms.some((c) => c.name === j.name))]
+  );
+  const toggleSidebarFavorite = async (name: string) => {
+    if (!user) return;
+    const next = !favSet.has(name);
+    try {
+      await setCommunityFavorite(user.uid, name, next);
+    } catch { /* silent */ }
+  };
   const filteredComms = commSearch.trim()
     ? allComms.filter(
         (c) =>
           c.name.toLowerCase().includes(commSearch.toLowerCase()) ||
           c.label.toLowerCase().includes(commSearch.toLowerCase())
       )
-    : allComms;
+    : sortByFavorite(allComms);
 
   // Dark mode toggle
   useEffect(() => {
@@ -170,128 +206,141 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
                       isActive ? "bg-nf-hover text-nf-text" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
                     )}
                   >
-                    <Rss size={14} className={cn("shrink-0", isActive ? "text-nf-accent opacity-100" : "opacity-40")} />
+                    {feed.iconUrl ? (
+                      <img src={feed.iconUrl} alt="" className={cn("w-5 h-5 rounded-full object-cover shrink-0", !isActive && "opacity-70")} />
+                    ) : (
+                      <div className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black shrink-0 bg-nf-accent/15 text-nf-accent", !isActive && "opacity-60")}>
+                        {feed.name.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
                     <span className="truncate flex-1 text-right">{feed.name}</span>
-                    <span className="text-[9px] text-nf-dim shrink-0">{feed.communities.length}</span>
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onEditCustomFeed?.(feed); }}
+                  <a
+                    href={`/feeds/${feed.id}/settings`}
+                    onClick={(e) => { e.stopPropagation(); }}
                     className="absolute left-1 top-1/2 -translate-y-1/2 p-1 rounded text-nf-dim opacity-0 group-hover/feed:opacity-100 hover:text-nf-accent transition-all"
-                    title="تعديل"
+                    title="إعدادات الفيد"
                   >
                     <Pencil size={10} />
-                  </button>
+                  </a>
                 </div>
               );
             })
           ) : null}
 
-          <button
-            onClick={onCreateCustomFeed}
-            className="flex items-center gap-2 mx-2 px-2.5 py-1.5 rounded-lg text-[11px] text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-colors"
-          >
-            <Plus size={11} className="opacity-50" />
-            <span>إنشاء فيد مخصص</span>
-          </button>
+          <div className="px-3.5 pb-2">
+            <button
+              type="button"
+              onClick={onCreateCustomFeed}
+              className="w-full flex items-center gap-2 px-3 py-2 border border-dashed border-nf-border rounded-lg text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-[#999] transition-colors duration-150"
+            >
+              <Plus size={14} />
+              <span>إنشاء فيد مخصص</span>
+            </button>
+          </div>
         </div>
       )}
 
-      {/* My Communities */}
-      {user && (createdComms.length > 0 || joinedComms.length > 0) && (
+      {/* Communities — Reddit style */}
+      {user && (
         <div className="flex flex-col gap-px mb-2">
-          <div className="px-3.5 py-2 pb-1">
-            <span className="text-[10px] font-bold text-nf-dim uppercase tracking-wider">مجتمعاتي</span>
-          </div>
-          {createdComms.map((c) => (
-            <div key={c.name} className="flex items-center mx-2 group">
-              <Link
-                href={`/community/${encodeURIComponent(c.name)}`}
-                onClick={(e) => { e.preventDefault(); onCommunityClick(c.name); }}
+          <button
+            type="button"
+            onClick={() => setCommSectionOpen((o) => !o)}
+            className="flex items-center justify-between w-full px-3.5 py-2 text-[10px] font-bold text-nf-dim uppercase tracking-wider hover:text-nf-muted"
+          >
+            <span>{t("sb.communities")}</span>
+            {commSectionOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+          {commSectionOpen && (
+            <>
+              <button
+                type="button"
+                onClick={() => onNavClick("manage-communities")}
                 className={cn(
-                  "flex items-center gap-2.5 flex-1 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors duration-150",
-                  activeNav === c.name ? "bg-nf-hover text-nf-text" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
+                  "flex items-center gap-2.5 mx-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors",
+                  activeNav === "manage-communities" ? "bg-nf-hover text-nf-text" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
                 )}
               >
-                {c.img ? (
-                  <img src={c.img} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-nf-accent/20 flex items-center justify-center text-[7px] text-nf-accent font-bold shrink-0">n/</div>
-                )}
-                <span className="truncate flex-1">{c.label || `n/${c.name}`}</span>
-                <span className="px-1.5 py-0.5 rounded text-[8px] bg-nf-accent/10 text-nf-accent font-bold shrink-0">مؤسس</span>
-              </Link>
-              {onDashboardClick && (
-                <button onClick={() => onDashboardClick(c.name)}
-                  className="p-1.5 rounded text-nf-dim opacity-0 group-hover:opacity-100 hover:text-nf-accent transition-all shrink-0"
-                  title="لوحة التحكم">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
-          {joinedComms.map((c) => (
-            <Link key={c.name} href={`/community/${encodeURIComponent(c.name)}`}
-              onClick={(e) => { e.preventDefault(); onCommunityClick(c.name); }}
-              className={cn(
-                "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium mx-2 transition-colors duration-150",
-                activeNav === c.name ? "bg-nf-hover text-nf-text" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
-              )}>
-              {c.img ? (
-                <img src={c.img} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="w-5 h-5 rounded-full bg-nf-secondary flex items-center justify-center text-[7px] text-nf-accent font-bold shrink-0">n/</div>
-              )}
-              <span className="truncate">{c.label || `n/${c.name}`}</span>
-            </Link>
-          ))}
+                <Settings2 size={16} className="opacity-60 shrink-0" />
+                <span>إدارة المجتمعات</span>
+              </button>
+              {myCommunities.map((c) => (
+                <div key={c.name} className="flex items-center mx-2 group/comm">
+                  <Link
+                    href={`/community/${encodeURIComponent(c.name)}`}
+                    onClick={(e) => { e.preventDefault(); onCommunityClick(c.name); }}
+                    className={cn(
+                      "flex items-center gap-2.5 flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors",
+                      activeNav === c.name ? "bg-nf-hover text-nf-text" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
+                    )}
+                  >
+                    {c.img ? (
+                      <img src={c.img} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-nf-secondary flex items-center justify-center text-[7px] text-nf-accent font-bold shrink-0">n/</div>
+                    )}
+                    <span className="truncate">{c.label || `n/${c.name}`}</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); toggleSidebarFavorite(c.name); }}
+                    className={cn(
+                      "p-1 shrink-0 rounded transition-colors",
+                      favSet.has(c.name) ? "text-yellow-400" : "text-nf-dim opacity-0 group-hover/comm:opacity-100 hover:text-yellow-400"
+                    )}
+                    aria-label="مفضلة"
+                  >
+                    <Star size={12} fill={favSet.has(c.name) ? "currentColor" : "none"} />
+                  </button>
+                </div>
+              ))}
+              <div className="px-3 pt-1 pb-1.5">
+                <div className="relative">
+                  <Search size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nf-dim pointer-events-none" />
+                  <input
+                    type="text"
+                    value={commSearch}
+                    onChange={(e) => setCommSearch(e.target.value)}
+                    placeholder={t("sb.searchComm")}
+                    className="w-full !bg-nf-secondary border border-nf-border-2 rounded-lg pr-7 pl-6 py-1.5 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/50"
+                  />
+                </div>
+              </div>
+              <div className="max-h-[140px] overflow-y-auto">
+                {filteredComms
+                  .filter((c) => !myCommunities.some((m) => m.name === c.name))
+                  .slice(0, 30)
+                  .map((c) => (
+                    <Link
+                      key={`disc-${c.name}`}
+                      href={`/community/${encodeURIComponent(c.name)}`}
+                      onClick={(e) => { e.preventDefault(); onCommunityClick(c.name); }}
+                      className={cn(
+                        "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium mx-2 text-nf-dim hover:bg-nf-hover hover:text-nf-muted transition-colors",
+                        activeNav === c.name && "bg-nf-hover text-nf-text"
+                      )}
+                    >
+                      {c.img ? (
+                        <img src={c.img} alt="" className="w-4 h-4 rounded-full object-cover shrink-0 opacity-70" />
+                      ) : (
+                        <span className="w-4 h-4 rounded-full bg-nf-secondary shrink-0" />
+                      )}
+                      <span className="truncate">{c.label}</span>
+                    </Link>
+                  ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* All Communities */}
-      <div className="flex flex-col gap-px mb-2">
-        <div className="text-[10px] font-bold text-nf-dim uppercase tracking-wider px-3.5 py-2 pb-1">
-          {t("sb.communities")}
-        </div>
-        <div className="px-3 pb-1.5">
-          <div className="relative">
-            <Search size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nf-dim pointer-events-none" />
-            <input type="text" value={commSearch} onChange={e => setCommSearch(e.target.value)}
-              placeholder={t("sb.searchComm")}
-              className="w-full !bg-nf-secondary border border-nf-border-2 rounded-lg pr-7 pl-6 py-1.5 text-[11px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/50 transition-colors" />
-            {commSearch && (
-              <button onClick={() => setCommSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-nf-dim hover:text-nf-text">
-                <X size={10} />
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="max-h-[200px] overflow-y-auto">
-          {filteredComms.length === 0 ? (
-            <div className="px-3.5 py-2 text-[11px] text-nf-dim text-center">لا توجد نتائج</div>
-          ) : (
-            filteredComms.map((c) => (
-              <Link key={c.name} href={`/community/${encodeURIComponent(c.name)}`}
-                onClick={(e) => { e.preventDefault(); onCommunityClick(c.name); }}
-                className={cn(
-                  "flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[12px] font-medium mx-2 transition-colors duration-150",
-                  activeNav === c.name ? "bg-nf-hover text-nf-text" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
-                )}>
-                {c.img ? (
-                  <img src={c.img} alt="" className="w-5 h-5 rounded-full object-cover shrink-0 opacity-80" />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-nf-secondary flex items-center justify-center text-[7px] text-nf-accent font-bold shrink-0">n/</div>
-                )}
-                <span className="truncate">{c.label || `n/${c.name}`}</span>
-              </Link>
-            ))
-          )}
-        </div>
-      </div>
-
       <div className="px-3.5 pb-2">
-        <button onClick={onCreateCommunity} className="w-full flex items-center gap-2 px-3 py-2 border border-dashed border-nf-border rounded-lg text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-[#999] transition-colors duration-150">
+        <button
+          type="button"
+          onClick={onCreateCommunity}
+          className="w-full flex items-center gap-2 px-3 py-2 border border-dashed border-nf-border rounded-lg text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-[#999] transition-colors duration-150"
+        >
           <Plus size={14} />
           <span>{t("sb.createCommunity")}</span>
         </button>
@@ -325,7 +374,17 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
           { icon: Bell, id: "notifs" },
           { icon: User, id: "profile" },
         ].map(item => (
-          <button key={item.id} onClick={() => onNavClick(item.id)} className={cn("flex flex-col items-center justify-center gap-0.5 flex-1 py-1", activeNav === item.id ? "text-nf-accent" : "text-nf-dim")}>
+          <button
+            key={item.id}
+            onClick={() => {
+              if (item.id === "games") {
+                window.open("/games", "_blank", "noopener,noreferrer");
+                return;
+              }
+              onNavClick(item.id);
+            }}
+            className={cn("flex flex-col items-center justify-center gap-0.5 flex-1 py-1", activeNav === item.id ? "text-nf-accent" : "text-nf-dim")}
+          >
             <item.icon size={18} />
             <span className="text-[8px] font-semibold">{item.id === "home" ? t("sb.home") : item.id === "hot" ? t("sb.popular") : item.id === "games" ? "ألعاب" : item.id === "notifs" ? t("sb.notifs") : t("sb.profile")}</span>
             {item.id === "notifs" && unreadCount > 0 && <span className="absolute top-0.5 right-1/2 translate-x-2 w-1.5 h-1.5 rounded-full bg-red-500" />}

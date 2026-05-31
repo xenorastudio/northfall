@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Cake, Star, MessageSquare, Shield, Users, FileText, Clock, UserPlus, UserCheck, ExternalLink, Gamepad2 } from "lucide-react";
-import { doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, collection, getDocs, query, where, getCountFromServer } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, collection, getDocs, query, where, getCountFromServer, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { getLevel } from "@/lib/ranking";
 import { useToast } from "./ToastProvider";
 import { GAMES } from "./GamesPage";
+import { firestoreCommunityIdFromDisplay } from "@/lib/post-target";
 
 interface HoverCardProps {
   children: React.ReactNode;
@@ -115,8 +116,10 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
             });
           }
         } else {
+          const commId = firestoreCommunityIdFromDisplay(name.startsWith("n/") ? name : `n/${name}`);
+          if (!commId) return;
           try {
-            const commSnap = await getDoc(doc(db, "communities", name));
+            const commSnap = await getDoc(doc(db, "communities", commId));
             if (commSnap.exists()) {
               const d = commSnap.data();
               setData({
@@ -396,9 +399,19 @@ function CommunityCard({ data, name, onCommunityClick }: { data: any; name: stri
         {/* Tags */}
         {data.tags && data.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2.5">
-            {data.tags.slice(0, 4).map((tag: string) => (
-              <span key={tag} className="px-1.5 py-0.5 rounded bg-nf-accent/10 text-[9px] font-medium text-nf-accent">{tag}</span>
-            ))}
+            {data.tags.slice(0, 4).map((tag: any, i: number) => {
+              const label = typeof tag === "string" ? tag : (tag.text || "");
+              const TAG_COLORS = [
+                { bg: "#c8d8f0", text: "#1a3a6b" }, { bg: "#f8c8c8", text: "#7a1a1a" },
+                { bg: "#d8c8f0", text: "#3a1a7a" }, { bg: "#fce8b8", text: "#7a4a00" },
+                { bg: "#c8f0d8", text: "#1a6b3a" }, { bg: "#f0e8c8", text: "#6b5a1a" },
+              ];
+              const colorIdx = typeof tag === "object" && tag.color !== undefined ? tag.color : (i % TAG_COLORS.length);
+              const col = TAG_COLORS[colorIdx % TAG_COLORS.length];
+              return (
+                <span key={i} style={{ background: col.bg, color: col.text, padding: "3px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600 }}>{label}</span>
+              );
+            })}
           </div>
         )}
 
@@ -429,5 +442,157 @@ function CommunityCard({ data, name, onCommunityClick }: { data: any; name: stri
         </div>
       </div>
     </div>
+  );
+}
+
+async function fetchUserHoverData(name: string, uid?: string) {
+  try {
+    if (uid) {
+      const userSnap = await getDoc(doc(db, "users", uid));
+      if (userSnap.exists()) {
+        const d = userSnap.data();
+        let postCount = d.postCount || 0;
+        if (!postCount) {
+          try {
+            const pSnap = await getDocs(query(collection(db, "posts"), where("authorUid", "==", uid), limit(100)));
+            postCount = pSnap.size;
+          } catch {
+            /* ignore */
+          }
+        }
+        let followerCount = 0;
+        let followingCount = 0;
+        let favoriteGameIds: string[] = [];
+        try {
+          const fSnap = await getDocs(collection(db, "users", uid, "followers"));
+          followerCount = fSnap.size;
+        } catch {
+          /* ignore */
+        }
+        try {
+          const f2Snap = await getDocs(collection(db, "users", uid, "following"));
+          followingCount = f2Snap.size;
+        } catch {
+          /* ignore */
+        }
+        try {
+          const gSnap = await getDoc(doc(db, "users", uid, "games", "favorites"));
+          if (gSnap.exists()) favoriteGameIds = gSnap.data().ids || [];
+        } catch {
+          /* ignore */
+        }
+        return {
+          photo: d.photoURL || "",
+          name: d.displayName || name,
+          uid: userSnap.id,
+          karma: d.karma || 0,
+          xp: d.xp || 0,
+          postCount,
+          commentCount: d.commentCount || 0,
+          bio: d.bio || "",
+          bannerUrl: d.bannerUrl || "",
+          lastSeen: d.lastSeen || null,
+          joinedAt: d.createdAt || null,
+          followerCount,
+          followingCount,
+          socialLinks: d.socialLinks || {},
+          favoriteGameIds,
+        };
+      }
+    }
+
+    const q = query(collection(db, "users"), orderBy("displayName"), limit(20));
+    const snap = await getDocs(q);
+    const handle = name.toLowerCase();
+    const userDoc =
+      snap.docs.find((d) => d.data().displayName === name) ||
+      snap.docs.find((d) => {
+        const dn = String(d.data().displayName || "").replace(/\s+/g, "").toLowerCase();
+        return dn === handle || dn.startsWith(handle);
+      });
+    if (!userDoc) return null;
+    const d = userDoc.data();
+    const foundUid = userDoc.id;
+    return {
+      photo: d.photoURL || "",
+      name: d.displayName || name,
+      uid: foundUid,
+      karma: d.karma || 0,
+      xp: d.xp || 0,
+      postCount: d.postCount || 0,
+      commentCount: d.commentCount || 0,
+      bio: d.bio || "",
+      bannerUrl: d.bannerUrl || "",
+      lastSeen: d.lastSeen || null,
+      joinedAt: d.createdAt || null,
+      followerCount: 0,
+      followingCount: 0,
+      socialLinks: d.socialLinks || {},
+      favoriteGameIds: [] as string[],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** بطاقة بروفايل عند hover على @mention */
+export function UserProfilePopover({
+  name,
+  uid,
+  anchorRect,
+  show,
+  onClose,
+  onProfileClick,
+}: {
+  name: string;
+  uid?: string;
+  anchorRect: DOMRect;
+  show: boolean;
+  onClose?: () => void;
+  onProfileClick?: (uid: string) => void;
+}) {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    if (!show) {
+      setData(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchUserHoverData(name, uid).then((res) => {
+      if (!cancelled) setData(res);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [show, name, uid]);
+
+  if (!show || typeof document === "undefined") return null;
+
+  const top = Math.min(anchorRect.bottom + 6, window.innerHeight - 320);
+  const right = Math.max(8, window.innerWidth - anchorRect.right);
+
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0, y: 4, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 4, scale: 0.97 }}
+      transition={{ duration: 0.12 }}
+      style={{ position: "fixed", top, right, zIndex: 99999 }}
+      className="nf-mention-popover w-[280px] bg-nf-primary border border-nf-border rounded-lg shadow-xl overflow-hidden pointer-events-auto"
+      onMouseEnter={(e) => e.stopPropagation()}
+      onMouseLeave={onClose}
+    >
+      <UserCard
+        data={data}
+        name={name}
+        uid={uid || data?.uid}
+        onProfileClick={(id) => {
+          onClose?.();
+          onProfileClick?.(id);
+        }}
+      />
+    </motion.div>,
+    document.body
   );
 }

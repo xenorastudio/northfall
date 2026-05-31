@@ -23,8 +23,18 @@ const nextConfig = {
           { key: 'Content-Type', value: 'text/plain; charset=UTF-8' },
         ],
       },
+      // Embed pages must be embeddable in iframes — no X-Frame-Options restriction
       {
-        source: '/(.*)',
+        source: '/embed/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors *;" },
+        ],
+      },
+      {
+        source: '/((?!embed).*)',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },

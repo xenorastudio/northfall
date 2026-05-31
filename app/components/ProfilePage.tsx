@@ -1,14 +1,32 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield, Gamepad2, Calendar, Tag, ExternalLink, Rss, Lock, Globe } from "lucide-react";
+import { Camera, Pencil, Cake, FileText, MessageSquare, Bookmark, Award, Star, Zap, Heart, Trophy, Sparkles, UserPlus, UserCheck, Users, ArrowUp, Shield, Gamepad2, Calendar, Tag, ExternalLink, Rss, Lock, Globe, RotateCcw } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { useI18n } from "./I18nProvider";
-import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, getCountFromServer, onSnapshot } from "firebase/firestore";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import {
+  collection,
+  collectionGroup,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  addDoc,
+  updateDoc,
+  getCountFromServer,
+  onSnapshot,
+  type QueryDocumentSnapshot,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getLevel } from "@/lib/ranking";
 import PostCard from "./PostCard";
+import PostBodyContent from "./PostBodyContent";
 import { GAMES } from "./GamesPage";
 import { cn } from "@/lib/utils";
 import type { CustomFeed } from "./CustomFeedModal";
@@ -124,9 +142,22 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const targetUid = (typeof uid === "string" && uid) || user?.uid || "";
   const isOwn = !uid || uid === user?.uid;
   const [activeTab, setActiveTab] = useState("posts");
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    const valid = ["posts", "comments", "saved", "feeds", "games", "awards"];
+    if (tab && valid.includes(tab)) setActiveTab(tab);
+  }, []);
   const [posts, setPosts] = useState<any[]>([]);
   const [savedPosts, setSavedPosts] = useState<any[]>([]);
+  const [savedPostsLoading, setSavedPostsLoading] = useState(false);
+  const [savedSearch, setSavedSearch] = useState("");
+  const [savedSearchDebounced, setSavedSearchDebounced] = useState("");
+  const [savedCategory, setSavedCategory] = useState("all");
+  const [savedSort, setSavedSort] = useState<"newest"|"oldest"|"top">("newest");
+  const [savedFlair, setSavedFlair] = useState("all");
+  const [savedHideNsfw, setSavedHideNsfw] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
   const [favoriteGameIds, setFavoriteGameIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,6 +172,8 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
   const [copiedId, setCopiedId] = useState("");
   const [isOnline, setIsOnline] = useState(false);
   const [profileCustomFeeds, setProfileCustomFeeds] = useState<CustomFeed[]>([]);
+  const [hideSaved, setHideSaved] = useState(false);
+  const [showKarma, setShowKarma] = useState(true);
 
   const getLevelWithIcon = (xp: number) => {
     const base = getLevel(xp);
@@ -164,6 +197,8 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
         if (userData?.lastSeen) {
           setIsOnline((Date.now() - new Date(userData.lastSeen).getTime()) < 300000);
         }
+        setHideSaved(!!userData?.hideSaved);
+        setShowKarma(userData?.showKarma !== false);
 
         if (isOwn && user) {
           // For own profile, prefer Firestore custom photo over Google auth photo
@@ -335,55 +370,147 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
     }).catch(() => {});
   }, [targetUid, activeTab, isOwn]);
 
-  // Fetch saved posts (parallel with Promise.all)
+  // Debounce saved search input (200ms) to avoid excessive filtering
   useEffect(() => {
-    if (!user || !isOwn || activeTab !== "saved") return;
-    async function fetchSaved() {
-      try {
-        const savedSnap = await getDocs(collection(db, "users", user!.uid, "saved"));
-        const postSnaps = await Promise.all(
-          savedSnap.docs.map(s => {
-            const postId = s.data().postId || s.id;
-            return getDoc(doc(db, "posts", postId));
-          })
-        );
-        const items = postSnaps.filter(s => s.exists()).map(s => ({ id: s.id, ...s.data() }));
-        setSavedPosts(items);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    fetchSaved();
-  }, [user, activeTab]);
+    const timer = setTimeout(() => setSavedSearchDebounced(savedSearch), 200);
+    return () => clearTimeout(timer);
+  }, [savedSearch]);
 
-  // Fetch user comments (parallel with Promise.all)
+  useEffect(() => {
+    setSavedPosts([]);
+  }, [targetUid]);
+
+  const fetchSavedPosts = useCallback(async () => {
+    if (!targetUid) return;
+    if (!isOwn && hideSaved) return;
+    setSavedPostsLoading(true);
+    try {
+      const savedSnap = await getDocs(collection(db, "users", targetUid, "saved"));
+      const postSnaps = await Promise.all(
+        savedSnap.docs.map(s => {
+          const postId = s.data().postId || s.id;
+          return getDoc(doc(db, "posts", postId));
+        })
+      );
+      const items = postSnaps.filter(s => s.exists()).map(s => ({ id: s.id, ...s.data() }));
+      setSavedPosts(items);
+    } catch (e) {
+      console.error(e);
+      setSavedPosts([]);
+    } finally {
+      setSavedPostsLoading(false);
+    }
+  }, [targetUid, isOwn, hideSaved]);
+
+  useEffect(() => {
+    if (activeTab !== "saved") return;
+    if (!targetUid || (!isOwn && hideSaved)) return;
+    fetchSavedPosts();
+  }, [activeTab, targetUid, isOwn, hideSaved, fetchSavedPosts]);
+
+  // Pure client-side filter + sort — zero reads from Firebase
+  const filteredSavedPosts = useMemo(() => {
+    return savedPosts
+      .filter(p => {
+        const q = savedSearchDebounced.toLowerCase();
+        if (q && !((p.title||"").toLowerCase().includes(q)||(p.body||"").toLowerCase().includes(q))) return false;
+        if (savedCategory !== "all" && p.community !== savedCategory) return false;
+        if (savedFlair !== "all" && p.flair !== savedFlair) return false;
+        if (savedHideNsfw && p.isNsfw) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (savedSort === "top") return (b.votes||0) - (a.votes||0);
+        const da = new Date(a.createdAt||0).getTime();
+        const db_ = new Date(b.createdAt||0).getTime();
+        return savedSort === "newest" ? db_ - da : da - db_;
+      });
+  }, [savedPosts, savedSearchDebounced, savedCategory, savedFlair, savedHideNsfw, savedSort]);
+
+  // Fetch user comments across all posts
   useEffect(() => {
     if (!targetUid || activeTab !== "comments") return;
-    async function fetchComments() {
+    async function enrichComment(cDoc: QueryDocumentSnapshot) {
+      const d = cDoc.data();
+      const postId = cDoc.ref.parent?.parent?.id;
+      if (!postId) return null;
+      let postTitle = "";
+      let postCommunity = "";
       try {
-        // Use user's own posts to find their comments (much cheaper)
-        const userPostsQ = query(collection(db, "posts"), where("authorUid", "==", targetUid), limit(10));
-        const snap = await getDocs(userPostsQ);
-        const allComments: any[] = [];
-        const commentSnaps = await Promise.all(
-          snap.docs.map(postDoc => getDocs(query(collection(db, "posts", postDoc.id, "comments"), where("authorUid", "==", targetUid!), limit(10))))
-        );
-        commentSnaps.forEach((cSnap, i) => {
-          const postDoc = snap.docs[i];
-          cSnap.forEach((c) => {
-            const d = c.data();
-            if (d.authorUid === targetUid) {
-              allComments.push({ id: c.id, postId: postDoc.id, postTitle: postDoc.data().title, ...d });
-            }
-          });
-        });
-        setComments(allComments);
-      } catch (e) {
-        console.error(e);
+        const p = await getDoc(doc(db, "posts", postId));
+        if (p.exists()) {
+          postTitle = String(p.data().title || "");
+          postCommunity = String(p.data().community || "");
+        }
+      } catch {
+        /* ignore */
       }
+      return {
+        id: cDoc.id,
+        postId,
+        postTitle,
+        postCommunity,
+        ...d,
+      };
+    }
+
+    async function fetchComments() {
+      setCommentsLoading(true);
+      const allComments: any[] = [];
+      try {
+        const snap = await getDocs(
+          query(
+            collectionGroup(db, "comments"),
+            where("authorUid", "==", targetUid),
+            orderBy("createdAt", "desc"),
+            limit(40)
+          )
+        );
+        const rows = await Promise.all(snap.docs.map((c) => enrichComment(c)));
+        rows.forEach((r) => {
+          if (r) allComments.push(r);
+        });
+      } catch (e) {
+        console.warn("[profile] collectionGroup comments, fallback:", e);
+        try {
+          const postsSnap = await getDocs(
+            query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(60))
+          );
+          const commentSnaps = await Promise.all(
+            postsSnap.docs.map((postDoc) =>
+              getDocs(
+                query(
+                  collection(db, "posts", postDoc.id, "comments"),
+                  where("authorUid", "==", targetUid),
+                  limit(8)
+                )
+              )
+            )
+          );
+          commentSnaps.forEach((cSnap, i) => {
+            const postDoc = postsSnap.docs[i];
+            if (!postDoc) return;
+            cSnap.forEach((c) => {
+              const d = c.data();
+              allComments.push({
+                id: c.id,
+                postId: postDoc.id,
+                postTitle: String(postDoc.data().title || ""),
+                postCommunity: String(postDoc.data().community || ""),
+                ...d,
+              });
+            });
+          });
+        } catch (e2) {
+          console.error(e2);
+        }
+      }
+      allComments.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+      setComments(allComments);
+      setCommentsLoading(false);
     }
     fetchComments();
-  }, [user, activeTab]);
+  }, [targetUid, activeTab]);
 
   // Determine earned awards based on karma and post count
   const earnedAwards = awardDefs.filter(a => {
@@ -422,65 +549,68 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
       </div>
       
       {/* Header */}
-      <div className="flex items-start gap-3 sm:gap-4 px-2 -mt-4 sm:-mt-6 relative z-10 mb-4">
-        <div className="relative shrink-0">
-          {displayPhoto ? (
-            <img src={displayPhoto} alt="" className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3 border-nf-primary object-cover" />
-          ) : (
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3 border-nf-primary bg-nf-secondary flex items-center justify-center text-nf-muted text-base sm:text-lg font-bold">
-              {displayName[0]}
-            </div>
-          )}
-          {isOwn && (
-            <button onClick={onSettingsClick} className="absolute -bottom-1 -left-1 p-1 rounded-full bg-nf-secondary border border-nf-border text-nf-muted hover:text-nf-text">
-              <Camera size={12} />
-            </button>
-          )}
-        </div>
-        <div className="flex-1 min-w-0 pt-1 sm:pt-2">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <h1 className="text-lg sm:text-xl font-bold text-nf-text truncate">{displayName}</h1>
-            {(targetUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && (
-              <span className="relative inline-flex items-center justify-center shrink-0">
-                <span className="absolute inset-0 rounded-full bg-blue-400/20 animate-pulse" />
-                <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[20px] h-[20px] relative z-10 drop-shadow-[0_0_8px_rgba(96,165,250,0.4)]" />
-              </span>
-            )}
-            {isOwn ? (
-              <div className="flex items-center gap-2">
-                <button onClick={onSettingsClick} className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
-                  <Pencil size={12} />
-                  <span className="hidden sm:inline">{t("pp.edit")}</span>
-                </button>
-                {(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && onAdminClick && (
-                  <button onClick={onAdminClick} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-nf-border text-[10px] font-medium text-nf-dim hover:bg-nf-hover hover:text-nf-accent transition-colors" title="لوحة الإشراف">
-                    <Shield size={11} />
-                  </button>
-                )}
-              </div>
+      <div className="px-2 -mt-4 sm:-mt-6 relative z-10 mb-4">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="relative shrink-0">
+            {displayPhoto ? (
+              <img src={displayPhoto} alt="" className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3 border-nf-primary object-cover" />
             ) : (
-              <button
-                onClick={toggleFollow}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold border transition-all",
-                  isFollowing
-                    ? "bg-nf-secondary text-nf-muted border-nf-border hover:bg-nf-hover hover:text-nf-text"
-                    : "bg-nf-accent text-white border-nf-accent hover:bg-nf-accent/80"
-                )}
-              >
-                {isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />}
-                <span>{isFollowing ? t("gen.followingStatus") : t("gen.follow")}</span>
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-3 border-nf-primary bg-nf-secondary flex items-center justify-center text-nf-muted text-base sm:text-lg font-bold">
+                {displayName[0]}
+              </div>
+            )}
+            {isOwn && (
+              <button onClick={onSettingsClick} className="absolute -bottom-1 -left-1 p-1 rounded-full bg-nf-secondary border border-nf-border text-nf-muted hover:text-nf-text">
+                <Camera size={12} />
               </button>
             )}
           </div>
-          <p className="text-sm text-nf-muted mt-0.5">u/{displayName}</p>
-          {/* Bio */}
-          {(profileData?.bio || (isOwn && user)) && (
-            <p className="text-xs text-nf-dim mt-1 leading-relaxed max-w-[500px]">{profileData?.bio || ""}</p>
-          )}
-          {/* Social Links */}
-          {profileData?.socialLinks && Object.values(profileData.socialLinks).some(v => v.trim()) && (
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <div className="flex-1 min-w-0 pt-1 sm:pt-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-bold text-nf-text">{displayName}</h1>
+              {(targetUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && (
+                <span className="relative inline-flex items-center justify-center shrink-0">
+                  <span className="absolute inset-0 rounded-full bg-blue-400/20 animate-pulse" />
+                  <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[20px] h-[20px] relative z-10 drop-shadow-[0_0_8px_rgba(96,165,250,0.4)]" />
+                </span>
+              )}
+              {isOwn ? (
+                <div className="flex items-center gap-2">
+                  <button onClick={onSettingsClick} className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg border border-nf-border text-xs font-medium text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors">
+                    <Pencil size={12} />
+                    <span className="hidden sm:inline">{t("pp.edit")}</span>
+                  </button>
+                  {(user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && onAdminClick && (
+                    <button onClick={onAdminClick} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-nf-border text-[10px] font-medium text-nf-dim hover:bg-nf-hover hover:text-nf-accent transition-colors" title="لوحة الإشراف">
+                      <Shield size={11} />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={toggleFollow}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold border transition-all",
+                    isFollowing
+                      ? "bg-nf-secondary text-nf-muted border-nf-border hover:bg-nf-hover hover:text-nf-text"
+                      : "bg-nf-accent text-white border-nf-accent hover:bg-nf-accent/80"
+                  )}
+                >
+                  {isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />}
+                  <span>{isFollowing ? t("gen.followingStatus") : t("gen.follow")}</span>
+                </button>
+              )}
+            </div>
+            <p className="text-sm text-nf-muted mt-0.5">u/{displayName}</p>
+          </div>
+        </div>
+        {profileData?.bio?.trim() && (
+          <p className="mt-3 text-[13px] text-nf-dim leading-[1.75] whitespace-pre-wrap break-words w-full">
+            {profileData.bio}
+          </p>
+        )}
+        {profileData?.socialLinks && Object.values(profileData.socialLinks).some(v => v.trim()) && (
+          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
               {Object.entries(profileData.socialLinks).filter(([, v]) => v.trim()).map(([key, val]) => {
                 const socialMeta: Record<string, { color: string; label: string; path: string }> = {
                   twitter: { color: "#000", label: "X", path: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" },
@@ -499,15 +629,16 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                   </a>
                 );
               })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
       <div className="flex items-center gap-1 px-2 mb-3 text-[11px] flex-wrap">
         <span className={cn("px-2 py-0.5 rounded-md flex items-center gap-1", level.bg, level.color)}><level.icon size={10} /><span className="font-bold">{level.name}</span></span>
-        <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-nf-text">{Math.max(0, Math.round(karma))}</span> صيت</span>
+        {showKarma && (
+          <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><ArrowUp size={10} className="inline ml-0.5 text-nf-accent" /><span className="font-bold text-nf-text">{Math.max(0, Math.round(karma))}</span> صيت</span>
+        )}
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><Zap size={10} className="inline ml-0.5 text-amber-400" /><span className="font-bold text-nf-text">{xp}</span> XP</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-nf-text">{postCount || posts.length}</span> {t("pp.postCount")}</span>
         <span className="px-2 py-0.5 rounded-md bg-nf-secondary/40 text-nf-muted"><span className="font-bold text-nf-text">{followerCount}</span> {t("gen.followers")}</span>
@@ -525,7 +656,7 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
 
       {/* Tabs */}
       <div className="flex items-center border-b border-nf-border-2 mb-4 px-2 overflow-x-auto">
-        {tabs.filter(t => isOwn || t.id !== "saved").map((tab) => (
+        {tabs.filter(t => t.id !== "saved" || isOwn || !hideSaved).map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -570,6 +701,9 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
                 flair={post.flair}
                 isNsfw={post.isNsfw}
                 isSpoiler={post.isSpoiler}
+                isLiving={(post as any).isLiving}
+                currentVersion={(post as any).currentVersion}
+                versionsCount={(post as any).versions?.length}
                 votes={post.votes || 0}
                 comments={post.commentCount || 0}
                 awards={post.awards}
@@ -584,61 +718,251 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
         )}
 
         {activeTab === "comments" && (
-          comments.length === 0 ? (
+          commentsLoading ? (
+            <div className="py-12 text-center text-nf-dim text-sm">جاري تحميل التعليقات…</div>
+          ) : comments.length === 0 ? (
             <div className="text-center py-12 text-nf-muted">
               <MessageSquare size={32} className="mx-auto mb-2 opacity-20" />
               <p className="font-bold">{t("pp.noCommentsYet")}</p>
               <p className="text-sm">{t("pp.commentToAppear")}</p>
             </div>
           ) : (
-            comments.map((c) => (
-              <div key={c.id} className="border border-nf-border-2 rounded-lg px-4 py-3 hover:bg-nf-hover/30 transition-colors">
-                <div className="text-xs text-nf-dim mb-1.5">{t("pp.commentOn")} <span className="text-nf-accent">{c.postTitle}</span> · {timeAgo(c.createdAt, t)}</div>
-                <p className="text-sm text-nf-text-2 leading-relaxed">{c.text}</p>
-                <div className="flex items-center gap-3 mt-2 text-[11px] text-nf-dim">
-                  <span className="flex items-center gap-1"><ArrowUp size={10} className="text-green-400" />{c.votes || 1}</span>
-                  <button onClick={() => { navigator.clipboard?.writeText(c.text); setCopiedId(c.id); setTimeout(() => setCopiedId(""), 1500); }} className={cn("transition-colors", copiedId === c.id ? "text-nf-accent" : "hover:text-nf-accent")}>{copiedId === c.id ? "تم النسخ ✓" : "نسخ"}</button>
+            <div className="divide-y divide-nf-border-2/30">
+            {comments.map((c) => {
+              const cPhoto = c.authorPhoto || (c.authorUid === targetUid ? displayPhoto : "");
+              const cName = c.authorName || (c.authorUid === targetUid ? displayName : "مستخدم");
+              return (
+              <article
+                key={`${c.postId}-${c.id}`}
+                className="flex gap-3 py-3 px-1 hover:bg-nf-hover/40 rounded-lg transition-colors cursor-pointer"
+                onClick={() => c.postId && onPostClick?.(c.postId)}
+              >
+                <div className="shrink-0 pt-0.5">
+                  {cPhoto ? (
+                    <img src={cPhoto} alt="" className="w-9 h-9 rounded-full object-cover bg-nf-secondary" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-nf-secondary flex items-center justify-center text-[12px] font-bold text-nf-muted">
+                      {cName[0]}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] mb-1">
+                    <span className="font-bold text-nf-text">{cName}</span>
+                    <span className="text-nf-dim">·</span>
+                    <span className="text-nf-dim tabular-nums">{timeAgo(c.createdAt, t)}</span>
+                  </div>
+                  <p className="text-[11px] text-nf-dim mb-1.5 leading-snug">
+                    {t("pp.commentOn")}{" "}
+                    {c.postCommunity && (
+                      <span className="text-nf-accent/90">n/{c.postCommunity} · </span>
+                    )}
+                    <span className="text-nf-muted">{c.postTitle || "منشور"}</span>
+                  </p>
+                  <PostBodyContent
+                    text={c.text || ""}
+                    className="text-[14px] text-nf-text leading-relaxed"
+                    enableMentionHover={false}
+                  />
+                  <div className="flex items-center gap-4 mt-2 text-[11px] text-nf-dim">
+                    <span className="flex items-center gap-1">
+                      <ArrowUp size={12} className="text-nf-accent" />
+                      {c.votes ?? 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard?.writeText(c.text || "");
+                        setCopiedId(c.id);
+                        setTimeout(() => setCopiedId(""), 1500);
+                      }}
+                      className={cn("hover:text-nf-text transition-colors", copiedId === c.id && "text-nf-accent")}
+                    >
+                      {copiedId === c.id ? "تم النسخ" : "نسخ"}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+            })}
+            </div>
           )
         )}
 
         {activeTab === "saved" && (
-          savedPosts.length === 0 ? (
-            <div className="text-center py-12 text-nf-muted">
-              <Bookmark size={32} className="mx-auto mb-2 opacity-20" />
-              <p className="font-bold">{t("pp.noSavedYet")}</p>
-              <p className="text-sm">{t("pp.saveToAppear")}</p>
-            </div>
-          ) : (
-            savedPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                postId={post.id}
-                community={post.community ? `n/${post.community}` : `n/${t("gen.general")}`}
-                author={post.authorName || t("gen.user")}
-                authorUid={post.authorUid}
-                authorPhoto={post.authorPhoto}
-                time={timeAgo(post.createdAt, t)}
-                title={post.title}
-                body={post.body}
-                image={post.imageUrl}
-                imageUrls={post.imageUrls}
-                flair={post.flair}
-                isNsfw={post.isNsfw}
-                isSpoiler={post.isSpoiler}
-                votes={post.votes || 0}
-                comments={post.commentCount || 0}
-                awards={post.awards}
-                poll={post.poll}
-                quotedPostId={post.quotedPostId}
-                onPostClick={onPostClick}
-                onEditClick={onEditClick}
-                onDeleteClick={onDeleteClick}
-              />
-            ))
-          )
+          <>
+            {!isOwn && hideSaved ? (
+              <div className="text-center py-16 text-nf-muted">
+                <Bookmark size={36} className="mx-auto mb-3 opacity-15" />
+                <p className="font-bold text-[14px] mb-1">المحفوظات مخفية</p>
+                <p className="text-[12px] text-nf-dim">هذا المستخدم أخفى قائمة المحفوظات من ملفه</p>
+              </div>
+            ) : (
+          <>
+            {/* ── Saved Posts Filters ── */}
+            {savedPosts.length > 0 && (
+              <div className="mb-4 space-y-2.5">
+                {/* Search + refresh */}
+                <div className="relative">
+                  <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-nf-dim pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <input
+                    type="text"
+                    value={savedSearch}
+                    onChange={e => setSavedSearch(e.target.value)}
+                    placeholder={isOwn ? "ابحث في المحفوظات..." : "ابحث في محفوظات هذا المستخدم..."}
+                    className={cn(
+                      "w-full bg-nf-secondary border border-nf-border-2 rounded-xl pr-9 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim outline-none focus:border-nf-accent/50 transition-colors",
+                      isOwn ? "pl-16" : "pl-3"
+                    )}
+                  />
+                  {isOwn && (
+                  <button
+                    onClick={() => fetchSavedPosts()}
+                    disabled={savedPostsLoading}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-nf-dim hover:text-nf-accent hover:bg-nf-hover transition-colors disabled:opacity-40"
+                    title="تحديث المحفوظات"
+                  >
+                    <RotateCcw size={13} className={savedPostsLoading ? "animate-spin" : ""} />
+                  </button>
+                  )}
+                  {savedSearch && (
+                    <button onClick={() => setSavedSearch("")} className="absolute left-10 top-1/2 -translate-y-1/2 p-1 text-nf-dim hover:text-nf-text transition-colors">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter chips row */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Community filter */}
+                  {Array.from(new Set(savedPosts.map(p => p.community).filter(Boolean))).length > 0 && (
+                    <>
+                      {["all", ...Array.from(new Set(savedPosts.map(p => p.community).filter(Boolean)))].map(cat => (
+                        <button key={cat} onClick={() => setSavedCategory(cat)}
+                          className={cn("px-2.5 py-1 rounded-full text-[10px] font-medium transition-all border",
+                            savedCategory === cat
+                              ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30"
+                              : "text-nf-dim border-nf-border-2/60 hover:bg-nf-hover hover:text-nf-text")}>
+                          {cat === "all" ? "كل المجتمعات" : `n/${cat}`}
+                        </button>
+                      ))}
+                      <div className="w-px h-4 bg-nf-border-2/50 mx-0.5" />
+                    </>
+                  )}
+
+                  {/* Flair filter */}
+                  {Array.from(new Set(savedPosts.map(p => p.flair).filter(Boolean))).length > 0 && (
+                    <>
+                      {["all", ...Array.from(new Set(savedPosts.map(p => p.flair).filter(Boolean)))].map(fl => (
+                        <button key={fl} onClick={() => setSavedFlair(fl)}
+                          className={cn("px-2.5 py-1 rounded-full text-[10px] font-medium transition-all border",
+                            savedFlair === fl
+                              ? "bg-nf-accent/15 text-nf-accent border-nf-accent/30"
+                              : "text-nf-dim border-nf-border-2/60 hover:bg-nf-hover hover:text-nf-text")}>
+                          {fl === "all" ? "كل الفلايرات" : fl}
+                        </button>
+                      ))}
+                      <div className="w-px h-4 bg-nf-border-2/50 mx-0.5" />
+                    </>
+                  )}
+
+                  {/* NSFW toggle */}
+                  <button onClick={() => setSavedHideNsfw(p => !p)}
+                    className={cn("px-2.5 py-1 rounded-full text-[10px] font-medium transition-all border",
+                      savedHideNsfw
+                        ? "bg-red-500/15 text-red-400 border-red-400/30"
+                        : "text-nf-dim border-nf-border-2/60 hover:bg-nf-hover hover:text-nf-text")}>
+                    {savedHideNsfw ? "🔞 مخفي" : "إخفاء NSFW"}
+                  </button>
+
+                  <div className="flex-1" />
+
+                  {/* Sort */}
+                  <div className="flex items-center gap-1 bg-nf-secondary rounded-full px-1 py-0.5 border border-nf-border-2/50">
+                    {(["newest","oldest","top"] as const).map(s => (
+                      <button key={s} onClick={() => setSavedSort(s)}
+                        className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-medium transition-all",
+                          savedSort === s ? "bg-nf-accent/20 text-nf-accent" : "text-nf-dim hover:text-nf-text")}>
+                        {s === "newest" ? "الأحدث" : s === "oldest" ? "الأقدم" : "الأعلى"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Active filters summary */}
+                {(savedSearch || savedCategory !== "all" || savedFlair !== "all" || savedHideNsfw) && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-nf-dim">
+                      {filteredSavedPosts.length} نتيجة من {savedPosts.length}
+                    </span>
+                    <button onClick={() => { setSavedSearch(""); setSavedCategory("all"); setSavedFlair("all"); setSavedHideNsfw(false); }}
+                      className="text-[10px] text-nf-accent hover:underline">
+                      مسح الكل
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Results — all filtering/sorting is done via useMemo, zero Firebase reads */}
+            {savedPostsLoading && savedPosts.length === 0 ? (
+              <div className="text-center py-12 text-nf-muted">
+                <div className="w-6 h-6 border-2 border-nf-accent/30 border-t-nf-accent rounded-full animate-spin mx-auto mb-2" />
+                <p className="text-[12px] text-nf-dim">جاري التحميل...</p>
+              </div>
+            ) : savedPosts.length === 0 ? (
+              <div className="text-center py-16 text-nf-muted">
+                <Bookmark size={36} className="mx-auto mb-3 opacity-15" />
+                <p className="font-bold text-[14px] mb-1">{isOwn ? t("pp.noSavedYet") : "لا توجد محفوظات عامة"}</p>
+                <p className="text-[12px] text-nf-dim">{isOwn ? t("pp.saveToAppear") : "لم يحفظ هذا المستخدم منشورات بعد"}</p>
+              </div>
+            ) : filteredSavedPosts.length === 0 ? (
+              <div className="text-center py-12 text-nf-muted">
+                <svg className="w-9 h-9 mx-auto mb-3 opacity-15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <p className="text-[13px] font-medium mb-1">لا توجد نتائج</p>
+                <p className="text-[11px] text-nf-dim mb-3">جرب تغيير الفلاتر أو كلمة البحث</p>
+                <button onClick={() => { setSavedSearch(""); setSavedCategory("all"); setSavedFlair("all"); setSavedHideNsfw(false); }}
+                  className="px-3 py-1.5 rounded-full text-[11px] font-medium bg-nf-secondary text-nf-muted hover:bg-nf-hover transition-colors">
+                  مسح الفلاتر
+                </button>
+              </div>
+            ) : (
+              filteredSavedPosts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  postId={post.id}
+                  community={post.community ? `n/${post.community}` : `n/${t("gen.general")}`}
+                  author={post.authorName || t("gen.user")}
+                  authorUid={post.authorUid}
+                  authorPhoto={post.authorPhoto}
+                  time={timeAgo(post.createdAt, t)}
+                  title={post.title}
+                  body={post.body}
+                  image={post.imageUrl}
+                  imageUrls={post.imageUrls}
+                  videoUrl={post.videoUrl}
+                  mediaItems={post.mediaItems}
+                  flair={post.flair}
+                  isNsfw={post.isNsfw}
+                  isSpoiler={post.isSpoiler}
+                  isLiving={(post as any).isLiving}
+                  currentVersion={(post as any).currentVersion}
+                  versionsCount={(post as any).versions?.length}
+                  votes={post.votes || 0}
+                  comments={post.commentCount || 0}
+                  awards={post.awards}
+                  poll={post.poll}
+                  quotedPostId={post.quotedPostId}
+                  onPostClick={onPostClick}
+                  onEditClick={onEditClick}
+                  onDeleteClick={onDeleteClick}
+                />
+              ))
+            )}
+          </>
+            )}
+          </>
         )}
 
         {activeTab === "awards" && (
@@ -697,33 +1021,40 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {profileCustomFeeds.map((feed) => (
-                  <button
-                    key={feed.id}
-                    onClick={() => onCustomFeedClick?.(feed)}
-                    className="flex items-start gap-3 p-4 rounded-xl border border-nf-border-2/50 bg-nf-secondary/20 hover:bg-nf-secondary/40 hover:border-nf-accent/25 transition-all text-right group"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-nf-accent/10 border border-nf-accent/20 flex items-center justify-center shrink-0 group-hover:bg-nf-accent/15 transition-colors">
-                      <Rss size={16} className="text-nf-accent" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[13px] font-bold text-nf-text truncate">{feed.name}</span>
-                        {feed.isPrivate && <Lock size={10} className="text-nf-dim shrink-0" />}
+                  <div key={feed.id} className="relative group/feedcard">
+                    <button
+                      onClick={() => onCustomFeedClick?.(feed)}
+                      className="w-full flex items-start gap-3 p-4 rounded-xl border border-nf-border-2/50 bg-nf-secondary/20 hover:bg-nf-secondary/40 hover:border-nf-accent/25 transition-all text-right"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-nf-accent/10 border border-nf-accent/20 flex items-center justify-center shrink-0">
+                        <Rss size={16} className="text-nf-accent" />
                       </div>
-                      <div className="flex flex-wrap gap-1 mb-1.5">
-                        {feed.communities.slice(0, 3).map((c) => (
-                          <span key={c} className="text-[10px] text-nf-dim bg-nf-secondary/80 px-1.5 py-0.5 rounded-md border border-nf-border-2/30">n/{c}</span>
-                        ))}
-                        {feed.communities.length > 3 && (
-                          <span className="text-[10px] text-nf-dim bg-nf-secondary/80 px-1.5 py-0.5 rounded-md border border-nf-border-2/30">+{feed.communities.length - 3}</span>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-[13px] font-bold text-nf-text truncate">{feed.name}</span>
+                          {feed.isPrivate && <Lock size={10} className="text-nf-dim shrink-0" />}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {feed.communities.slice(0, 3).map((c) => (
+                            <span key={c} className="text-[10px] text-nf-dim bg-nf-secondary/80 px-1.5 py-0.5 rounded-md border border-nf-border-2/30">n/{c}</span>
+                          ))}
+                        </div>
                       </div>
-                      <div className="text-[10px] text-nf-dim flex items-center gap-1">
-                        <Users size={9} />
-                        {feed.communities.length} مجتمع
-                      </div>
-                    </div>
-                  </button>
+                    </button>
+                    {/* Settings button — visible on hover for owner/editor */}
+                    {(isOwn || feed.editors?.some((e: any) => (typeof e === "string" ? e : e.uid) === user?.uid)) && (
+                      <a
+                        href={`/feeds/${feed.id}/settings`}
+                        onClick={e => e.stopPropagation()}
+                        className="absolute top-2 left-2 p-1.5 rounded-lg bg-nf-secondary/80 text-nf-dim opacity-0 group-hover/feedcard:opacity-100 hover:text-nf-accent hover:bg-nf-hover transition-all"
+                        title="إعدادات الفيد"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                      </a>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

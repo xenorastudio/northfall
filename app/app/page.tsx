@@ -1,28 +1,31 @@
 "use client";
 
 import Navbar from "../components/Navbar";
+import DonateBanner from "../components/DonateBanner";
 import SidebarLeft from "../components/SidebarLeft";
 import SidebarRight from "../components/SidebarRight";
 import PostComposer from "../components/PostComposer";
 import FeedSort from "../components/FeedSort";
+import FeedHighlights from "../components/FeedHighlights";
 import PostCard from "../components/PostCard";
 import CommunityPage from "../components/CommunityPage";
 import ProfilePage from "../components/ProfilePage";
 import PostDetail from "../components/PostDetail";
 import CreatePostPage from "../components/CreatePostPage";
 import CreateCommunityPage from "../components/CreateCommunityPage";
+import CreateCustomFeedPage from "../components/CreateCustomFeedPage";
 import EditCommunityPage from "../components/EditCommunityPage";
 import CommunityDashboard from "../components/CommunityDashboard";
 import ModeratorPanel from "../components/ModeratorPanel";
 import CustomFeedModal, { type CustomFeed } from "../components/CustomFeedModal";
-import CustomFeedPage from "../components/CustomFeedPage";
 import CommunityMembersPage from "../components/CommunityMembersPage";
 import ManageCommunitiesPage from "../components/ManageCommunitiesPage";
 import InviteAcceptDialog from "../components/InviteAcceptDialog";
-import FeedWelcome from "../components/FeedWelcome";
 import { useToast } from "../components/ToastProvider";
 import { DataProvider, useData } from "../components/DataProvider";
 import { lazy, Suspense } from "react";
+import { postMatchesHashtag, interestTagsFromHashtag } from "@/lib/hashtags";
+import { addUserInterests, mergeInterestsOrdered, normalizeInterestTag } from "@/lib/user-interests";
 
 const SettingsPage = lazy(() => import("../components/SettingsPage"));
 const NotificationsPage = lazy(() => import("../components/NotificationsPage"));
@@ -34,18 +37,41 @@ import AuthProvider, { useAuth } from "../components/AuthProvider";
 import { I18nProvider, useI18n } from "../components/I18nProvider";
 import LoginModal from "../components/LoginModal";
 import ToastProvider from "../components/ToastProvider";
-import { Megaphone, X, ArrowUp, Rss, Pencil } from "lucide-react";
+import { ClassicTabsProvider, useClassicTabs } from "../components/ClassicTabsProvider";
+import { X, ArrowUp } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, startAfter, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, where, deleteDoc, doc, getDoc, setDoc, startAfter, onSnapshot } from "firebase/firestore";
+import { deletePostCompletely } from "@/lib/delete-content";
+import { canUserAccessFeed, pruneStaleUserFeedRefs } from "@/lib/custom-feed-access";
+import { trackImplicitInterest } from "@/lib/implicit-interest";
+import { interestTagsFromCategory } from "@/lib/user-interests";
+import { setDocumentTitle, truncateTabLabel } from "@/lib/document-title";
 import { db } from "@/lib/firebase";
 // framer-motion removed for performance
 import { cn } from "@/lib/utils";
+import {
+  sortPostsByMode,
+  mergePostsDedup,
+  mergeGlobalHotCandidates,
+  prependPostsDedup,
+  buildCommunityMetaLookup,
+  filterPostsForGlobalFeed,
+  filterPostsForHomeFeed,
+  parseCommunityMutesFromUser,
+  type CommunityMutesMap,
+} from "@/lib/feed-ranking";
+import {
+  formatPostDestinationPath,
+  firestoreCommunityIdFromDisplay,
+  isUserDestinationPath,
+} from "@/lib/post-target";
 
-type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "edit-community" | "community-dashboard" | "manage-communities" | "members" | "mod-panel";
+type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "create-custom-feed" | "edit-custom-feed" | "edit-community" | "community-dashboard" | "manage-communities" | "members" | "mod-panel" | "living-upgrade";
 
 interface Post {
   id: string;
   community?: string;
+  postTarget?: string;
   flair?: string;
   authorName?: string;
   authorPhoto?: string;
@@ -55,6 +81,7 @@ interface Post {
   imageUrl?: string;
   imageUrls?: string[];
   linkUrl?: string;
+  videoUrl?: string;
   isNsfw?: boolean;
   isSpoiler?: boolean;
   votes?: number;
@@ -64,13 +91,21 @@ interface Post {
   awards?: any[];
   poll?: { options: string[]; votes: number[]; duration: string } | null;
   quotedPostId?: string;
+  hashtags?: string[];
 }
 
 function AppContent() {
   const { user } = useAuth();
   const { t, lang } = useI18n();
   const { toast } = useToast();
-  const { refreshCommunities } = useData();
+  const {
+    refreshCommunities,
+    communities: allCommunities,
+    joinedCommunities: joinedFromData,
+    userInterests,
+    pushUserInterests,
+  } = useData();
+  const { isClassic } = useClassicTabs();
   const [posts, setPosts] = useState<Post[]>([]);
 
   // Apply saved accent color on load
@@ -78,6 +113,7 @@ function AppContent() {
     const ac = localStorage.getItem("nf-accent");
     if (ac) document.documentElement.style.setProperty("--nf-accent", ac);
   }, []);
+
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("feed");
 
@@ -85,6 +121,8 @@ function AppContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const v = params.get("view");
+    const c = params.get("community");
+    const isPreview = params.get("preview") === "true";
 
     // Handle invite link
     const inviteToken = params.get("invite");
@@ -98,19 +136,26 @@ function AppContent() {
       window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
       return;
     }
-      if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "edit-community", "community-dashboard", "manage-communities", "custom-feed", "members"].includes(v)) {
-      setView(v as View);
-      const c = params.get("community"); if (c) setSelectedCommunity(c);
+
+    let targetView = v;
+    if (c && (!v || isPreview)) {
+      targetView = "community";
+    }
+
+    const viewToUse = targetView || "feed";
+    if (["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "create-custom-feed", "edit-custom-feed", "edit-community", "community-dashboard", "manage-communities", "custom-feed", "members"].includes(viewToUse)) {
+      setView(viewToUse as View);
+      if (c) setSelectedCommunity(c);
       const p = params.get("postId"); if (p) setSelectedPostId(p);
       const u = params.get("uid"); if (u) setViewingUid(u);
       const e = params.get("editPostId"); if (e) { setEditPostId(e); setView("edit"); }
-      const titles: Record<string, string> = { feed: "Northfall", community: c ? `n/${c}` : "مجتمع", profile: "بروفايل", post: "منشور", create: "منشور جديد", settings: "إعدادات", notifs: "إشعارات", edit: "تعديل", admin: "إشراف", games: "ألعاب", seo: "أدوات SEO", "create-community": "إنشاء مجتمع جديد", "edit-community": "تعديل مجتمع", "community-dashboard": "لوحة تحكم المجتمع" };
-      document.title = (titles[v] || "Northfall") + " — Northfall";
+      setDocumentTitle();
     }
   }, []);
   const [selectedCommunity, setSelectedCommunity] = useState("");
   const [selectedPostId, setSelectedPostId] = useState("");
   const [editPostId, setEditPostId] = useState("");
+  const [livingPostId, setLivingPostId] = useState("");
   const [quotePostId, setQuotePostId] = useState<string | undefined>(undefined);
 
   // URL-based navigation helper
@@ -119,27 +164,13 @@ function AppContent() {
     const params = new URLSearchParams({ view: newView, ...extra });
     const url = `/app?${params.toString()}`;
     window.history.pushState({ view: newView, ...extra }, "", url);
-    // Update browser tab title (like Reddit)
-    const titleMap: Record<string, string> = {
-      feed: "Northfall",
-      community: extra.community ? `n/${extra.community}` : "مجتمع",
-      profile: extra.profileName || "بروفايل",
-      post: extra.postTitle || "منشور",
-      create: "منشور جديد",
-      settings: "إعدادات",
-      notifs: "إشعارات",
-      edit: "تعديل",
-      admin: "إشراف",
-      games: "ألعاب",
-      seo: "أدوات SEO",
-      "create-community": "إنشاء مجتمع جديد",
-      "edit-community": "تعديل مجتمع",
-      "community-dashboard": "لوحة تحكم المجتمع",
-      "manage-communities": "إدارة مجتمعاتي",
-      "custom-feed": "فيد مخصص",
-      "members": "إدارة الأعضاء",
-    };
-    document.title = (titleMap[newView] || "Northfall") + " — Northfall";
+    if (newView === "post" && extra.postTitle) {
+      setDocumentTitle(truncateTabLabel(extra.postTitle));
+    } else if (newView === "community" && extra.community) {
+      setDocumentTitle(truncateTabLabel(`n/${extra.community}`));
+    } else {
+      setDocumentTitle();
+    }
   };
 
   // Handle browser back/forward
@@ -151,7 +182,7 @@ function AppContent() {
         window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
         return;
       }
-    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "edit-community", "community-dashboard", "manage-communities", "custom-feed", "members"].includes(v)) {
+    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "create-custom-feed", "edit-custom-feed", "edit-community", "community-dashboard", "manage-communities", "custom-feed", "members"].includes(v)) {
         setView(v);
         const c = params.get("community"); if (c) setSelectedCommunity(c);
         const p = params.get("postId"); if (p) setSelectedPostId(p);
@@ -165,7 +196,11 @@ function AppContent() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
   const [showLogin, setShowLogin] = useState(false);
-  const [showAnnouncement, setShowAnnouncement] = useState(true);
+  useEffect(() => {
+    const openLogin = () => setShowLogin(true);
+    window.addEventListener("nf-login-required", openLogin);
+    return () => window.removeEventListener("nf-login-required", openLogin);
+  }, []);
   const [showBackTop, setShowBackTop] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -191,7 +226,6 @@ function AppContent() {
   const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>([]);
   const [activeCustomFeed, setActiveCustomFeed] = useState<CustomFeed | null>(null);
   const [showCustomFeedModal, setShowCustomFeedModal] = useState(false);
-  const [showCustomFeedDrawer, setShowCustomFeedDrawer] = useState(false);
   const [editingCustomFeed, setEditingCustomFeed] = useState<CustomFeed | null>(null);
   const [membersCommunity, setMembersCommunity] = useState<string>("");
   const [modPanelCommunity, setModPanelCommunity] = useState<string>("");
@@ -210,17 +244,28 @@ function AppContent() {
   // Load custom feeds from Firestore (real-time)
   useEffect(() => {
     if (!user) { setCustomFeeds([]); setActiveCustomFeed(null); return; }
+    void pruneStaleUserFeedRefs(user.uid);
     const unsub = onSnapshot(
       collection(db, "users", user.uid, "customFeeds"),
-      (snap) => {
-        const feeds = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() } as CustomFeed))
-          .sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
-        setCustomFeeds(feeds);
-        // Update active feed data if it was edited
+      async (snap) => {
+        const validFeeds: CustomFeed[] = [];
+        for (const d of snap.docs) {
+          const allowed = await canUserAccessFeed(d.id, user.uid);
+          if (!allowed) {
+            deleteDoc(d.ref).catch(() => {});
+            continue;
+          }
+          validFeeds.push({ id: d.id, ...d.data() } as CustomFeed);
+        }
+        validFeeds.sort((a, b) => {
+          const ta = a.createdAt ? (typeof a.createdAt === "object" && a.createdAt.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : 0;
+          const tb = b.createdAt ? (typeof b.createdAt === "object" && b.createdAt.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt).getTime()) : 0;
+          return ta - tb;
+        });
+        setCustomFeeds(validFeeds);
         setActiveCustomFeed((prev) => {
           if (!prev) return null;
-          return feeds.find((f) => f.id === prev.id) || null;
+          return validFeeds.find((f) => f.id === prev.id) || null;
         });
       },
       () => {}
@@ -228,13 +273,21 @@ function AppContent() {
     return () => unsub();
   }, [user]);
 
-  const openCustomFeed = (feed: CustomFeed) => {
+  const openCustomFeed = async (feed: CustomFeed) => {
+    if (!user) return;
+    const allowed = await canUserAccessFeed(feed.id, user.uid);
+    if (!allowed) {
+      toast("لم يعد لديك صلاحية على هذا الفيد", "error");
+      deleteDoc(doc(db, "users", user.uid, "customFeeds", feed.id)).catch(() => {});
+      setCustomFeeds((prev) => prev.filter((f) => f.id !== feed.id));
+      return;
+    }
     setActiveCustomFeed(feed);
     setFeedMode("all");
     setTagFilter(null);
     const params = new URLSearchParams({ view: "feed", customFeed: feed.id });
     window.history.pushState({ view: "feed", customFeed: feed.id }, "", `/app?${params.toString()}`);
-    document.title = `${feed.name} — Northfall`;
+    setDocumentTitle(truncateTabLabel(feed.name));
     setView("feed");
   };
 
@@ -258,16 +311,95 @@ function AppContent() {
     fetchFollowData();
   }, [user]);
 
+  // Load muted words + community mutes (وقت الكتم لكل مجتمع)
+  const [mutedWords, setMutedWords] = useState<string[]>([]);
+  const communityMutesRef = useRef<CommunityMutesMap>({});
+
+  const matureCommunitySet = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const s = new Set<string>();
+    allCommunities.forEach((c) => { if (c.isMature) s.add(c.name.toLowerCase()); });
+    matureCommunitySet.current = s;
+  }, [allCommunities]);
+
+  const feedKnownIdsRef = useRef<Set<string>>(new Set());
+  const feedBaselineReadyRef = useRef(false);
+  const suppressNewAlertUntilRef = useRef(0);
+  const lastAcknowledgedLatestIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setMutedWords([]);
+      communityMutesRef.current = {};
+      return;
+    }
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (snap.exists()) {
+        const d = snap.data();
+        setMutedWords(d.mutedWords || []);
+        let mutes = parseCommunityMutesFromUser(d);
+        const list: string[] = d.mutedCommunities || [];
+        if (list.length > 0 && Object.keys(mutes).length === 0) {
+          const now = new Date().toISOString();
+          const cm: Record<string, string> = {};
+          list.forEach((n) => { cm[n] = now; });
+          mutes = parseCommunityMutesFromUser({ communityMutes: cm });
+          setDoc(doc(db, "users", user.uid), { communityMutes: cm }, { merge: true }).catch(() => {});
+        }
+        communityMutesRef.current = mutes;
+      } else {
+        setMutedWords([]);
+        communityMutesRef.current = {};
+      }
+    }, () => {});
+    return () => unsub();
+  }, [user]);
+
   const POSTS_PER_PAGE = 10;
+  const FETCH_BATCH = 30;
+  /** حجم كل ساق في استعلام Hot العام (حديث + تفاعل) */
+  const GLOBAL_HOT_LEG = 80;
   const lastDocRef = useRef<any>(null);
+  const hotRecentCursorRef = useRef<any>(null);
+  const hotVotesCursorRef = useRef<any>(null);
   const hasMoreRef = useRef(true);
   const [hasMore, setHasMore] = useState(true);
+  const publicCommunityLookupRef = useRef(buildCommunityMetaLookup([]));
+  useEffect(() => {
+    publicCommunityLookupRef.current = buildCommunityMetaLookup(
+      allCommunities.map((c) => ({
+        name: c.name,
+        communityType: c.communityType,
+        showInForum: c.showInForum,
+      }))
+    );
+  }, [allCommunities]);
+
+  const applyGlobalFeedFilters = useCallback(
+    (list: Post[]) =>
+      filterPostsForGlobalFeed(list, {
+        publicLookup: publicCommunityLookupRef.current,
+      }),
+    []
+  );
+
+  /** كتم المجتمع: يخفي الجديد فقط من الفيد الرئيسي — لا الخلاصة المخصصة */
+  const applyHomeFeedPipeline = useCallback(
+    (list: Post[]) => {
+      const pub = applyGlobalFeedFilters(list);
+      if (activeCustomFeed) return pub;
+      return filterPostsForHomeFeed(pub, communityMutesRef.current);
+    },
+    [activeCustomFeed, applyGlobalFeedFilters]
+  );
 
   const fetchPosts = useCallback(async (loadMore = false) => {
     if (loadMore && !hasMoreRef.current) return;
     if (!loadMore) {
       setLoading(true);
       lastDocRef.current = null;
+      hotRecentCursorRef.current = null;
+      hotVotesCursorRef.current = null;
       hasMoreRef.current = true;
     }
     try {
@@ -293,18 +425,12 @@ function AppContent() {
           });
         }
 
-        // Sort client-side
-        allPosts.sort((a, b) => {
-          if (sortMode === "top") return (b.votes || 0) - (a.votes || 0);
-          if (sortMode === "new") return (b.createdAt || "").localeCompare(a.createdAt || "");
-          // hot
-          const scoreA = (a.votes || 0) * (1 / (1 + (Date.now() - new Date(a.createdAt || "").getTime()) / 3600000));
-          const scoreB = (b.votes || 0) * (1 / (1 + (Date.now() - new Date(b.createdAt || "").getTime()) / 3600000));
-          return scoreB - scoreA;
-        });
-
-        if (loadMore) setPosts((prev) => [...prev, ...allPosts.slice(prev.length, prev.length + POSTS_PER_PAGE)]);
-        else setPosts(allPosts.slice(0, POSTS_PER_PAGE * 3));
+        const ranked = sortPostsByMode(
+          allPosts,
+          sortMode === "top" ? "top" : sortMode === "new" ? "new" : "hot"
+        );
+        if (loadMore) setPosts((prev) => mergePostsDedup(prev, ranked));
+        else setPosts(ranked);
         hasMoreRef.current = false;
         setHasMore(false);
         return;
@@ -325,52 +451,195 @@ function AppContent() {
           const existingIds = new Set(allPosts.map(p => p.id));
           commPosts.forEach(p => { if (!existingIds.has(p.id)) allPosts.push(p); });
         }
-        allPosts.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-        if (loadMore) setPosts(prev => [...prev, ...allPosts]); else setPosts(allPosts);
-        const more = allPosts.length >= POSTS_PER_PAGE;
+        const filtered = applyHomeFeedPipeline(allPosts);
+        const ranked = sortPostsByMode(filtered, sortMode === "top" ? "top" : sortMode === "new" ? "new" : "hot");
+        if (loadMore) setPosts(prev => mergePostsDedup(prev, ranked));
+        else setPosts(ranked);
+        const more = ranked.length >= POSTS_PER_PAGE;
         hasMoreRef.current = more;
         setHasMore(more);
       } else {
-        let q;
-        if (loadMore && lastDocRef.current) {
-          q = query(collection(db, "posts"), orderBy("createdAt", "desc"), startAfter(lastDocRef.current), limit(POSTS_PER_PAGE));
+        // ── Global platform feed: كل المجتمعات العامة، ترتيب بالـ score فقط ──
+        // الكتم لا يخفي المنشورات — +18 يُعرض مع blur في الواجهة
+
+        if (sortMode === "hot") {
+          const recentQ =
+            loadMore && hotRecentCursorRef.current
+              ? query(
+                  collection(db, "posts"),
+                  orderBy("createdAt", "desc"),
+                  startAfter(hotRecentCursorRef.current),
+                  limit(GLOBAL_HOT_LEG)
+                )
+              : query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(GLOBAL_HOT_LEG));
+          const votesQ =
+            loadMore && hotVotesCursorRef.current
+              ? query(
+                  collection(db, "posts"),
+                  orderBy("votes", "desc"),
+                  startAfter(hotVotesCursorRef.current),
+                  limit(GLOBAL_HOT_LEG)
+                )
+              : query(collection(db, "posts"), orderBy("votes", "desc"), limit(GLOBAL_HOT_LEG));
+
+          const [recentSnap, votesSnap] = await Promise.all([getDocs(recentQ), getDocs(votesQ)]);
+          if (recentSnap.docs.length > 0) {
+            hotRecentCursorRef.current = recentSnap.docs[recentSnap.docs.length - 1];
+          }
+          if (votesSnap.docs.length > 0) {
+            hotVotesCursorRef.current = votesSnap.docs[votesSnap.docs.length - 1];
+          }
+
+          const toPost = (d: { id: string; data: () => Record<string, unknown> }) =>
+            ({ id: d.id, ...d.data() } as Post);
+          const recentPosts = recentSnap.docs.map(toPost);
+          const votePosts = votesSnap.docs.map(toPost);
+          let merged = mergeGlobalHotCandidates(recentPosts, votePosts, votePosts.slice(0, 25));
+          merged = sortPostsByMode(applyHomeFeedPipeline(merged), "hot");
+
+          if (loadMore) setPosts((prev) => mergePostsDedup(prev, merged));
+          else setPosts(merged);
+
+          const more =
+            recentSnap.docs.length >= GLOBAL_HOT_LEG || votesSnap.docs.length >= GLOBAL_HOT_LEG;
+          hasMoreRef.current = more;
+          setHasMore(more);
+        } else if (sortMode === "top") {
+          const batchSize = FETCH_BATCH;
+          const q =
+            loadMore && lastDocRef.current
+              ? query(
+                  collection(db, "posts"),
+                  orderBy("votes", "desc"),
+                  startAfter(lastDocRef.current),
+                  limit(batchSize)
+                )
+              : query(collection(db, "posts"), orderBy("votes", "desc"), limit(batchSize));
+          const snap = await getDocs(q);
+          let newPosts = snap.docs.map(
+            (d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as Post)
+          );
+          if (snap.docs.length > 0) lastDocRef.current = snap.docs[snap.docs.length - 1];
+          newPosts = sortPostsByMode(applyHomeFeedPipeline(newPosts), "top");
+          if (loadMore) setPosts((prev) => mergePostsDedup(prev, newPosts));
+          else setPosts(newPosts);
+          const more = snap.docs.length >= batchSize;
+          hasMoreRef.current = more;
+          setHasMore(more);
         } else {
-          q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(POSTS_PER_PAGE));
+          const batchSize = POSTS_PER_PAGE;
+          const q =
+            loadMore && lastDocRef.current
+              ? query(
+                  collection(db, "posts"),
+                  orderBy("createdAt", "desc"),
+                  startAfter(lastDocRef.current),
+                  limit(batchSize)
+                )
+              : query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(batchSize));
+          const snap = await getDocs(q);
+          let newPosts = snap.docs.map(
+            (d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as Post)
+          );
+          if (snap.docs.length > 0) lastDocRef.current = snap.docs[snap.docs.length - 1];
+          newPosts = applyHomeFeedPipeline(newPosts);
+          if (loadMore) setPosts((prev) => mergePostsDedup(prev, newPosts));
+          else setPosts(newPosts);
+          const more = snap.docs.length >= batchSize;
+          hasMoreRef.current = more;
+          setHasMore(more);
         }
-        const snap = await getDocs(q);
-        const newPosts = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as Post));
-        if (snap.docs.length > 0) lastDocRef.current = snap.docs[snap.docs.length - 1];
-        if (loadMore) setPosts(prev => [...prev, ...newPosts]); else setPosts(newPosts);
-        const more = newPosts.length >= POSTS_PER_PAGE;
-        hasMoreRef.current = more;
-        setHasMore(more);
       }
     } catch (e) {
       console.error("Fetch posts error:", e);
     } finally {
       setLoading(false);
+      if (!loadMore) {
+        setNewPostsCount(0);
+        suppressNewAlertUntilRef.current = Date.now() + 800;
+      }
     }
-  }, [feedMode, user, followedUids, joinedCommunities, activeCustomFeed]);
+  }, [feedMode, user, followedUids, joinedCommunities, activeCustomFeed, sortMode, applyHomeFeedPipeline]);
+
+  useEffect(() => {
+    feedKnownIdsRef.current = new Set(posts.map((p) => p.id));
+    if (posts.length > 0 && !loading) feedBaselineReadyRef.current = true;
+  }, [posts, loading]);
+
+  const loadNewPostsIntoFeed = useCallback(async () => {
+    suppressNewAlertUntilRef.current = Date.now() + 4000;
+    setNewPostsCount(0);
+
+    try {
+      const snap = await getDocs(
+        query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(25))
+      );
+      if (!snap.empty) lastAcknowledgedLatestIdRef.current = snap.docs[0].id;
+
+      const incoming = snap.docs.map(
+        (d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as Post)
+      );
+      const filtered = applyHomeFeedPipeline(incoming);
+      const mode =
+        sortMode === "top" ? ("top" as const) : sortMode === "new" ? ("new" as const) : ("hot" as const);
+
+      setPosts((prev) => sortPostsByMode(prependPostsDedup(filtered, prev), mode));
+      filtered.forEach((p) => feedKnownIdsRef.current.add(p.id));
+    } catch (e) {
+      console.error("Load new posts error:", e);
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [applyHomeFeedPipeline, sortMode]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-  // Real-time new posts detection (replaces polling)
+  // Reset states on user logout to prevent cached restricted community feeds from staying visible
+  useEffect(() => {
+    if (!user) {
+      setView("feed");
+      setSelectedCommunity("");
+      setSelectedPostId("");
+      setActiveCustomFeed(null);
+      setFeedMode("all");
+      setTagFilter(null);
+      setViewingUid(null);
+      fetchPosts();
+    }
+  }, [user, fetchPosts]);
+
+  // تنبيه منشورات جديدة — بدون الاعتماد على posts[] (يمنع الحلقة المفرغة)
   useEffect(() => {
     if (view !== "feed") return;
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(1));
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10));
     const unsub = onSnapshot(q, (snap) => {
-      if (!snap.empty && posts.length > 0) {
-        const latestId = snap.docs[0].id;
-        if (!posts.find(p => p.id === latestId)) {
-          setNewPostsCount(c => c + 1);
-        }
+      if (Date.now() < suppressNewAlertUntilRef.current) return;
+      if (!feedBaselineReadyRef.current || snap.empty) return;
+
+      const latestId = snap.docs[0].id;
+      if (lastAcknowledgedLatestIdRef.current === latestId) {
+        setNewPostsCount(0);
+        return;
       }
+
+      const known = feedKnownIdsRef.current;
+      let count = 0;
+      for (const d of snap.docs) {
+        if (!known.has(d.id)) count++;
+        else break;
+      }
+      setNewPostsCount(count);
     }, () => {});
     return () => unsub();
-  }, [view, posts]);
+  }, [view]);
 
-  // Re-fetch when feed mode changes
-  useEffect(() => { fetchPosts(); }, [feedMode]);
+  // Re-fetch when feed mode or sort changes
+  useEffect(() => {
+    feedBaselineReadyRef.current = false;
+    lastAcknowledgedLatestIdRef.current = null;
+    setNewPostsCount(0);
+    fetchPosts();
+  }, [feedMode, sortMode]);
 
   // Re-fetch when custom feed changes
   useEffect(() => { fetchPosts(); }, [activeCustomFeed]);
@@ -378,23 +647,49 @@ function AppContent() {
   const [viewingUid, setViewingUid] = useState<string | null>(null);
   const [editingCommunity, setEditingCommunity] = useState<string>("");
   const [dashboardCommunity, setDashboardCommunity] = useState<string>("");
-  const openCommunity = (name: string) => { setSelectedCommunity(name); navigateTo("community", { community: name }); };
+  const openCommunity = (name: string) => {
+    if (isUserDestinationPath(name)) return;
+    const id = firestoreCommunityIdFromDisplay(name);
+    if (!id) return;
+    if (user) {
+      const comm = allCommunities.find((c) => c.name === id);
+      trackImplicitInterest("community", id, interestTagsFromCategory(comm?.category || ""), user.uid);
+    }
+    setSelectedCommunity(id);
+    navigateTo("community", { community: id });
+  };
   const openCommunityDashboard = (name: string) => { setDashboardCommunity(name); navigateTo("community-dashboard", { community: name }); };
   const openEditCommunity = (name: string) => { setEditingCommunity(name); navigateTo("edit-community", { community: name }); };
-  const openProfile = (uid?: string) => { if (uid) { setViewingUid(uid); navigateTo("profile", { uid }); } else if (user) { setViewingUid(user.uid); navigateTo("profile", { uid: user.uid }); } else { setShowLogin(true); } };
-  const openPost = (id: string) => { setSelectedPostId(id); const p = posts.find(p => p.id === id); navigateTo("post", { postId: id, postTitle: p?.title || "" }); };
+  const openProfile = (uid?: string) => {
+    const targetUid = uid || user?.uid;
+    if (!targetUid) { setShowLogin(true); return; }
+    setViewingUid(targetUid);
+    navigateTo("profile", { uid: targetUid });
+  };
+  const openPost = (id: string) => {
+    setSelectedPostId(id);
+    const p = posts.find(p => p.id === id);
+    if (p?.community) {
+      setSelectedCommunity(p.community);
+    } else {
+      setSelectedCommunity("");
+    }
+    navigateTo("post", { postId: id, postTitle: p?.title || "" });
+  };
   const openCreate = () => { if (user) { setEditPostId(""); navigateTo("create"); } else setShowLogin(true); };
   const openEdit = (id: string) => { setEditPostId(id); navigateTo("edit", { editPostId: id }); };
+  const openUpgrade = (id: string) => { setLivingPostId(id); setView("living-upgrade"); setDocumentTitle(); };
 
   // Update tab title when post data loads (important for new tabs)
   useEffect(() => {
     if (view === "post" && selectedPostId) {
       const p = posts.find(p => p.id === selectedPostId);
-      if (p?.title) document.title = `${p.title} — Northfall`;
+      if (p?.title) setDocumentTitle(truncateTabLabel(p.title));
     }
   }, [view, selectedPostId, posts]);
   const scrollRef = useRef(0);
   const backToFeed = () => {
+    setSelectedCommunity("");
     navigateTo("feed");
     // Restore scroll position after view change
     requestAnimationFrame(() => { window.scrollTo({ top: scrollRef.current, behavior: "instant" as ScrollBehavior }); });
@@ -418,23 +713,38 @@ function AppContent() {
     return () => window.removeEventListener("keydown", handler);
   }, [user]);
 
+  const handleHashtagClick = useCallback(
+    (rawTag: string) => {
+      const tag = normalizeInterestTag(rawTag);
+      if (!tag) return;
+      setTagFilter((prev) => (prev === tag ? null : tag));
+      if (view !== "feed") {
+        navigateTo("feed");
+      }
+      const interestTags = interestTagsFromHashtag(tag);
+      pushUserInterests(interestTags);
+      if (user) {
+        void addUserInterests(user.uid, interestTags, mergeInterestsOrdered(userInterests, interestTags));
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [user, userInterests, pushUserInterests, view, navigateTo]
+  );
+
   const sortedPosts = [...posts]
+    .filter((p) => !tagFilter || postMatchesHashtag(p, tagFilter))
     .filter(p => {
-      if (!tagFilter) return true;
-      const tag = tagFilter.toLowerCase();
-      const comm = (p.community || "").toLowerCase();
-      const body = (p.body || "").toLowerCase();
+      if (!mutedWords.length) return true;
       const title = (p.title || "").toLowerCase();
-      return comm.includes(tag) || body.includes("#" + tag) || title.includes("#" + tag);
-    })
-    .sort((a, b) => {
-      if (sortMode === "new") return (b.createdAt || "").localeCompare(a.createdAt || "");
-      if (sortMode === "top") return (b.votes || 0) - (a.votes || 0);
-      // Hot: decay algorithm - newer + more votes = higher
-      const scoreA = (a.votes || 0) * (1 / (1 + (Date.now() - new Date(a.createdAt || "").getTime()) / 3600000));
-      const scoreB = (b.votes || 0) * (1 / (1 + (Date.now() - new Date(b.createdAt || "").getTime()) / 3600000));
-      return scoreB - scoreA;
+      const body = (p.body || "").toLowerCase();
+      return !mutedWords.some(w => title.includes(w) || body.includes(w));
     });
+
+  const rankMode = sortMode === "top" ? "top" as const : sortMode === "new" ? "new" as const : "hot" as const;
+  const displayPosts = sortPostsByMode(
+    activeCustomFeed ? sortedPosts : filterPostsForHomeFeed(sortedPosts, communityMutesRef.current),
+    rankMode
+  );
 
   const requireAuth = (action: () => void) => {
     if (user) action();
@@ -443,7 +753,8 @@ function AppContent() {
 
   return (
     <>
-      <Navbar onProfileClick={openProfile} onLoginClick={() => setShowLogin(true)} onCommunityClick={openCommunity} onPostClick={openPost} onNotifsClick={() => navigateTo("notifs")} onSettingsClick={() => navigateTo("settings")} onCreateClick={openCreate} onAdminClick={() => navigateTo("admin")} onSeoClick={() => navigateTo("seo")} />
+      <DonateBanner />
+      <Navbar onProfileClick={openProfile} onLoginClick={() => setShowLogin(true)} onCommunityClick={openCommunity} onPostClick={openPost} onNotifsClick={() => navigateTo("notifs")} onSettingsClick={() => navigateTo("settings")} onCreateClick={openCreate} onAdminClick={() => navigateTo("admin")} onSeoClick={() => navigateTo("seo")} activeCommunity={view === "community" ? selectedCommunity : undefined} />
       <SidebarLeft
         key={sidebarKey}
         onNavClick={(id) => {
@@ -453,104 +764,95 @@ function AppContent() {
           else if (id === "settings") navigateTo("settings");
           else if (id === "forums") window.open("/forum", "_blank");
           else if (id === "games") navigateTo("games");
+          else if (id === "launches") window.open("/launches", "_blank", "noopener,noreferrer");
           else if (id === "manage-communities") requireAuth(() => navigateTo("manage-communities"));
           else if (id === "hot" || id === "new" || id === "top") { setSortMode(id); navigateTo("feed"); }
           else backToFeed();
         }}
         onCommunityClick={(name) => { clearCustomFeed(); openCommunity(name); }}
-        activeNav={view === "feed" ? (activeCustomFeed ? "" : sortMode === "hot" ? "hot" : sortMode === "new" ? "new" : sortMode === "top" ? "top" : "home") : view === "profile" ? "profile" : view === "settings" ? "settings" : view === "notifs" ? "notifs" : view === "games" ? "games" : view === "community" ? selectedCommunity : ""}
+        activeNav={view === "feed" ? (activeCustomFeed ? "" : sortMode === "hot" ? "hot" : sortMode === "new" ? "new" : sortMode === "top" ? "top" : "home") : view === "profile" ? "profile" : view === "settings" ? "settings" : view === "notifs" ? "notifs" : view === "games" ? "games" : view === "manage-communities" ? "manage-communities" : view === "community" ? selectedCommunity : ""}
         onCreateCommunity={() => requireAuth(() => navigateTo("create-community"))}
         onDashboardClick={(name) => openCommunityDashboard(name)}
         customFeeds={user ? customFeeds : []}
         activeCustomFeedId={activeCustomFeed?.id ?? null}
         onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))}
-        onCreateCustomFeed={() => requireAuth(() => { setEditingCustomFeed(null); setShowCustomFeedDrawer(true); })}
-        onEditCustomFeed={(feed) => requireAuth(() => { setEditingCustomFeed(feed); setShowCustomFeedDrawer(true); })}
+        onCreateCustomFeed={() => requireAuth(() => navigateTo("create-custom-feed"))}
       />
 
-      <div className="md:ml-[260px] min-h-screen flex justify-center" style={{ paddingTop: "var(--nav-total-height)" }}>
-        <div className="w-full max-w-[1280px] px-3 md:px-6 py-3 md:py-5 pb-20 md:pb-5 flex gap-8 justify-center items-start" style={{ direction: "rtl" }}>
-          <div className={cn("hidden lg:block self-stretch", view === "community" && "hidden")}><SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={view === "community" ? selectedCommunity : undefined} /></div>
+      {/* Classic Tab Bar removed */}
 
-          <div className={cn("flex-1", view === "feed" ? "max-w-[680px]" : view === "create-community" ? "max-w-[1150px]" : view === "community" ? "max-w-[1000px]" : view === "members" ? "max-w-[1100px]" : "max-w-[1100px]")} style={{ direction: "rtl" }}>
+      {/* Custom Feed banner */}
+      {activeCustomFeed?.bannerUrl && view === "feed" && activeCustomFeed?.showBannerBg !== false && (
+        <div
+          className="fixed left-0 right-0 pointer-events-none overflow-hidden"
+          style={{ zIndex: -1, height: "700px", top: 0 }}
+        >
+          <img
+            src={activeCustomFeed.bannerUrl}
+            alt=""
+            className="w-full h-full object-cover object-center"
+            style={{ opacity: 0.35 }}
+          />
+          <div className="absolute inset-0" style={{
+            background: `linear-gradient(to bottom,
+              var(--bg-body) 0%,
+              var(--bg-body) calc(var(--nav-total-height)),
+              rgba(0,0,0,0.2) calc(var(--nav-total-height) + 20px),
+              transparent 30%,
+              transparent 55%,
+              var(--bg-body) 95%
+            )`
+          }} />
+          <div className="absolute inset-0" style={{
+            background: "linear-gradient(to right, var(--bg-body) 0%, transparent 12%, transparent 88%, var(--bg-body) 100%)"
+          }} />
+        </div>
+      )}
+
+      <div className="md:ml-[260px] min-h-screen flex justify-center" style={{ paddingTop: "var(--nav-total-height)", position: "relative", zIndex: 1 }}>
+        <div className="w-full max-w-[1280px] px-2 md:px-4 py-3 md:py-4 pb-20 md:pb-5 flex gap-6 justify-center items-start" style={{ direction: "rtl" }}>
+          <div className={cn("hidden lg:block self-stretch shrink-0", (view !== "feed" && view !== "community" && view !== "post") && "hidden")} style={{ position: "relative", zIndex: 1 }}><SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={(view === "community" || view === "post") ? (selectedCommunity || undefined) : undefined} /></div>
+
+          <div className={cn("flex-1 min-w-0", view === "feed" ? "max-w-[740px]" : view === "create-community" ? "max-w-[1150px]" : view === "community" ? "max-w-[1000px]" : view === "members" ? "max-w-[1100px]" : "max-w-[1100px]")} style={{ direction: "rtl" }}>
             <div>
+
               {view === "feed" && (
                 <div key="feed" className="animate-in fade-in duration-150">
                   <PostComposer onFocus={openCreate} onPost={() => { backToFeed(); }} />
 
-                  {/* Custom Feed Header */}
-                  {activeCustomFeed && (
-                    <div className="rounded-xl border border-nf-border-2/60 bg-nf-secondary/30 overflow-hidden mb-3">
-                      {/* Top accent bar */}
-                      <div className="h-0.5 w-full bg-nf-accent/60" />
-                      <div className="flex items-center gap-3 px-4 py-3">
-                        <div className="w-9 h-9 rounded-xl bg-nf-accent/10 border border-nf-accent/20 flex items-center justify-center shrink-0">
-                          <Rss size={16} className="text-nf-accent" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[14px] font-bold text-nf-text">{activeCustomFeed.name}</span>
-                            {activeCustomFeed.isPrivate && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-nf-secondary text-nf-dim border border-nf-border-2/50">خاص</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                            {activeCustomFeed.communities.slice(0, 4).map((c) => (
-                              <span key={c} className="text-[10px] text-nf-dim">n/{c}</span>
-                            ))}
-                            {activeCustomFeed.communities.length > 4 && (
-                              <span className="text-[10px] text-nf-dim">+{activeCustomFeed.communities.length - 4}</span>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                        onClick={() => { setEditingCustomFeed(activeCustomFeed); setShowCustomFeedDrawer(true); }}
-                          className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors shrink-0"
-                          title="تعديل الفيد"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={clearCustomFeed}
-                          className="p-1.5 rounded-lg text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors shrink-0"
-                          title="إغلاق الفيد"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <FeedSort
+                    onSortChange={(s) => setSortMode(s)}
+                    onTagClick={handleHashtagClick}
+                    tagFilter={tagFilter}
+                    feedMode={activeCustomFeed ? "all" : feedMode}
+                    onFeedModeChange={activeCustomFeed ? undefined : setFeedMode}
+                    requireAuth={requireAuth}
+                  />
 
-                  <FeedSort onSortChange={(s) => setSortMode(s)} onTagClick={(t) => setTagFilter(t === tagFilter ? null : t)} tagFilter={tagFilter} feedMode={activeCustomFeed ? "all" : feedMode} onFeedModeChange={activeCustomFeed ? undefined : setFeedMode} requireAuth={requireAuth} />
+                  {/* Highlights — only on main feed, no filters */}
+                  {!activeCustomFeed && feedMode === "all" && !tagFilter && sortMode === "hot" && (
+                    <FeedHighlights onPostClick={openPost} onCommunityClick={openCommunity} />
+                  )}
 
                   {newPostsCount > 0 && (
                     <button
-                      onClick={() => { setNewPostsCount(0); fetchPosts(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-xl bg-nf-accent/10 border border-nf-accent/30 text-nf-accent text-xs font-bold hover:bg-nf-accent/20 transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-200"
+                      type="button"
+                      onClick={loadNewPostsIntoFeed}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-xl border border-nf-accent/30 text-nf-accent text-xs font-bold hover:bg-nf-accent/20 transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-200"
+                      style={{ backgroundColor: "var(--bg-primary)" }}
                     >
                       <ArrowUp size={14} className="animate-bounce" />
                       {newPostsCount} {t("gen.newPosts")}
                     </button>
                   )}
 
-                  {showAnnouncement && (
-                    <div className="flex items-center gap-3 bg-nf-primary border border-nf-border-2 rounded-lg px-4 py-3 mb-3">
-                      <Megaphone size={18} className="text-nf-accent shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-nf-text">{t("gen.welcome")}</div>
-                        <div className="text-xs text-nf-muted">{t("gen.welcomeSub")}</div>
-                      </div>
-                      <button onClick={() => setShowAnnouncement(false)} className="text-nf-muted hover:text-nf-text shrink-0">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  )}
 
-                  <div className="flex flex-col gap-3">
+
+                  <div className="flex flex-col overflow-visible">
                     {loading ? (
                     <>
                         {[1,2,3].map(i => (
-                          <div key={i} className="border border-nf-border-2 rounded-lg p-4 overflow-hidden relative" style={{ animationDelay: `${i * 0.08}s` }}>
+                          <div key={i} className="border-b border-nf-border-2/40 p-4 overflow-hidden relative">
                             <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_ease-in-out_infinite]" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent)" }} />
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-5 h-5 rounded-full bg-nf-secondary/80" />
@@ -568,7 +870,7 @@ function AppContent() {
                           </div>
                         ))}
                       </>
-                    ) : posts.length === 0 ? (
+                    ) : displayPosts.length === 0 ? (
                       <div className="text-center py-12 text-nf-muted">
                         {feedMode === "following" ? (
                           <>
@@ -584,22 +886,28 @@ function AppContent() {
                         )}
                       </div>
                     ) : (
-                      sortedPosts.map((post) => (
+                      displayPosts.map((post) => (
                           <PostCard
                             key={post.id}
                             postId={post.id}
-                            community={post.community ? `n/${post.community}` : `n/${t("gen.general")}`}
+                            community={formatPostDestinationPath(post)}
                             author={post.authorName || t("gen.user")}
                             authorUid={post.authorUid}
                             authorPhoto={post.authorPhoto}
                             time={post.createdAt ? timeAgo(post.createdAt) : t("gen.now")}
-                            title={post.title}
+                            title={post.title || ""}
                             body={post.body}
                             image={post.imageUrl}
                             imageUrls={post.imageUrls}
+                            linkUrl={post.linkUrl}
+                            videoUrl={(post as any).videoUrl}
+                            mediaItems={(post as any).mediaItems}
                             flair={post.flair}
-                            isNsfw={post.isNsfw}
+                            isNsfw={post.isNsfw || !!(post.community && matureCommunitySet.current.has(post.community.toLowerCase()))}
                             isSpoiler={post.isSpoiler}
+                            isLiving={(post as any).isLiving}
+                            currentVersion={(post as any).currentVersion}
+                            versionsCount={(post as any).versions?.length}
                             votes={post.votes || 0}
                             comments={post.commentCount || 0}
                             awards={post.awards}
@@ -609,8 +917,10 @@ function AppContent() {
                             onCommunityClick={openCommunity}
                             onProfileClick={openProfile}
                             onEditClick={openEdit}
-                            onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }}
+                            onDeleteClick={async (id) => { try { await deletePostCompletely(id); } catch (e) { console.error(e); } fetchPosts(); }}
                             onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }}
+                            hashtags={(post as Post).hashtags}
+                            onHashtagClick={handleHashtagClick}
                           />
                       ))
                     )}
@@ -619,29 +929,19 @@ function AppContent() {
                         {t("gen.loadMore") || "تحميل المزيد"}
                       </button>
                     )}
-
-                    {/* Welcome/discovery cards when feed is empty or few posts */}
-                    {!loading && !activeCustomFeed && feedMode === "all" && posts.length < 8 && (
-                      <FeedWelcome
-                        onCommunityClick={(name) => { clearCustomFeed(); openCommunity(name); }}
-                        onCreatePost={openCreate}
-                        onGamesClick={() => navigateTo("games")}
-                        onForumsClick={() => window.open("/forum", "_blank")}
-                      />
-                    )}
                   </div>
                 </div>
               )}
 
               {view === "community" && selectedCommunity && (
                 <div key="community" className="animate-in fade-in duration-150">
-                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} onDashboardClick={(name) => openCommunityDashboard(name)} onMembersClick={openMembers} onModPanelClick={openModPanel} />
+                  <CommunityPage name={selectedCommunity} onBack={backToFeed} onEditClick={openEdit} onDeleteClick={async (id) => { try { await deletePostCompletely(id); } catch (e) { console.error(e); } fetchPosts(); }} onPostClick={openPost} onJoinToggle={() => setSidebarKey(k => k + 1)} onDashboardClick={(name) => openCommunityDashboard(name)} onMembersClick={openMembers} onModPanelClick={openModPanel} customFeeds={customFeeds} showToast={toast} onSidebarRefresh={() => setSidebarKey(k => k + 1)} />
                 </div>
               )}
 
               {view === "profile" && (
                 <div key="profile" className="animate-in fade-in duration-150">
-                  <ProfilePage uid={viewingUid || undefined} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); }} onSettingsClick={() => navigateTo("settings")} onAdminClick={() => navigateTo("admin")} onPostClick={openPost} onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))} />
+                  <ProfilePage uid={viewingUid || undefined} onEditClick={openEdit} onDeleteClick={async (id) => { try { await deletePostCompletely(id); } catch (e) { console.error(e); } fetchPosts(); }} onSettingsClick={() => navigateTo("settings")} onAdminClick={() => navigateTo("admin")} onPostClick={openPost} onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))} />
                 </div>
               )}
 
@@ -691,6 +991,16 @@ function AppContent() {
                 </div>
               )}
 
+              {view === "living-upgrade" && livingPostId && (
+                <div key="living-upgrade" className="animate-in fade-in duration-150">
+                  <CreatePostPage
+                    onBack={() => setView("post")}
+                    onPost={() => { setView("post"); fetchPosts(); }}
+                    livingPostId={livingPostId}
+                  />
+                </div>
+              )}
+
               {view === "create-community" && (
                 <div key="create-community" className="animate-in fade-in duration-150">
                   <CreateCommunityPage
@@ -703,6 +1013,21 @@ function AppContent() {
                   />
                 </div>
               )}
+
+              {view === "create-custom-feed" && (
+                <div key="create-custom-feed" className="animate-in fade-in duration-150">
+                  <CreateCustomFeedPage
+                    onBack={backToFeed}
+                    onSuccess={(feed) => {
+                      setActiveCustomFeed({ id: feed.id, name: feed.name, communities: feed.communities });
+                      navigateTo("feed", { customFeed: feed.id });
+                    }}
+                    showToast={(msg, type) => toast(msg, type || "info")}
+                  />
+                </div>
+              )}
+
+              {/* edit-custom-feed: redirects to /feeds/[feedId]/settings */}
 
               {view === "edit-community" && editingCommunity && (
                 <div key="edit-community" className="animate-in fade-in duration-150">
@@ -727,8 +1052,8 @@ function AppContent() {
               )}
 
               {view === "post" && (
-                <div key="post" className="animate-in fade-in duration-150">
-                  <PostDetail postId={selectedPostId} onBack={backToFeed} onCommunityClick={openCommunity} onProfileClick={openProfile} onEditClick={openEdit} onDeleteClick={async (id) => { await deleteDoc(doc(db, "posts", id)); fetchPosts(); backToFeed(); }} onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }} />
+                <div key={`post-${selectedPostId}`} className="animate-in fade-in duration-150">
+                  <PostDetail postId={selectedPostId} onBack={backToFeed} onCommunityClick={openCommunity} onProfileClick={openProfile} onEditClick={openEdit} onDeleteClick={async (id) => { try { await deletePostCompletely(id); } catch (e) { console.error(e); } fetchPosts(); backToFeed(); }} onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }} onUpgradeClick={openUpgrade} onHashtagClick={handleHashtagClick} />
                 </div>
               )}
 
@@ -767,24 +1092,6 @@ function AppContent() {
       </div>
 
       <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
-
-      {/* Custom Feed Drawer — overlay on top of everything */}
-      {showCustomFeedDrawer && user && (
-        <CustomFeedPage
-          editFeed={editingCustomFeed}
-          onBack={() => { setShowCustomFeedDrawer(false); setEditingCustomFeed(null); }}
-          onSaved={(feed) => {
-            if (activeCustomFeed?.id === feed.id) setActiveCustomFeed(feed);
-            setShowCustomFeedDrawer(false);
-            setEditingCustomFeed(null);
-          }}
-          onDeleted={(id) => {
-            if (activeCustomFeed?.id === id) clearCustomFeed();
-            setShowCustomFeedDrawer(false);
-            setEditingCustomFeed(null);
-          }}
-        />
-      )}
 
       {/* Invite Accept Dialog */}
       {invitePending && (
@@ -828,9 +1135,11 @@ export default function AppPage() {
       <DataProvider>
         <I18nProvider>
           <ToastProvider>
-            <MaintenanceOverlay>
-              <AppContent />
-            </MaintenanceOverlay>
+            <ClassicTabsProvider>
+              <MaintenanceOverlay>
+                <AppContent />
+              </MaintenanceOverlay>
+            </ClassicTabsProvider>
           </ToastProvider>
         </I18nProvider>
       </DataProvider>

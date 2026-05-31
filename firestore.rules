@@ -1,1 +1,159 @@
-WF
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuth() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isAuth() && (request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
+    }
+    function isCommunityStaff(communityId) {
+      let commDoc = get(/databases/$(database)/documents/communities/$(communityId));
+      let memberDoc = get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+      return isAuth() && (
+        commDoc.data.creatorUid == request.auth.uid ||
+        memberDoc.data.role == "owner" ||
+        memberDoc.data.role == "admin" ||
+        memberDoc.data.role == "moderator" ||
+        memberDoc.data.permissions.managePosts == true ||
+        memberDoc.data.permissions.manageSettings == true
+      );
+    }
+
+    function isOwner(resource) {
+      return request.auth.uid == resource.data.ownerId;
+    }
+    function isFeedEditor(data) {
+      return isAuth() && (
+        ('editorUids' in data && data.editorUids is list && request.auth.uid in data.editorUids) ||
+        (data.editors is list && data.editors.size() > 0 && !(data.editors[0] is map) && request.auth.uid in data.editors)
+      );
+    }
+    function isEditor(resource) {
+      return isFeedEditor(resource.data);
+    }
+
+    function validCategoryField() {
+      return !('category' in request.resource.data)
+        || (request.resource.data.category is string
+            && request.resource.data.category.size() > 0
+            && request.resource.data.category.size() <= 80);
+    }
+
+    function validIsMatureField() {
+      return !('isMature' in request.resource.data)
+        || request.resource.data.isMature is bool;
+    }
+
+    function validMutedCommunitiesField() {
+      return !('mutedCommunities' in request.resource.data)
+        || request.resource.data.mutedCommunities is list;
+    }
+
+    function validCommunityMutesField() {
+      return !('communityMutes' in request.resource.data)
+        || request.resource.data.communityMutes is map;
+    }
+
+    function validUserInterestsField() {
+      return !('userInterests' in request.resource.data)
+        || (request.resource.data.userInterests is list
+            && request.resource.data.userInterests.size() <= 50);
+    }
+
+    function validCommunityTagsField() {
+      return !('tags' in request.resource.data)
+        || request.resource.data.tags is list;
+    }
+
+    // Allow all reads for everyone
+    match /{document=**} {
+      allow read: if true;
+      allow write: if isAuth();
+    }
+
+    match /communities/{communityId} {
+      allow create: if isAuth() && validCategoryField() && validIsMatureField() && validCommunityTagsField();
+      allow update: if isAuth() && validCategoryField() && validIsMatureField() && validCommunityTagsField();
+    }
+
+    match /users/{userId} {
+      allow update: if isAuth() && request.auth.uid == userId && validMutedCommunitiesField() && validCommunityMutesField() && validUserInterestsField();
+      allow create: if isAuth() && request.auth.uid == userId && validMutedCommunitiesField() && validCommunityMutesField() && validUserInterestsField();
+    }
+
+    match /users/{userId}/communities/{communityId} {
+      allow write: if isAuth() && request.auth.uid == userId
+        && (!('isFavorite' in request.resource.data) || request.resource.data.isFavorite is bool);
+    }
+
+    // Posts — staff can delete/update any post in their community
+    match /posts/{postId} {
+      allow delete: if isAuth() && (
+        resource.data.authorUid == request.auth.uid ||
+        isAdmin() ||
+        isCommunityStaff(resource.data.community)
+      );
+      allow update: if isAuth() && (
+        resource.data.authorUid == request.auth.uid ||
+        isAdmin() ||
+        isCommunityStaff(resource.data.community)
+      );
+    }
+
+    // Comments — staff can delete
+    match /posts/{postId}/comments/{commentId} {
+      allow delete: if isAuth() && (
+        resource.data.authorUid == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // Community members
+    match /communities/{communityId}/members/{memberId} {
+      allow read: if true;
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        request.auth.uid == memberId ||
+        isCommunityStaff(communityId) ||
+        isAdmin()
+      );
+      allow delete: if isAuth() && (
+        request.auth.uid == memberId ||
+        isCommunityStaff(communityId) ||
+        isAdmin()
+      );
+    }
+
+    // Forum threads/replies
+    match /forums/{forumId}/threads/{threadId} {
+      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
+    }
+    match /forums/{forumId}/threads/{threadId}/replies/{replyId} {
+      allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
+    }
+
+    // Reports
+    match /reports/{reportId} {
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Custom feeds — private to owner
+    match /users/{userId}/customFeeds/{feedId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // ─── Shared Custom Feeds (top-level collection) ──────────
+    match /custom_feeds/{feedId} {
+      allow create: if isAuth();
+      allow read: if isAuth();
+      allow update: if isAuth() && (
+        isOwner(resource) ||
+        (isEditor(resource)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["communities", "bannerUrl", "iconUrl", "showBannerBg", "name", "isPrivate", "showOnProfile", "editors", "editorUids"]))
+      );
+      allow delete: if isAuth() && isOwner(resource);
+    }
+  }
+}

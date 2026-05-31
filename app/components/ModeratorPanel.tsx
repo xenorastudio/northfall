@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, doc, getDoc, deleteDoc, updateDoc, query, orderBy, limit, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { deletePostCompletely } from "@/lib/delete-content";
 import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Shield, Trash2, Pin, EyeOff, Flag, Check, X, AlertTriangle, FileText, MessageSquare, Users } from "lucide-react";
@@ -55,7 +56,7 @@ export default function ModeratorPanel({ communityName, onBack, onPostClick }: P
 
   const deletePost = async (postId: string) => {
     if (!confirm("حذف هذا المنشور نهائياً؟")) return;
-    await deleteDoc(doc(db, "posts", postId)).catch(() => {});
+    await deletePostCompletely(postId).catch(() => {});
     setPosts(prev => prev.filter(p => p.id !== postId));
   };
 
