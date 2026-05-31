@@ -2,7 +2,6 @@
 
 import Navbar from "../components/Navbar";
 import DonateBanner from "../components/DonateBanner";
-import DonateSupportPopup from "../components/DonateSupportPopup";
 import BowieEasterEggListener from "../components/BowieEasterEggListener";
 import SidebarLeft from "../components/SidebarLeft";
 import SidebarRight from "../components/SidebarRight";
@@ -171,9 +170,13 @@ function AppContent() {
   // URL-based navigation helper
   const navigateTo = (newView: View, extra: Record<string, string> = {}) => {
     setView(newView);
-    const params = new URLSearchParams({ view: newView, ...extra });
+    const safeExtra: Record<string, string> = {};
+    for (const [key, value] of Object.entries(extra)) {
+      if (typeof value === "string") safeExtra[key] = value;
+    }
+    const params = new URLSearchParams({ view: newView, ...safeExtra });
     const url = `/app?${params.toString()}`;
-    window.history.pushState({ view: newView, ...extra }, "", url);
+    window.history.pushState({ view: newView, ...safeExtra }, "", url);
     if (newView === "post" && extra.postTitle) {
       setDocumentTitle(truncateTabLabel(extra.postTitle));
     } else if (newView === "community" && extra.community) {
@@ -811,10 +814,12 @@ function AppContent() {
       setShowLogin(true);
       return;
     }
+    const comm =
+      typeof communityName === "string" && communityName.trim() ? communityName.trim() : undefined;
     setEditPostId("");
-    if (communityName) {
-      setSelectedCommunity(communityName);
-      navigateTo("create", { community: communityName });
+    if (comm) {
+      setSelectedCommunity(comm);
+      navigateTo("create", { community: comm });
     } else {
       setSelectedCommunity("");
       navigateTo("create");
@@ -906,7 +911,6 @@ function AppContent() {
   return (
     <>
       <DonateBanner />
-      <DonateSupportPopup />
       <BowieEasterEggListener />
       <Navbar onProfileClick={openProfile} onLoginClick={() => setShowLogin(true)} onCommunityClick={openCommunity} onPostClick={openPost} onNotifsClick={() => navigateTo("notifs")} onSettingsClick={() => navigateTo("settings")} onCreateClick={openCreate} onAdminClick={() => navigateTo("admin")} onSeoClick={() => navigateTo("seo")} activeCommunity={view === "community" ? selectedCommunity : undefined} />
       <SidebarLeft

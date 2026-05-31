@@ -30,6 +30,7 @@ import { buildNorthfallEmbedCode } from "@/lib/northfall-embed";
 import { mergeActor } from "@/lib/notification-format";
 import { bumpCategoryAffinity } from "@/lib/hide-post";
 import { flairBadgeStyle } from "@/lib/flair-badge";
+import NorthFallAiResult from "./NorthFallAiResult";
 
 interface QuotedPostData {
   id: string;
@@ -956,33 +957,17 @@ export default function PostCard({
 
       {/* AI Result — إطار قوس قزح دوّار */}
       {(aiResult || aiLoading) && (
-        <div className={cn("nf-ai-box", aiLoading && "nf-ai-box--loading")}>
-          <div className="nf-ai-box-inner">
-            <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-nf-border-2/30">
-              <span className="nf-ai-box-label">{aiLoading ? "جاري التلخيص..." : "ملخص"}</span>
-              {aiResult && !aiLoading && (
-                <button type="button" onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="text-nf-dim/50 hover:text-nf-dim transition-colors shrink-0">
-                  <X size={11} />
-                </button>
-              )}
-            </div>
-            <div className="px-3 py-2.5 min-h-[2rem]">
-              {aiLoading && !aiDisplayText && (
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-nf-dim/50 animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-nf-dim/50 animate-bounce" style={{ animationDelay: "140ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-nf-dim/50 animate-bounce" style={{ animationDelay: "280ms" }} />
-                </div>
-              )}
-              {aiDisplayText && (
-                <p className="text-[12px] text-nf-text-2 leading-relaxed">
-                  {aiDisplayText}
-                  {aiLoading && <span className="inline-block w-[2px] h-[13px] bg-nf-muted/60 mr-0.5 animate-pulse rounded-full align-middle" />}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        <NorthFallAiResult
+          loading={aiLoading}
+          text={aiDisplayText}
+          postTitle={title}
+          actionLabel="ملخص"
+          onClose={() => {
+            setAiResult(null);
+            setAiDisplayText("");
+          }}
+          showToast={(msg) => toast(msg, "success")}
+        />
       )}
 
       {showReport && <ReportModal open={showReport} onClose={() => setShowReport(false)} type="post" targetId={postId || ""} />}

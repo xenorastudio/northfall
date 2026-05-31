@@ -46,7 +46,6 @@ import {
 import { useAuth } from "@/app/components/AuthProvider";
 import { cn } from "@/lib/utils";
 import { goToAppView } from "@/lib/nav-app";
-import DonateSupportPopup from "@/app/components/DonateSupportPopup";
 
 type SortBy = "name" | "rating" | "year" | "oldest";
 type ActiveTab = "all" | "followed" | "trending" | "new" | "best" | "hot";
@@ -1128,7 +1127,6 @@ export default function NorthfallGamesPage() {
 
   return (
     <div className="min-h-screen bg-nf-body text-nf-text font-sans" dir="rtl">
-      <DonateSupportPopup />
       <header className="sticky top-0 z-50 bg-nf-body border-b border-nf-border-2/60">
         <div className="flex items-center gap-4 px-4 lg:px-6 h-14">
           <a href="/games" className="shrink-0 flex flex-col items-start leading-none gap-0.5 hover:opacity-90 transition-opacity">

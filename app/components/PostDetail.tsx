@@ -18,6 +18,7 @@ import PostBodyContent from "./PostBodyContent";
 import ImageLightbox from "./ImageLightbox";
 import FeedMediaFrame from "./FeedMediaFrame";
 import NorthFallAiButton from "./NorthFallAiButton";
+import NorthFallAiResult from "./NorthFallAiResult";
 import TranslateLangPicker from "./TranslateLangPicker";
 import VotePill from "./VotePill";
 import RichContentEditor, { type RichContentEditorHandle } from "./RichContentEditor";
@@ -962,11 +963,6 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                 </span>
               </>
             )}
-            <span className="text-nf-dim">·</span>
-            <span className="inline-flex items-center gap-1 text-nf-muted shrink-0">
-              <Eye size={11} className="opacity-70" />
-              {views ?? post.views ?? 0} {t("pd.views")}
-            </span>
             {isLivingPost && (
               <>
                 <span className="text-nf-dim">·</span>
@@ -1265,20 +1261,17 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
 
       {/* AI Result with typing animation */}
       {(aiResult || aiLoading) && (
-        <div className="mx-3 my-2 p-3 rounded-xl border border-nf-border-2/50 bg-nf-secondary/20">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-[10px] text-nf-dim font-semibold">{aiLoading ? "جاري التلخيص..." : "ملخص"}</span>
-            {aiResult && !aiLoading && <button onClick={() => { setAiResult(null); setAiDisplayText(""); }} className="mr-auto text-nf-dim hover:text-nf-text transition-colors"><X size={11} /></button>}
-          </div>
-          {aiLoading && !aiResult && (
-            <div className="flex items-center gap-1">
-              <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-              <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-              <div className="w-1 h-3 bg-nf-accent/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-            </div>
-          )}
-          {aiDisplayText && <p className="text-[12px] text-nf-muted leading-relaxed">{aiDisplayText}<span className="inline-block w-[2px] h-[12px] bg-nf-accent/60 ml-0.5 animate-pulse" /></p>}
-        </div>
+        <NorthFallAiResult
+          loading={aiLoading}
+          text={aiDisplayText}
+          postTitle={displayTitle || post?.title}
+          actionLabel="ملخص"
+          onClose={() => {
+            setAiResult(null);
+            setAiDisplayText("");
+          }}
+          showToast={showToast}
+        />
       )}
 
       {/* Comment Input */}

@@ -601,7 +601,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
           <Bell size={15} />
           {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center px-0.5">{unreadCount > 9 ? "9+" : unreadCount}</span>}
         </button>
-        <button onClick={onCreateClick} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-all duration-200 whitespace-nowrap">
+        <button type="button" onClick={() => onCreateClick?.()} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-all duration-200 whitespace-nowrap">
           <Plus size={12} /> {t("pc.createPlaceholder")}
         </button>
       </div>

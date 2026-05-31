@@ -26,8 +26,8 @@ export default function PostComposer({ onFocus }: { onFocus?: () => void; onPost
           readOnly
         />
         <div className="flex items-center gap-1">
-          <button onClick={onFocus} className="p-2 rounded-lg text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"><Image size={18} /></button>
-          <button onClick={onFocus} className="p-2 rounded-lg text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"><Link size={18} /></button>
+          <button type="button" onClick={() => onFocus?.()} className="p-2 rounded-lg text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"><Image size={18} /></button>
+          <button type="button" onClick={() => onFocus?.()} className="p-2 rounded-lg text-nf-muted hover:bg-nf-hover hover:text-nf-text transition-colors"><Link size={18} /></button>
         </div>
       </div>
     </div>
