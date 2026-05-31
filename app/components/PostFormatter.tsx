@@ -6,7 +6,13 @@ import { splitTextByHashtags } from "@/lib/hashtags";
 import { collectMarkdownTableRows, isMarkdownTableSeparatorLine } from "@/lib/markdown-table";
 import { guessCodeLang } from "@/lib/code-highlight";
 import { repairUtf8Mojibake } from "@/lib/display-text";
-import { collectIndentedCodeBlock, collectLooseCodeBlock, isMarkdownListItem, isMarkdownLinkLine } from "@/lib/markdown-body";
+import {
+  collectIndentedCodeBlock,
+  collectLooseCodeBlock,
+  isMarkdownListItem,
+  isMarkdownLinkLine,
+  normalizeMarkdownLinkSpacing,
+} from "@/lib/markdown-body";
 import { autolinkBareUrls } from "@/lib/autolink";
 import CodeBlockView from "./CodeBlockView";
 
@@ -26,7 +32,7 @@ export function bodyNeedsFormattedRender(text: string | undefined | null): boole
     /`[\s\S]+?`/.test(text) ||
     /\^[\s\S]+?\^/.test(text) ||
     />![\s\S]+?!</.test(text) ||
-    /\[[\s\S]*?\]\([\s\S]*?\)/.test(text) ||
+    /\[[\s\S]*?\]\s*\([\s\S]*?\)/.test(text) ||
     /^\s*\|.+\|/m.test(text) ||
     /\n\s*\|.+\|/m.test(text) ||
     /^\s*[^|\n]+\|[^|\n]+/m.test(text) ||
@@ -53,8 +59,9 @@ function formatInlinePlain(text: string): string {
     /!\[([^\]]*)\]\(([^)]+)\)/g,
     '<img src="$2" alt="$1" class="nf-editor-img" loading="lazy" />'
   );
+  s = normalizeMarkdownLinkSpacing(s);
   s = s.replace(
-    /\[([\s\S]*?)\]\(([\s\S]*?)\)/g,
+    /\[([\s\S]*?)\]\s*\(([\s\S]*?)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer" class="nf-md-link">$1</a>'
   );
   s = s.replace(/>!([\s\S]+?)!</g, '<span class="nf-spoiler" onclick="this.classList.toggle(\'revealed\')">$1</span>');

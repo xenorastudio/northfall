@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import PostHashtagText from "./PostHashtagText";
-import { preparePostBodyMarkdown } from "@/lib/markdown-body";
+import { normalizeMarkdownLinkSpacing, preparePostBodyMarkdown } from "@/lib/markdown-body";
 import { htmlToMarkdown } from "@/lib/rich-content-markdown";
 import { bodyNeedsFormattedRender, renderFormattedBody } from "./PostFormatter";
 
@@ -13,9 +13,9 @@ function normalizeBodyForDisplay(text: string): string {
   const raw = (text || "").trim();
   if (!raw) return "";
   if (/<pre[\s>]/i.test(raw) || /nf-editor-pre/i.test(raw) || /<a[\s>]/i.test(raw) || /<p[\s>]/i.test(raw)) {
-    return preparePostBodyMarkdown(htmlToMarkdown(raw));
+    return normalizeMarkdownLinkSpacing(preparePostBodyMarkdown(htmlToMarkdown(raw)));
   }
-  return preparePostBodyMarkdown(raw);
+  return normalizeMarkdownLinkSpacing(preparePostBodyMarkdown(raw));
 }
 import { UserProfilePopover } from "./HoverCard";
 

@@ -23,6 +23,7 @@ import NsfwMediaCover from "./NsfwMediaCover";
 import FeedMediaFrame from "./FeedMediaFrame";
 import VotePill from "./VotePill";
 import { getVoteTransition, normalizeStoredVote } from "@/lib/vote-transition";
+import { readPostVoteCount } from "@/lib/post-vote-count";
 import { useToast } from "./ToastProvider";
 import { calcSaitGain } from "@/lib/ranking";
 import { displayFeedTitle, textDirAttr } from "@/lib/display-text";
@@ -181,23 +182,35 @@ export default function PostCard({
   }, [quotedPostId, quotedPostProp]);
 
   useEffect(() => {
+    if (votingRef.current) return;
     const next = Math.max(0, votes);
     setVoteCount(next);
     voteCountRef.current = next;
-  }, [postId]);
+  }, [votes, postId]);
 
   // Check if post is saved and load user's vote on mount
   useEffect(() => {
     if (!user || !postId) return;
     getDoc(doc(db, "users", user.uid, "saved", postId)).then(s => setSaved(s.exists())).catch(() => {});
-    getDoc(doc(db, "posts", postId, "votes", user.uid)).then(s => {
-      if (s.exists()) {
-        const dir = normalizeStoredVote(s.data().dir || 0);
-        setMyVote(dir);
-        myVoteRef.current = dir;
-      }
-      setVoteLoaded(true);
-    }).catch(() => { setVoteLoaded(true); });
+    Promise.all([
+      getDoc(doc(db, "posts", postId, "votes", user.uid)),
+      readPostVoteCount(postId),
+    ])
+      .then(([voteSnap, serverVotes]) => {
+        if (voteSnap.exists()) {
+          const dir = normalizeStoredVote(voteSnap.data().dir || 0);
+          setMyVote(dir);
+          myVoteRef.current = dir;
+        }
+        if (!votingRef.current) {
+          setVoteCount(serverVotes);
+          voteCountRef.current = serverVotes;
+        }
+        setVoteLoaded(true);
+      })
+      .catch(() => {
+        setVoteLoaded(true);
+      });
   }, [user, postId]);
 
   const toggleSave = async () => {
@@ -391,7 +404,12 @@ export default function PostCard({
           return; // vote doc already saved in transaction
         }
       }
-      // Save user's vote in subcollection (only for removal, adding is handled above)
+      if (newVote !== 0 && !authorUid) {
+        await setDoc(doc(db, "posts", postId, "votes", user.uid), {
+          dir: newVote,
+          votedAt: new Date().toISOString(),
+        });
+      }
       if (newVote === 0 && !authorUid) {
         await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
       }
@@ -451,7 +469,17 @@ export default function PostCard({
       voteCountRef.current = prevCount;
       setMyVote(prevVote);
       setVoteCount(prevCount);
-    } finally { votingRef.current = false; }
+    } finally {
+      votingRef.current = false;
+      if (postId) {
+        readPostVoteCount(postId)
+          .then((serverVotes) => {
+            voteCountRef.current = serverVotes;
+            setVoteCount(serverVotes);
+          })
+          .catch(() => {});
+      }
+    }
   };
 
   // AI explain post
@@ -882,25 +910,29 @@ export default function PostCard({
       </div>
 
       {/* Footer - always visible */}
-      <div className="flex items-center gap-3 px-2 sm:px-3 py-1 text-nf-muted flex-wrap opacity-80 group-hover:opacity-100 transition-opacity duration-300">
-        <div onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-3 py-1.5 text-nf-muted flex-wrap opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="nf-post-action !gap-0 !px-0" onClick={(e) => e.stopPropagation()}>
           <VotePill
             count={voteCount}
             myVote={myVote as -1 | 0 | 1}
             onUp={() => handleVote(1)}
             onDown={() => handleVote(-1)}
-            variant="text"
-            size="sm"
           />
         </div>
-        <button onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }} className="hover:text-nf-text text-[11px] text-nf-dim transition-colors">
-          {comments} تعليق
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowQuickReply(!showQuickReply); }}
+          className="nf-post-action hover:text-nf-text transition-colors"
+        >
+          <span className="nf-post-action-icon"><MessageSquare size={14} strokeWidth={2} /></span>
+          <span className="nf-post-action-label">{comments} {t("pc.comments")}</span>
         </button>
-        <button onClick={(e) => { e.stopPropagation(); onQuoteClick?.(postId || ""); }} className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors">
-          <Quote size={14} /><span>اقتباس</span>
+        <button onClick={(e) => { e.stopPropagation(); onQuoteClick?.(postId || ""); }} className="nf-post-action hover:text-nf-text transition-colors">
+          <span className="nf-post-action-icon"><Quote size={14} strokeWidth={2} /></span>
+          <span className="nf-post-action-label">اقتباس</span>
         </button>
-        <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors">
-          <Share2 size={14} /><span>{t("pc.share")}</span>
+        <button onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }} className="nf-post-action hover:text-nf-text transition-colors">
+          <span className="nf-post-action-icon"><Share2 size={14} strokeWidth={2} /></span>
+          <span className="nf-post-action-label">{t("pc.share")}</span>
         </button>
         {postId && (
           <button
@@ -909,14 +941,16 @@ export default function PostCard({
               e.preventDefault();
               window.open(`/embed-generator?postId=${postId}`, "_blank", "noopener,noreferrer");
             }}
-            className="flex items-center gap-1 hover:text-nf-text text-xs transition-colors"
+            className="nf-post-action hover:text-nf-text transition-colors"
             title="إنشاء Embed"
           >
-            <Code size={14} /><span>Embed</span>
+            <span className="nf-post-action-icon"><Code size={14} strokeWidth={2} /></span>
+            <span className="nf-post-action-label">Embed</span>
           </button>
         )}
-        <button onClick={(e) => { e.stopPropagation(); toggleSave(); }} className={cn("flex items-center gap-1 text-xs transition-all duration-200", saved ? "text-nf-accent" : "hover:text-nf-accent")}>
-          <Bookmark size={14} fill={saved ? "currentColor" : "none"} /><span>{saved ? "محفوظ" : "حفظ"}</span>
+        <button onClick={(e) => { e.stopPropagation(); toggleSave(); }} className={cn("nf-post-action transition-colors", saved ? "text-nf-accent" : "hover:text-nf-accent")}>
+          <span className="nf-post-action-icon"><Bookmark size={14} strokeWidth={2} fill={saved ? "currentColor" : "none"} /></span>
+          <span className="nf-post-action-label">{saved ? "محفوظ" : "حفظ"}</span>
         </button>
         <div className="flex-1" />
         <div className="relative">

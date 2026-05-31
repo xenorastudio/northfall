@@ -24,6 +24,7 @@ import TranslateLangPicker from "./TranslateLangPicker";
 import VotePill from "./VotePill";
 import RichContentEditor, { type RichContentEditorHandle } from "./RichContentEditor";
 import { getVoteTransition, normalizeStoredVote } from "@/lib/vote-transition";
+import { readPostVoteCount } from "@/lib/post-vote-count";
 import LivingPostVersions, { type PostVersion } from "./LivingPostVersions";
 import CommentEditModal from "./CommentEditModal";
 import { translateText } from "@/lib/translate";
@@ -545,8 +546,14 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   useEffect(() => {
     if (!postId) return;
     const unsub = onSnapshot(doc(db, "posts", postId), (snap) => {
-      if (snap.exists() && typeof snap.data()?.views === "number") {
-        setViews(snap.data()!.views as number);
+      if (!snap.exists()) return;
+      const data = snap.data()!;
+      if (typeof data.views === "number") setViews(data.views);
+      if (typeof data.commentCount === "number") setCommentCount(data.commentCount);
+      if (typeof data.votes === "number" && !postVotingRef.current) {
+        const v = Math.max(0, data.votes);
+        setPostVoteCount(v);
+        postVoteCountRef.current = v;
       }
     });
     return () => unsub();
@@ -750,6 +757,12 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
           return; // vote doc already saved in transaction
         }
       }
+      if (newVote !== 0 && !post?.authorUid) {
+        await setDoc(doc(db, "posts", postId, "votes", user.uid), {
+          dir: newVote,
+          votedAt: new Date().toISOString(),
+        });
+      }
       if (newVote === 0 && !post?.authorUid) {
         await deleteDoc(doc(db, "posts", postId, "votes", user.uid));
       }
@@ -759,7 +772,15 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       postVoteCountRef.current = prevCount;
       setPostMyVote(prevVote);
       setPostVoteCount(prevCount);
-    } finally { postVotingRef.current = false; }
+    } finally {
+      postVotingRef.current = false;
+      readPostVoteCount(postId)
+        .then((serverVotes) => {
+          setPostVoteCount(serverVotes);
+          postVoteCountRef.current = serverVotes;
+        })
+        .catch(() => {});
+    }
   };
 
   useEffect(() => {
@@ -784,6 +805,13 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             postMyVoteRef.current = dir;
           }
           setPostVoteLoaded(true);
+        } else {
+          setPostVoteLoaded(true);
+        }
+        if (!postVotingRef.current) {
+          const serverVotes = await readPostVoteCount(postId);
+          setPostVoteCount(serverVotes);
+          postVoteCountRef.current = serverVotes;
         }
         const cSnap = await getDocs(query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc")));
         setComments(cSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Comment)));
@@ -802,7 +830,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       }
     }
     fetch();
-  }, [postId]);
+  }, [postId, user?.uid]);
 
   useEffect(() => {
     setPostTranslated(null);
@@ -944,7 +972,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       </div>
 
       {/* Post - flat, no border */}
-      <article className="mb-4 relative" onDoubleClick={() => { if (postMyVoteRef.current !== 1) setPostVote(1); }}>
+      <article className="nf-post-detail mb-4 relative" onDoubleClick={() => { if (postMyVoteRef.current !== 1) setPostVote(1); }}>
         <div className="px-3 sm:px-4 pt-3 pb-2">
           <div className="flex items-center gap-1.5 sm:gap-2 text-[12px] sm:text-[13px] mb-1.5 flex-wrap">
             <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
@@ -1223,8 +1251,6 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             myVote={postMyVote as -1 | 0 | 1}
             onUp={() => setPostVote(1)}
             onDown={() => setPostVote(-1)}
-            variant="text"
-            size="sm"
           />
           {post?.title?.trim() && (
             <button

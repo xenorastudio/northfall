@@ -61,35 +61,40 @@ service cloud.firestore {
             && request.resource.data.userInterests.size() <= 50);
     }
 
-    function validOnboardingFields() {
-      return (!('onboardingCompleted' in request.resource.data) || request.resource.data.onboardingCompleted is bool)
-        && (!('onboardingGender' in request.resource.data) || request.resource.data.onboardingGender == null || request.resource.data.onboardingGender is string)
-        && (!('onboardingCategories' in request.resource.data) || request.resource.data.onboardingCategories is list)
-        && (!('onboardingTags' in request.resource.data) || request.resource.data.onboardingTags is list)
-        && (!('interestTagWeights' in request.resource.data) || request.resource.data.interestTagWeights is map);
-    }
-
     function validCommunityTagsField() {
       return !('tags' in request.resource.data)
         || request.resource.data.tags is list;
     }
 
-    function isGamificationUserPatch() {
-      let keys = request.resource.data.diff(resource.data).affectedKeys();
-      return keys.hasOnly(['karma'])
-        || keys.hasOnly(['forumKarma'])
-        || keys.hasOnly(['forumXp'])
-        || keys.hasOnly(['commentCount'])
-        || keys.hasOnly(['xp'])
-        || keys.hasOnly(['postCount'])
-        || keys.hasOnly(['lastSeen'])
-        || keys.hasOnly(['forumXp', 'postCount'])
-        || keys.hasOnly(['commentCount', 'xp']);
+    function isProfileStatBump() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['karma'])
+        || changed.hasOnly(['forumKarma'])
+        || changed.hasOnly(['xp'])
+        || changed.hasOnly(['commentCount'])
+        || changed.hasOnly(['postCount'])
+        || changed.hasOnly(['forumXp'])
+        || changed.hasOnly(['commentCount', 'xp'])
+        || changed.hasOnly(['forumXp', 'postCount'])
+        || changed.hasOnly(['postCount', 'xp']);
     }
 
-    // قراءة عامة فقط — لا كتابة افتراضية لأي مسار
+    // قراءة عامة — بدون كتابة شاملة (كانت تسمح لأي مستخدم بتعديل أي وثيقة)
     match /{document=**} {
       allow read: if true;
+    }
+
+    match /system/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.active == false;
+      allow update: if isAdmin()
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active'])
+            && request.resource.data.active == false);
+    }
+
+    match /invites/{inviteId} {
+      allow create: if isAuth();
+      allow read, update, delete: if isAdmin();
     }
 
     match /communities/{communityId} {
@@ -99,52 +104,16 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow update: if isAuth() && (
-        isAdmin() ||
-        isGamificationUserPatch() ||
-        (request.auth.uid == userId && validMutedCommunitiesField() && validCommunityMutesField() && validUserInterestsField() && validOnboardingFields())
+        (request.auth.uid == userId && validMutedCommunitiesField() && validCommunityMutesField() && validUserInterestsField())
+        || isAdmin()
+        || isProfileStatBump()
       );
-      allow create: if isAuth() && request.auth.uid == userId && validMutedCommunitiesField() && validCommunityMutesField() && validUserInterestsField() && validOnboardingFields();
-    }
-
-    match /users/{userId}/onboarding/{docId} {
-      allow read, write: if isAuth() && request.auth.uid == userId;
+      allow create: if isAuth() && request.auth.uid == userId && validMutedCommunitiesField() && validCommunityMutesField() && validUserInterestsField();
     }
 
     match /users/{userId}/communities/{communityId} {
       allow write: if isAuth() && request.auth.uid == userId
         && (!('isFavorite' in request.resource.data) || request.resource.data.isFavorite is bool);
-    }
-
-    match /users/{userId}/customFeeds/{feedId} {
-      allow read, write: if isAuth() && request.auth.uid == userId;
-    }
-
-    match /users/{userId}/following/{targetId} {
-      allow read: if isAuth();
-      allow create, update, delete: if isAuth() && request.auth.uid == userId;
-    }
-
-    match /users/{userId}/followers/{followerId} {
-      allow read: if isAuth();
-      allow create, update, delete: if isAuth();
-    }
-
-    match /users/{userId}/saved/{postId} {
-      allow read, write: if isAuth() && request.auth.uid == userId;
-    }
-
-    match /users/{userId}/savedThreads/{threadId} {
-      allow read, write: if isAuth() && request.auth.uid == userId;
-    }
-
-    match /users/{userId}/notifications/{notifId} {
-      allow read: if isAuth() && request.auth.uid == userId;
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && request.auth.uid == userId;
-    }
-
-    match /users/{userId}/games/{docId} {
-      allow read, write: if isAuth() && request.auth.uid == userId;
     }
 
     match /users/{userId}/hiddenPosts/{postId} {
@@ -157,19 +126,22 @@ service cloud.firestore {
       allow read, write: if isAuth() && request.auth.uid == userId;
     }
 
-    match /system/maintenance {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     function isViewCountOnlyUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
         && request.resource.data.views == resource.data.get('views', 0) + 1;
     }
 
+    function isVoteCountOnlyUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes']);
+    }
+
+    function isCommentCountOnlyUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount']);
+    }
+
+    // Posts — staff can delete/update any post in their community
     match /posts/{postId} {
-      allow create: if isAuth()
-        && request.resource.data.authorUid == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.authorUid == request.auth.uid;
       allow delete: if isAuth() && (
         resource.data.authorUid == request.auth.uid ||
         isAdmin() ||
@@ -179,38 +151,60 @@ service cloud.firestore {
         resource.data.authorUid == request.auth.uid ||
         isAdmin() ||
         isCommunityStaff(resource.data.community)
-      ) || isViewCountOnlyUpdate();
+      ) || isViewCountOnlyUpdate() || isVoteCountOnlyUpdate() || isCommentCountOnlyUpdate();
     }
 
+    match /posts/{postId}/votes/{uid} {
+      allow read: if true;
+      allow write: if isAuth() && request.auth.uid == uid;
+    }
+
+    // Comments — staff can delete
     match /posts/{postId}/comments/{commentId} {
-      allow create: if isAuth();
-      allow update: if isAuth() && resource.data.authorUid == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if isAuth() && (
+        resource.data.authorUid == request.auth.uid ||
+        isAdmin()
+      ) || isVoteCountOnlyUpdate();
       allow delete: if isAuth() && (
         resource.data.authorUid == request.auth.uid ||
         isAdmin()
       );
     }
 
-    match /posts/{postId}/votes/{voterId} {
+    match /posts/{postId}/comments/{commentId}/votes/{uid} {
       allow read: if true;
-      allow write: if isAuth() && request.auth.uid == voterId;
+      allow write: if isAuth() && request.auth.uid == uid;
     }
 
-    match /posts/{postId}/comments/{commentId}/votes/{voterId} {
+    match /users/{userId}/notifications/{notifId} {
+      allow read, update, delete: if isAuth() && request.auth.uid == userId;
+      allow create: if isAuth();
+    }
+
+    match /users/{userId}/saved/{savedId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/following/{otherId} {
       allow read: if true;
-      allow write: if isAuth() && request.auth.uid == voterId;
+      allow write: if isAuth() && (request.auth.uid == userId || request.auth.uid == otherId);
     }
 
-    match /reports/{reportId} {
-      allow create: if isAuth();
-      allow read, update, delete: if isAdmin();
+    match /users/{userId}/followers/{otherId} {
+      allow read: if true;
+      allow write: if isAuth() && (request.auth.uid == userId || request.auth.uid == otherId);
     }
 
-    match /invites/{inviteId} {
-      allow create: if isAuth();
-      allow read: if isAuth();
+    match /users/{userId}/savedThreads/{threadId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
     }
 
+    match /users/{userId}/games/{docId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // Community members
     match /communities/{communityId}/members/{memberId} {
       allow read: if true;
       allow create: if isAuth();
@@ -226,17 +220,48 @@ service cloud.firestore {
       );
     }
 
+    // Forum threads/replies
     match /forums/{forumId}/threads/{threadId} {
-      allow create: if isAuth();
-      allow update: if isAuth() && resource.data.authorUid == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin())
+        || isVoteCountOnlyUpdate();
       allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
     }
     match /forums/{forumId}/threads/{threadId}/replies/{replyId} {
-      allow create: if isAuth();
-      allow update: if isAuth() && resource.data.authorUid == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin())
+        || isVoteCountOnlyUpdate();
       allow delete: if isAuth() && (resource.data.authorUid == request.auth.uid || isAdmin());
     }
+    match /forums/{forumId}/threads/{threadId}/votes/{uid} {
+      allow read: if true;
+      allow write: if isAuth() && request.auth.uid == uid;
+    }
 
+    // Reports
+    match /reports/{reportId} {
+      allow create: if isAuth()
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.type in ['post', 'comment']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.category is string
+        && request.resource.data.category.size() <= 64
+        && request.resource.data.targetId is string
+        && request.resource.data.targetId.size() > 0
+        && request.resource.data.targetId.size() <= 200
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() <= 120
+        && request.resource.data.createdAt is string
+        && (!('details' in request.resource.data) || (request.resource.data.details is string && request.resource.data.details.size() <= 2000));
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Custom feeds — private to owner
+    match /users/{userId}/customFeeds/{feedId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // ─── Shared Custom Feeds (top-level collection) ──────────
     match /custom_feeds/{feedId} {
       allow create: if isAuth();
       allow read: if isAuth();

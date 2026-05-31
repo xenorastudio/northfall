@@ -275,7 +275,7 @@ function EmbedGeneratorContent() {
         {/* ── Step 1: Input ── */}
         <div style={box}>
           <div style={boxHead}>
-            <span>الخطوة 1 — أدخل رابط المنشور</span>
+            <span>أدخل رابط المنشور</span>
           </div>
           <div style={boxBody}>
             <div style={{ display: "flex", gap: 6 }}>
@@ -381,7 +381,7 @@ function EmbedGeneratorContent() {
                   borderBottom: showCustom ? "1px solid #c8c8c8" : "none",
                 } as React.CSSProperties}
               >
-                <span>الخطوة 2 — تخصيص الـ Embed (اختياري)</span>
+                <span>تخصيص الـ Embed (اختياري)</span>
                 <span style={{ fontSize: 11, color: "#666", fontWeight: 400 }}>
                   {showCustom ? "▲ إخفاء" : "▼ إظهار"}
                 </span>
@@ -453,7 +453,7 @@ function EmbedGeneratorContent() {
             {/* ── Step 3: Preview ── */}
             <div style={box}>
               <div style={boxHead}>
-                <span>الخطوة 3 — معاينة الـ Embed</span>
+                <span>معاينة الـ Embed</span>
               </div>
               <div style={{ padding: "12px", background: "#f4f4f4", borderBottom: "1px solid #ddd" }}>
                 {previewSrc && (
@@ -472,7 +472,7 @@ function EmbedGeneratorContent() {
             {/* ── Step 4: Code ── */}
             <div style={box}>
               <div style={boxHead}>
-                <span>الخطوة 4 — انسخ الكود</span>
+                <span>انسخ الكود</span>
               </div>
               <div style={boxBody}>
                 {/* Tabs */}

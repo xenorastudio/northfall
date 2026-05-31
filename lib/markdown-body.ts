@@ -46,8 +46,13 @@ function parseMarkdownTableCellsQuick(line: string): boolean {
   return cells.length >= 2;
 }
 
+/** Google Translate often inserts a space: `[text] (url)` */
+export function normalizeMarkdownLinkSpacing(text: string): string {
+  return text.replace(/\[([^\]]+)\]\s+\(([^)]+)\)/g, "[$1]($2)");
+}
+
 export function isMarkdownLinkLine(line: string): boolean {
-  return /^\[[^\]]+\]\([^)]+\)\s*$/.test(line.trim());
+  return /^\[[^\]]+\]\s*\([^)]+\)\s*$/.test(line.trim());
 }
 
 export function isCodeLikeLine(line: string): boolean {
