@@ -11,6 +11,8 @@ import { useData } from "./DataProvider";
 import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { CustomFeed } from "./CustomFeedModal";
+import MediaCoverImage from "./MediaCoverImage";
+import { parseMediaPosition } from "@/lib/media-object-position";
 
 const navHrefMap: Record<string, string> = {
   home: "/app",
@@ -107,7 +109,7 @@ function NavSection({ title, items, active, onSelect, badges }: {
   );
 }
 
-export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, onCreateCommunity, onDashboardClick, onCustomFeedClick, onCreateCustomFeed, customFeeds, activeCustomFeedId }: {
+export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, onCreateCommunity, onDashboardClick, onCustomFeedClick, onCreateCustomFeed, customFeeds, activeCustomFeedId, onCreatePost }: {
   onNavClick: (id: string) => void;
   onCommunityClick: (name: string) => void;
   activeNav: string;
@@ -117,6 +119,7 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
   onCreateCustomFeed?: () => void;
   customFeeds?: CustomFeed[];
   activeCustomFeedId?: string | null;
+  onCreatePost?: () => void;
 }) {
   const { t, lang } = useI18n();
   const { user } = useAuth();
@@ -288,9 +291,13 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
                     )}
                   >
                     {c.img ? (
-                      <img src={c.img} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                      <MediaCoverImage
+                        src={c.img}
+                        position={parseMediaPosition(c.logoPosition, c.logoScale)}
+                        className="w-6 h-6 rounded-full shrink-0"
+                      />
                     ) : (
-                      <div className="w-5 h-5 rounded-full bg-nf-secondary flex items-center justify-center text-[7px] text-nf-accent font-bold shrink-0">n/</div>
+                      <div className="w-6 h-6 rounded-full bg-nf-secondary flex items-center justify-center text-[7px] text-nf-accent font-bold shrink-0">n/</div>
                     )}
                     <span className="truncate">{c.label || `n/${c.name}`}</span>
                   </Link>
@@ -323,7 +330,11 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
                       )}
                     >
                       {c.img ? (
-                        <img src={c.img} alt="" className="w-4 h-4 rounded-full object-cover shrink-0 opacity-70" />
+                        <MediaCoverImage
+                          src={c.img}
+                          position={parseMediaPosition(c.logoPosition, c.logoScale)}
+                          className="w-5 h-5 rounded-full shrink-0 opacity-70"
+                        />
                       ) : (
                         <span className="w-4 h-4 rounded-full bg-nf-secondary shrink-0" />
                       )}
@@ -378,13 +389,19 @@ export default function SidebarLeft({ onNavClick, onCommunityClick, activeNav, o
           <button
             key={item.id}
             onClick={() => onNavClick(item.id)}
-            className={cn("flex flex-col items-center justify-center gap-0.5 flex-1 py-1", activeNav === item.id ? "text-nf-accent" : "text-nf-dim")}
+            className={cn("flex flex-col items-center justify-center gap-0.5 flex-1 py-1 relative", activeNav === item.id ? "text-nf-accent" : "text-nf-dim")}
           >
-            <item.icon size={18} />
-            <span className="text-[8px] font-semibold">{item.id === "home" ? t("sb.home") : item.id === "hot" ? t("sb.popular") : item.id === "notifs" ? t("sb.notifs") : t("sb.profile")}</span>
-            {item.id === "notifs" && unreadCount > 0 && <span className="absolute top-0.5 right-1/2 translate-x-2 w-1.5 h-1.5 rounded-full bg-red-500" />}
+            <item.icon size={20} />
+            <span className="text-[9px] font-semibold">{item.id === "home" ? t("sb.home") : item.id === "hot" ? t("sb.popular") : item.id === "notifs" ? t("sb.notifs") : t("sb.profile")}</span>
+            {item.id === "notifs" && unreadCount > 0 && <span className="absolute top-0.5 right-1/2 translate-x-2 w-2 h-2 rounded-full bg-red-500 ring-2 ring-nf-nav" />}
           </button>
         ))}
+        <button
+          onClick={onCreatePost}
+          className="flex items-center justify-center -mt-3 w-10 h-10 rounded-full bg-nf-accent text-white shadow-lg shadow-nf-accent/30 active:scale-95 transition-transform"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        </button>
       </div>
     </nav>
     </>

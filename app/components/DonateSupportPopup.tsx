@@ -117,7 +117,7 @@ export default function DonateSupportPopup() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== "k") return;
+      if ((e.key || "").toLowerCase() !== "k") return;
       const el = e.target as HTMLElement | null;
       if (!el) return;
       const tag = el.tagName;

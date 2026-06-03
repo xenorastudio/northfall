@@ -26,6 +26,7 @@ export interface CustomFeed {
   isPrivate?: boolean;
   showOnProfile?: boolean;
   bannerUrl?: string;
+  bannerPosition?: string;
   iconUrl?: string;
   showBannerBg?: boolean;
   editors?: any[];

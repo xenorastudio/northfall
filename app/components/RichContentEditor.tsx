@@ -46,6 +46,7 @@ import {
 } from "@/lib/hashtag-suggestions";
 import {
   getHashtagQueryAtEditor,
+  getPlainTextFromEditor,
   insertHashtagAtRange,
   replacePlainTextRange,
   getCaretViewportPosition,
@@ -381,7 +382,7 @@ const RichContentEditor = forwardRef<RichContentEditorHandle, RichContentEditorP
     setTagOpen(true);
     setTagMenuPos(getCaretViewportPosition(el, 220, 260));
 
-    void getHashtagSuggestions(info.query).then((list) => {
+    void getHashtagSuggestions(info.query, getPlainTextFromEditor(el)).then((list) => {
       if (seq !== tagFetchSeq.current) return;
       const now = getHashtagQueryAtEditor(el);
       if (!now || now.start !== info.start) {

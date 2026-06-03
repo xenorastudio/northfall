@@ -25,6 +25,15 @@ import {
   normalizeInterestTag,
   saveSubscriptionInterests,
 } from "@/lib/user-interests";
+import {
+  canPostInCommunity,
+  canViewCommunityContent,
+  resolveCommunityType,
+  type CommunityPrivacy,
+} from "@/lib/community-access";
+import MediaCoverImage from "./MediaCoverImage";
+import { parseMediaPosition } from "@/lib/media-object-position";
+import { canonicalCommunityId } from "@/lib/community-name";
 
 const MATURE_STORAGE_PREFIX = "nf-mature-confirmed-";
 
@@ -278,7 +287,9 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (parsed.name === name) {
+          const previewId = canonicalCommunityId(parsed.name || "");
+          const pageId = canonicalCommunityId(name || "");
+          if (previewId && pageId && previewId === pageId) {
             setDbMeta({
               name: parsed.name,
               label: `n/${parsed.name}`,
@@ -286,6 +297,10 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
               desc: parsed.desc,
               img: parsed.logoUrl || parsed.img,
               banner: parsed.bannerUrl || parsed.banner,
+              logoPosition: parsed.logoPosition,
+              logoScale: parsed.logoScale,
+              bannerPosition: parsed.bannerPosition,
+              bannerScale: parsed.bannerScale,
               category: parsed.category,
               rules: parsed.rules,
               tags: parsed.tags,
@@ -359,10 +374,29 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   const showMatureGate = isMatureCommunity && !matureConfirmed && !isPreviewMode;
   const categoryLabel = resolveCategoryDisplay(meta.category);
   const isOwner = metaReady && !!user && user.uid === dbMeta?.creatorUid;
-  const isRestricted = meta.communityType === "restricted";
-  const isPrivate = meta.communityType === "private";
-  const needsInvite = isPrivate || isRestricted;
+  const privacyType: CommunityPrivacy = resolveCommunityType(meta);
+  const isRestricted = privacyType === "restricted";
+  const isPrivate = privacyType === "private";
+  const needsInvite = isPrivate;
   const canManage = metaReady && roleChecked && (isOwner || isStaff);
+  const canViewContent =
+    metaReady &&
+    canViewCommunityContent({
+      type: privacyType,
+      isOwner,
+      isStaff,
+      isMember: joined,
+      isPreview: isPreviewMode,
+    });
+  const canUserPost =
+    !!user &&
+    canPostInCommunity({
+      type: privacyType,
+      isOwner,
+      isStaff,
+      isMember: joined,
+      isLoggedIn: true,
+    });
 
   useEffect(() => {
     if (!user) { setIsStaff(false); setRoleChecked(true); return; }
@@ -467,6 +501,21 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
   };
 
   useEffect(() => {
+    if (!metaReady) return;
+    const allowFetch =
+      isPreviewMode ||
+      privacyType !== "private" ||
+      isOwner ||
+      isStaff ||
+      joined;
+    if (!allowFetch && roleChecked) {
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
+    if (!allowFetch && !roleChecked) return;
+
+    setLoading(true);
     (async () => {
       try {
         const q = query(collection(db, "posts"), where("community", "==", name), limit(30));
@@ -479,10 +528,14 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
           const q2 = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(30));
           const snap2 = await getDocs(q2);
           setPosts(snap2.docs.filter(d => d.data().community === name).map(d => ({ id: d.id, ...d.data() })));
-        } catch {}
-      } finally { setLoading(false); }
+        } catch {
+          setPosts([]);
+        }
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, [name]);
+  }, [name, metaReady, isPreviewMode, privacyType, isOwner, isStaff, joined, roleChecked]);
 
   const handleHashtagClick = useCallback(
     (rawTag: string) => {
@@ -535,7 +588,13 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
       {/* ── Banner ── */}
       <div className="relative h-[160px] sm:h-[240px] rounded-xl overflow-hidden mb-0">
         {meta.banner
-          ? <img src={meta.banner} alt="" className="w-full h-full object-cover" />
+          ? (
+            <MediaCoverImage
+              src={meta.banner}
+              position={parseMediaPosition(meta.bannerPosition, meta.bannerScale)}
+              className="w-full h-full"
+            />
+          )
           : <div className="w-full h-full bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]" />
         }
         <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-nf-body via-nf-body/40 to-transparent" />
@@ -546,16 +605,22 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
         <div className="flex items-end gap-3 sm:gap-4 mb-3">
           {/* Avatar */}
           {meta.img
-            ? <img src={meta.img} alt="" className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-nf-body object-cover shrink-0 shadow-xl" />
+            ? (
+              <MediaCoverImage
+                src={meta.img}
+                position={parseMediaPosition(meta.logoPosition, meta.logoScale)}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-nf-body shadow-xl shrink-0 bg-nf-body"
+              />
+            )
             : <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-nf-body bg-gradient-to-br from-nf-accent/40 to-nf-secondary shadow-xl flex items-center justify-center text-nf-accent font-black text-lg shrink-0">n/</div>
           }
           <div className="flex-1 min-w-0 pb-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-[18px] sm:text-[22px] font-black text-nf-text leading-tight">n/{name}</h1>
-              {meta.communityType && meta.communityType !== "public" && (
-                <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full border",
-                  isPrivate ? "bg-red-500/10 text-red-400 border-red-500/30" : "bg-yellow-500/10 text-yellow-400 border-yellow-500/30")}>
-                  {isPrivate ? "🔒 خاص" : "👁 مقيد"}
+              {privacyType !== "public" && (
+                <span className={cn("text-[10px] px-2 py-0.5 rounded-md border",
+                  isPrivate ? "bg-red-500/8 text-red-400/80 border-red-500/20" : "bg-nf-secondary/40 text-nf-dim border-nf-border-2")}>
+                  {isPrivate ? "خاص" : "مقيد"}
                 </span>
               )}
             </div>
@@ -569,13 +634,19 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
           </div>
           {/* Action buttons */}
           <div className="flex items-center gap-1.5 pb-1 flex-wrap justify-end">
-            <button
-              type="button"
-              onClick={() => onCreatePost?.(name)}
-              className="inline-flex items-center px-3 py-1.5 rounded-full border border-nf-border-2 bg-nf-card text-[11px] font-semibold text-nf-text hover:bg-nf-hover transition-colors"
-            >
-              إنشاء منشور
-            </button>
+            {canUserPost && onCreatePost ? (
+              <button
+                type="button"
+                onClick={() => onCreatePost(name)}
+                className="inline-flex items-center px-3 py-1.5 rounded-full border border-nf-border-2 bg-nf-card text-[11px] font-semibold text-nf-text hover:bg-nf-hover transition-colors"
+              >
+                إنشاء منشور
+              </button>
+            ) : isRestricted && user && !canUserPost ? (
+              <span className="text-[10px] text-nf-dim px-2 py-1 border border-nf-border-2 rounded-full">
+                النشر للمشرفين فقط
+              </span>
+            ) : null}
             <button
               type="button"
               onClick={() => {
@@ -826,7 +897,14 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
             )}
           </div>
 
-          {/* Posts list */}
+          {!canViewContent ? (
+            <div className="text-center py-14 px-4 rounded-xl border border-nf-border-2 bg-nf-card/50">
+              <p className="text-[15px] font-bold text-nf-text mb-2">مجتمع خاص</p>
+              <p className="text-[12px] text-nf-dim leading-relaxed max-w-sm mx-auto">
+                المنشورات متاحة للأعضاء المعتمدين فقط. اطلب دعوة من مالك المجتمع أو استخدم رابط الدعوة للانضمام.
+              </p>
+            </div>
+          ) : (
           <div className={cn(meta.feedLayout === "grid" ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : "flex flex-col gap-2.5")}>
             {loading ? (
               <div className="text-center py-12 text-nf-muted text-sm">{t("gen.loading")}</div>
@@ -855,6 +933,7 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
                  onHashtagClick={handleHashtagClick} />
             ))}
           </div>
+          )}
         </div>      </div>
 
       {/* Members management panel removed — now a full page */}

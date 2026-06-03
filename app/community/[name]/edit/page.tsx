@@ -9,6 +9,14 @@ import AuthProvider from "@/app/components/AuthProvider";
 import { I18nProvider } from "@/app/components/I18nProvider";
 import ToastProvider from "@/app/components/ToastProvider";
 import { COMMUNITY_CATEGORIES, categoryToStoreValue, parseStoredCategory } from "@/lib/community-categories";
+import CommunityMediaFields from "@/app/components/CommunityMediaFields";
+import {
+  DEFAULT_MEDIA_POSITION,
+  parseMediaPosition,
+  positionToCss,
+  type MediaPosition,
+} from "@/lib/media-object-position";
+import { deleteCommunityAsOwner } from "@/lib/delete-community";
 
 const bg       = "#dce3ea";
 const white    = "#ffffff";
@@ -235,6 +243,11 @@ function EditCommunityContent() {
   const [desc, setDesc]             = useState("");
   const [logoUrl, setLogoUrl]       = useState("");
   const [bannerUrl, setBannerUrl]   = useState("");
+  const [logoPosition, setLogoPosition] = useState<MediaPosition>({ ...DEFAULT_MEDIA_POSITION });
+  const [bannerPosition, setBannerPosition] = useState<MediaPosition>({ ...DEFAULT_MEDIA_POSITION });
+  const [creatorUid, setCreatorUid] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting]     = useState(false);
   const [category, setCategory]     = useState("");
   const [isMature, setIsMature]     = useState(false);
 
@@ -291,6 +304,9 @@ function EditCommunityContent() {
         setAuthorized(true);
         setShortDesc(d.shortDesc || ""); setDesc(d.desc || "");
         setLogoUrl(d.img || ""); setBannerUrl(d.banner || "");
+        setLogoPosition(parseMediaPosition(d.logoPosition, d.logoScale));
+        setBannerPosition(parseMediaPosition(d.bannerPosition, d.bannerScale));
+        setCreatorUid(d.creatorUid || "");
         
         setCategory(parseStoredCategory(d.category).selected);
         setIsMature(!!d.isMature);
@@ -403,10 +419,8 @@ function EditCommunityContent() {
     setNewTagText(""); setNewTagColor(c => (c + 1) % TAG_COLORS.length);
   };
 
-  const missingRules = rules.length < 6;
-  const missingTags  = tags.length === 0;
-  const missingDesc  = !shortDesc.trim();
-  const canSave = !missingRules && !missingTags && !missingDesc;
+  const missingDesc = !shortDesc.trim();
+  const canSave = authorized && !missingDesc;
 
   const save = async () => {
     if (!user || !authorized || !canSave) return;
@@ -414,7 +428,11 @@ function EditCommunityContent() {
     try {
       await setDoc(doc(db, "communities", communityName), {
         shortDesc: sanitize(shortDesc), desc: sanitize(desc),
-        img: logoUrl.trim(), banner: bannerUrl.trim(), 
+        img: logoUrl.trim(), banner: bannerUrl.trim(),
+        logoPosition: positionToCss(logoPosition),
+        logoScale: logoPosition.scale,
+        bannerPosition: positionToCss(bannerPosition),
+        bannerScale: bannerPosition.scale,
         category: categoryToStoreValue(category),
         isMature: !!isMature,
         communityType,
@@ -519,9 +537,9 @@ function EditCommunityContent() {
 
                 <Field label="خصوصية المجتمع" hint="يحدد من يمكنه النشر ورؤية محتويات المجتمع.">
                   <select value={communityType} onChange={e => setCommunityType(e.target.value)} style={inp}>
-                    <option value="public">🔓 عام (Public) - الكل يرى وينشر</option>
-                    <option value="restricted">🔒 شبه خاص (Restricted) - الكل يرى والمشرفين ينشرون</option>
-                    <option value="private">👁️ خاص (Private) - الأعضاء المعتمدون فقط يرون وينشرون</option>
+                    <option value="public">عام — الكل يرى وينشر</option>
+                    <option value="restricted">مقيد — الكل يرى، المشرفون والمالك ينشرون فقط</option>
+                    <option value="private">خاص — الأعضاء المعتمدون فقط يرون وينشرون</option>
                   </select>
                 </Field>
               </div>
@@ -530,17 +548,17 @@ function EditCommunityContent() {
             <div style={box}>
               <div style={boxHead}><span>الهوية البصرية</span></div>
               <div style={boxBody}>
-                <Field label="رابط الشعار" hint="صورة دائرية تظهر بجانب اسم المجتمع.">
-                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <input type="text" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://example.com/logo.png" style={{ ...inp, fontFamily: "monospace", fontSize: 11 }} />
-                    {logoUrl.trim() && <img src={logoUrl} alt="" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "1px solid " + border, flexShrink: 0 }} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />}
-                  </div>
-                </Field>
-                <Field label="رابط البانر" hint="صورة عريضة في اعلى صفحة المجتمع.">
-                  <input type="text" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} placeholder="https://example.com/banner.jpg" style={{ ...inp, fontFamily: "monospace", fontSize: 11 }} />
-                  {bannerUrl.trim() && <div style={{ marginTop: 6, height: 48, borderRadius: 3, overflow: "hidden", border: "1px solid " + border }}><img src={bannerUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} /></div>}
-                </Field>
-
+                <CommunityMediaFields
+                  variant="classic"
+                  logoUrl={logoUrl}
+                  bannerUrl={bannerUrl}
+                  logoPosition={logoPosition}
+                  bannerPosition={bannerPosition}
+                  onLogoUrlChange={setLogoUrl}
+                  onBannerUrlChange={setBannerUrl}
+                  onLogoPositionChange={setLogoPosition}
+                  onBannerPositionChange={setBannerPosition}
+                />
               </div>
             </div>
 
@@ -728,27 +746,78 @@ function EditCommunityContent() {
 
           {!canSave && !saving && (
             <span style={{ fontSize: 11, color: red }}>
-              {missingDesc ? "الوصف القصير مطلوب" : missingRules ? "يجب اضافة " + (6 - rules.length) + " قانون اخر" : missingTags ? "اضف وسما واحدا على الاقل" : ""}
+              {missingDesc ? "الوصف القصير مطلوب" : ""}
             </span>
           )}
           {savedMsg && <span style={{ fontSize: 12, color: "#2e7d32", fontWeight: 600 }}>{savedMsg}</span>}
         </div>
+
+        {user?.uid === creatorUid && creatorUid && (
+          <div style={{ marginTop: 24, padding: "14px 16px", border: "1px solid #ffcdd2", borderRadius: 4, background: "#fff5f5" }}>
+            <p style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: red }}>حذف المجتمع</p>
+            <p style={{ margin: "0 0 12px", fontSize: 11, color: dimText, lineHeight: 1.6 }}>
+              سيتم حذف n/{communityName} نهائيا. لا يمكن التراجع عن هذا الاجراء.
+            </p>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => setShowDeleteConfirm(true)}
+              style={{ padding: "6px 16px", border: "1px solid " + red, borderRadius: 3, background: white, color: red, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              {deleting ? "جاري الحذف..." : "حذف المجتمع"}
+            </button>
+          </div>
+        )}
         <div style={{ textAlign: "center", marginTop: 20, fontSize: 10, color: mutedText, letterSpacing: ".5px", fontWeight: 700 }}>
           <a href="https://www.northfall.blog" style={{ color: mutedText, textDecoration: "none" }}>NORTHFALL</a>
         </div>
       </div>
+      {showDeleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", border: "1px solid #aaa", borderRadius: 4, width: "100%", maxWidth: 400, padding: "18px 20px", boxShadow: "0 4px 20px rgba(0,0,0,0.2)", direction: "rtl", textAlign: "right" }}>
+            <h3 style={{ fontSize: 14, fontWeight: "bold", color: "#222", marginBottom: 8, marginTop: 0 }}>حذف المجتمع؟</h3>
+            <p style={{ fontSize: 12, color: "#666", lineHeight: 1.6, marginBottom: 20 }}>
+              سيتم حذف <strong>n/{communityName}</strong> نهائيا. لا يمكن التراجع.
+            </p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setShowDeleteConfirm(false)} disabled={deleting} style={{ padding: "6px 14px", borderRadius: 3, fontSize: 11, fontWeight: "bold", color: "#444", border: "1px solid #bbb", background: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
+                إلغاء
+              </button>
+              <button
+                disabled={deleting}
+                onClick={async () => {
+                  if (!user) return;
+                  setDeleting(true);
+                  try {
+                    await deleteCommunityAsOwner(communityName, creatorUid, user.uid);
+                    localStorage.removeItem("nf-community-edit-draft-" + communityName);
+                    window.location.href = "/app";
+                  } catch (e: unknown) {
+                    alert(e instanceof Error ? e.message : "فشل حذف المجتمع");
+                    setDeleting(false);
+                    setShowDeleteConfirm(false);
+                  }
+                }}
+                style={{ padding: "6px 14px", borderRadius: 3, fontSize: 11, fontWeight: "bold", background: red, color: "#fff", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+              >
+                {deleting ? "جاري الحذف..." : "حذف نهائي"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showDraftModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#121314", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 16, width: "100%", maxWidth: 400, padding: 24, boxShadow: "0 10px 25px rgba(0,0,0,0.5)", direction: "rtl", textAlign: "right" }}>
-            <h3 style={{ fontSize: 14, fontWeight: "bold", color: "#ffffff", marginBottom: 8, marginTop: 0 }}>استعادة التعديلات غير المحفوظة</h3>
-            <p style={{ fontSize: 12, color: "#a8aaac", lineHeight: 1.6, marginBottom: 24 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", border: "1px solid #aaa", borderRadius: 4, width: "100%", maxWidth: 400, padding: "18px 20px", boxShadow: "0 4px 20px rgba(0,0,0,0.2)", direction: "rtl", textAlign: "right" }}>
+            <h3 style={{ fontSize: 14, fontWeight: "bold", color: "#222", marginBottom: 8, marginTop: 0 }}>استعادة التعديلات غير المحفوظة</h3>
+            <p style={{ fontSize: 12, color: "#666", lineHeight: 1.6, marginBottom: 20 }}>
               لقد وجدت مسودة لتعديلات سابقة قمت بها على مجتمع <strong>n/{communityName}</strong> ولم تنشر بعد. هل ترغب في استعادة هذه التعديلات ومواصلة العمل عليها؟
             </p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-              <button onClick={discardDraft} style={{ padding: "8px 16px", borderRadius: 8, fontSize: 11, fontWeight: "bold", color: "#9a9d9f", border: "none", background: "rgba(255,255,255,0.05)", cursor: "pointer", fontFamily: "inherit" }}>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={discardDraft} style={{ padding: "6px 14px", borderRadius: 3, fontSize: 11, fontWeight: "bold", color: "#444", border: "1px solid #bbb", background: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
                 تجاهل والبدء من جديد
               </button>
-              <button onClick={restoreDraft} style={{ padding: "8px 16px", borderRadius: 8, fontSize: 11, fontWeight: "bold", background: "#336699", color: "#ffffff", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+              <button onClick={restoreDraft} style={{ padding: "6px 14px", borderRadius: 3, fontSize: 11, fontWeight: "bold", background: "#336699", color: "#fff", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                 استعادة المسودة
               </button>
             </div>

@@ -45,15 +45,15 @@ function VoteSideBtn({
       onClick={handleClick}
       className={cn(
         "relative size-7 rounded-full inline-flex items-center justify-center",
-        active && isUp && "text-blue-400 bg-blue-500/10",
-        active && !isUp && "text-red-400 bg-red-500/10",
-        !active && isUp && "text-nf-dim hover:text-blue-400 hover:bg-blue-500/8",
-        !active && !isUp && "text-nf-dim hover:text-red-400 hover:bg-red-500/8"
+        active && isUp && "text-blue-400",
+        active && !isUp && "text-red-400",
+        !active && isUp && "text-nf-dim hover:text-blue-400",
+        !active && !isUp && "text-nf-dim hover:text-red-400"
       )}
-      style={{ transition: "color 0.15s ease, background-color 0.15s ease" }}
+      style={{ transition: "color 0.15s ease" }}
       aria-label={label}
     >
-      <Icon size={iconSize} fill={active ? "currentColor" : "none"} strokeWidth={2.25} className="block" />
+      <Icon size={iconSize} fill={active ? "currentColor" : "none"} strokeWidth={active ? 1.5 : 2.25} className="block" />
     </button>
   );
 }

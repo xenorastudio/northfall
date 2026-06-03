@@ -37,6 +37,7 @@ import MaintenanceOverlay from "../components/MaintenanceOverlay";
 import AuthProvider, { useAuth } from "../components/AuthProvider";
 import { I18nProvider, useI18n } from "../components/I18nProvider";
 import LoginModal from "../components/LoginModal";
+import LoginPrompt from "../components/LoginPrompt";
 import ToastProvider from "../components/ToastProvider";
 import { ClassicTabsProvider, useClassicTabs } from "../components/ClassicTabsProvider";
 import { X, ArrowUp } from "lucide-react";
@@ -74,6 +75,76 @@ import {
 
 type View = "feed" | "community" | "profile" | "post" | "create" | "settings" | "notifs" | "edit" | "admin" | "games" | "seo" | "create-community" | "create-custom-feed" | "edit-custom-feed" | "edit-community" | "community-dashboard" | "manage-communities" | "members" | "mod-panel" | "living-upgrade";
 
+const APP_VIEWS: View[] = [
+  "feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo",
+  "create-community", "create-custom-feed", "edit-custom-feed", "edit-community", "community-dashboard",
+  "manage-communities", "members", "mod-panel", "living-upgrade",
+];
+
+function resolveViewFromParams(params: URLSearchParams): {
+  view: View;
+  community?: string;
+  postId?: string;
+  uid?: string;
+  editPostId?: string;
+  tab?: string;
+  gamesTab?: string;
+} {
+  const v = params.get("view");
+  const c = params.get("community") || undefined;
+  const isPreview = params.get("preview") === "true";
+  let targetView = v as View | null;
+  if (c && (!v || isPreview)) targetView = "community";
+  const view =
+    targetView && APP_VIEWS.includes(targetView)
+      ? targetView
+      : c
+        ? "community"
+        : "feed";
+  return {
+    view,
+    community: c,
+    postId: params.get("postId") || undefined,
+    uid: params.get("uid") || undefined,
+    editPostId: params.get("editPostId") || undefined,
+    tab: params.get("tab") || undefined,
+    gamesTab: params.get("gamesTab") || undefined,
+  };
+}
+
+function applyUrlNavigation(
+  resolved: ReturnType<typeof resolveViewFromParams>,
+  setters: {
+    setView: (v: View) => void;
+    setSelectedCommunity: (c: string) => void;
+    setSelectedPostId: (p: string) => void;
+    setViewingUid: (u: string | null) => void;
+    setEditPostId: (e: string) => void;
+    setProfileTab: (t: string | null) => void;
+    setGamesTab: (t: string | null) => void;
+    setModPanelCommunity?: (c: string) => void;
+    setLivingPostId?: (p: string) => void;
+  }
+) {
+  setters.setView(resolved.view);
+  if (resolved.community) setters.setSelectedCommunity(resolved.community);
+  if (resolved.postId) setters.setSelectedPostId(resolved.postId);
+  if (resolved.uid) setters.setViewingUid(resolved.uid);
+  if (resolved.editPostId) {
+    setters.setEditPostId(resolved.editPostId);
+    setters.setView("edit");
+  }
+  if (resolved.tab) setters.setProfileTab(resolved.tab);
+  if (resolved.gamesTab) setters.setGamesTab(resolved.gamesTab);
+  if (resolved.view === "mod-panel" && resolved.community && setters.setModPanelCommunity) {
+    setters.setModPanelCommunity(resolved.community);
+  }
+  if (resolved.view === "living-upgrade" && resolved.postId && setters.setLivingPostId) {
+    setters.setLivingPostId(resolved.postId);
+  }
+  setDocumentTitle();
+}
+
 interface Post {
   id: string;
   community?: string;
@@ -104,7 +175,8 @@ interface Post {
 }
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const hadAuthenticatedUserRef = useRef(false);
   const { t, lang } = useI18n();
   const { toast } = useToast();
   const {
@@ -125,47 +197,14 @@ function AppContent() {
 
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("feed");
-
-  // Read query params on mount to navigate from landing page
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const v = params.get("view");
-    const c = params.get("community");
-    const isPreview = params.get("preview") === "true";
-
-    // Handle invite link
-    const inviteToken = params.get("invite");
-    const inviteCommunity = params.get("c");
-    if (inviteToken && inviteCommunity) {
-      setInvitePending({ token: inviteToken, community: inviteCommunity });
-      return;
-    }
-
-    if (v === "thread") {
-      window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
-      return;
-    }
-
-    let targetView = v;
-    if (c && (!v || isPreview)) {
-      targetView = "community";
-    }
-
-    const viewToUse = targetView || "feed";
-    if (["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "create-custom-feed", "edit-custom-feed", "edit-community", "community-dashboard", "manage-communities", "custom-feed", "members"].includes(viewToUse)) {
-      setView(viewToUse as View);
-      if (c) setSelectedCommunity(c);
-      const p = params.get("postId"); if (p) setSelectedPostId(p);
-      const u = params.get("uid"); if (u) setViewingUid(u);
-      const e = params.get("editPostId"); if (e) { setEditPostId(e); setView("edit"); }
-      setDocumentTitle();
-    }
-  }, []);
   const [selectedCommunity, setSelectedCommunity] = useState("");
   const [selectedPostId, setSelectedPostId] = useState("");
   const [editPostId, setEditPostId] = useState("");
   const [livingPostId, setLivingPostId] = useState("");
   const [quotePostId, setQuotePostId] = useState<string | undefined>(undefined);
+  const [profileTab, setProfileTab] = useState<string | null>(null);
+  const [gamesTab, setGamesTab] = useState<string | null>(null);
+  const [viewingUid, setViewingUid] = useState<string | null>(null);
 
   // URL-based navigation helper
   const navigateTo = (newView: View, extra: Record<string, string> = {}) => {
@@ -174,6 +213,8 @@ function AppContent() {
     for (const [key, value] of Object.entries(extra)) {
       if (typeof value === "string") safeExtra[key] = value;
     }
+    if (safeExtra.tab) setProfileTab(safeExtra.tab);
+    if (safeExtra.gamesTab) setGamesTab(safeExtra.gamesTab);
     const params = new URLSearchParams({ view: newView, ...safeExtra });
     const url = `/app?${params.toString()}`;
     window.history.pushState({ view: newView, ...safeExtra }, "", url);
@@ -185,29 +226,6 @@ function AppContent() {
       setDocumentTitle();
     }
   };
-
-  // Handle browser back/forward
-  useEffect(() => {
-    const onPopState = () => {
-      const params = new URLSearchParams(window.location.search);
-      const v = params.get("view") as View | null | "thread";
-      if (v === "thread") {
-        window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
-        return;
-      }
-    if (v && ["feed", "community", "profile", "post", "create", "settings", "notifs", "edit", "admin", "games", "seo", "create-community", "create-custom-feed", "edit-custom-feed", "edit-community", "community-dashboard", "manage-communities", "custom-feed", "members"].includes(v)) {
-        setView(v);
-        const c = params.get("community"); if (c) setSelectedCommunity(c);
-        const p = params.get("postId"); if (p) setSelectedPostId(p);
-        const u = params.get("uid"); if (u) setViewingUid(u);
-        const e = params.get("editPostId"); if (e) setEditPostId(e);
-      } else {
-        setView("feed");
-      }
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
   const [showLogin, setShowLogin] = useState(false);
   useEffect(() => {
     const openLogin = () => setShowLogin(true);
@@ -243,6 +261,41 @@ function AppContent() {
   const [membersCommunity, setMembersCommunity] = useState<string>("");
   const [modPanelCommunity, setModPanelCommunity] = useState<string>("");
   const [invitePending, setInvitePending] = useState<{ token: string; community: string } | null>(null);
+
+  // Read query params on mount + browser back/forward
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      const v = params.get("view");
+      if (v === "thread") {
+        window.location.replace(`/forum?view=thread&threadId=${params.get("threadId") || ""}`);
+        return;
+      }
+      applyUrlNavigation(resolveViewFromParams(params), {
+        setView,
+        setSelectedCommunity,
+        setSelectedPostId,
+        setViewingUid,
+        setEditPostId,
+        setProfileTab,
+        setGamesTab,
+        setModPanelCommunity,
+        setLivingPostId,
+      });
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get("invite");
+    const inviteCommunity = params.get("c");
+    if (inviteToken && inviteCommunity) {
+      setInvitePending({ token: inviteToken, community: inviteCommunity });
+      return;
+    }
+
+    syncFromUrl();
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, []);
   const [hiddenPostIds, setHiddenPostIds] = useState<Set<string>>(new Set());
   const [negativeSignals, setNegativeSignals] = useState<NegativeSignal[]>([]);
   const [categoryAffinities, setCategoryAffinities] = useState<Map<string, number>>(new Map());
@@ -719,17 +772,23 @@ function AppContent() {
 
   // Reset states on user logout to prevent cached restricted community feeds from staying visible
   useEffect(() => {
-    if (!user) {
-      setView("feed");
-      setSelectedCommunity("");
-      setSelectedPostId("");
-      setActiveCustomFeed(null);
-      setFeedMode("all");
-      setTagFilter(null);
-      setViewingUid(null);
-      fetchPosts();
+    if (authLoading) return;
+    if (user) {
+      hadAuthenticatedUserRef.current = true;
+      return;
     }
-  }, [user, fetchPosts]);
+    if (!hadAuthenticatedUserRef.current) return;
+    setView("feed");
+    setSelectedCommunity("");
+    setSelectedPostId("");
+    setActiveCustomFeed(null);
+    setFeedMode("all");
+    setTagFilter(null);
+    setViewingUid(null);
+    setProfileTab(null);
+    setGamesTab(null);
+    fetchPosts();
+  }, [user, authLoading, fetchPosts]);
 
   // منشورات جديدة — تظهر فقط بعد تحديث يدوي (بدون onSnapshot)
   const checkForNewPosts = useCallback(async () => {
@@ -777,7 +836,6 @@ function AppContent() {
   // Re-fetch when custom feed changes
   useEffect(() => { fetchPosts(); }, [activeCustomFeed]);
 
-  const [viewingUid, setViewingUid] = useState<string | null>(null);
   const [editingCommunity, setEditingCommunity] = useState<string>("");
   const [dashboardCommunity, setDashboardCommunity] = useState<string>("");
   const openCommunity = (name: string) => {
@@ -935,6 +993,7 @@ function AppContent() {
         activeCustomFeedId={activeCustomFeed?.id ?? null}
         onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))}
         onCreateCustomFeed={() => requireAuth(() => navigateTo("create-custom-feed"))}
+        onCreatePost={() => openCreate()}
       />
 
       {/* Classic Tab Bar removed */}
@@ -948,8 +1007,11 @@ function AppContent() {
           <img
             src={activeCustomFeed.bannerUrl}
             alt=""
-            className="w-full h-full object-cover object-center"
-            style={{ opacity: 0.35 }}
+            className="w-full h-full object-cover"
+            style={{
+              opacity: 0.35,
+              objectPosition: activeCustomFeed.bannerPosition || "50% 50%",
+            }}
           />
           <div className="absolute inset-0" style={{
             background: `linear-gradient(to bottom,
@@ -968,7 +1030,7 @@ function AppContent() {
       )}
 
       <div className="md:ml-[260px] min-h-screen flex justify-center" style={{ paddingTop: "var(--nav-total-height)", position: "relative", zIndex: 1 }}>
-        <div className="w-full max-w-[1280px] px-2 md:px-4 py-3 md:py-4 pb-20 md:pb-5 flex gap-6 justify-center items-start" style={{ direction: "rtl" }}>
+        <div className="w-full max-w-[1280px] px-1 sm:px-2 md:px-4 py-2 sm:py-3 md:py-4 pb-20 md:pb-5 flex gap-6 justify-center items-start" style={{ direction: "rtl" }}>
           <div className={cn("hidden lg:block self-stretch shrink-0", (view !== "feed" && view !== "community" && view !== "post") && "hidden")} style={{ position: "relative", zIndex: 1 }}><SidebarRight onCommunityClick={openCommunity} onPostClick={openPost} communityName={(view === "community" || view === "post") ? (selectedCommunity || undefined) : undefined} /></div>
 
           <div className={cn("flex-1 min-w-0", view === "feed" ? "max-w-[740px]" : view === "create-community" ? "max-w-[1150px]" : view === "community" ? "max-w-[1000px]" : view === "members" ? "max-w-[1100px]" : "max-w-[1100px]")} style={{ direction: "rtl" }}>
@@ -1119,7 +1181,7 @@ function AppContent() {
 
               {view === "profile" && (
                 <div key="profile" className="animate-in fade-in duration-150">
-                  <ProfilePage uid={viewingUid || undefined} onEditClick={openEdit} onDeleteClick={async (id) => { try { await deletePostCompletely(id); } catch (e) { console.error(e); } fetchPosts(); }} onSettingsClick={() => navigateTo("settings")} onAdminClick={() => navigateTo("admin")} onPostClick={openPost} onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))} />
+                  <ProfilePage uid={viewingUid || undefined} initialTab={profileTab || undefined} onEditClick={openEdit} onDeleteClick={async (id) => { try { await deletePostCompletely(id); } catch (e) { console.error(e); } fetchPosts(); }} onSettingsClick={() => navigateTo("settings")} onAdminClick={() => navigateTo("admin")} onPostClick={openPost} onCustomFeedClick={(feed) => requireAuth(() => openCustomFeed(feed))} />
                 </div>
               )}
 
@@ -1158,7 +1220,7 @@ function AppContent() {
               {view === "games" && (
                 <div key="games" className="animate-in fade-in duration-150">
                   <Suspense fallback={<div className="p-8 text-center text-nf-dim">جاري التحميل...</div>}>
-                    <GamesPage onBack={backToFeed} />
+                    <GamesPage onBack={backToFeed} initialTab={gamesTab || undefined} />
                   </Suspense>
                 </div>
               )}
@@ -1276,6 +1338,7 @@ function AppContent() {
       </div>
 
       <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
+      <LoginPrompt />
 
       {/* Invite Accept Dialog */}
       {invitePending && (

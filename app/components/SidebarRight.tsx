@@ -250,7 +250,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
         <p className="text-[10px] text-nf-dim mt-1.5">{formatMemberCount(c.members)} {t("sr.members")}</p>
       </div>
       {!c.isJoined && (
-        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold shrink-0 self-center bg-nf-accent text-white">
+        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold shrink-0 self-center border border-nf-border-2 text-nf-muted bg-nf-secondary/40">
           {t("sr.join")}
         </span>
       )}

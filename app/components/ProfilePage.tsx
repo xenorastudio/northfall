@@ -137,7 +137,7 @@ function timeAgo(ts: any, t: (k: string) => string): string {
   } catch { return t("gen.now"); }
 }
 
-export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSettingsClick, onAdminClick, onPostClick, onCustomFeedClick }: { uid?: string; onEditClick?: (id: string) => void; onDeleteClick?: (id: string) => void; onSettingsClick?: () => void; onAdminClick?: () => void; onPostClick?: (id: string) => void; onCustomFeedClick?: (feed: CustomFeed) => void }) {
+export default function ProfilePage({ uid, initialTab, onEditClick, onDeleteClick, onSettingsClick, onAdminClick, onPostClick, onCustomFeedClick }: { uid?: string; initialTab?: string; onEditClick?: (id: string) => void; onDeleteClick?: (id: string) => void; onSettingsClick?: () => void; onAdminClick?: () => void; onPostClick?: (id: string) => void; onCustomFeedClick?: (feed: CustomFeed) => void }) {
   const { user } = useAuth();
   const { t } = useI18n();
   const targetUid = (typeof uid === "string" && uid) || user?.uid || "";
@@ -153,6 +153,11 @@ export default function ProfilePage({ uid, onEditClick, onDeleteClick, onSetting
     window.addEventListener("popstate", readTab);
     return () => window.removeEventListener("popstate", readTab);
   }, [uid]);
+
+  useEffect(() => {
+    const valid = ["posts", "comments", "saved", "feeds", "games", "awards"];
+    if (initialTab && valid.includes(initialTab)) setActiveTab(initialTab);
+  }, [initialTab]);
   const [posts, setPosts] = useState<any[]>([]);
   const [savedPosts, setSavedPosts] = useState<any[]>([]);
   const [savedPostsLoading, setSavedPostsLoading] = useState(false);

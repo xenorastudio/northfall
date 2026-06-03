@@ -53,6 +53,13 @@ const HASHTAG_INTEREST_MAP: Record<string, string[]> = {
   indiedev: ["gamedev"],
 };
 
+function isValidTag(normalized: string): boolean {
+  if (!normalized) return false;
+  if (/^\d+$/.test(normalized)) return false;
+  if (/^[-_]+$/.test(normalized)) return false;
+  return true;
+}
+
 export function extractHashtagsFromText(...parts: (string | undefined | null)[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -68,7 +75,7 @@ export function extractHashtagsFromText(...parts: (string | undefined | null)[])
         continue;
       }
       const n = normalizeInterestTag(scanned.raw);
-      if (n && !seen.has(n)) {
+      if (isValidTag(n) && !seen.has(n)) {
         seen.add(n);
         out.push(n);
       }

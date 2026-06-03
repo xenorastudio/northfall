@@ -32,7 +32,7 @@ type Slot = {
   icon: typeof Flame;
 };
 
-/** يظهر مع منشور واحد على الأقل (حتى 4 بطاقات) */
+/** يظهر مع منشور واحد على الأقل (حتى 3 بطاقات) */
 const MIN_POSTS_TO_SHOW = 1;
 
 type Props = {
@@ -85,12 +85,12 @@ function pickSlots(posts: HighlightPost[]): Slot[] {
   add(take(hot[0] || byVotes[1], "رائج", "text-orange-400", Flame));
 
   let i = 0;
-  while (slots.length < 4 && i < withTitle.length) {
+  while (slots.length < 3 && i < withTitle.length) {
     const p = withTitle[i++];
     add(take(p, "مميز", "text-nf-muted", Flame));
   }
 
-  return slots.slice(0, 4);
+  return slots.slice(0, 3);
 }
 
 export default function CommunityHighlights({
@@ -124,13 +124,11 @@ export default function CommunityHighlights({
   const canShow = postsWithTitle.length >= MIN_POSTS_TO_SHOW && slots.length >= MIN_POSTS_TO_SHOW;
 
   const gridClass =
-    slots.length >= 4
-      ? "grid grid-cols-2 lg:grid-cols-4 gap-3"
-      : slots.length === 3
-        ? "grid grid-cols-1 sm:grid-cols-3 gap-3"
-        : slots.length === 2
-          ? "grid grid-cols-2 gap-3"
-          : "grid grid-cols-1 gap-3";
+    slots.length === 3
+      ? "grid grid-cols-1 sm:grid-cols-3 gap-3"
+      : slots.length === 2
+        ? "grid grid-cols-2 gap-3"
+        : "grid grid-cols-1 gap-3";
 
   if (loading) {
     if (postCount === 0) return null;
@@ -180,11 +178,17 @@ export default function CommunityHighlights({
 
               <div className="absolute inset-x-0 bottom-0 p-3">
                 <p
-                  className="text-[12px] font-bold nf-highlight-title nf-bidi-text leading-snug line-clamp-2 mb-2"
+                  className="text-[12px] font-bold nf-highlight-title nf-bidi-text leading-snug line-clamp-2"
                   dir={textDirAttr(post.title)}
                 >
                   {post.title}
                 </p>
+
+                {post.body && (
+                  <p className="text-[9px] nf-highlight-meta/70 leading-relaxed line-clamp-1 mt-0.5 mb-1.5 opacity-70" dir={textDirAttr(post.body)}>
+                    {post.body.replace(/<[^>]*>/g, "").slice(0, 80)}{post.body.length > 80 ? "..." : ""}
+                  </p>
+                )}
 
                 <div className="flex items-center gap-2.5 text-[10px] nf-highlight-meta">
                   <span>{post.votes || 0} تصويت</span>

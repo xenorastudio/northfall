@@ -94,7 +94,7 @@ export default function HashtagTextarea({
       setOpen(true);
       requestAnimationFrame(() => repositionMenu());
 
-      void getHashtagSuggestions(info.query).then((list) => {
+      void getHashtagSuggestions(info.query, value).then((list) => {
         if (seq !== fetchSeq.current) return;
         setItems(list);
         setActiveIdx(0);

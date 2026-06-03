@@ -18,6 +18,12 @@ import {
   isCommunityNameTaken,
   normalizeCommunityNameKey,
 } from "@/lib/community-name";
+import CommunityMediaFields from "./CommunityMediaFields";
+import {
+  DEFAULT_MEDIA_POSITION,
+  positionToCss,
+  type MediaPosition,
+} from "@/lib/media-object-position";
 
 interface CreateCommunityPageProps {
   onBack: () => void;
@@ -37,7 +43,6 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
   const { user } = useAuth();
   const { communities: allComms } = useData();
   const [step, setStep] = useState(1);
-  const [previewMode, setPreviewMode] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState("");
   const [communityType, setCommunityType] = useState("public");
   const [name, setName] = useState("");
@@ -47,8 +52,9 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
   const [checkingName, setCheckingName] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
+  const [logoPosition, setLogoPosition] = useState<MediaPosition>({ ...DEFAULT_MEDIA_POSITION });
+  const [bannerPosition, setBannerPosition] = useState<MediaPosition>({ ...DEFAULT_MEDIA_POSITION });
   const [shortDesc, setShortDesc] = useState("");
-  const [showInForum, setShowInForum] = useState(true);
   const [isMature, setIsMature] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -135,6 +141,10 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
         desc: shortDesc.trim() || `أهلاً بكم في مجتمع n/${cleanName}`,
         img: logoUrl.trim(),
         banner: bannerUrl.trim(),
+        logoPosition: positionToCss(logoPosition),
+        logoScale: logoPosition.scale,
+        bannerPosition: positionToCss(bannerPosition),
+        bannerScale: bannerPosition.scale,
         founded: new Date().getFullYear().toString(),
         rules: ["احترام الجميع وعدم الإساءة"],
         tags: buildCommunityTagsField(categoryToStoreValue(selectedTopic)),
@@ -148,7 +158,7 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
         members: 0,
         category: categoryToStoreValue(selectedTopic),
         communityType,
-        showInForum,
+        showInForum: true,
         isMature: !!isMature,
         modLevel: communityType === "private" ? "restrict" : communityType === "restricted" ? "moderate" : "open",
       });
@@ -167,6 +177,40 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
       showToast(`حدث خطأ: ${msg}`, "error");
     }
     setLoading(false);
+  };
+
+  const openCommunityPreview = () => {
+    const id = canonicalCommunityId(name) || name.trim();
+    if (!id || id.length < 3) {
+      showToast("أدخل اسم المجتمع أولاً", "error");
+      return;
+    }
+    localStorage.setItem(
+      "nf-community-preview",
+      JSON.stringify({
+        name: id,
+        shortDesc: shortDesc.trim(),
+        desc: shortDesc.trim() || `أهلاً بكم في مجتمع n/${id}`,
+        img: logoUrl.trim(),
+        banner: bannerUrl.trim(),
+        logoUrl: logoUrl.trim(),
+        bannerUrl: bannerUrl.trim(),
+        logoPosition: positionToCss(logoPosition),
+        logoScale: logoPosition.scale,
+        bannerPosition: positionToCss(bannerPosition),
+        bannerScale: bannerPosition.scale,
+        category: categoryToStoreValue(selectedTopic),
+        communityType,
+        rules: ["احترام الجميع وعدم الإساءة"],
+        tags: [],
+        memberCount: 1,
+        timestamp: Date.now(),
+      })
+    );
+    window.open(
+      `/app?view=community&community=${encodeURIComponent(id)}&preview=true`,
+      "_blank"
+    );
   };
 
   return (
@@ -295,40 +339,36 @@ export default function CreateCommunityPage({ onBack, onSuccess, showToast }: Cr
       {step === 3 && (
         <div>
           <h2 className="text-[20px] font-bold text-nf-text mb-5">هوية مجتمعك</h2>
-          {!previewMode ? (
-            <div className="space-y-4 mb-6">
-              <input type="text" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="رابط الشعار (اختياري)"
-                className="w-full !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] text-nf-text outline-none" />
-              <input type="text" value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} placeholder="رابط البانر (اختياري)"
-                className="w-full !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] text-nf-text outline-none" />
-              <textarea value={shortDesc} onChange={e => setShortDesc(e.target.value)} rows={3} maxLength={300} placeholder="وصف مختصر..."
-                className="w-full !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] resize-none outline-none" />
-              <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-nf-border-2">
-                <span className="text-[13px] font-bold">الظهور في المنتدى</span>
-                <button type="button" onClick={() => setShowInForum(p => !p)} className={cn("w-11 h-6 rounded-full relative", showInForum ? "bg-nf-accent" : "bg-nf-border-2")}>
-                  <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", showInForum ? "left-[22px]" : "left-0.5")} />
-                </button>
+          <div className="space-y-4 mb-6">
+            <CommunityMediaFields
+              logoUrl={logoUrl}
+              bannerUrl={bannerUrl}
+              logoPosition={logoPosition}
+              bannerPosition={bannerPosition}
+              onLogoUrlChange={setLogoUrl}
+              onBannerUrlChange={setBannerUrl}
+              onLogoPositionChange={setLogoPosition}
+              onBannerPositionChange={setBannerPosition}
+            />
+            <textarea value={shortDesc} onChange={e => setShortDesc(e.target.value)} rows={3} maxLength={300} placeholder="وصف مختصر..."
+              className="w-full !bg-transparent border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] resize-none outline-none focus:border-nf-accent transition-colors" />
+            <div className="flex items-start justify-between gap-3 px-4 py-3 rounded-xl border border-nf-border-2">
+              <div>
+                <p className="text-[13px] font-bold text-nf-text">مجتمع مخصص لفئة +18</p>
+                <p className="text-[11px] text-nf-dim mt-1.5 leading-relaxed">
+                  تفعيل هذا الخيار يعني ان مجتمعك قد يحتوي على مناقشات حساسة، تجارب معقدة، او لقطات العاب قوية.
+                  سيطلب من الزوار تأكيد عمرهم قبل الدخول او التفاعل.
+                </p>
               </div>
-              <div className="px-4 py-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[13px] font-bold text-nf-text">مجتمع مخصص لفئة +18</p>
-                    <p className="text-[11px] text-nf-dim mt-1.5 leading-relaxed">
-                      تفعيل هذا الخيار يعني أن مجتمعك قد يحتوي على مناقشات حساسة، تجارب معقدة، أو لقطات ألعاب قوية.
-                      سيُطلب من الزوار تأكيد عمرهم قبل الدخول أو التفاعل.
-                    </p>
-                  </div>
-                  <button type="button" onClick={() => setIsMature(p => !p)} className={cn("w-11 h-6 rounded-full relative shrink-0", isMature ? "bg-amber-500" : "bg-nf-border-2")}>
-                    <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", isMature ? "left-[22px]" : "left-0.5")} />
-                  </button>
-                </div>
-              </div>
+              <button type="button" onClick={() => setIsMature(p => !p)} className={cn("w-11 h-6 rounded-full relative shrink-0", isMature ? "bg-nf-accent" : "bg-nf-border-2")}>
+                <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all", isMature ? "left-[22px]" : "left-0.5")} />
+              </button>
             </div>
-          ) : (
-            <p className="text-[12px] text-nf-dim mb-4">n/{name} · {selectedTopic}</p>
-          )}
+          </div>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setPreviewMode(p => !p)} className="px-4 py-2 rounded-xl border border-nf-border-2 text-[12px]">{previewMode ? "تعديل" : "معاينة"}</button>
+            <button type="button" onClick={openCommunityPreview} className="px-4 py-2 rounded-xl border border-nf-border-2 text-[12px] text-nf-accent font-semibold hover:bg-nf-hover transition-colors">
+              معاينة الصفحة
+            </button>
             <button type="button" onClick={handleCreate} disabled={loading} className="px-6 py-2.5 rounded-xl bg-nf-accent text-nf-primary text-[13px] font-bold disabled:opacity-40">
               {loading ? "جاري الإنشاء..." : "إنشاء المجتمع ✓"}
             </button>

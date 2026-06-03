@@ -10,6 +10,8 @@ interface CachedCommunity {
   name: string;
   label: string;
   img: string;
+  logoPosition?: string;
+  logoScale?: number;
   members: number;
   creatorUid?: string;
   category?: string;
@@ -71,6 +73,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             (data.modLevel === "restrict" ? "private" : data.modLevel === "moderate" ? "restricted" : "public");
           return {
             name, label: `n/${name}`, img: data.img || "", members: data.memberCount || 0,
+            logoPosition: data.logoPosition || undefined,
+            logoScale: typeof data.logoScale === "number" ? data.logoScale : undefined,
             creatorUid: data.creatorUid || undefined, showInForum: data.showInForum !== false,
             category: data.category || "", shortDesc: data.shortDesc || "",
             isMature: !!data.isMature,
@@ -152,6 +156,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             (data.modLevel === "restrict" ? "private" : data.modLevel === "moderate" ? "restricted" : "public");
           return {
             name, label: `n/${name}`, img: data.img || "", members: data.memberCount || 0,
+            logoPosition: data.logoPosition || undefined,
+            logoScale: typeof data.logoScale === "number" ? data.logoScale : undefined,
             creatorUid: data.creatorUid || undefined, showInForum: data.showInForum !== false,
             category: data.category || "", shortDesc: data.shortDesc || "",
             isMature: !!data.isMature,

@@ -30,6 +30,7 @@ export interface SharedFeed {
   isPrivate: boolean;
   showOnProfile: boolean;
   bannerUrl?: string;
+  bannerPosition?: string;
   iconUrl?: string;
   showBannerBg?: boolean;
 }
@@ -41,6 +42,7 @@ export type CreateSharedFeedData = {
   isPrivate?: boolean;
   showOnProfile?: boolean;
   bannerUrl?: string;
+  bannerPosition?: string;
   iconUrl?: string;
   showBannerBg?: boolean;
 };
@@ -86,6 +88,7 @@ export async function createSharedFeed(
     isPrivate: data.isPrivate ?? false,
     showOnProfile: data.showOnProfile ?? true,
     bannerUrl: data.bannerUrl ?? null,
+    bannerPosition: data.bannerPosition ?? null,
     iconUrl: data.iconUrl ?? null,
     showBannerBg: data.showBannerBg ?? true,
   };
@@ -100,7 +103,7 @@ export async function createSharedFeed(
       name: feed.name, communities: feed.communities, iconUrl: feed.iconUrl,
       ownerId, editors: editorUids, editorUids, isEditor: true,
       isPrivate: feed.isPrivate, showOnProfile: feed.showOnProfile,
-      bannerUrl: feed.bannerUrl, showBannerBg: feed.showBannerBg, createdAt: now,
+      bannerUrl: feed.bannerUrl, bannerPosition: feed.bannerPosition, showBannerBg: feed.showBannerBg, createdAt: now,
     });
   }
   await batch.commit();
@@ -247,7 +250,7 @@ export async function updateSharedFeed(
 
     // Owner can update everything; editor can only update specific fields
     if (!isOwner && editorUids.includes(currentUid)) {
-      const allowed = ["communities", "bannerUrl", "iconUrl", "showBannerBg", "name", "isPrivate", "showOnProfile"];
+      const allowed = ["communities", "bannerUrl", "bannerPosition", "iconUrl", "showBannerBg", "name", "isPrivate", "showOnProfile"];
       for (const key of Object.keys(updates)) {
         if (!allowed.includes(key)) {
           return { success: false, error: "ليس لديك صلاحية لتعديل هذا الحقل" };

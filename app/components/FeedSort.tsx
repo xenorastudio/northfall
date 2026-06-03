@@ -21,7 +21,7 @@ interface FeedSortProps {
 }
 
 const tabBase =
-  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors duration-150";
+  "flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition-colors duration-150";
 const tabActive = "bg-nf-secondary text-nf-text";
 const tabIdle = "text-nf-dim hover:bg-nf-hover hover:text-nf-muted";
 
@@ -91,7 +91,7 @@ export default function FeedSort({
   };
 
   return (
-    <div className="mb-3 space-y-2 overflow-visible">
+    <div className="mb-2 sm:mb-3 space-y-1.5 sm:space-y-2 overflow-visible">
       {tagFilter && (
         <div className="flex items-center justify-between border border-nf-border-2/40 rounded-lg px-3 py-2 bg-nf-hover/30">
           <span className="text-[12px] text-nf-text font-semibold">#{tagFilter.replace(/^#+/, "")}</span>
@@ -105,8 +105,8 @@ export default function FeedSort({
         </div>
       )}
 
-      <div className="rounded-lg border border-nf-border-2/55 px-2 py-1.5 overflow-visible">
-        <div className="flex items-center gap-0.5 flex-wrap overflow-visible">
+      <div className="rounded-lg border border-nf-border-2/55 px-1.5 sm:px-2 py-1.5">
+        <div className="flex items-center gap-1 flex-wrap">
           <button
             type="button"
             onClick={() => onFeedModeChange?.("all")}

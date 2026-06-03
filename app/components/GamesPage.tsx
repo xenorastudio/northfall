@@ -461,7 +461,7 @@ function GameCard({ game, isFav, onFav, layout, index }: { game: Game; isFav: bo
   );
 }
 
-export default function GamesPage({ onBack }: { onBack: () => void }) {
+export default function GamesPage({ onBack, initialTab }: { onBack: () => void; initialTab?: string }) {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -472,6 +472,22 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
   const [sortBy, setSortBy] = useState<"name" | "rating" | "year" | "oldest">("name");
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [activeTab, setActiveTab] = useState<"all" | "followed" | "trending" | "new" | "best" | "hot">("all");
+  const validGameTabs = ["all", "followed", "trending", "new", "best", "hot"] as const;
+
+  useEffect(() => {
+    if (initialTab && (validGameTabs as readonly string[]).includes(initialTab)) {
+      setActiveTab(initialTab as typeof activeTab);
+    }
+  }, [initialTab]);
+
+  const selectTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("view") === "games") {
+      params.set("gamesTab", tab);
+      window.history.replaceState(null, "", `/app?${params.toString()}`);
+    }
+  };
   const [randomGame, setRandomGame] = useState<Game | null>(null);
   const [showFavList, setShowFavList] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -638,7 +654,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
         ].map(tab => {
           const count = tab.id === "all" ? GAMES.length : tab.id === "followed" ? favoriteIds.length : tab.id === "trending" ? GAMES.filter(g => g.rating >= 4.5).length : tab.id === "new" ? GAMES.filter(g => g.releaseYear >= 2022).length : tab.id === "best" ? GAMES.filter(g => g.rating >= 4.7).length : GAMES.filter(g => g.rating >= 4.3 && g.releaseYear >= 2020).length;
           return (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border", activeTab === tab.id ? "bg-nf-accent/15 text-nf-accent border-nf-accent/25" : "bg-nf-secondary/10 text-nf-dim hover:text-nf-text border-nf-border-2 hover:border-nf-border")}>
+          <button key={tab.id} onClick={() => selectTab(tab.id)} className={cn("shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border", activeTab === tab.id ? "bg-nf-accent/15 text-nf-accent border-nf-accent/25" : "bg-nf-secondary/10 text-nf-dim hover:text-nf-text border-nf-border-2 hover:border-nf-border")}>
             {tab.icon} {tab.label} <span className={cn("text-[8px]", activeTab === tab.id ? "text-nf-accent/50" : "text-nf-dim/30")}>{count}</span>
           </button>
         );})}
@@ -761,7 +777,7 @@ export default function GamesPage({ onBack }: { onBack: () => void }) {
           <div className="w-16 h-16 rounded-2xl bg-nf-secondary/20 flex items-center justify-center mx-auto mb-3 border border-nf-border-2"><Gamepad2 size={28} className="text-nf-dim/30" /></div>
           <p className="text-[13px] text-nf-dim font-bold">لا توجد نتائج</p>
           <p className="text-[10px] text-nf-dim/40 mt-1 mb-4">جرّب تغيير الفلاتر أو البحث بكلمات أخرى</p>
-          <button onClick={() => { setSearchQuery(""); setGenreFilter(null); setPlatformFilter(null); setActiveTab("all"); }} className="px-4 py-2 rounded-xl bg-nf-accent/10 text-nf-accent text-[11px] font-bold hover:bg-nf-accent/20 transition-colors border border-nf-accent/20">مسح الفلاتر</button>
+          <button onClick={() => { setSearchQuery(""); setGenreFilter(null); setPlatformFilter(null); selectTab("all"); }} className="px-4 py-2 rounded-xl bg-nf-accent/10 text-nf-accent text-[11px] font-bold hover:bg-nf-accent/20 transition-colors border border-nf-accent/20">مسح الفلاتر</button>
         </motion.div>
       )}
 

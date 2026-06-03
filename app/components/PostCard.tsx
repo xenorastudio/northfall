@@ -713,7 +713,7 @@ export default function PostCard({
         postBordered && "nf-post-card--bordered"
       )}
     >
-      <div className="px-3 pt-2.5 pb-1.5 relative" onDoubleClick={handleDblClickVote}>
+      <div className="px-2.5 sm:px-3 pt-2 pb-1.5 sm:pt-2.5 relative" onDoubleClick={handleDblClickVote}>
         {/* Double-click heart animation */}
         {dblClickAnim && (
           <motion.div initial={{ opacity: 1, scale: 0.5, y: 0 }} animate={{ opacity: 0, scale: 1.8, y: -30 }} transition={{ duration: 0.7 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
@@ -721,7 +721,7 @@ export default function PostCard({
           </motion.div>
         )}
         {/* Header */}
-        <div className="flex items-center gap-2 text-[12px] mb-1">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] mb-1 overflow-x-auto">
           <div className="w-5 h-5 rounded-full bg-nf-secondary overflow-hidden shrink-0">
             {authorPhoto ? (
               <img src={authorPhoto} alt="" className="w-full h-full object-cover" />
@@ -910,7 +910,7 @@ export default function PostCard({
       </div>
 
       {/* Footer - always visible */}
-      <div className="flex items-center gap-2.5 sm:gap-3 px-2 sm:px-3 py-1.5 text-nf-muted flex-wrap opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1.5 text-nf-muted overflow-x-auto opacity-80 group-hover:opacity-100 transition-opacity duration-300">
         <div className="nf-post-action !gap-0 !px-0" onClick={(e) => e.stopPropagation()}>
           <VotePill
             count={voteCount}

@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, ArrowLeft, Check, X, Image, Search, Loader2, Users, UserPlus, Globe, Lock, Eye } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, X, Search, Loader2, Users, UserPlus, Globe, Lock, Eye } from "lucide-react";
+import { BannerAppearanceField } from "./CommunityMediaFields";
+import {
+  DEFAULT_MEDIA_POSITION,
+  positionToCss,
+  type MediaPosition,
+} from "@/lib/media-object-position";
 import { collection, doc, getDoc, getDocs, setDoc, Timestamp, writeBatch, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "./AuthProvider";
@@ -53,6 +59,7 @@ export default function CreateCustomFeedPage({ onBack, onSuccess, showToast }: C
 
   // Step 4 - Banner & Create
   const [bannerUrl, setBannerUrl] = useState("");
+  const [bannerPosition, setBannerPosition] = useState<MediaPosition>({ ...DEFAULT_MEDIA_POSITION });
   const [showOnProfile, setShowOnProfile] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -148,6 +155,7 @@ export default function CreateCustomFeedPage({ onBack, onSuccess, showToast }: C
         isPrivate,
         showOnProfile,
         bannerUrl: bannerUrl.trim() || undefined,
+        bannerPosition: bannerUrl.trim() ? positionToCss(bannerPosition) : undefined,
         iconUrl: iconUrl.trim() || undefined,
         editors: editors.map((e) => e.uid),
       }, editors);
@@ -196,7 +204,6 @@ export default function CreateCustomFeedPage({ onBack, onSuccess, showToast }: C
 
           <div className="mb-5">
             <label className="text-[12px] font-bold text-nf-text block mb-1.5">
-              <Image size={12} className="inline ml-1" />
               رابط صورة الأيقونة (اختياري)
             </label>
             <div className="flex items-center gap-2">
@@ -371,22 +378,12 @@ export default function CreateCustomFeedPage({ onBack, onSuccess, showToast }: C
           <p className="text-[12px] text-nf-dim mb-5">أضف بانر وحدد إعدادات الظهور</p>
 
           <div className="space-y-4 mb-6">
-            {/* Banner URL */}
-            <div>
-              <label className="text-[12px] font-bold text-nf-text block mb-1.5">
-                <Image size={12} className="inline ml-1" />
-                رابط صورة البانر (اختياري)
-              </label>
-              <input type="text" value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)}
-                placeholder="https://example.com/banner.jpg"
-                className="w-full !bg-nf-secondary border border-nf-border-2 rounded-xl px-3 py-2.5 text-[12px] text-nf-text placeholder:text-nf-dim/50 outline-none focus:border-nf-accent transition-colors font-mono" />
-              {bannerUrl && (
-                <div className="mt-2 h-[60px] rounded-lg overflow-hidden border border-nf-border-2">
-                  <img src={bannerUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = "none" }} />
-                </div>
-              )}
-              <p className="text-[10px] text-nf-dim mt-1">صورة الغلاف · يفضل 1200×400</p>
-            </div>
+            <BannerAppearanceField
+              bannerUrl={bannerUrl}
+              bannerPosition={bannerPosition}
+              onBannerUrlChange={setBannerUrl}
+              onBannerPositionChange={setBannerPosition}
+            />
 
             {/* Show on profile toggle */}
             <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-nf-border-2 bg-nf-secondary/30">

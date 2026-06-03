@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import MediaCoverImage from "./MediaCoverImage";
+import { parseMediaPosition } from "@/lib/media-object-position";
 import { useAuth } from "./AuthProvider";
 
 interface CommunityDashboardProps {
@@ -53,7 +55,11 @@ export default function CommunityDashboard({ communityName: rawName, onBack, onE
       {/* Banner */}
       <div className="relative w-full h-[200px] rounded-2xl overflow-hidden">
         {meta?.banner ? (
-          <img src={meta.banner} alt="" className="w-full h-full object-cover" />
+          <MediaCoverImage
+            src={meta.banner}
+            position={parseMediaPosition(meta.bannerPosition, meta.bannerScale)}
+            className="w-full h-full"
+          />
         ) : (
           <div className="w-full h-full bg-gradient-to-l from-nf-secondary to-nf-primary" />
         )}
@@ -65,7 +71,11 @@ export default function CommunityDashboard({ communityName: rawName, onBack, onE
       <div className="flex items-center justify-between px-1 -mt-7 relative z-10">
         <div className="flex items-center gap-3">
           {meta?.img ? (
-            <img src={meta.img} alt="" className="w-14 h-14 rounded-full border-4 border-nf-primary bg-nf-primary shadow-lg object-cover" />
+            <MediaCoverImage
+              src={meta.img}
+              position={parseMediaPosition(meta.logoPosition, meta.logoScale)}
+              className="w-14 h-14 rounded-full border-4 border-nf-primary bg-nf-primary shadow-lg"
+            />
           ) : (
             <div className="w-14 h-14 rounded-full border-4 border-nf-primary bg-nf-secondary shadow-lg flex items-center justify-center text-nf-accent font-bold text-base">n/</div>
           )}

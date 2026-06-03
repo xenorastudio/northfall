@@ -35,7 +35,7 @@ export default function ConfirmModal({
   return createPortal(
     <>
       <div
-        className="fixed inset-0 z-[10055] bg-[#151515]/90"
+        className="fixed inset-0 z-[99990] bg-black/70"
         onMouseDown={stopBubble}
         onClick={(e) => {
           stopBubble(e);
@@ -48,7 +48,8 @@ export default function ConfirmModal({
         aria-modal
         aria-labelledby="nf-confirm-title"
         aria-describedby="nf-confirm-desc"
-        className="fixed z-[10060] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(400px,calc(100vw-24px))] rounded-2xl border border-nf-border-2 bg-nf-card shadow-2xl overflow-hidden"
+        className="fixed z-[99999] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(400px,calc(100vw-24px))] rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+        style={{ background: "linear-gradient(180deg, #2a2a2e 0%, #1e1e22 100%)" }}
         onMouseDown={stopBubble}
         onClick={stopBubble}
       >
@@ -60,7 +61,7 @@ export default function ConfirmModal({
             {message}
           </p>
         </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-nf-border-2/60 bg-nf-secondary/15">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-white/10 bg-black/20">
           <button
             type="button"
             disabled={loading}

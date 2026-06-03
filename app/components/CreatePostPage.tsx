@@ -18,6 +18,7 @@ import PostBodyContent from "./PostBodyContent";
 import NsfwMediaCover from "./NsfwMediaCover";
 import FeedMediaFrame from "./FeedMediaFrame";
 import { extractHashtagsFromPost } from "@/lib/hashtags";
+import { canPostInCommunity, resolveCommunityType } from "@/lib/community-access";
 import { hasMeaningfulPreviewBody } from "@/lib/post-preview-body";
 import { textDirAttr } from "@/lib/display-text";
 import { PROFILE_POST_COMMUNITY, PROFILE_POST_TARGET } from "@/lib/post-target";
@@ -99,6 +100,7 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
   // Community flairs loaded from Firestore
   const [communityFlairs, setCommunityFlairs] = useState<{ text: string; color: number; bg: string; textColor: string }[]>([]);
   const [flairRequired, setFlairRequired] = useState(false);
+  const [canPostHere, setCanPostHere] = useState(true);
 
   const TAG_COLORS = [
     { bg: "#c8d8f0", text: "#1a3a6b" }, { bg: "#f8c8c8", text: "#7a1a1a" },
@@ -144,26 +146,69 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
     }).catch(() => {});
   }, [quotedPostId]);
 
-  // Load community flairs when community changes
+  // Load community flairs + posting permissions when community changes
   useEffect(() => {
     if (!community || isProfileTarget) {
-      setCommunityFlairs([]); setFlairRequired(false); setFlair(""); return;
+      setCommunityFlairs([]);
+      setFlairRequired(false);
+      setFlair("");
+      setCanPostHere(true);
+      return;
     }
-    getDoc(doc(db, "communities", community)).then(snap => {
-      if (!snap.exists()) { setCommunityFlairs([]); setFlairRequired(false); return; }
-      const rawTags = snap.data().tags || [];
-      if (!rawTags.length) { setCommunityFlairs([]); setFlairRequired(false); return; }
-      const mapped = rawTags.map((t: any, i: number) => {
-        const label = typeof t === "string" ? t : (t.text || "");
-        const colorIdx = typeof t === "object" && t.color !== undefined ? t.color : (i % TAG_COLORS.length);
-        const c = TAG_COLORS[colorIdx % TAG_COLORS.length];
-        return { text: label, color: colorIdx, bg: c.bg, textColor: c.text };
-      });
-      setCommunityFlairs(mapped);
-      setFlairRequired(true);
-      setFlair(""); // reset flair when community changes
-    }).catch(() => { setCommunityFlairs([]); setFlairRequired(false); });
-  }, [community]);
+    (async () => {
+      try {
+        const commDocId = community.trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\u0600-\u06FF-]/g, "").toLowerCase();
+        const snap = await getDoc(doc(db, "communities", commDocId));
+        if (!snap.exists()) {
+          setCommunityFlairs([]);
+          setFlairRequired(false);
+          setCanPostHere(true);
+          return;
+        }
+        const data = snap.data();
+        const type = resolveCommunityType(data);
+        let isStaff = user?.uid === data.creatorUid;
+        let isMember = false;
+        if (user) {
+          const memberSnap = await getDoc(doc(db, "communities", commDocId, "members", user.uid));
+          isMember = memberSnap.exists();
+          if (!isStaff && memberSnap.exists()) {
+            const role = memberSnap.data()?.role;
+            isStaff = role === "admin" || role === "moderator";
+          }
+        }
+        setCanPostHere(
+          canPostInCommunity({
+            type,
+            isOwner: user?.uid === data.creatorUid,
+            isStaff: !!isStaff,
+            isMember,
+            isLoggedIn: !!user,
+          })
+        );
+
+        const rawTags = data.tags || [];
+        if (!rawTags.length) {
+          setCommunityFlairs([]);
+          setFlairRequired(false);
+          return;
+        }
+        const mapped = rawTags.map((t: any, i: number) => {
+          const label = typeof t === "string" ? t : (t.text || "");
+          const colorIdx = typeof t === "object" && t.color !== undefined ? t.color : (i % TAG_COLORS.length);
+          const c = TAG_COLORS[colorIdx % TAG_COLORS.length];
+          return { text: label, color: colorIdx, bg: c.bg, textColor: c.text };
+        });
+        setCommunityFlairs(mapped);
+        setFlairRequired(true);
+        setFlair("");
+      } catch {
+        setCommunityFlairs([]);
+        setFlairRequired(false);
+        setCanPostHere(true);
+      }
+    })();
+  }, [community, isProfileTarget, user?.uid]);
 
 
   const MAX_DRAFTS = 8;
@@ -538,6 +583,10 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
 
   const handleSubmit = async () => {
     if (!user) return;
+    if (!editPostId && !livingPostId && !isProfileTarget && !canPostHere) {
+      toast("لا يمكنك النشر هنا — في المجتمعات المقيدة النشر للمشرفين فقط", "error");
+      return;
+    }
     // For living upgrade, title is optional; for normal posts it's required
     if (!livingPostId && !title.trim()) return;
     // Flair required if community has flairs
@@ -603,6 +652,7 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
 
       // ── Normal create / edit ─────────────────────────────────────────────
       const hashtags = extractHashtagsFromPost({ title: cleanTitle, body: cleanBody });
+      const commDocId = isProfileTarget ? "" : community.trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\u0600-\u06FF-]/g, "").toLowerCase();
       const postData = {
         title: cleanTitle,
         body: cleanBody,
@@ -614,6 +664,7 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
         // Store mediaItems order for carousel
         mediaItems: validMedia.map(m => ({ type: m.type, url: m.url.trim() })),
         community: isProfileTarget ? "" : community,
+        communityDocId: commDocId,
         postTarget: isProfileTarget ? PROFILE_POST_TARGET : "community",
         flair,
         flairBg: communityFlairs.find(f => f.text === flair)?.bg || null,

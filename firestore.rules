@@ -8,16 +8,52 @@ service cloud.firestore {
       return isAuth() && (request.auth.uid == "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || request.auth.uid == "OUJAuK34FoTpFyJqgOVjCH9c4Kf1");
     }
     function isCommunityStaff(communityId) {
-      let commDoc = get(/databases/$(database)/documents/communities/$(communityId));
-      let memberDoc = get(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+      // For posts with communityDocId, use that instead of the display name
+      let commId = ('communityDocId' in resource.data && resource.data.communityDocId != "")
+        ? resource.data.communityDocId
+        : communityId;
+      let commDoc = get(/databases/$(database)/documents/communities/$(commId));
+      let memberDoc = get(/databases/$(database)/documents/communities/$(commId)/members/$(request.auth.uid));
       return isAuth() && (
         commDoc.data.creatorUid == request.auth.uid ||
         memberDoc.data.role == "owner" ||
         memberDoc.data.role == "admin" ||
         memberDoc.data.role == "moderator" ||
-        memberDoc.data.permissions.managePosts == true ||
-        memberDoc.data.permissions.manageSettings == true
+        memberDoc.data.permissions.managePosts == true
       );
+    }
+    function postCommunityDocId(postData) {
+      return ('communityDocId' in postData && postData.communityDocId != "")
+        ? postData.communityDocId
+        : postData.community;
+    }
+    function canPostInTargetCommunity() {
+      let isProfileTarget = !('community' in request.resource.data)
+        || request.resource.data.community == ""
+        || ('postTarget' in request.resource.data && request.resource.data.postTarget == "profile");
+      if (isProfileTarget) return true;
+      let commId = postCommunityDocId(request.resource.data);
+      let commDoc = get(/databases/$(database)/documents/communities/$(commId));
+      if (!commDoc.exists()) return isAuth();
+      let rawType = ('communityType' in commDoc.data) ? commDoc.data.communityType : "";
+      let commType = rawType == "private" ? "private"
+        : rawType == "restricted" ? "restricted"
+        : (('modLevel' in commDoc.data) ? (commDoc.data.modLevel == "moderate" ? "restricted" : commDoc.data.modLevel == "restrict" ? "private" : "public") : "public");
+      if (commType == "public") return true;
+      if (commType == "restricted") {
+        let memberDoc = get(/databases/$(database)/documents/communities/$(commId)/members/$(request.auth.uid));
+        return isAuth() && (
+          commDoc.data.creatorUid == request.auth.uid ||
+          (memberDoc.exists() && (
+            memberDoc.data.role == "admin" ||
+            memberDoc.data.role == "moderator" ||
+            memberDoc.data.permissions.managePosts == true
+          ))
+        );
+      }
+      // private
+      let memberDoc = get(/databases/$(database)/documents/communities/$(commId)/members/$(request.auth.uid));
+      return isAuth() && (memberDoc.exists() || commDoc.data.creatorUid == request.auth.uid);
     }
 
     function isOwner(resource) {
@@ -100,6 +136,7 @@ service cloud.firestore {
     match /communities/{communityId} {
       allow create: if isAuth() && validCategoryField() && validIsMatureField() && validCommunityTagsField();
       allow update: if isAuth() && validCategoryField() && validIsMatureField() && validCommunityTagsField();
+      allow delete: if isAuth() && resource.data.creatorUid == request.auth.uid;
     }
 
     match /users/{userId} {
@@ -112,8 +149,12 @@ service cloud.firestore {
     }
 
     match /users/{userId}/communities/{communityId} {
-      allow write: if isAuth() && request.auth.uid == userId
+      allow create, update: if isAuth() && request.auth.uid == userId
         && (!('isFavorite' in request.resource.data) || request.resource.data.isFavorite is bool);
+      allow delete: if isAuth() && (
+        request.auth.uid == userId ||
+        get(/databases/$(database)/documents/communities/$(communityId)).data.creatorUid == request.auth.uid
+      );
     }
 
     match /users/{userId}/hiddenPosts/{postId} {
@@ -141,7 +182,7 @@ service cloud.firestore {
 
     // Posts — staff can delete/update any post in their community
     match /posts/{postId} {
-      allow create: if isAuth() && request.resource.data.authorUid == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.authorUid == request.auth.uid && canPostInTargetCommunity();
       allow delete: if isAuth() && (
         resource.data.authorUid == request.auth.uid ||
         isAdmin() ||

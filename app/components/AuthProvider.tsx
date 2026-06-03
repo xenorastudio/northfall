@@ -199,9 +199,17 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       signIn, logout,
       switchAccount, addAccount, removeAccount, refreshLinkedAccounts,
     }}>
-      {showPicker && user
-        ? <Suspense fallback={<div className="fixed inset-0 z-[100]" style={{backgroundColor:"#08080a"}} />}><AccountPicker onDismiss={dismissAccountPicker} /></Suspense>
-        : children}
+      {loading ? (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center" style={{ background: "#08080a" }}>
+          <div className="w-8 h-8 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
+        </div>
+      ) : showPicker && user ? (
+        <Suspense fallback={<div className="fixed inset-0 z-[100]" style={{ backgroundColor: "#08080a" }} />}>
+          <AccountPicker onDismiss={dismissAccountPicker} />
+        </Suspense>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }

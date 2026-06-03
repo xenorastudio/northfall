@@ -8,6 +8,11 @@ import { useAuth } from "./AuthProvider";
 import { cn } from "@/lib/utils";
 import { COMMUNITY_CATEGORIES, categoryToStoreValue, parseStoredCategory } from "@/lib/community-categories";
 import { buildCommunityTagsField } from "@/lib/user-interests";
+import CommunityMediaFields from "./CommunityMediaFields";
+import { parseMediaPosition, positionToCss, DEFAULT_MEDIA_POSITION, type MediaPosition } from "@/lib/media-object-position";
+import { COMMUNITY_PRIVACY_OPTIONS } from "@/lib/community-access";
+import ConfirmModal from "./ConfirmModal";
+import { deleteCommunityAsOwner } from "@/lib/delete-community";
 
 interface EditCommunityPageProps {
   communityName: string;
@@ -30,13 +35,19 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
+  const [creatorUid, setCreatorUid] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // All editable fields
   const [shortDesc, setShortDesc] = useState("");
   const [desc, setDesc] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
+  const [logoPosition, setLogoPosition] = useState<MediaPosition>(() => ({ ...DEFAULT_MEDIA_POSITION }));
+  const [bannerPosition, setBannerPosition] = useState<MediaPosition>(() => ({ ...DEFAULT_MEDIA_POSITION }));
   const [accentColor, setAccentColor] = useState("#a0a0a0");
   const [feedLayout, setFeedLayout] = useState<"classic" | "grid">("classic");
   const [langCode, setLangCode] = useState("ar");
@@ -47,7 +58,6 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
   const [targetAudience, setTargetAudience] = useState<"all" | "beginners" | "experts">("all");
   const [welcomeBotEnabled, setWelcomeBotEnabled] = useState(true);
   const [welcomeMessage, setWelcomeMessage] = useState("");
-  const [showInForum, setShowInForum] = useState(true);
   const [flatSidebar, setFlatSidebar] = useState(false);
   const [communityType, setCommunityType] = useState<"public" | "restricted" | "private">("public");
 
@@ -94,21 +104,33 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
         const data = snap.data();
         
         if (user?.uid !== data.creatorUid) {
-          // Check if user is admin/moderator
           const memberSnap = await getDoc(doc(db, "communities", communityName, "members", user!.uid)).catch(() => null);
           const role = memberSnap?.data()?.role;
-          if (role !== "admin" && role !== "moderator") {
+          const perms = memberSnap?.data()?.permissions || {};
+          const canManageSettings =
+            role === "admin" ||
+            role === "moderator" ||
+            role === "owner" ||
+            perms.manageSettings === true;
+          if (!canManageSettings) {
             showToast("ليس لديك صلاحية لتعديل هذا المجتمع", "error");
             onBack();
             return;
           }
+          setCanEdit(true);
+          setIsCreator(false);
+        } else {
+          setCanEdit(true);
+          setIsCreator(true);
         }
-        setIsCreator(true);
+        setCreatorUid(data.creatorUid || "");
 
         setShortDesc(data.shortDesc || "");
         setDesc(data.desc || "");
         setLogoUrl(data.img || "");
         setBannerUrl(data.banner || "");
+        setLogoPosition(parseMediaPosition(data.logoPosition, data.logoScale));
+        setBannerPosition(parseMediaPosition(data.bannerPosition, data.bannerScale));
         setAccentColor(data.accentColor || "#a0a0a0");
         setFeedLayout(data.feedLayout || "classic");
         setLangCode(data.langCode || "ar");
@@ -126,7 +148,6 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
         setBookmarks(data.bookmarks || []);
         setUsefulLinks(data.usefulLinks || []);
         setStats(data.stats || []);
-        setShowInForum(data.showInForum !== false);
         setFlatSidebar(data.flatSidebar || false);
 
         setIsLoaded(true);
@@ -155,7 +176,6 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
               parsed.targetAudience !== (data.targetAudience || "all") ||
               parsed.welcomeBotEnabled !== (data.welcomeBotEnabled !== false) ||
               parsed.welcomeMessage !== (data.welcomeMessage || "") ||
-              parsed.showInForum !== (data.showInForum !== false) ||
               parsed.flatSidebar !== (data.flatSidebar || false) ||
               JSON.stringify(parsed.rules) !== JSON.stringify(dbRules) ||
               JSON.stringify(parsed.tags) !== JSON.stringify(dbTags) ||
@@ -185,14 +205,14 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
     const draftObj = {
       shortDesc, desc, logoUrl, bannerUrl, accentColor, feedLayout, langCode,
       category, modLevel, discordInvite, targetAudience, welcomeBotEnabled,
-      welcomeMessage, rules, tags, bookmarks, usefulLinks, showInForum, flatSidebar,
+      welcomeMessage, rules, tags, bookmarks, usefulLinks, flatSidebar,
       communityType, isMature
     };
     localStorage.setItem("nf-community-edit-draft-" + communityName, JSON.stringify(draftObj));
   }, [
     isLoaded, shortDesc, desc, logoUrl, bannerUrl, accentColor, feedLayout, langCode,
     category, modLevel, discordInvite, targetAudience, welcomeBotEnabled,
-    welcomeMessage, rules, tags, bookmarks, usefulLinks, showInForum, flatSidebar, communityName,
+    welcomeMessage, rules, tags, bookmarks, usefulLinks, flatSidebar, communityName,
     communityType, isMature
   ]);
 
@@ -217,7 +237,6 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
       setTags(draftData.tags || []);
       setBookmarks(draftData.bookmarks || []);
       setUsefulLinks(draftData.usefulLinks || []);
-      setShowInForum(draftData.showInForum !== false);
       setFlatSidebar(draftData.flatSidebar || false);
     }
     setShowDraftModal(false);
@@ -289,7 +308,7 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
   };
 
   const handleSave = async () => {
-    if (!user || !isCreator) return;
+    if (!user || !canEdit) return;
     setSaving(true);
     try {
       await setDoc(doc(db, "communities", communityName), {
@@ -297,6 +316,10 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
         desc: sanitizeText(desc),
         img: logoUrl.trim(),
         banner: bannerUrl.trim(),
+        logoPosition: positionToCss(logoPosition),
+        logoScale: logoPosition.scale,
+        bannerPosition: positionToCss(bannerPosition),
+        bannerScale: bannerPosition.scale,
         accentColor,
         feedLayout,
         langCode,
@@ -319,7 +342,7 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
         stats: stats
           .map((s) => ({ label: sanitizeText(s.label), value: sanitizeText(s.value) }))
           .filter((s) => s.label && s.value),
-        showInForum,
+        showInForum: true,
         flatSidebar,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
@@ -399,17 +422,17 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
             </div>
           </div>
 
-          <div className="flex items-start justify-between gap-3 px-3 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5 mt-2">
-            <div className="flex-1">
+          <div className="flex items-start justify-between gap-3 py-1">
+            <div>
               <p className="text-[12px] font-bold text-nf-text">مجتمع مخصص لفئة +18</p>
               <p className="text-[10px] text-nf-dim mt-1 leading-relaxed">
-                تفعيل هذا الخيار يعني أن مجتمعك قد يحتوي على مناقشات حساسة، تجارب معقدة، أو لقطات ألعاب قوية.
-                سيُطلب من الزوار تأكيد عمرهم قبل الدخول أو التفاعل.
+                تفعيل هذا الخيار يعني ان مجتمعك قد يحتوي على مناقشات حساسة، تجارب معقدة، او لقطات العاب قوية.
+                سيطلب من الزوار تأكيد عمرهم قبل الدخول او التفاعل.
               </p>
             </div>
             <button type="button" onClick={() => setIsMature(p => !p)}
               className={cn("w-11 h-6 rounded-full transition-all relative shrink-0",
-                isMature ? "bg-amber-500" : "bg-nf-border-2")}>
+                isMature ? "bg-nf-accent" : "bg-nf-border-2")}>
               <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all",
                 isMature ? "left-[22px]" : "left-0.5")} />
             </button>
@@ -418,11 +441,11 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
           {/* Privacy Type Selector */}
           <div className="pt-2">
             <label className="text-[11px] text-nf-dim block mb-1">خصوصية المجتمع</label>
-            <select value={communityType} onChange={e => setCommunityType(e.target.value as any)}
+            <select value={communityType} onChange={e => setCommunityType(e.target.value as typeof communityType)}
               className="w-full !bg-nf-body border-b border-nf-border-2 px-0 py-2 text-[13px] text-nf-text outline-none focus:border-nf-accent">
-              <option value="public">🔓 عام (Public) - يستطيع أي شخص رؤية المنشورات والنشر</option>
-              <option value="restricted">🔒 شبه خاص (Restricted) - يستطيع أي شخص رؤية المنشورات، ولكن المشرفين فقط ينشرون</option>
-              <option value="private">👁️ خاص (Private) - المشرفون والأعضاء المعتمدون فقط يستطيعون رؤية المجتمع</option>
+              {COMMUNITY_PRIVACY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -432,24 +455,16 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
         {/* Branding */}
         <div className="space-y-3">
           <p className="text-[10px] font-bold text-nf-dim uppercase tracking-wider">الهوية البصرية</p>
-          <div>
-            <label className="text-[11px] text-nf-dim block mb-1">رابط الشعار</label>
-            <div className="flex items-center gap-3">
-              <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://..."
-                className="flex-1 !bg-transparent border-b border-nf-border-2 px-0 py-2 text-[13px] text-nf-text font-mono outline-none focus:border-nf-accent transition-colors" />
-              {logoUrl && <img src={logoUrl} alt="" className="w-8 h-8 rounded-full object-cover border border-nf-border-2 shrink-0" onError={e => (e.currentTarget.style.display="none")} />}
-            </div>
-          </div>
-          <div>
-            <label className="text-[11px] text-nf-dim block mb-1">رابط البانر</label>
-            <input value={bannerUrl} onChange={e => setBannerUrl(e.target.value)} placeholder="https://..."
-              className="w-full !bg-transparent border-b border-nf-border-2 px-0 py-2 text-[13px] text-nf-text font-mono outline-none focus:border-nf-accent transition-colors" />
-            {bannerUrl && (
-              <div className="mt-2 h-14 rounded-lg overflow-hidden border border-nf-border-2/50">
-                <img src={bannerUrl} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display="none")} />
-              </div>
-            )}
-          </div>
+          <CommunityMediaFields
+            logoUrl={logoUrl}
+            bannerUrl={bannerUrl}
+            logoPosition={logoPosition}
+            bannerPosition={bannerPosition}
+            onLogoUrlChange={setLogoUrl}
+            onBannerUrlChange={setBannerUrl}
+            onLogoPositionChange={setLogoPosition}
+            onBannerPositionChange={setBannerPosition}
+          />
           <div>
             <label className="text-[11px] text-nf-dim block mb-2">تخطيط المنشورات</label>
             <div className="flex gap-2">
@@ -588,19 +603,21 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
 
         <div className="h-px bg-nf-border-2/30" />
 
-        {/* Visibility */}
-        <div className="flex items-center justify-between py-1">
-          <div>
-            <p className="text-[13px] font-medium text-nf-text">الظهور في المنتدى</p>
-            <p className="text-[10px] text-nf-dim mt-0.5">يظهر مجتمعك في قائمة المجتمعات</p>
+        {isCreator && creatorUid && (
+          <div className="mt-6 pt-4 border-t border-red-500/20">
+            <p className="text-[12px] font-bold text-red-400 mb-1">حذف المجتمع</p>
+            <p className="text-[11px] text-nf-dim mb-3 leading-relaxed">
+              سيتم حذف n/{communityName} نهائيا. لا يمكن التراجع.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-4 py-2 rounded-xl border border-red-500/40 text-[12px] font-bold text-red-400 hover:bg-red-500/10 transition-colors"
+            >
+              حذف المجتمع
+            </button>
           </div>
-          <button type="button" onClick={() => setShowInForum(p => !p)}
-            className={cn("w-10 h-5 rounded-full transition-all relative shrink-0", showInForum ? "bg-nf-accent" : "bg-nf-border-2")}>
-            <span className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all", showInForum ? "left-[22px]" : "left-0.5")} />
-          </button>
-        </div>
-
-
+        )}
 
         {/* Save */}
         <div className="flex items-center justify-between pt-3 border-t border-nf-border-2/30">
@@ -614,8 +631,14 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
                 name: communityName,
                 shortDesc: shortDesc.trim(),
                 desc: desc.trim(),
+                img: logoUrl.trim(),
+                banner: bannerUrl.trim(),
                 logoUrl: logoUrl.trim(),
                 bannerUrl: bannerUrl.trim(),
+                logoPosition: positionToCss(logoPosition),
+                logoScale: logoPosition.scale,
+                bannerPosition: positionToCss(bannerPosition),
+                bannerScale: bannerPosition.scale,
                 category,
                 communityType,
                 rules: rules.map((r, i) => {
@@ -632,10 +655,13 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
                 isPreview: true,
                 timestamp: Date.now()
               }));
-              window.open("/app?community=" + encodeURIComponent(communityName) + "&preview=true", "_blank");
+              window.open(
+                "/app?view=community&community=" + encodeURIComponent(communityName) + "&preview=true",
+                "_blank"
+              );
             }}
               className="text-[12px] text-nf-accent hover:underline font-bold transition-all">
-              👁 معاينة قبل النشر
+              معاينة قبل النشر
             </button>
           </div>
           <div className="flex gap-2">
@@ -643,7 +669,7 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
               const draftObj = {
                 shortDesc, desc, logoUrl, bannerUrl, accentColor, feedLayout, langCode,
                 category, modLevel, discordInvite, targetAudience, welcomeBotEnabled,
-                welcomeMessage, rules, tags, bookmarks, usefulLinks, showInForum, flatSidebar,
+                welcomeMessage, rules, tags, bookmarks, usefulLinks, flatSidebar,
                 communityType, isMature
               };
               localStorage.setItem("nf-community-edit-draft-" + communityName, JSON.stringify(draftObj));
@@ -677,6 +703,31 @@ export default function EditCommunityPage({ communityName, onBack, onSaved, show
             </button>
           </div>
         </div>
+
+      <ConfirmModal
+        open={showDeleteConfirm}
+        title="حذف المجتمع؟"
+        message={`سيتم حذف n/${communityName} نهائيا. لا يمكن التراجع عن هذا الاجراء.`}
+        confirmLabel="حذف نهائي"
+        cancelLabel="إلغاء"
+        danger
+        loading={deleting}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={async () => {
+          if (!user) return;
+          setDeleting(true);
+          try {
+            await deleteCommunityAsOwner(communityName, creatorUid, user.uid);
+            localStorage.removeItem("nf-community-edit-draft-" + communityName);
+            showToast("تم حذف المجتمع", "success");
+            onBack();
+          } catch (e: unknown) {
+            showToast(e instanceof Error ? e.message : "فشل حذف المجتمع", "error");
+            setDeleting(false);
+            setShowDeleteConfirm(false);
+          }
+        }}
+      />
 
       {showDraftModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
