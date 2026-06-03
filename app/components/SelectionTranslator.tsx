@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Languages, Copy, Volume2, X, Search, Check, Loader2, Sparkles, Wand2, CheckCheck, VolumeX, FileText } from "lucide-react";
+import { Languages, Copy, Volume2, X, Search, Check, Loader2, Sparkles, Wand2, CheckCheck, VolumeX, FileText, BadgeCheck } from "lucide-react";
 import { translateText } from "@/lib/translate";
 import { cn } from "@/lib/utils";
 import TranslateLangPicker from "./TranslateLangPicker";
@@ -43,6 +43,36 @@ export default function SelectionTranslator() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  const typewriterIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startTypewriter = useCallback((text: string) => {
+    if (typewriterIntervalRef.current) {
+      clearInterval(typewriterIntervalRef.current);
+    }
+    setTranslatedText("");
+    let i = 0;
+    typewriterIntervalRef.current = setInterval(() => {
+      if (i < text.length) {
+        setTranslatedText(text.slice(0, i + 2));
+        i += 2;
+      } else {
+        setTranslatedText(text);
+        if (typewriterIntervalRef.current) {
+          clearInterval(typewriterIntervalRef.current);
+          typewriterIntervalRef.current = null;
+        }
+      }
+    }, 8);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (typewriterIntervalRef.current) {
+        clearInterval(typewriterIntervalRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const handleMouseUp = (e: MouseEvent) => {
@@ -172,14 +202,14 @@ export default function SelectionTranslator() {
     setPopoverOpen(true);
     try {
       const result = await translateText(selectedText);
-      setTranslatedText(result || "تعذر العثور على ترجمة مناسبة.");
+      startTypewriter(result || "تعذر العثور على ترجمة مناسبة.");
     } catch (err) {
       console.error("Translation failed:", err);
       setTranslatedText("حدث خطأ أثناء الاتصال بخدمة الترجمة.");
     } finally {
       setLoading(false);
     }
-  }, [selectedText]);
+  }, [selectedText, startTypewriter]);
 
   // AI Explain feature integration
   const handleAiExplain = useCallback(async () => {
@@ -213,9 +243,9 @@ export default function SelectionTranslator() {
           messages: [
             { role: "user", content: `أعطني شرحاً مبسطاً وسريعاً للنص المختار التالي (اكتب الشرح بالعربية أولاً ثم بالإنجليزية باختصار شديد في سطرين أو ثلاثة فقط):\n\n"${selectedText}"${contextStr}` }
           ],
-          systemPrompt: "أنت مساعد ذكي تدعى NorthFall Assistant. تقدم المساعدة بأسلوب واضح وموجز وبسيط جداً ومناسب للمنتديات العربية. لا تكتب أي مقدمات أو عناوين أو إيموجي أو زخارف.",
+          systemPrompt: "أنت مساعد خبير ومحلل ذكي تدعى NorthFall Assistant. قدم شرحاً دقيقاً، عميقاً ومبسطاً للنص المختار بناءً على السياق العام المرفق للمنشور. اشرح المصطلحات الغامضة أو الأفكار المعقدة بوضوح ممتاز وبأسلوب مشوق ومناسب لأعضاء منتدى NorthFall. لا تكتب مقدمات أو عناوين فرعية أو زخارف أو إيموجي.",
           maxTokens: 1000,
-          temperature: 0.3
+          temperature: 0.5
         }),
       });
 
@@ -234,14 +264,14 @@ export default function SelectionTranslator() {
         text = data.choices?.[0]?.message?.content || "";
       }
 
-      setTranslatedText(text || "تعذر الحصول على شرح.");
+      startTypewriter(text || "تعذر الحصول على شرح.");
     } catch (err: any) {
       console.error("AI Explain failed:", err);
       setTranslatedText(`خطأ: ${err?.message || "تعذر الاتصال بمساعد NorthFall. تأكد من تهيئة الإعدادات."}`);
     } finally {
       setLoading(false);
     }
-  }, [selectedText]);
+  }, [selectedText, startTypewriter]);
 
   // AI Summarize feature integration
   const handleAiSummarize = useCallback(async () => {
@@ -275,7 +305,7 @@ export default function SelectionTranslator() {
           messages: [
             { role: "user", content: `لخص النص المختار التالي باختصار شديد وبأسلوب واضح ومباشر (اكتب التلخيص بالعربية أولاً ثم بالإنجليزية في سطرين أو ثلاثة فقط):\n\n"${selectedText}"${contextStr}` }
           ],
-          systemPrompt: "أنت مساعد ذكي تدعى NorthFall Assistant. لخص النص بأسلوب واضح ومفهوم باختصار شديد، 2-3 أسطر فقط. لا تكتب أي مقدمات أو عناوين أو إيموجي أو زخارف.",
+          systemPrompt: "أنت كاتب ومحرر محترف تدعى NorthFall Assistant. لخص النص المختار بدقة عالية مع الحفاظ على الأفكار الهامة وسياق المنشور المرفق. اكتب تلخيصاً ذكياً وموجزاً ومترابطاً (2-3 أسطر). لا تكتب مقدمات أو عناوين فرعية أو زخارف أو إيموجي.",
           maxTokens: 1000,
           temperature: 0.3
         }),
@@ -296,14 +326,14 @@ export default function SelectionTranslator() {
         text = data.choices?.[0]?.message?.content || "";
       }
 
-      setTranslatedText(text || "تعذر تلخيص النص.");
+      startTypewriter(text || "تعذر تلخيص النص.");
     } catch (err: any) {
       console.error("AI Summarize failed:", err);
       setTranslatedText(`خطأ: ${err?.message || "تعذر الاتصال بمساعد NorthFall. تأكد من تهيئة الإعدادات."}`);
     } finally {
       setLoading(false);
     }
-  }, [selectedText]);
+  }, [selectedText, startTypewriter]);
 
   // AI Keypoints feature integration
   const handleAiKeypoints = useCallback(async () => {
@@ -337,7 +367,7 @@ export default function SelectionTranslator() {
           messages: [
             { role: "user", content: `استخرج النقاط والأفكار الرئيسية من النص المختار التالي على شكل نقاط مختصرة جداً (اكتب النقاط بالعربية أولاً ثم بالإنجليزية باختصار شديد):\n\n"${selectedText}"${contextStr}` }
           ],
-          systemPrompt: "أنت مساعد ذكي تدعى NorthFall Assistant. استخرج النقاط والأفكار الرئيسية بأسلوب واضح وبسيط باختصار. لا تكتب أي مقدمات أو عناوين أو إيموجي.",
+          systemPrompt: "أنت محلل محتوى خبير تدعى NorthFall Assistant. استخرج النقاط والأفكار الرئيسية والجوهرية من النص المختار بناءً على سياق المنشور المرفق. رتب الأفكار بشكل منطعي وموجز جداً على شكل نقاط واضحة ومباشرة. لا تكتب مقدمات أو عناوين أو إيموجي.",
           maxTokens: 1000,
           temperature: 0.2
         }),
@@ -358,14 +388,14 @@ export default function SelectionTranslator() {
         text = data.choices?.[0]?.message?.content || "";
       }
 
-      setTranslatedText(text || "تعذر استخراج الأفكار الرئيسية.");
+      startTypewriter(text || "تعذر استخراج الأفكار الرئيسية.");
     } catch (err: any) {
       console.error("AI Keypoints failed:", err);
       setTranslatedText(`خطأ: ${err?.message || "تعذر الاتصال بمساعد NorthFall. تأكد من تهيئة الإعدادات."}`);
     } finally {
       setLoading(false);
     }
-  }, [selectedText]);
+  }, [selectedText, startTypewriter]);
 
   // Re-translate when user changes their preferred language
   useEffect(() => {
@@ -491,6 +521,10 @@ export default function SelectionTranslator() {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
+    if (typewriterIntervalRef.current) {
+      clearInterval(typewriterIntervalRef.current);
+      typewriterIntervalRef.current = null;
+    }
     setPopoverOpen(false);
     setPosition(null);
     setSelectedText("");
@@ -539,7 +573,6 @@ export default function SelectionTranslator() {
                 className="flex items-center gap-1.5 px-3 py-2 bg-transparent hover:bg-nf-hover text-[11px] font-bold text-nf-muted hover:text-nf-text transition-colors"
                 type="button"
               >
-                <Sparkles size={12} />
                 <span>مساعد NorthFall</span>
               </button>
               
@@ -586,7 +619,6 @@ export default function SelectionTranslator() {
                 className="flex items-center gap-1.5 px-3 py-2 bg-transparent hover:bg-nf-hover text-[11px] font-bold text-nf-muted hover:text-nf-text transition-colors"
                 type="button"
               >
-                <Sparkles size={12} />
                 <span>شرح العبارة</span>
               </button>
 
@@ -619,15 +651,21 @@ export default function SelectionTranslator() {
           )}
         </div>
       ) : (
-        // Flat, clean Popover card with translated content (No blur, solid colors)
-        <div className="w-[340px] max-w-[90vw] p-4 rounded-xl border border-nf-border-2 bg-nf-card shadow-2xl flex flex-col gap-2.5">
+        // Flat, clean Popover card with translated content (No blur, solid colors, retro sharp corners)
+        <div className="w-[340px] max-w-[90vw] p-4 rounded-none border-2 border-nf-border-2 bg-nf-card shadow-2xl flex flex-col gap-2.5">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-nf-border-2/40 pb-2" dir="rtl">
+          <div className="flex items-center justify-between pb-2" dir="rtl">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] font-black text-nf-accent tracking-wider flex items-center gap-1 shrink-0">
-                {isAiMode ? <Sparkles size={12} /> : <Languages size={12} />}
-                {getHeaderTitle()}
-              </span>
+              <div className="flex items-center gap-1 shrink-0 select-none">
+                {!isAiMode && <Languages size={12} className="text-nf-accent" />}
+                <span className={cn(
+                  "text-[10px] font-black tracking-wider",
+                  isAiMode ? "nf-shimmer-text" : "text-nf-accent"
+                )}>
+                  {getHeaderTitle()}
+                </span>
+                {isAiMode && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] shrink-0 object-contain" />}
+              </div>
               {!isAiMode && (
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-nf-dim text-[9px]">إلى</span>
@@ -665,7 +703,7 @@ export default function SelectionTranslator() {
 
           {/* Actions toolbar */}
           {!loading && translatedText && (
-            <div className="flex items-center justify-end gap-1.5 border-t border-nf-border-2/40 pt-2 select-none">
+            <div className="flex items-center justify-end gap-1.5 pt-2 select-none">
               <button
                 onClick={handleSpeakTranslation}
                 className={cn(

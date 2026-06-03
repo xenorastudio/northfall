@@ -1650,3 +1650,31 @@ a.nf-md-link:hover {
     transform: translateY(0.5px);
   }
 }
+
+/* Shimmer sweep animation for AI text */
+@keyframes nf-shimmer-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.nf-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #9a9d9f 0%,
+    #d8dadc 35%,
+    #ffffff 50%,
+    #d8dadc 65%,
+    #9a9d9f 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: nf-shimmer-sweep 3.5s infinite linear;
+  display: inline-block;
+}
+
+

@@ -18,7 +18,10 @@ export default function NorthFallAiResult({
   return (
     <div className="mx-3 my-2 p-3 rounded-xl border border-nf-border-2/50 bg-nf-secondary/20">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[11px] font-bold text-nf-text tracking-tight">NorthFall AI</span>
+        <div className="flex items-center gap-1 select-none">
+          <span className="text-[11px] font-bold tracking-tight nf-shimmer-text">NorthFall AI</span>
+          <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] shrink-0 object-contain" />
+        </div>
         <span className="text-[10px] text-nf-dim">
           {loading ? "جاري التوليد..." : actionLabel}
         </span>

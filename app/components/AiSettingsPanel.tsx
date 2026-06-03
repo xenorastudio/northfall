@@ -52,8 +52,7 @@ export default function AiSettingsPanel({
   const current = aiModels[aiModel];
 
   return (
-    <div className="px-4 py-4">
-      <p className="text-[13px] font-semibold text-nf-text mb-3">الذكاء الاصطناعي</p>
+    <div className="space-y-1 text-right" dir="rtl">
 
       <SettingRow label="النموذج" sub={current?.desc || "اختر النموذج للتلخيص والترجمة وأدوات المنشور"}>
         <ComposeSelect

@@ -3943,7 +3943,10 @@ ${modePrompts[aiMode] || ""}`;
                         <div className="flex flex-col items-center gap-2 relative">
                           <div className="absolute w-[120px] h-[120px] bg-nf-accent/6 blur-[70px] rounded-full pointer-events-none" />
                           <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05, duration: 0.35 }} className="text-center relative z-10">
-                            <h2 className="text-[17px] font-bold text-nf-text mb-1 tracking-tight leading-tight">NorthFall AI</h2>
+                            <div className="flex items-center justify-center gap-1.5 mb-1 select-none">
+                              <h2 className="text-[17px] font-bold tracking-tight leading-tight nf-shimmer-text">NorthFall AI</h2>
+                              <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] shrink-0 object-contain" />
+                            </div>
                             <p className="text-[11px] text-nf-dim/50 leading-relaxed max-w-[320px]">{aiConnected === "ok" ? "مساعدك الذكي — جاهز لمساعدتك" : aiApiKey ? "اختبر الاتصال من الإعدادات أولاً" : "أضف مفتاح API من الإعدادات لبدء المحادثة"}</p>
                           </motion.div>
                         </div>
@@ -5004,9 +5007,12 @@ ${modePrompts[aiMode] || ""}`;
             <div className="flex items-center justify-between px-4 py-3 border-b border-nf-border/20 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="relative pl-0.5">
-                  <p className="text-[12px] font-semibold text-nf-text leading-none tracking-tight">NorthFall AI</p>
+                  <div className="flex items-center gap-1 select-none leading-none mb-0.5">
+                    <span className="text-[12px] font-semibold tracking-tight nf-shimmer-text">NorthFall AI</span>
+                    <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] shrink-0 object-contain" />
+                  </div>
                   {aiConnected === "ok" && (
-                    <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-400" />
+                    <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-400" />
                   )}
                   <p className="text-[9px] text-nf-dim mt-0.5">
                     {aiConnected === "ok" ? "متصل" : aiConnected === "testing" ? "جاري الاتصال..." : "غير متصل"}
@@ -5049,7 +5055,10 @@ ${modePrompts[aiMode] || ""}`;
                 /* Empty state */
                 <div className="flex flex-col items-center justify-center h-full gap-4 px-2 text-center">
                   <div>
-                    <p className="text-[14px] font-semibold text-nf-text tracking-tight">NorthFall AI</p>
+                    <div className="flex items-center justify-center gap-1 select-none mb-1">
+                      <p className="text-[14px] font-semibold tracking-tight nf-shimmer-text">NorthFall AI</p>
+                      <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] shrink-0 object-contain" />
+                    </div>
                     <p className="text-[10px] text-nf-dim mt-1 leading-relaxed max-w-[260px]">
                       {aiConnected === "ok"
                         ? "مساعدك الذكي — يعرف كل شيء عن المنصة والتطوير"

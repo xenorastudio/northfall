@@ -13,7 +13,7 @@ import {
   clearPickerSkipped,
   getShowAccountPickerSetting,
 } from "@/lib/account-switcher";
-import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Sparkles, Key, ChevronDown, Monitor, Heart, ExternalLink, EyeOff } from "lucide-react";
+import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Sparkles, Key, ChevronDown, Monitor, Heart, ExternalLink, EyeOff, BadgeCheck, X } from "lucide-react";
 import { getPostBorderedPref, setPostBorderedPref } from "@/lib/user-display-prefs";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -153,6 +153,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
   const { isClassic, setIsClassic } = useClassicTabs();
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState("account");
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [bio, setBio] = useState("");
   const [darkMode, setDarkMode] = useState(true);
@@ -488,7 +489,6 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
     { id: "appearance", label: t("sp.appearance"), icon: Palette },
     { id: "notifications", label: t("sp.notifications"), icon: Bell },
     { id: "privacy", label: t("sp.privacy"), icon: Shield },
-    { id: "ai", label: "الذكاء الاصطناعي", icon: Sparkles },
     { id: "language", label: t("sp.language"), icon: Globe },
   ];
 
@@ -516,6 +516,14 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
               </button>
             );
           })}
+          <button
+            onClick={() => setIsAiModalOpen(true)}
+            className="flex items-center gap-2 sm:w-full px-2.5 py-2 rounded-lg text-[11px] font-semibold text-nf-dim hover:bg-nf-hover hover:text-nf-text transition-colors shrink-0"
+            type="button"
+          >
+            <Sparkles size={13} className="text-nf-accent shrink-0" />
+            <span>إعدادات المساعد</span>
+          </button>
           {user && (
             <button onClick={logout} className="flex items-center gap-2 sm:w-full mt-0 sm:mt-3 px-2.5 py-2 rounded-lg text-[11px] font-semibold text-red-400 hover:bg-red-400/5 transition-colors shrink-0">
               <LogOut size={13} />
@@ -972,23 +980,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
             </div>
           )}
 
-          {activeSection === "ai" && (
-            <AiSettingsPanel
-              aiModel={aiModel}
-              setAiModel={setAiModel}
-              setAiProvider={setAiProvider}
-              aiModels={AI_MODELS}
-              aiApiKey={aiApiKey}
-              setAiApiKey={setAiApiKey}
-              aiConnected={aiConnected}
-              onTest={testAiConnection}
-              onDeleteKey={() => {
-                setAiApiKey("");
-                localStorage.removeItem("nf-ai-key");
-                setAiConnected("unknown");
-              }}
-            />
-          )}
+          {/* AI Settings are now in a dedicated Modal popup */}
 
           {activeSection === "language" && (
             <div className="p-4">
@@ -1085,6 +1077,69 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
               </div>
             </div>
           </div>
+        </div>,
+        document.body
+      )}
+
+      {isAiModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-[500px] rounded-2xl border border-nf-border-2 bg-nf-card shadow-2xl p-6 relative max-h-[95vh] overflow-y-auto"
+            dir={dir}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setIsAiModalOpen(false)}
+              className="absolute top-4 left-4 p-1.5 rounded-full text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-colors"
+              type="button"
+            >
+              <X size={15} />
+            </button>
+
+            {/* Title / Header */}
+            <div className="flex items-center gap-1.5 mb-4 select-none" dir="rtl">
+              <span className="text-[13px] font-black nf-shimmer-text">
+                إعدادات مساعد NorthFall
+              </span>
+            </div>
+
+            {/* Panel Content - Flat */}
+            <div className="mb-4">
+              <AiSettingsPanel
+                aiModel={aiModel}
+                setAiModel={setAiModel}
+                setAiProvider={setAiProvider}
+                aiModels={AI_MODELS}
+                aiApiKey={aiApiKey}
+                setAiApiKey={setAiApiKey}
+                aiConnected={aiConnected}
+                onTest={testAiConnection}
+                onDeleteKey={() => {
+                  setAiApiKey("");
+                  localStorage.removeItem("nf-ai-key");
+                  setAiConnected("unknown");
+                }}
+              />
+            </div>
+            
+            {/* Save notice / Footer */}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  localStorage.setItem("nf-ai-key", aiApiKey);
+                  localStorage.setItem("nf-ai-provider", aiProvider);
+                  localStorage.setItem("nf-ai-model", String(aiModel));
+                  setIsAiModalOpen(false);
+                  toast("تم حفظ إعدادات الذكاء الاصطناعي", "success");
+                }}
+                className="px-4 py-2 rounded-lg bg-nf-accent text-black text-[11px] font-bold hover:bg-nf-accent/80 transition-colors"
+              >
+                حفظ وإغلاق
+              </button>
+            </div>
+          </motion.div>
         </div>,
         document.body
       )}
