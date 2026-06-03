@@ -33,6 +33,7 @@ import { mergeActor } from "@/lib/notification-format";
 import { bumpCategoryAffinity } from "@/lib/hide-post";
 import { flairBadgeStyle } from "@/lib/flair-badge";
 import NorthFallAiResult from "./NorthFallAiResult";
+import { isVerifiedUser } from "@/lib/verified-users";
 
 interface QuotedPostData {
   id: string;
@@ -733,7 +734,7 @@ export default function PostCard({
             <span className="font-semibold text-nf-muted">{community}</span>
           )}
           <span className="text-nf-dim">·</span>
-          <HoverCard type="user" name={author} uid={authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted hover:text-nf-text hover:underline cursor-pointer inline-flex items-center gap-1" onClick={(e) => { e.stopPropagation(); onProfileClick?.(authorUid || undefined); }}>u/{author}{(authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span></HoverCard>
+          <HoverCard type="user" name={author} uid={authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted hover:text-nf-text hover:underline cursor-pointer inline-flex items-center gap-1" onClick={(e) => { e.stopPropagation(); onProfileClick?.(authorUid || undefined); }}>u/{author}{isVerifiedUser(authorUid) && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span></HoverCard>
           <span className="text-nf-dim">·</span>
           <span className="text-nf-muted">{time}</span>
           {flair && (

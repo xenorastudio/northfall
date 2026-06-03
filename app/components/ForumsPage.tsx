@@ -35,6 +35,7 @@ import { translateText } from "@/lib/translate";
 import TranslateLangPicker from "./TranslateLangPicker";
 import DeviceSpecsTooltip from "./DeviceSpecsTooltip";
 import { getDeviceSpecs } from "@/lib/deviceSpecs";
+import { isVerifiedUser } from "@/lib/verified-users";
 
 const AI_PROMPT = `أنت مساعد NorthFall — مساعد ذكي احترافي لمنصة مجتمعية عربية متخصصة في تطوير الألعاب والمحتوى الرقمي.
 
@@ -890,7 +891,7 @@ function UserHoverCard({ name, photo, uid, children }: { name: string; photo?: s
                 <div className="flex items-center gap-2">
                   <h4 className="text-lg font-bold text-nf-text tracking-tight flex items-center gap-1.5">
                     {profile.name}
-                    {uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" && (
+                    {isVerifiedUser(uid) && (
                       <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[18px] h-[18px] inline shrink-0" />
                     )}
                   </h4>
@@ -3062,7 +3063,7 @@ ${modePrompts[aiMode] || ""}`;
                                 <div className="flex items-center gap-2">
                                   <span className="text-[16px] font-extrabold text-nf-text group-hover/author:text-nf-accent transition-colors">
                                     {activeThread.authorName}
-                                    {activeThread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" && (
+                                    {isVerifiedUser(activeThread.authorUid) && (
                                       <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] inline mr-1 shrink-0" />
                                     )}
                                   </span>
@@ -3327,7 +3328,7 @@ ${modePrompts[aiMode] || ""}`;
                             <div className="relative group shrink-0 mb-2 inline-block" onMouseEnter={() => fetchAuthorCache(reply.authorUid)}>
                               <span className="flex items-center gap-2 cursor-pointer" onClick={() => openProfile(reply.authorUid, reply.authorName, reply.authorPhoto)}>
                                 {reply.authorPhoto ? <img src={reply.authorPhoto} alt="" className="w-6 h-6 rounded-full object-cover" /> : <div className="w-6 h-6 rounded-full bg-nf-muted flex items-center justify-center text-white text-[10px] font-bold">{(reply.authorName || "م")[0]}</div>}
-                                <span className="text-[13px] font-medium text-nf-accent hover:text-nf-accent/80 transition-colors inline-flex items-center gap-1">{reply.authorName}{(reply.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span>
+                                <span className="text-[13px] font-medium text-nf-accent hover:text-nf-accent/80 transition-colors inline-flex items-center gap-1">{reply.authorName}{isVerifiedUser(reply.authorUid) && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline" />}</span>
                                 {reply.authorUid === activeThread.authorUid && <span className="text-[9px] px-1.5 py-0.5 rounded bg-nf-accent/10 text-nf-accent font-bold">صاحب</span>}
                               </span>
                               {(reply as any).deviceSpecs && (
@@ -3348,7 +3349,7 @@ ${modePrompts[aiMode] || ""}`;
                                 <div className="px-4 pt-1 pb-3">
                                   <div className="flex items-center justify-between mb-1.5">
                                     <div>
-                                      <p className="text-[16px] font-bold text-nf-text inline-flex items-center gap-1.5">{reply.authorName}{(reply.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] inline" />}</p>
+                                      <p className="text-[16px] font-bold text-nf-text inline-flex items-center gap-1.5">{reply.authorName}{isVerifiedUser(reply.authorUid) && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] inline" />}</p>
                                       <div className="flex items-center gap-2 mt-0.5">
                                         <p className="text-[10px] text-nf-accent">@{reply.authorName}</p>
                                         <span className="text-[9px] px-2 py-0.5 rounded-full bg-nf-accent/10 text-nf-accent font-bold">{authorCache[reply.authorUid]?.role || "عضو"}</span>
@@ -5638,7 +5639,7 @@ function ThreadRow({ thread, onOpen, saved, onSave, userVotes, onVote, openProfi
                 </div>
                 <div className="flex flex-col justify-center text-right">
                   <span className="text-[15px] font-bold text-nf-text group-hover/author:text-nf-accent transition-colors inline-flex items-center gap-1.5 leading-none mb-1">
-                    {thread.authorName}{(thread.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline shrink-0" />}
+                    {thread.authorName}{isVerifiedUser(thread.authorUid) && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[14px] h-[14px] inline shrink-0" />}
                   </span>
                   <span className="text-[11px] text-nf-dim font-medium leading-none">{timeAgo(thread.createdAt)}</span>
                 </div>

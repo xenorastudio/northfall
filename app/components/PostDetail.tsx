@@ -39,6 +39,7 @@ import {
   type NorthfallCommentSort,
   type CommentContentFilter,
 } from "@/lib/comment-filters";
+import { isVerifiedUser } from "@/lib/verified-users";
 
 interface PostDetailProps {
   postId: string;
@@ -266,7 +267,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, on
                   </div>
                 )}
               </div>
-              <span className="font-bold text-white hover:text-nf-accent transition-colors inline-flex items-center gap-1">u/{comment.authorName || t("gen.user")}{(comment.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] inline" />}</span>
+              <span className="font-bold text-white hover:text-nf-accent transition-colors inline-flex items-center gap-1">u/{comment.authorName || t("gen.user")}{isVerifiedUser(comment.authorUid) && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] inline" />}</span>
             </div>
           </HoverCard>
           <span className="text-nf-dim">·</span>
@@ -1027,7 +1028,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
             </div>
             <HoverCard type="community" name={post.community || t("gen.general")} onCommunityClick={onCommunityClick}><span className="font-semibold text-nf-accent cursor-pointer">n/{post.community || t("gen.general")}</span></HoverCard>
             <span className="text-nf-dim">·</span>
-            <HoverCard type="user" name={post.authorName || t("gen.user")} uid={post.authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted cursor-pointer hover:text-nf-text transition-colors inline-flex items-center gap-1">u/{post.authorName || t("gen.user")}{(post.authorUid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] inline" />}</span></HoverCard>
+            <HoverCard type="user" name={post.authorName || t("gen.user")} uid={post.authorUid} onProfileClick={onProfileClick}><span className="text-nf-muted cursor-pointer hover:text-nf-text transition-colors inline-flex items-center gap-1">u/{post.authorName || t("gen.user")}{isVerifiedUser(post.authorUid) && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] inline" />}</span></HoverCard>
             <span className="text-nf-dim">·</span>
             <span className="text-nf-muted">{timeAgoShort(post.createdAt)}</span>
             {post.flair && (

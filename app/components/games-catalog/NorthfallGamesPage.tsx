@@ -46,6 +46,7 @@ import {
 import { useAuth } from "@/app/components/AuthProvider";
 import { cn } from "@/lib/utils";
 import { goToAppView } from "@/lib/nav-app";
+import { isVerifiedUser } from "@/lib/verified-users";
 import DonateSupportPopup from "@/app/components/DonateSupportPopup";
 
 type SortBy = "name" | "rating" | "year" | "oldest";
@@ -547,7 +548,7 @@ function GamesProfileMenu({
   }
 
   const name = user.displayName || user.email?.split("@")[0] || "مستخدم";
-  const verified = user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2";
+  const verified = isVerifiedUser(user.uid);
 
   const uid = user.uid;
   const goApp = (view: string, extra: Record<string, string> = {}) => {

@@ -17,6 +17,7 @@ import { resolveCategoryDisplay } from "@/lib/community-categories";
 import { fetchSearchTrending, type SearchTrendingSnapshot, type TrendingTopic } from "@/lib/search-trending";
 import { textDirAttr } from "@/lib/display-text";
 import { BOWIE_KNIFE_LABEL, type BowieGlitchDetail } from "@/lib/bowie-easter-egg";
+import { isVerifiedUser } from "@/lib/verified-users";
 
 
 const sortOptions = [
@@ -496,7 +497,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                         <div className="w-10 h-10 rounded-full bg-nf-secondary flex items-center justify-center border border-nf-border-2"><User size={18} className="text-nf-muted" /></div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-bold text-nf-text truncate flex items-center gap-1">{user.displayName || t("gen.user")}{(user.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] inline" />}</p>
+                        <p className="text-[13px] font-bold text-nf-text truncate flex items-center gap-1">{user.displayName || t("gen.user")}{isVerifiedUser(user.uid) && <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[12px] h-[12px] inline" />}</p>
                         <p className="text-[10px] text-nf-dim truncate">{user.email || ""}</p>
                       </div>
                       <button

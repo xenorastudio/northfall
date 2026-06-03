@@ -14,6 +14,7 @@ import { getLevel } from "@/lib/ranking";
 import { useToast } from "./ToastProvider";
 import { GAMES } from "./GamesPage";
 import { firestoreCommunityIdFromDisplay } from "@/lib/post-target";
+import { isVerifiedUser } from "@/lib/verified-users";
 
 interface HoverCardProps {
   children: React.ReactNode;
@@ -299,7 +300,7 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[13px] font-bold text-nf-text truncate">u/{data.name}</span>
-              {(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && (
+              {isVerifiedUser(uid) && (
                 <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] shrink-0" />
               )}
               {(() => {
