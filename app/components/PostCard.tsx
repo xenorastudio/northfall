@@ -470,17 +470,7 @@ export default function PostCard({
       setMyVote(prevVote);
       setVoteCount(prevCount);
     } finally {
-      if (postId) {
-        readPostVoteCount(postId)
-          .then((serverVotes) => {
-            voteCountRef.current = serverVotes;
-            setVoteCount(serverVotes);
-            votingRef.current = false;
-          })
-          .catch(() => { votingRef.current = false; });
-      } else {
-        votingRef.current = false;
-      }
+      votingRef.current = false;
     }
   };
 

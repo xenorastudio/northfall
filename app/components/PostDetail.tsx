@@ -773,13 +773,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       setPostMyVote(prevVote);
       setPostVoteCount(prevCount);
     } finally {
-      readPostVoteCount(postId)
-        .then((serverVotes) => {
-          setPostVoteCount(serverVotes);
-          postVoteCountRef.current = serverVotes;
-          postVotingRef.current = false;
-        })
-        .catch(() => { postVotingRef.current = false; });
+      postVotingRef.current = false;
     }
   };
 
