@@ -13,7 +13,7 @@ import {
   clearPickerSkipped,
   getShowAccountPickerSetting,
 } from "@/lib/account-switcher";
-import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Sparkles, Key, ChevronDown, Monitor, Heart, ExternalLink } from "lucide-react";
+import { ArrowRight, User, Shield, LogOut, Palette, Bell, Globe, Check, Sparkles, Key, ChevronDown, Monitor, Heart, ExternalLink, EyeOff } from "lucide-react";
 import { getPostBorderedPref, setPostBorderedPref } from "@/lib/user-display-prefs";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -961,9 +961,7 @@ export default function SettingsPage({ onBack }: { onBack: () => void }) {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-nf-border-2/50 rounded-xl">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-nf-dim/40 mb-2">
-                        <path d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z"/>
-                      </svg>
+                      <EyeOff size={24} className="text-nf-dim/40 mb-2" />
                       <p className="text-[12px] text-nf-dim">لا توجد كلمات مكتومة</p>
                       <p className="text-[10px] text-nf-dim/50 mt-1">أضف كلمات لإخفاء المنشورات التي تحتوي عليها</p>
                     </div>

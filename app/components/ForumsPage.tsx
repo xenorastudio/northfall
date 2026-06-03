@@ -2568,6 +2568,25 @@ ${modePrompts[aiMode] || ""}`;
       setDocumentTitle(truncateTabLabel(activeThread.title));
     }
   }, [activeThread?.title, viewMode]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (viewMode === "thread" && activeThread) {
+        (window as any).activePostContext = {
+          title: activeThread.title,
+          body: activeThread.body,
+        };
+      } else {
+        (window as any).activePostContext = null;
+      }
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        (window as any).activePostContext = null;
+      }
+    };
+  }, [activeThread, viewMode]);
+
   const sortedReplies = (() => { let f = [...activeReplies]; if (replyTimeFilter !== "all") { const now = Date.now(); const cutoff = replyTimeFilter === "today" ? now - 86400000 : replyTimeFilter === "week" ? now - 86400000 * 7 : now - 86400000 * 30; f = f.filter(r => new Date(r.createdAt).getTime() > cutoff); } if (replySort === "newest") f.reverse(); return f; })();
   const activeTypeInfo = activeThread ? getTypeInfo(activeThread.type) : threadTypes[0];
 

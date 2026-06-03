@@ -14,7 +14,12 @@ export async function POST(req: NextRequest) {
     // Use user's API key, or fall back to server-side key from env
     const effectiveKey = apiKey || process.env.AI_API_KEY || "";
     if (!effectiveKey || !provider || !model) {
-      return NextResponse.json({ error: "أضف مفتاح API من الإعدادات — أو اضبط AI_API_KEY في .env.local" }, { status: 400 });
+      return NextResponse.json({ error: "يرجى تهيئة مفتاح المساعد في الإعدادات للاستفادة من الميزة." }, { status: 400 });
+    }
+
+    // Validate API key is ASCII only to prevent ByteString conversion error in fetch headers
+    if (effectiveKey && !/^[\x00-\x7F]*$/.test(effectiveKey)) {
+      return NextResponse.json({ error: "مفتاح المساعد غير صالح. يرجى التحقق من كتابة الرمز بشكل صحيح." }, { status: 400 });
     }
 
     const tokens = maxTokens || MAX_TOKENS;

@@ -261,20 +261,20 @@ export default function TranslateLangPicker({
           type="button"
           onClick={() => setOpen(!open)}
           className={cn(
-            "w-full flex items-center gap-2 text-[11px] transition-colors",
+            "w-full flex items-center justify-between gap-2 text-nf-text text-[11px] transition-all",
             settingsPlain
-              ? "justify-end text-nf-muted hover:text-nf-text py-1"
+              ? "nf-compose-field nf-compose-field--select"
               : "px-3 py-2 rounded-lg border bg-nf-secondary/30 border-nf-border/10 hover:border-nf-border/25"
           )}
         >
           {settingsPlain ? (
             <>
-              <span className="text-nf-text truncate">{current.label}</span>
-              <ChevronDown size={11} className={cn("shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
+              <span className="truncate">{current.label}</span>
+              <ChevronDown size={12} className={cn("shrink-0 opacity-45 transition-transform", open && "rotate-180")} />
             </>
           ) : (
             <>
-              <span className="flex-1 text-right text-nf-text">{current.label}</span>
+              <span className="flex-1 text-right text-nf-text font-sans">{current.label}</span>
               <ChevronDown size={12} className={cn("shrink-0 opacity-40 transition-transform", open && "rotate-180")} />
             </>
           )}

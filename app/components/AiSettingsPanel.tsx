@@ -30,8 +30,8 @@ function SettingRow({ label, sub, children }: { label: string; sub?: string; chi
   return (
     <div className="flex items-center justify-between py-3 gap-4">
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] text-nf-muted font-medium">{plainAr(label)}</p>
-        {sub && <p className="text-[10px] text-nf-dim/80 mt-0.5">{plainAr(sub)}</p>}
+        <p className="text-[12px] text-nf-muted font-medium">{label}</p>
+        {sub && <p className="text-[10px] text-nf-dim/80 mt-0.5">{sub}</p>}
       </div>
       <div className="shrink-0">{children}</div>
     </div>
@@ -67,7 +67,7 @@ export default function AiSettingsPanel({
             value: String(i),
             label: `${m.name}${m.free ? " · مجاني" : ""}`,
           }))}
-          className="min-w-[140px]"
+          className="w-[160px]"
           size="sm"
         />
       </SettingRow>
@@ -79,7 +79,8 @@ export default function AiSettingsPanel({
             value={aiApiKey}
             onChange={(e) => setAiApiKey(e.target.value)}
             placeholder="sk-..."
-            className="w-full bg-transparent border border-nf-border-2 rounded-lg px-3 py-1.5 ps-7 text-[10px] text-nf-text placeholder:text-nf-dim/40 outline-none focus:border-nf-accent/40 font-mono"
+            autoComplete="new-password"
+            className="w-full bg-transparent border border-nf-border-2 rounded-lg px-3 py-1.5 ps-7 text-[11px] text-nf-text placeholder:text-nf-dim/40 outline-none focus:border-nf-accent/40 font-mono"
             dir="ltr"
           />
           <Key size={10} className="absolute start-2 top-1/2 -translate-y-1/2 text-nf-dim/40 pointer-events-none" />
@@ -129,13 +130,13 @@ export default function AiSettingsPanel({
       )}
 
       <SettingRow label="لغة ترجمة AI" sub="اللغة الافتراضية لترجمة المحتوى">
-        <div className="w-[148px]">
+        <div className="w-[160px]">
           <TranslateLangPicker fullWidth variant="settings" storageKey="nf-ai-translate-lang" />
         </div>
       </SettingRow>
 
       <SettingRow label="ترجمة التعليقات" sub="لغة عرض التعليقات المترجمة">
-        <div className="w-[148px]">
+        <div className="w-[160px]">
           <TranslateLangPicker fullWidth variant="settings" storageKey="nf-translate-lang" />
         </div>
       </SettingRow>

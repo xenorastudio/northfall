@@ -276,12 +276,12 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
   if (!data) return <div className="p-3 text-xs text-nf-muted">{t("gen.loading")}</div>;
   return (
     <div>
-      <div className={`relative overflow-hidden ${data.bannerUrl ? 'h-[65px]' : 'h-0'}`}>
+      <div className={`relative overflow-hidden ${data.bannerUrl ? 'h-[85px]' : 'h-0'}`}>
         {data.bannerUrl ? <img src={data.bannerUrl} alt="" className="w-full h-full object-cover" /> : null}
         {data.bannerUrl && <div className="absolute inset-0 bg-gradient-to-t from-nf-body to-transparent" />}
       </div>
-      <div className={`px-3 pb-2.5 ${data.bannerUrl ? '-mt-4' : 'mt-2'} relative`}>
-        <div className="flex items-end gap-2 mb-2.5">
+      <div className={`px-3 pb-2.5 ${data.bannerUrl ? '-mt-5' : 'mt-2'} relative`}>
+        <div className="flex items-center gap-2 mb-2.5">
           <div className="relative">
             {data.photo ? (
               <img src={data.photo} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-nf-body" />
@@ -345,38 +345,14 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
           </div>
         </div>
 
-        {/* Level Banner */}
-        <div className="flex items-center justify-between mb-3 bg-nf-secondary/20 p-2 rounded-lg border border-nf-border-2/40">
-          <span className="text-[10px] font-bold text-nf-muted">مستوى العضوية / Level</span>
-          {(() => { const r = getLevel(data.xp || 0); return <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${r.bg} ${r.color} border ${r.border}`}>{r.name}</span>; })()}
-        </div>
-
-        {/* Statistics Grid */}
-        <div className="grid grid-cols-3 gap-1.5 text-center mb-3">
-          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
-            <span className="text-[12px] font-black text-nf-text">{Math.max(0, Math.round(data.karma || 0))}</span>
-            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">الصيت</span>
-          </div>
-          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
-            <span className="text-[12px] font-black text-amber-400">{data.xp || 0}</span>
-            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">XP</span>
-          </div>
-          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
-            <span className="text-[12px] font-black text-nf-text">{data.postCount || 0}</span>
-            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">المنشورات</span>
-          </div>
-          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
-            <span className="text-[12px] font-black text-nf-text">{data.commentCount || 0}</span>
-            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">التعليقات</span>
-          </div>
-          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
-            <span className="text-[12px] font-black text-nf-text">{data.followerCount || 0}</span>
-            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">المتابِعون</span>
-          </div>
-          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
-            <span className="text-[12px] font-black text-nf-text">{data.followingCount || 0}</span>
-            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">يتابعهم</span>
-          </div>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {(() => { const r = getLevel(data.xp || 0); return <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${r.bg} ${r.color} border ${r.border}`}>{r.name}</span>; })()}
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-nf-text font-bold">{Math.max(0, Math.round(data.karma || 0))}</span> صيت</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-amber-400 font-bold">{data.xp || 0}</span> XP</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-nf-text font-bold">{data.postCount || 0}</span> منشور</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-nf-text font-bold">{data.commentCount || 0}</span> تعليق</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><span className="text-nf-text font-bold">{data.followerCount || 0}</span> متابِعون</span>
+          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><span className="text-nf-text font-bold">{data.followingCount || 0}</span> يتابعهم</span>
         </div>
         {data.bio && (
           <p className="text-[11px] text-nf-text-2 leading-relaxed mb-3 mt-1.5 px-0.5 whitespace-pre-wrap select-text">

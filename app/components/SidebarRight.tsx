@@ -878,11 +878,6 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
 
       {/* Footer */}
       <div className="text-center px-4 py-2">
-        <div className="flex items-center justify-center gap-1 text-[11px] text-nf-muted flex-wrap font-sans">
-          <Link href="/privacy" className="hover:text-nf-text">{t("sr.privacy")}</Link>
-          <span className="text-nf-dim">·</span>
-          <Link href="/terms" className="hover:text-nf-text">{t("sr.terms")}</Link>
-        </div>
         <p className="text-[11px] text-nf-dim mt-1">© 2026 NorthFall. {t("gen.allRightsReserved")}</p>
       </div>
     </aside>

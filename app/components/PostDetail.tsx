@@ -862,6 +862,25 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
   }, [postId]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (post) {
+        (window as any).activePostContext = {
+          title: post.title,
+          body: post.body,
+        };
+      } else {
+        (window as any).activePostContext = null;
+      }
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        (window as any).activePostContext = null;
+      }
+    };
+  }, [post]);
+
+
+  useEffect(() => {
     setPostTranslated(null);
   }, [livingIdx]);
 
