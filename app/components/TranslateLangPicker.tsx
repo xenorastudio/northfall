@@ -281,7 +281,7 @@ export default function TranslateLangPicker({
         </button>
 
         {open && mounted && createPortal(
-          <div className="fixed inset-0 z-[1200]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
+          <div className="fixed inset-0 z-[100000]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
             <div
               className="absolute rounded-xl shadow-2xl"
               style={{
@@ -313,12 +313,12 @@ export default function TranslateLangPicker({
         title={`لغة الترجمة: ${current.label}`}
         aria-label={`لغة الترجمة: ${current.label}`}
       >
-        <span className="truncate max-w-[40px]">{current.label}</span>
+        <span className="truncate max-w-[70px]">{current.label}</span>
         <ChevronDown size={9} className={cn("shrink-0 opacity-60 transition-transform", open && "rotate-180")} />
       </button>
 
       {open && mounted && createPortal(
-        <div className="fixed inset-0 z-[1200]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
+        <div className="fixed inset-0 z-[100000]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
           <div
             className="absolute rounded-xl shadow-2xl"
             style={{

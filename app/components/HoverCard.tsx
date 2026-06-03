@@ -76,6 +76,7 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
                 followingCount,
                 socialLinks: d.socialLinks || {},
                 favoriteGameIds,
+                role: d.role || "عضو",
               });
               return;
             }
@@ -114,6 +115,7 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
               followingCount,
               socialLinks: d.socialLinks || {},
               favoriteGameIds,
+              role: d.role || "عضو",
             });
           }
         } else {
@@ -186,7 +188,7 @@ export default function HoverCard({ children, type, name, uid, onCommunityClick,
               exit={{ opacity: 0, y: 4, scale: 0.97 }}
               transition={{ duration: 0.12 }}
               style={{ position: "fixed", top: pos.top, right: pos.right, zIndex: 99999 }}
-              className="w-[280px] bg-nf-primary border border-nf-border rounded-lg shadow-xl overflow-hidden pointer-events-auto"
+              className="w-[310px] bg-nf-body border border-nf-border-2 rounded-xl shadow-xl overflow-hidden pointer-events-auto"
               onMouseEnter={() => setShow(true)}
               onMouseLeave={handleLeave}
             >
@@ -276,48 +278,111 @@ function UserCard({ data, name, uid, onProfileClick }: { data: any; name: string
     <div>
       <div className={`relative overflow-hidden ${data.bannerUrl ? 'h-[65px]' : 'h-0'}`}>
         {data.bannerUrl ? <img src={data.bannerUrl} alt="" className="w-full h-full object-cover" /> : null}
-        {data.bannerUrl && <div className="absolute inset-0 bg-gradient-to-t from-nf-primary to-transparent" />}
+        {data.bannerUrl && <div className="absolute inset-0 bg-gradient-to-t from-nf-body to-transparent" />}
       </div>
       <div className={`px-3 pb-2.5 ${data.bannerUrl ? '-mt-4' : 'mt-2'} relative`}>
-        <div className="flex items-end gap-2 mb-2">
+        <div className="flex items-end gap-2 mb-2.5">
           <div className="relative">
             {data.photo ? (
-              <img src={data.photo} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-nf-primary" />
+              <img src={data.photo} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-nf-body" />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-nf-secondary border-2 border-nf-primary flex items-center justify-center text-sm text-nf-muted font-bold">{name[0]}</div>
+              <div className="w-9 h-9 rounded-full bg-nf-secondary border-2 border-nf-body flex items-center justify-center text-sm text-nf-muted font-bold">{name[0]}</div>
             )}
             {(() => {
               const isOnline = data.lastSeen && (Date.now() - new Date(data.lastSeen).getTime()) < 5 * 60 * 1000;
               return (
-                <span className={cn("absolute bottom-0 left-0 w-3 h-3 rounded-full border-2 border-nf-primary",
+                <span className={cn("absolute bottom-0 left-0 w-3 h-3 rounded-full border-2 border-nf-body",
                   isOnline ? "bg-green-400" : "bg-gray-500")} />
               );
             })()}
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[13px] font-bold text-nf-text">u/{data.name}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[13px] font-bold text-nf-text truncate">u/{data.name}</span>
               {(uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") && (
-                <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[15px] h-[15px] shrink-0" />
+                <img src="/assets/favicon/verified.png" alt="موثّق" className="w-[13px] h-[13px] shrink-0" />
               )}
               {(() => {
                 const isOnline = data.lastSeen && (Date.now() - new Date(data.lastSeen).getTime()) < 5 * 60 * 1000;
-                return <span className={cn("text-[10px] font-semibold", isOnline ? "text-green-400" : "text-nf-dim")}>{isOnline ? "متصل" : "غير متصل"}</span>;
+                return <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded", isOnline ? "text-green-400 bg-green-400/10" : "text-nf-dim bg-nf-secondary/40")}>{isOnline ? "نشط" : "غير متصل"}</span>;
               })()}
+              {data.role && data.role !== "عضو" && (
+                <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded border",
+                  data.role === "مشرف" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                  data.role === "إداري" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
+                  "bg-nf-accent/10 text-nf-accent border-nf-accent/20"
+                )}>
+                  {data.role}
+                </span>
+              )}
             </div>
-              <div className="text-[10px] text-nf-dim flex items-center gap-0.5"><Cake size={8} /> {(() => { if (uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2") return "انضم أبريل 2024"; if (data.joinedAt) { const d = new Date(data.joinedAt); const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]; return `انضم ${months[d.getMonth()]} ${d.getFullYear()}`; } return t("hc.joinedApril"); })()}</div>
+            <div className="flex flex-col gap-0.5 mt-1 text-[9px] text-nf-dim">
+              <div className="flex items-center gap-1">
+                <Cake size={9} className="text-nf-accent shrink-0" /> 
+                <span>
+                  {uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" ? "انضم أبريل 2024" : (() => { 
+                    if (data.joinedAt) { 
+                      const d = new Date(data.joinedAt); 
+                      const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]; 
+                      return `انضم ${months[d.getMonth()]} ${d.getFullYear()}`; 
+                    } 
+                    return t("hc.joinedApril"); 
+                  })()}
+                </span>
+              </div>
+              {data.lastSeen && (
+                <div className="flex items-center gap-1">
+                  <Clock size={9} className="text-emerald-500 shrink-0" />
+                  <span>
+                    آخر نشاط: {(() => {
+                      const d = new Date(data.lastSeen);
+                      return `${d.toLocaleDateString("ar-EG")} ${d.toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' })}`;
+                    })()}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        <div className="flex flex-wrap gap-1 mb-2">
-          {(() => { const r = getLevel(data.xp || 0); return <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${r.bg} ${r.color} border ${r.border}`}>{r.name}</span>; })()}
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-nf-text font-bold">{Math.max(0, Math.round(data.karma || 0))}</span> صيت</span>
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-amber-400 font-bold">{data.xp || 0}</span> XP</span>
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-nf-text font-bold">{data.postCount || 0}</span> منشور</span>
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim"><span className="text-nf-text font-bold">{data.commentCount || 0}</span> تعليق</span>
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><Users size={7} /><span className="text-nf-text font-bold">{data.followerCount || 0}</span> يتابعونه</span>
-          <span className="px-1.5 py-0.5 rounded bg-nf-secondary/60 text-[9px] text-nf-dim flex items-center gap-0.5"><UserPlus size={7} /><span className="text-nf-text font-bold">{data.followingCount || 0}</span> يتابعهم</span>
+
+        {/* Level Banner */}
+        <div className="flex items-center justify-between mb-3 bg-nf-secondary/20 p-2 rounded-lg border border-nf-border-2/40">
+          <span className="text-[10px] font-bold text-nf-muted">مستوى العضوية / Level</span>
+          {(() => { const r = getLevel(data.xp || 0); return <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${r.bg} ${r.color} border ${r.border}`}>{r.name}</span>; })()}
         </div>
-        {data.bio && <p className="text-[10px] text-nf-dim leading-relaxed mb-2 line-clamp-2">{data.bio}</p>}
+
+        {/* Statistics Grid */}
+        <div className="grid grid-cols-3 gap-1.5 text-center mb-3">
+          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
+            <span className="text-[12px] font-black text-nf-text">{Math.max(0, Math.round(data.karma || 0))}</span>
+            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">الصيت</span>
+          </div>
+          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
+            <span className="text-[12px] font-black text-amber-400">{data.xp || 0}</span>
+            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">XP</span>
+          </div>
+          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
+            <span className="text-[12px] font-black text-nf-text">{data.postCount || 0}</span>
+            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">المنشورات</span>
+          </div>
+          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
+            <span className="text-[12px] font-black text-nf-text">{data.commentCount || 0}</span>
+            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">التعليقات</span>
+          </div>
+          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
+            <span className="text-[12px] font-black text-nf-text">{data.followerCount || 0}</span>
+            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">المتابِعون</span>
+          </div>
+          <div className="bg-nf-secondary/20 border border-nf-border-2/40 p-1.5 rounded-lg flex flex-col justify-center">
+            <span className="text-[12px] font-black text-nf-text">{data.followingCount || 0}</span>
+            <span className="text-[8px] text-nf-dim font-bold block mt-0.5">يتابعهم</span>
+          </div>
+        </div>
+        {data.bio && (
+          <p className="text-[11px] text-nf-text-2 leading-relaxed mb-3 mt-1.5 px-0.5 whitespace-pre-wrap select-text">
+            {data.bio}
+          </p>
+        )}
         {/* Social Links */}
         {data.socialLinks && Object.values(data.socialLinks).some((v: any) => v?.trim()) && (
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
@@ -519,6 +584,7 @@ async function fetchUserHoverData(name: string, uid?: string) {
           followingCount,
           socialLinks: d.socialLinks || {},
           favoriteGameIds,
+          role: d.role || "عضو",
         };
       }
     }
@@ -551,6 +617,7 @@ async function fetchUserHoverData(name: string, uid?: string) {
       followingCount: 0,
       socialLinks: d.socialLinks || {},
       favoriteGameIds: [] as string[],
+      role: d.role || "عضو",
     };
   } catch {
     return null;
@@ -601,7 +668,7 @@ export function UserProfilePopover({
       exit={{ opacity: 0, y: 4, scale: 0.97 }}
       transition={{ duration: 0.12 }}
       style={{ position: "fixed", top, right, zIndex: 99999 }}
-      className="nf-mention-popover w-[280px] bg-nf-primary border border-nf-border rounded-lg shadow-xl overflow-hidden pointer-events-auto"
+      className="nf-mention-popover w-[310px] bg-nf-body border border-nf-border-2 rounded-xl shadow-xl overflow-hidden pointer-events-auto animate-in fade-in zoom-in-95 duration-150"
       onMouseEnter={(e) => e.stopPropagation()}
       onMouseLeave={onClose}
     >
