@@ -850,40 +850,7 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
         )
       ) : null}
 
-      {/* About & OAuth Disclosure Widget (Required for Google Verification) */}
-      {!communityName && (
-        <div className="nf-sidebar-card overflow-hidden mb-2 border border-nf-border-2 bg-nf-card">
-          <div className="flex items-center gap-1.5 px-3.5 py-3 pb-2 border-b nf-sidebar-card-divider">
-            <Globe size={12} className="text-nf-accent" />
-            <span className="text-[11px] font-bold text-nf-muted uppercase tracking-wide">حول المنصة / About Us</span>
-          </div>
-          <div className="px-3.5 py-3 space-y-2.5 text-[11px] text-nf-muted leading-relaxed font-medium">
-            <p className="nf-bidi-text text-right" dir="rtl">
-              <strong>نورثفال (NorthFall)</strong> هي منصة تفاعلية للمجتمعات تتيح مشاركة المنشورات، الصور، الفيديوهات، والألعاب، والمشاركة في نقاشات المنتدى.
-            </p>
-            <p className="text-left font-sans text-[11px] text-zinc-400" dir="ltr">
-              <strong>NorthFall</strong> is a community-driven platform to share posts, images, videos, games, and participate in forum discussions.
-            </p>
-            <div className="border-t border-nf-border-2/40 pt-2.5 space-y-1.5">
-              <p className="font-bold text-nf-text text-[10px] uppercase text-right" dir="rtl">تكامل Google Drive:</p>
-              <p className="nf-bidi-text text-right text-zinc-400" dir="rtl">
-                يتكامل الموقع مع Google OAuth للسماح للمستخدمين باختيار صورهم ومقاطع الفيديو الخاصة بهم مباشرة من Google Drive وعرضها داخل المنشورات باستخدام Google Picker. نحن نصل فقط إلى الملفات المحددة ولا نقوم بحفظ أو مشاركة أي بيانات شخصية.
-              </p>
-              <p className="text-left font-sans text-[10px] text-zinc-500 leading-normal" dir="ltr">
-                <strong>Google Drive Integration:</strong> We use Google OAuth and Picker API to let you select and display media from your Google Drive inside posts. We only access files you explicitly select and do not store or share personal data.
-              </p>
-            </div>
-            <div className="border-t border-nf-border-2/40 pt-2.5 flex flex-col gap-1 select-none font-sans">
-              <Link 
-                href="/about"
-                className="w-full text-center text-[10px] text-nf-accent hover:underline font-bold"
-              >
-                سياسة الخصوصية وشروط الخدمة / Privacy Policy & Terms
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {suggestedComms.length > 0 && (
         <div className="nf-sidebar-card overflow-hidden mb-2">
@@ -915,8 +882,6 @@ export default function SidebarRight({ onCommunityClick, onPostClick, communityN
           <Link href="/privacy" className="hover:text-nf-text">{t("sr.privacy")}</Link>
           <span className="text-nf-dim">·</span>
           <Link href="/terms" className="hover:text-nf-text">{t("sr.terms")}</Link>
-          <span className="text-nf-dim">·</span>
-          <Link href="/about" className="hover:text-nf-text">حول المنصة / About</Link>
         </div>
         <p className="text-[11px] text-nf-dim mt-1">© 2026 NorthFall. {t("gen.allRightsReserved")}</p>
       </div>
