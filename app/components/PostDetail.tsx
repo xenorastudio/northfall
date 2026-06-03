@@ -18,6 +18,7 @@ import PostBodyContent from "./PostBodyContent";
 import ImageLightbox from "./ImageLightbox";
 import BeforeAfterSlider from "./BeforeAfterSlider";
 import FeedMediaFrame from "./FeedMediaFrame";
+import VideoPlayer from "./VideoPlayer";
 import NorthFallAiButton from "./NorthFallAiButton";
 import NorthFallAiResult from "./NorthFallAiResult";
 import TranslateLangPicker from "./TranslateLangPicker";
@@ -193,7 +194,7 @@ function CommentNode({ comment, depth = 0, onReply, onProfileClick, onDelete, on
     const { next: newVote, diff } = transition;
     const prevVote = myVoteRef.current;
     const prevCount = voteCountRef.current;
-    const nextCount = Math.max(0, prevCount + diff);
+    const nextCount = prevCount + diff;
     votingRef.current = true;
     myVoteRef.current = newVote;
     voteCountRef.current = nextCount;
@@ -451,6 +452,35 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     return [];
   }, [activeVersion, post]);
 
+  const unifiedMedia = useMemo(() => {
+    if (!post) return [];
+    
+    const activeUrls = activeVersion?.imageUrls?.length
+      ? activeVersion.imageUrls.filter((u: any) => u?.trim())
+      : activeVersion?.imageUrl?.trim()
+        ? [activeVersion.imageUrl]
+        : [];
+        
+    if (activeUrls.length > 0) {
+      const imgs = activeUrls.map((u: string) => ({ type: "image" as const, url: u }));
+      const vid = (activeVersion as any)?.videoUrl?.trim();
+      return vid ? [...imgs, { type: "video" as const, url: vid }] : imgs;
+    }
+
+    if (Array.isArray(post.mediaItems) && post.mediaItems.length > 0) {
+      return post.mediaItems.filter((m: any) => m?.url?.trim());
+    }
+
+    const imgs = (post.imageUrls && post.imageUrls.length > 0)
+      ? post.imageUrls.filter((u: string) => u?.trim())
+      : post.imageUrl?.trim()
+        ? [post.imageUrl]
+        : [];
+    const derivedImgs = imgs.map((u: string) => ({ type: "image" as const, url: u }));
+    const vid = post.videoUrl?.trim();
+    return vid ? [...derivedImgs, { type: "video" as const, url: vid }] : derivedImgs;
+  }, [activeVersion, post]);
+
   useEffect(() => {
     const ic = localStorage.getItem("nf-image-carousel");
     setImageCarousel(ic !== "false");
@@ -464,7 +494,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
 
   useEffect(() => {
     setDetailImgIdx(0);
-  }, [postId, displayImageUrls.length]);
+  }, [postId, unifiedMedia.length]);
 
   const togglePostTranslate = useCallback(async () => {
     if (!post) return;
@@ -551,7 +581,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
       if (typeof data.views === "number") setViews(data.views);
       if (typeof data.commentCount === "number") setCommentCount(data.commentCount);
       if (typeof data.votes === "number" && !postVotingRef.current) {
-        const v = Math.max(0, data.votes);
+        const v = data.votes || 0;
         setPostVoteCount(v);
         postVoteCountRef.current = v;
       }
@@ -702,7 +732,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
     const { next: newVote, diff } = transition;
     const prevVote = currentVote;
     const prevCount = postVoteCountRef.current;
-    const nextCount = Math.max(0, prevCount + diff);
+    const nextCount = prevCount + diff;
     postMyVoteRef.current = newVote;
     postVoteCountRef.current = nextCount;
     setPostMyVote(newVote);
@@ -784,7 +814,7 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         if (postSnap.exists()) {
           const data: any = { id: postSnap.id, ...postSnap.data() };
           setPost(data);
-          const nextVotes = Math.max(0, data.votes || 0);
+          const nextVotes = data.votes || 0;
           setPostVoteCount(nextVotes);
           postVoteCountRef.current = nextVotes;
           setCommentCount(data.commentCount || 0);
@@ -1082,11 +1112,10 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
               </div>
             );
           })()}
-          {/* Multiple images */}
+          {/* Multiple images/videos Carousel */}
           {(() => {
-            const urls = displayImageUrls;
+            if (unifiedMedia.length === 0) return null;
             const isBlurred = (post.isNsfw || post.isSpoiler) && !detailBlurRevealed;
-            if (!urls.length) return null;
 
             const compareBtn =
               canCompareVersionImages && !isBlurred ? (
@@ -1100,65 +1129,83 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                 </button>
               ) : null;
 
-            const renderImage = (url: string, i: number) => (
-              <div key={url + i} className="relative mt-3 rounded-lg overflow-hidden nf-feed-media">
-                {i === 0 && compareBtn}
-                {isBlurred ? (
-                  <div className="relative">
-                    <FeedMediaFrame src={url} alt="" imgClassName="nf-feed-media-img blur-2xl scale-105" />
-                    <div onClick={() => setDetailBlurRevealed(true)} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 cursor-pointer hover:bg-black/40 transition-colors z-10">
-                      <span className="text-white text-[13px] font-bold mb-1">{post.isNsfw ? "محتوى حساس" : "Spoiler - اضغط للعرض"}</span>
-                      <span className="text-white/60 text-[11px]">اضغط لكشف الصورة</span>
-                    </div>
+            const renderMediaItem = (item: { type: "image" | "video"; url: string }, i: number) => {
+              if (item.type === "image") {
+                return (
+                  <div key={item.url + i} className="relative mt-3 rounded-lg overflow-hidden nf-feed-media">
+                    {i === 0 && compareBtn}
+                    {isBlurred ? (
+                      <div className="relative">
+                        <FeedMediaFrame src={item.url} alt="" imgClassName="nf-feed-media-img blur-2xl scale-105" />
+                        <div onClick={() => setDetailBlurRevealed(true)} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 cursor-pointer hover:bg-black/40 transition-colors z-10">
+                          <span className="text-white text-[13px] font-bold mb-1">{post.isNsfw ? "محتوى حساس" : "Spoiler - اضغط للعرض"}</span>
+                          <span className="text-white/60 text-[11px]">اضغط لكشف الصورة</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <FeedMediaFrame
+                        src={item.url}
+                        alt=""
+                        imgClassName="nf-feed-media-img"
+                        onImageClick={() => setLightboxImg({ src: item.url, urls: unifiedMedia.filter((m: any) => m.type === "image").map((m: any) => m.url), idx: i })}
+                      />
+                    )}
                   </div>
-                ) : (
-                  <FeedMediaFrame
-                    src={url}
-                    alt=""
-                    imgClassName="nf-feed-media-img"
-                    onImageClick={() => setLightboxImg({ src: url, urls, idx: i })}
-                  />
-                )}
-              </div>
-            );
+                );
+              } else {
+                return (
+                  <div key={item.url + i} className="relative mt-3 rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <VideoPlayer url={item.url} />
+                  </div>
+                );
+              }
+            };
 
-            if (imageCarousel && urls.length > 1) {
-              const idx = Math.min(detailImgIdx, urls.length - 1);
-              const url = urls[idx];
+            if (imageCarousel && unifiedMedia.length > 1) {
+              const idx = Math.min(detailImgIdx, unifiedMedia.length - 1);
+              const item = unifiedMedia[idx];
               return (
                 <div className="relative mt-3 rounded-lg overflow-hidden nf-feed-media">
-                  {compareBtn}
-                  {isBlurred ? (
-                    <div className="relative">
-                      <FeedMediaFrame src={url} alt="" imgClassName="nf-feed-media-img blur-2xl scale-105" />
-                      <div onClick={() => setDetailBlurRevealed(true)} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 cursor-pointer z-10">
-                        <span className="text-white text-[13px] font-bold mb-1">{post.isNsfw ? "محتوى حساس" : "Spoiler"}</span>
-                      </div>
-                    </div>
+                  {item.type === "image" ? (
+                    <>
+                      {compareBtn}
+                      {isBlurred ? (
+                        <div className="relative">
+                          <FeedMediaFrame src={item.url} alt="" imgClassName="nf-feed-media-img blur-2xl scale-105" />
+                          <div onClick={() => setDetailBlurRevealed(true)} className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 cursor-pointer z-10">
+                            <span className="text-white text-[13px] font-bold mb-1">{post.isNsfw ? "محتوى حساس" : "Spoiler"}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <FeedMediaFrame
+                          src={item.url}
+                          alt=""
+                          imgClassName="nf-feed-media-img"
+                          onImageClick={() => setLightboxImg({ src: item.url, urls: unifiedMedia.filter((m: any) => m.type === "image").map((m: any) => m.url), idx })}
+                        />
+                      )}
+                    </>
                   ) : (
-                    <FeedMediaFrame
-                      src={url}
-                      alt=""
-                      imgClassName="nf-feed-media-img"
-                      onImageClick={() => setLightboxImg({ src: url, urls, idx })}
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <VideoPlayer url={item.url} compact />
+                    </div>
                   )}
                   <button
                     type="button"
-                    onClick={() => setDetailImgIdx((idx - 1 + urls.length) % urls.length)}
+                    onClick={() => setDetailImgIdx((idx - 1 + unifiedMedia.length) % unifiedMedia.length)}
                     className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 z-10"
                   >
                     <ChevronLeft size={16} />
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDetailImgIdx((idx + 1) % urls.length)}
+                    onClick={() => setDetailImgIdx((idx + 1) % unifiedMedia.length)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 z-10"
                   >
                     <ChevronRight size={16} />
                   </button>
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-                    {urls.map((_: string, i: number) => (
+                    {unifiedMedia.map((_: any, i: number) => (
                       <button
                         key={i}
                         type="button"
@@ -1168,13 +1215,13 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
                     ))}
                   </div>
                   <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/50 text-[10px] text-white z-10">
-                    {idx + 1}/{urls.length}
+                    {idx + 1}/{unifiedMedia.length}{unifiedMedia[idx]?.type === "video" ? " 🎬" : ""}
                   </span>
                 </div>
               );
             }
 
-            return urls.map((url, i) => renderImage(url, i));
+            return <div className="space-y-3">{unifiedMedia.map((item: any, i: number) => renderMediaItem(item, i))}</div>;
           })()}
 
           {isLivingPost && livingVersions.length > 0 && (

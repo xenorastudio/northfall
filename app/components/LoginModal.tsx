@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useAuth } from "./AuthProvider";
+import { useI18n } from "./I18nProvider";
 
 type Props = {
   open: boolean;
@@ -12,6 +13,7 @@ type Props = {
 
 export default function LoginModal({ open, onClose, forced = false }: Props) {
   const { signIn } = useAuth();
+  const { lang } = useI18n();
 
   return (
     <AnimatePresence>
@@ -29,7 +31,7 @@ export default function LoginModal({ open, onClose, forced = false }: Props) {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-[400px] rounded-xl border border-nf-border-2/50 bg-nf-secondary px-7 py-8 text-center relative"
+            className="w-full max-w-[400px] rounded-xl border border-nf-border-2/55 bg-nf-secondary px-7 py-8 text-center relative"
             onClick={(e) => e.stopPropagation()}
           >
             {!forced && onClose && (
@@ -44,9 +46,13 @@ export default function LoginModal({ open, onClose, forced = false }: Props) {
 
             <p className="text-[20px] font-bold text-nf-text mb-5 tracking-tight">NorthFall</p>
 
-            <h2 className="text-[15px] font-bold text-nf-text mb-2">سجل دخولك للمتابعة</h2>
+            <h2 className="text-[15px] font-bold text-nf-text mb-2">
+              {lang === "en" ? "Sign in to continue" : "سجل دخولك للمتابعة"}
+            </h2>
             <p className="text-[12px] text-nf-muted mb-6 leading-relaxed">
-              سجل دخولك لتعليق على المنشورات والتفاعل مع المجتمع
+              {lang === "en"
+                ? "Log in to comment on posts and interact with the community"
+                : "سجل دخولك لتعليق على المنشورات والتفاعل مع المجتمع"}
             </p>
 
             <button
@@ -63,15 +69,62 @@ export default function LoginModal({ open, onClose, forced = false }: Props) {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              <span>تابع مع Google</span>
+              <span>{lang === "en" ? "Continue with Google" : "تابع مع Google"}</span>
             </button>
 
-            <p className="text-[9px] text-nf-dim/50 mt-4 leading-relaxed">
-              بالضغط على &quot;تابع مع Google&quot;، أنت توافق على{" "}
-              <span className="text-nf-dim/70 underline underline-offset-2 decoration-nf-border-2/30">اتفاقية الاستخدام</span>
-              {" "}و{" "}
-              <span className="text-nf-dim/70 underline underline-offset-2 decoration-nf-border-2/30">سياسة الخصوصية</span>
-            </p>
+            <div className="text-[9px] text-nf-dim/50 mt-4 leading-relaxed">
+              {lang === "en" ? (
+                <span>
+                  By clicking &quot;Continue with Google&quot;, you agree to the{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!forced) onClose?.();
+                      window.dispatchEvent(new CustomEvent("nf-open-policy-modal"));
+                    }}
+                    className="text-nf-dim/70 underline underline-offset-2 hover:text-nf-text font-bold"
+                  >
+                    Terms of Use
+                  </button>
+                  {" "}and{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!forced) onClose?.();
+                      window.dispatchEvent(new CustomEvent("nf-open-policy-modal"));
+                    }}
+                    className="text-nf-dim/70 underline underline-offset-2 hover:text-nf-text font-bold"
+                  >
+                    Privacy Policy
+                  </button>
+                </span>
+              ) : (
+                <span>
+                  بالضغط على &quot;تابع مع Google&quot;، أنت توافق على{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!forced) onClose?.();
+                      window.dispatchEvent(new CustomEvent("nf-open-policy-modal"));
+                    }}
+                    className="text-nf-dim/70 underline underline-offset-2 hover:text-nf-text font-bold"
+                  >
+                    اتفاقية الاستخدام
+                  </button>
+                  {" "}و{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!forced) onClose?.();
+                      window.dispatchEvent(new CustomEvent("nf-open-policy-modal"));
+                    }}
+                    className="text-nf-dim/70 underline underline-offset-2 hover:text-nf-text font-bold"
+                  >
+                    سياسة الخصوصية
+                  </button>
+                </span>
+              )}
+            </div>
           </motion.div>
         </motion.div>
       )}

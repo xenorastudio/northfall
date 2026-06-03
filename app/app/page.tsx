@@ -39,6 +39,8 @@ import { I18nProvider, useI18n } from "../components/I18nProvider";
 import LoginModal from "../components/LoginModal";
 import LoginPrompt from "../components/LoginPrompt";
 import ToastProvider from "../components/ToastProvider";
+import SelectionTranslator from "../components/SelectionTranslator";
+import PolicyModal from "../components/PolicyModal";
 import { ClassicTabsProvider, useClassicTabs } from "../components/ClassicTabsProvider";
 import { X, ArrowUp } from "lucide-react";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -290,6 +292,13 @@ function AppContent() {
     if (inviteToken && inviteCommunity) {
       setInvitePending({ token: inviteToken, community: inviteCommunity });
       return;
+    }
+
+    const hasPolicy = params.get("policy") || params.get("modal") || window.location.hash.includes("privacy") || window.location.hash.includes("terms");
+    if (hasPolicy) {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("nf-open-policy-modal"));
+      }, 500);
     }
 
     syncFromUrl();
@@ -685,6 +694,18 @@ function AppContent() {
       }
       setPendingHidePosts((prev) => new Map(prev).set(post.id, post));
 
+      // Write to Firestore immediately!
+      void hidePostFromFeed(
+        user.uid,
+        {
+          id: post.id,
+          flair: post.flair,
+          hashtags: post.hashtags,
+          community: post.community,
+        },
+        communityCategoryLookup
+      ).catch((e) => console.warn("[hidePost]", e));
+
       const existing = hideConfirmTimersRef.current.get(post.id);
       if (existing) clearTimeout(existing);
 
@@ -695,17 +716,7 @@ function AppContent() {
           next.delete(post.id);
           return next;
         });
-        void hidePostFromFeed(
-          user.uid,
-          {
-            id: post.id,
-            flair: post.flair,
-            hashtags: post.hashtags,
-            community: post.community,
-          },
-          communityCategoryLookup
-        ).catch((e) => console.warn("[hidePost]", e));
-      }, 8000);
+      }, 5000);
 
       hideConfirmTimersRef.current.set(post.id, timer);
     },
@@ -725,7 +736,7 @@ function AppContent() {
         return next;
       });
 
-      if (user && hiddenPostIds.has(postId)) {
+      if (user) {
         try {
           await undoHidePost(user.uid, postId);
           toast("تم التراجع — المنشور ظهر مجدداً", "success");
@@ -734,7 +745,7 @@ function AppContent() {
         }
       }
     },
-    [user, hiddenPostIds, toast]
+    [user, toast]
   );
 
   useEffect(() => {
@@ -1155,7 +1166,15 @@ function AppContent() {
                             onCommunityClick={openCommunity}
                             onProfileClick={openProfile}
                             onEditClick={openEdit}
-                            onDeleteClick={async (id) => { try { await deletePostCompletely(id); } catch (e) { console.error(e); } fetchPosts(); }}
+                            onDeleteClick={async (id) => {
+                               try {
+                                 await deletePostCompletely(id);
+                                 setPosts(prev => prev.filter(p => p.id !== id));
+                               } catch (e) {
+                                 console.error(e);
+                               }
+                               fetchPosts();
+                             }}
                             onQuoteClick={(id) => { setQuotePostId(id); navigateTo("create"); }}
                             hashtags={(post as Post).hashtags}
                             onHashtagClick={handleHashtagClick}
@@ -1339,6 +1358,8 @@ function AppContent() {
 
       <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
       <LoginPrompt />
+      <SelectionTranslator />
+      <PolicyModal />
 
       {/* Invite Accept Dialog */}
       {invitePending && (

@@ -805,7 +805,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                                     )}
                                     <span className="text-[10px] text-nf-dim">
                                       <ArrowUp size={9} className="inline text-green-400" />
-                                      {p.votes}
+                                      {Math.max(0, p.votes || 0)}
                                     </span>
                                     <span className="text-[10px] text-nf-dim">
                                       <MessageSquare size={9} className="inline" />
@@ -894,7 +894,7 @@ export default function Navbar({ onProfileClick, onLoginClick, onCommunityClick,
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                 {r.community && <span className="text-[11px] text-nf-accent bg-nf-accent/10 px-2 py-0.5 rounded">n/{r.community}</span>}
                                 <span className="text-[11px] text-nf-dim">{r.authorName || t("gen.user")}</span>
-                                <span className="text-[11px] text-nf-dim"><ArrowUp size={9} className="inline text-green-400" />{r.votes || 0}</span>
+                                <span className="text-[11px] text-nf-dim"><ArrowUp size={9} className="inline text-green-400" />{Math.max(0, r.votes || 0)}</span>
                                 <span className="text-[11px] text-nf-dim"><MessageSquare size={9} className="inline" />{r.commentCount || 0}</span>
                                 {r.createdAt && <span className="text-[11px] text-nf-dim">{timeAgoShort(r.createdAt)}</span>}
                               </div>

@@ -5,5 +5,5 @@ import { db } from "@/lib/firebase";
 export async function readPostVoteCount(postId: string): Promise<number> {
   const snap = await getDoc(doc(db, "posts", postId));
   if (!snap.exists()) return 0;
-  return Math.max(0, Number(snap.data()?.votes) || 0);
+  return Number(snap.data()?.votes) || 0;
 }

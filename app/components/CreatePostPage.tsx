@@ -49,6 +49,64 @@ function formatDraftAge(iso?: string): string {
   return `منذ ${months} ش`;
 }
 
+export function normalizeGoogleDriveLink(url: string, isVideo: boolean = false): string {
+  const s = url.trim();
+  const match = s.match(/(?:drive|docs)\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]{25,50})/);
+  if (match) {
+    const fileId = match[1];
+    return isVideo 
+      ? `https://drive.google.com/file/d/${fileId}/view`
+      : `https://drive.google.com/uc?export=view&id=${fileId}`;
+  }
+  return s;
+}
+
+function loadGooglePickerScripts(callback: () => void) {
+  if ((window as any).gapi && (window as any).google?.accounts?.oauth2) {
+    callback();
+    return;
+  }
+
+  let gapiLoaded = false;
+  let gsiLoaded = false;
+
+  const checkLoaded = () => {
+    if (gapiLoaded && gsiLoaded) {
+      callback();
+    }
+  };
+
+  if (!(window as any).gapi) {
+    const script = document.createElement("script");
+    script.src = "https://apis.google.com/js/api.js";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      (window as any).gapi.load("picker", () => {
+        gapiLoaded = true;
+        checkLoaded();
+      });
+    };
+    document.body.appendChild(script);
+  } else {
+    gapiLoaded = true;
+  }
+
+  if (!(window as any).google?.accounts?.oauth2) {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      gsiLoaded = true;
+      checkLoaded();
+    };
+    document.body.appendChild(script);
+  } else {
+    gsiLoaded = true;
+  }
+}
+
 export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostId, livingPostId, livingVersions, defaultCommunity }: {
   onBack: () => void;
   onPost: () => void;
@@ -561,13 +619,14 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
     const url = text.trim().split("\n")[0]?.trim() || "";
     if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
       const isVideo = /\.(mp4|webm|mov|m3u8)(\?|$)/i.test(url) || url.includes("youtube.com") || url.includes("youtu.be");
+      const normalized = normalizeGoogleDriveLink(url, isVideo);
       const emptyIdx = mediaItems.findIndex((m) => !m.url.trim());
       if (emptyIdx >= 0) {
         const updated = [...mediaItems];
-        updated[emptyIdx] = { ...updated[emptyIdx], type: isVideo ? "video" : "image", url };
+        updated[emptyIdx] = { ...updated[emptyIdx], type: isVideo ? "video" : "image", url: normalized };
         setMediaItems(updated);
       } else if (mediaItems.length < 8) {
-        setMediaItems([...mediaItems, { id: newMediaId(), type: isVideo ? "video" : "image", url }]);
+        setMediaItems([...mediaItems, { id: newMediaId(), type: isVideo ? "video" : "image", url: normalized }]);
       }
       toast(isVideo ? "تمت إضافة رابط الفيديو" : "تمت إضافة رابط الصورة", "success");
     }
@@ -579,6 +638,65 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
     setMediaItems(next);
+  };
+
+  const openGooglePicker = () => {
+    loadGooglePickerScripts(() => {
+      const google = (window as any).google;
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: "271792383366-cm32ivgq8r7bg033vqlkc10fnbui9jus.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/drive.readonly",
+        callback: (tokenResponse: any) => {
+          if (tokenResponse?.access_token) {
+            createPicker(tokenResponse.access_token);
+          }
+        },
+      });
+      client.requestAccessToken({ prompt: "consent" });
+    });
+  };
+
+  const createPicker = (oauthToken: string) => {
+    const google = (window as any).google;
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+      .setMimeTypes("image/*,video/*")
+      .setSelectFolderEnabled(false);
+
+    const picker = new google.picker.PickerBuilder()
+      .enableFeature(google.picker.Feature.NAV_HIDDEN)
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+      .setAppId("271792383366")
+      .setOAuthToken(oauthToken)
+      .addView(view)
+      .setDeveloperKey("AIzaSyD2rbBw37_HLLEDWW8Ym5Cmwz3HOaD6KOk")
+      .setCallback((data: any) => {
+        if (data.action === google.picker.Action.PICKED) {
+          const docs = data[google.picker.Response.DOCUMENTS];
+          const newItems = docs.map((docObj: any) => {
+            const fileId = docObj[google.picker.Document.ID];
+            const mimeType = docObj[google.picker.Document.MIME_TYPE] || "";
+            const isVideo = mimeType.startsWith("video/");
+            const rawUrl = isVideo 
+              ? `https://drive.google.com/file/d/${fileId}/view`
+              : `https://drive.google.com/uc?export=view&id=${fileId}`;
+              
+            return {
+              id: "m-gd-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+              type: isVideo ? ("video" as const) : ("image" as const),
+              url: rawUrl
+            };
+          });
+          
+          setMediaItems((prev) => {
+            const filtered = prev.filter(item => item.url.trim());
+            const combined = [...filtered, ...newItems].slice(0, 8);
+            return combined.length > 0 ? combined : [{ id: newMediaId(), type: "image", url: "" }];
+          });
+          toast("تم استيراد الملفات من Google Drive بنجاح", "success");
+        }
+      })
+      .build();
+    picker.setVisible(true);
   };
 
   const handleSubmit = async () => {
@@ -1215,8 +1333,11 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
                         dir="ltr"
                         value={item.url}
                         onChange={(e) => {
+                          const val = e.target.value;
+                          const isVid = item.type === "video";
+                          const normalized = normalizeGoogleDriveLink(val, isVid);
                           const updated = [...mediaItems];
-                          updated[idx] = { ...updated[idx], url: e.target.value };
+                          updated[idx] = { ...updated[idx], url: normalized };
                           setMediaItems(updated);
                         }}
                         placeholder={item.type === "image" ? "https://example.com/image.jpg" : "https://youtube.com/..."}
@@ -1242,6 +1363,9 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
                     </button>
                     <button type="button" onClick={() => setMediaItems([...mediaItems, { id: newMediaId(), type: "video", url: "" }])} className="text-[10px] text-nf-dim hover:text-nf-text transition-colors">
                       + إضافة فيديو
+                    </button>
+                    <button type="button" onClick={openGooglePicker} className="text-[10px] text-nf-dim hover:text-nf-text transition-colors flex items-center gap-1">
+                      📂 استيراد من Google Drive
                     </button>
                   </div>
                 )}

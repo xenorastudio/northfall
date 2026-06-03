@@ -928,7 +928,12 @@ export default function CommunityPage({ name, onBack, onEditClick, onDeleteClick
                 views={(post as { views?: number }).views || 0}
                 awards={post.awards} poll={post.poll}
                  quotedPostId={post.quotedPostId} onPostClick={onPostClick}
-                 onEditClick={onEditClick} onDeleteClick={onDeleteClick} onFlairClick={setSelectedTag}
+                 onEditClick={onEditClick}
+                 onDeleteClick={async (id) => {
+                   if (onDeleteClick) await onDeleteClick(id);
+                   setPosts(prev => prev.filter(p => p.id !== id));
+                 }}
+                 onFlairClick={setSelectedTag}
                  hashtags={(post as { hashtags?: string[] }).hashtags}
                  onHashtagClick={handleHashtagClick} />
             ))}

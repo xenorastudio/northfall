@@ -742,7 +742,10 @@ export default function ProfilePage({ uid, initialTab, onEditClick, onDeleteClic
                 quotedPostId={post.quotedPostId}
                 onPostClick={onPostClick}
                 onEditClick={onEditClick}
-                onDeleteClick={onDeleteClick}
+                onDeleteClick={async (id) => {
+                  if (onDeleteClick) await onDeleteClick(id);
+                  setPosts(prev => prev.filter(p => p.id !== id));
+                }}
               />
             ))
           )
@@ -798,7 +801,7 @@ export default function ProfilePage({ uid, initialTab, onEditClick, onDeleteClic
                   <div className="flex items-center gap-4 mt-2 text-[11px] text-nf-dim">
                     <span className="flex items-center gap-1">
                       <ArrowUp size={12} className="text-nf-accent" />
-                      {c.votes ?? 1}
+                      {Math.max(0, c.votes ?? 0)}
                     </span>
                     <button
                       type="button"
@@ -988,7 +991,10 @@ export default function ProfilePage({ uid, initialTab, onEditClick, onDeleteClic
                   quotedPostId={post.quotedPostId}
                   onPostClick={onPostClick}
                   onEditClick={onEditClick}
-                  onDeleteClick={onDeleteClick}
+                  onDeleteClick={async (id) => {
+                    if (onDeleteClick) await onDeleteClick(id);
+                    setPosts(prev => prev.filter(p => p.id !== id));
+                  }}
                 />
               ))
             )}

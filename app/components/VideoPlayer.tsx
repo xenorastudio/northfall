@@ -5,7 +5,7 @@ import { Play, Volume2, VolumeX } from "lucide-react";
 
 // ─── URL Parser ───────────────────────────────────────────────────────────────
 export interface VideoInfo {
-  type: "youtube" | "direct";
+  type: "youtube" | "direct" | "google-drive";
   id?: string;
   embedUrl: string;
   thumbnailUrl: string;
@@ -26,6 +26,20 @@ export function parseVideoUrl(url: string): VideoInfo | null {
       id,
       embedUrl: `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`,
       thumbnailUrl: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,
+    };
+  }
+
+  // Google Drive: drive.google.com/file/d/... or open?id=...
+  const gd = s.match(
+    /(?:drive|docs)\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]{25,50})/
+  );
+  if (gd) {
+    const id = gd[1];
+    return {
+      type: "google-drive",
+      id,
+      embedUrl: `https://drive.google.com/file/d/${id}/preview`,
+      thumbnailUrl: `https://drive.google.com/thumbnail?id=${id}&sz=w600`,
     };
   }
 
@@ -120,6 +134,14 @@ export default function VideoPlayer({ url, compact = false, className = "" }: Vi
               <path d="M9.545 15.568V8.432L15.818 12z" fill="white"/>
             </svg>
             <span className="text-[10px] text-white/80 font-medium">YouTube</span>
+          </div>
+        )}
+        {info.type === "google-drive" && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm">
+            <svg viewBox="0 0 87.3 78" className="w-3 h-3 shrink-0" fill="currentColor">
+              <path d="m6.6 66.85 15.4-26.7q1.1-1.85 3.15-3.05t4.35-1.2h32.1q2.3 0 4.35 1.2t3.15 3.05l-8 13.9q-1.1 1.85-3.15 3.05t-4.35 1.2h-32.1q-2.3 0-4.35-1.2t-3.15-3.05zm24.15-32.95 24.1-41.7q1.15-1.85 3.2-3.05T62.4 8h16.2q2.3 0 4.3 1.2t3.15 3.05l-24.15 41.7q-1.15 1.85-3.2 3.05t-4.35 1.2H62.4q-2.3 0-4.3-1.2t-3.15-3.05zM0 66.85l24.1-41.7q1.15-1.85 3.2-3.05t4.35-1.2L47.8 49q-1.15 1.85-3.2 3.05t-4.35 1.2H8.2q-2.3 0-4.3-1.2t-3.15-3.05z"/>
+            </svg>
+            <span className="text-[10px] text-white/80 font-medium">Google Drive</span>
           </div>
         )}
         <div className="mr-auto text-[10px] text-white/50 px-2 py-1 rounded-md bg-black/40 backdrop-blur-sm">

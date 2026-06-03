@@ -191,7 +191,7 @@ export default function CommunityHighlights({
                 )}
 
                 <div className="flex items-center gap-2.5 text-[10px] nf-highlight-meta">
-                  <span>{post.votes || 0} تصويت</span>
+                  <span>{Math.max(0, post.votes || 0)} تصويت</span>
                   <span>{post.commentCount || 0} تعليق</span>
                   {post.createdAt && <span className="mr-auto opacity-75">{timeAgo(post.createdAt)}</span>}
                 </div>

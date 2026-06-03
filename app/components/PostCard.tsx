@@ -183,7 +183,7 @@ export default function PostCard({
 
   useEffect(() => {
     if (votingRef.current) return;
-    const next = Math.max(0, votes);
+    const next = votes || 0;
     setVoteCount(next);
     voteCountRef.current = next;
   }, [votes, postId]);
@@ -348,7 +348,7 @@ export default function PostCard({
     const { next: newVote, diff } = transition;
     const prevVote = currentVote;
     const prevCount = voteCountRef.current;
-    const nextCount = Math.max(0, prevCount + diff);
+    const nextCount = prevCount + diff;
     myVoteRef.current = newVote;
     voteCountRef.current = nextCount;
     setMyVote(newVote);

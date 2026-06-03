@@ -5,12 +5,12 @@ export function getVoteTransition(
   if (dir === 1) {
     if (current === 1) return { next: 0, diff: -1 };
     if (current === 0) return { next: 1, diff: 1 };
-    if (current === -1) return { next: 1, diff: 2 };
+    if (current === -1) return { next: 1, diff: 1 };
   }
   if (dir === -1) {
-    if (current === -1) return { next: 0, diff: 1 };
-    if (current === 0) return { next: -1, diff: -1 };
-    if (current === 1) return { next: -1, diff: -2 };
+    if (current === -1) return { next: 0, diff: 0 };
+    if (current === 0) return { next: -1, diff: 0 };
+    if (current === 1) return { next: -1, diff: -1 };
   }
   return null;
 }
@@ -20,3 +20,4 @@ export function normalizeStoredVote(dir: number): -1 | 0 | 1 {
   if (dir === -1) return -1;
   return 0;
 }
+

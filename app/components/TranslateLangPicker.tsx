@@ -225,14 +225,14 @@ export default function TranslateLangPicker({
 
   const menuPanel = (
     <>
-      <div className="px-3 py-2">
+      <div className="px-3 py-2 border-b border-nf-border-2/30 bg-nf-secondary/20">
         <input
           ref={searchRef}
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="ابحث..."
-          className="w-full bg-transparent text-[11px] text-nf-text placeholder:text-nf-dim outline-none"
+          className="w-full bg-nf-secondary border border-nf-border-2/50 rounded-lg px-2.5 py-1 text-[11px] text-nf-text placeholder:text-nf-dim/60 outline-none focus:border-nf-accent/30 transition-colors"
         />
       </div>
       <div className="overflow-y-auto py-1" style={{ maxHeight: MENU_H - 44 }}>
@@ -291,13 +291,8 @@ export default function TranslateLangPicker({
               }}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              <div className="relative rounded-xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-700/25 via-transparent to-cyan-600/20 blur-3xl" />
-                <div className="relative z-10 rounded-xl border border-nf-border-2/50 overflow-hidden backdrop-blur-xl"
-                  style={{ background: "color-mix(in srgb, var(--bg-body) 45%, transparent)" }}
-                >
-                  {menuPanel}
-                </div>
+              <div className="relative rounded-xl overflow-hidden shadow-2xl border border-nf-border-2/50 bg-nf-card">
+                {menuPanel}
               </div>
             </div>
           </div>,
@@ -333,13 +328,8 @@ export default function TranslateLangPicker({
             }}
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <div className="relative rounded-xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-700/25 via-transparent to-cyan-600/20 blur-3xl" />
-              <div className="relative z-10 rounded-xl border border-nf-border-2/50 overflow-hidden backdrop-blur-xl"
-                style={{ background: "color-mix(in srgb, var(--bg-body) 55%, transparent)" }}
-              >
-                {menuPanel}
-              </div>
+            <div className="relative rounded-xl overflow-hidden shadow-2xl border border-nf-border-2/50 bg-nf-card">
+              {menuPanel}
             </div>
           </div>
         </div>,
