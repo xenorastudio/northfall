@@ -225,7 +225,7 @@ export default function TranslateLangPicker({
 
   const menuPanel = (
     <>
-      <div className="px-3 py-2 border-b border-nf-border-2/10">
+      <div className="px-3 py-2">
         <input
           ref={searchRef}
           type="text"
@@ -243,7 +243,7 @@ export default function TranslateLangPicker({
             onClick={() => pick(l.id)}
               className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] text-nf-text hover:bg-nf-hover transition-colors"
           >
-            <span className="text-[10px] font-bold uppercase opacity-60 w-6 shrink-0">{langBadge(l.id)}</span>
+            <span className="w-5 shrink-0 text-center">{l.flag}</span>
             <span className="flex-1 text-right">{l.label}</span>
             {l.id === lang && <Check size={9} className="text-nf-text shrink-0 opacity-40" />}
           </button>
@@ -271,13 +271,13 @@ export default function TranslateLangPicker({
           {settingsPlain ? (
             <>
               <span className="text-nf-text truncate">{current.label}</span>
-              <span className="text-[10px] font-bold uppercase text-nf-dim">{langBadge(current.id)}</span>
+              <span className="text-[10px]">{current.flag}</span>
               <ChevronDown size={11} className={cn("shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
             </>
           ) : (
             <>
               <span className="flex-1 text-right text-nf-text">{current.label}</span>
-              <span className="text-[10px] font-bold uppercase text-nf-dim">{langBadge(current.id)}</span>
+              <span className="text-[10px]">{current.flag}</span>
               <ChevronDown size={12} className={cn("shrink-0 opacity-40 transition-transform", open && "rotate-180")} />
             </>
           )}
@@ -286,16 +286,22 @@ export default function TranslateLangPicker({
         {open && mounted && createPortal(
           <div className="fixed inset-0 z-[1200]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
             <div
-              className="absolute rounded-xl border border-nf-border-2/50 shadow-2xl overflow-hidden backdrop-blur-xl"
+              className="absolute rounded-xl shadow-2xl"
               style={{
                 top: menuPos.top,
                 left: menuPos.left,
                 width: menuPos.width,
-                background: "color-mix(in srgb, var(--bg-body) 80%, transparent)",
               }}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {menuPanel}
+              <div className="relative rounded-xl overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-nf-accent/15 via-transparent to-blue-600/10 blur-2xl" />
+                <div className="relative z-10 rounded-xl border border-nf-border-2/50 overflow-hidden backdrop-blur-xl"
+                  style={{ background: "color-mix(in srgb, var(--bg-body) 55%, transparent)" }}
+                >
+                  {menuPanel}
+                </div>
+              </div>
             </div>
           </div>,
           document.body
@@ -315,23 +321,29 @@ export default function TranslateLangPicker({
         title={`لغة الترجمة: ${current.label}`}
         aria-label={`لغة الترجمة: ${current.label}`}
       >
-        <span className="uppercase tracking-wide">{langBadge(current.id)}</span>
+        <span>{current.flag}</span>
         <ChevronDown size={9} className={cn("opacity-60 transition-transform", open && "rotate-180")} />
       </button>
 
       {open && mounted && createPortal(
         <div className="fixed inset-0 z-[1200]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
           <div
-            className="absolute rounded-xl border border-nf-border-2/50 shadow-2xl overflow-hidden backdrop-blur-xl"
+            className="absolute rounded-xl shadow-2xl"
             style={{
               top: menuPos.top,
               left: menuPos.left,
               width: menuPos.width,
-              background: "color-mix(in srgb, var(--bg-body) 80%, transparent)",
             }}
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {menuPanel}
+            <div className="relative rounded-xl overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-nf-accent/15 via-transparent to-blue-600/10 blur-2xl" />
+              <div className="relative z-10 rounded-xl border border-nf-border-2/50 overflow-hidden backdrop-blur-xl"
+                style={{ background: "color-mix(in srgb, var(--bg-body) 55%, transparent)" }}
+              >
+                {menuPanel}
+              </div>
+            </div>
           </div>
         </div>,
         document.body
