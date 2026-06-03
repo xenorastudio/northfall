@@ -5,12 +5,12 @@ export function getVoteTransition(
   if (dir === 1) {
     if (current === 1) return { next: 0, diff: -1 };
     if (current === 0) return { next: 1, diff: 1 };
-    if (current === -1) return { next: 1, diff: 2 };
+    if (current === -1) return { next: 0, diff: 1 };
   }
   if (dir === -1) {
     if (current === -1) return { next: 0, diff: 1 };
     if (current === 0) return { next: -1, diff: -1 };
-    if (current === 1) return { next: -1, diff: -2 };
+    if (current === 1) return { next: 0, diff: -1 };
   }
   return null;
 }

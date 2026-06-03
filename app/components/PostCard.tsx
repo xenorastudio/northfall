@@ -910,7 +910,8 @@ export default function PostCard({
       </div>
 
       {/* Footer - always visible */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1.5 text-nf-muted overflow-x-auto opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+      <div className="flex items-center gap-0 px-2 sm:px-3 py-1.5 text-nf-muted">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto opacity-80 group-hover:opacity-100 transition-opacity duration-300 flex-1">
         <div className="nf-post-action !gap-0 !px-0" onClick={(e) => e.stopPropagation()}>
           <VotePill
             count={voteCount}
@@ -952,8 +953,8 @@ export default function PostCard({
           <span className="nf-post-action-icon"><Bookmark size={14} strokeWidth={2} fill={saved ? "currentColor" : "none"} /></span>
           <span className="nf-post-action-label">{saved ? "محفوظ" : "حفظ"}</span>
         </button>
-        <div className="flex-1" />
-        <div className="relative">
+        </div>
+        <div className="relative shrink-0">
           <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="hover:text-nf-text transition-colors p-0.5 rounded hover:bg-nf-hover"><MoreHorizontal size={16} /></button>
           {showMenu && (
             <>
