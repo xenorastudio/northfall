@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Languages, Copy, Volume2, X, Search, Check, Loader2 } from "lucide-react";
 import { translateText } from "@/lib/translate";
 import { cn } from "@/lib/utils";
+import TranslateLangPicker from "./TranslateLangPicker";
 
 interface Position {
   x: number;
@@ -146,7 +147,7 @@ export default function SelectionTranslator() {
     };
   }, []);
 
-  const handleTranslate = async () => {
+  const handleTranslate = useCallback(async () => {
     if (!selectedText) return;
     setLoading(true);
     setPopoverOpen(true);
@@ -159,7 +160,20 @@ export default function SelectionTranslator() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedText]);
+
+  // Re-translate when user changes their preferred language
+  useEffect(() => {
+    const handleLangChange = () => {
+      if (popoverOpen && selectedText) {
+        void handleTranslate();
+      }
+    };
+    window.addEventListener("nf-translate-lang-change", handleLangChange);
+    return () => {
+      window.removeEventListener("nf-translate-lang-change", handleLangChange);
+    };
+  }, [popoverOpen, selectedText, handleTranslate]);
 
   const handleCopyOriginal = async () => {
     if (!selectedText) return;
@@ -200,9 +214,13 @@ export default function SelectionTranslator() {
         const hasArabic = /[\u0600-\u06FF]/.test(text);
         const utterance = new SpeechSynthesisUtterance(text);
 
-        // Find voice matching targeted language
+        // Find voice matching targeted language - avoids matching 'es-AR' for Arabic
         const targetLang = hasArabic ? "ar" : "en";
-        const matchedVoice = voices.find((v) => v.lang.toLowerCase().includes(targetLang));
+        const matchedVoice = voices.find((v) => {
+          const l = v.lang.toLowerCase().replace("_", "-");
+          return l === targetLang || l.startsWith(`${targetLang}-`);
+        });
+
         if (matchedVoice) {
           utterance.voice = matchedVoice;
         }
@@ -313,10 +331,13 @@ export default function SelectionTranslator() {
         <div className="w-[320px] max-w-[90vw] p-4 rounded-xl border border-nf-border-2 bg-nf-card shadow-2xl flex flex-col gap-2.5">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-nf-border-2/40 pb-2">
-            <span className="text-[10px] font-black text-nf-accent tracking-wider flex items-center gap-1">
-              <Languages size={12} />
-              ترجمة سريعة
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-nf-accent tracking-wider flex items-center gap-1">
+                <Languages size={12} />
+                ترجمة سريعة
+              </span>
+              <TranslateLangPicker variant="inline" storageKey="nf-translate-lang" className="relative z-[1201]" />
+            </div>
             <button
               onClick={handleClose}
               className="p-1 rounded-full text-nf-dim hover:text-nf-text hover:bg-nf-hover transition-all"
