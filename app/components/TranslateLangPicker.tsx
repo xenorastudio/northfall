@@ -243,7 +243,6 @@ export default function TranslateLangPicker({
             onClick={() => pick(l.id)}
               className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] text-nf-text hover:bg-nf-hover transition-colors"
           >
-            <span className="w-5 shrink-0 text-center">{l.flag}</span>
             <span className="flex-1 text-right">{l.label}</span>
             {l.id === lang && <Check size={9} className="text-nf-text shrink-0 opacity-40" />}
           </button>
@@ -271,13 +270,11 @@ export default function TranslateLangPicker({
           {settingsPlain ? (
             <>
               <span className="text-nf-text truncate">{current.label}</span>
-              <span className="text-[10px]">{current.flag}</span>
               <ChevronDown size={11} className={cn("shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
             </>
           ) : (
             <>
               <span className="flex-1 text-right text-nf-text">{current.label}</span>
-              <span className="text-[10px]">{current.flag}</span>
               <ChevronDown size={12} className={cn("shrink-0 opacity-40 transition-transform", open && "rotate-180")} />
             </>
           )}
@@ -295,9 +292,9 @@ export default function TranslateLangPicker({
               onMouseDown={(e) => e.stopPropagation()}
             >
               <div className="relative rounded-xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-nf-accent/15 via-transparent to-blue-600/10 blur-2xl" />
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-700/25 via-transparent to-cyan-600/20 blur-3xl" />
                 <div className="relative z-10 rounded-xl border border-nf-border-2/50 overflow-hidden backdrop-blur-xl"
-                  style={{ background: "color-mix(in srgb, var(--bg-body) 55%, transparent)" }}
+                  style={{ background: "color-mix(in srgb, var(--bg-body) 45%, transparent)" }}
                 >
                   {menuPanel}
                 </div>
@@ -321,8 +318,8 @@ export default function TranslateLangPicker({
         title={`لغة الترجمة: ${current.label}`}
         aria-label={`لغة الترجمة: ${current.label}`}
       >
-        <span>{current.flag}</span>
-        <ChevronDown size={9} className={cn("opacity-60 transition-transform", open && "rotate-180")} />
+        <span className="truncate max-w-[40px]">{current.label}</span>
+        <ChevronDown size={9} className={cn("shrink-0 opacity-60 transition-transform", open && "rotate-180")} />
       </button>
 
       {open && mounted && createPortal(
@@ -337,7 +334,7 @@ export default function TranslateLangPicker({
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="relative rounded-xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-nf-accent/15 via-transparent to-blue-600/10 blur-2xl" />
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-700/25 via-transparent to-cyan-600/20 blur-3xl" />
               <div className="relative z-10 rounded-xl border border-nf-border-2/50 overflow-hidden backdrop-blur-xl"
                 style={{ background: "color-mix(in srgb, var(--bg-body) 55%, transparent)" }}
               >
