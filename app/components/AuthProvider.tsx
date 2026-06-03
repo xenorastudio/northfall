@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef, lazy, Suspense } from "react";
 import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, signInWithCustomToken, GoogleAuthProvider, signOut, User } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import {
   LinkedAccount,
@@ -24,6 +24,7 @@ interface AuthContextType {
   linkedAccounts: LinkedAccount[];
   switchingUid: string | null;
   signIn: () => Promise<void>;
+  signInWithUid: (uid: string) => Promise<string | null>;
   logout: () => Promise<void>;
   switchAccount: (uid: string) => Promise<void>;
   addAccount: () => Promise<void>;
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null, loading: true,
   linkedAccounts: [], switchingUid: null,
   signIn: async () => {},
+  signInWithUid: async () => null,
   logout: async () => {},
   switchAccount: async () => {},
   addAccount: async () => {},
@@ -126,6 +128,25 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithPopup(auth, provider);
   }, []);
 
+  const signInWithUid = useCallback(async (uid: string): Promise<string | null> => {
+    try {
+      const res = await fetch("/api/auth/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return err.error || "فشل تسجيل الدخول";
+      }
+      const data = await res.json();
+      await signInWithCustomToken(auth, data.customToken);
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "خطأ غير معروف";
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     await signOut(auth);
   }, []);
@@ -196,7 +217,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, loading,
       linkedAccounts, switchingUid,
-      signIn, logout,
+      signIn, signInWithUid, logout,
       switchAccount, addAccount, removeAccount, refreshLinkedAccounts,
     }}>
       {loading ? (

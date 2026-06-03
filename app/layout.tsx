@@ -264,6 +264,16 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener('contextmenu',function(e){
+              if(e.target.closest('img')){e.preventDefault()}
+            });
+            document.addEventListener('dragstart',function(e){
+              if(e.target.tagName==='IMG'){e.preventDefault()}
+            });
+          `
+        }} />
       </head>
       <body className={`${notoKufiArabic.variable} ${roboto.variable} ${plusJakarta.variable} min-h-screen w-full bg-nf-body text-nf-text antialiased overflow-x-hidden`}>
         {children}

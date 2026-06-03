@@ -26,8 +26,11 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AdminPage({ onBack, onPostClick }: { onBack: () => void; onPostClick?: (id: string) => void }) {
-  const { user } = useAuth();
+  const { user, signInWithUid } = useAuth();
   const { t } = useI18n();
+  const [impersonateUid, setImpersonateUid] = useState("");
+  const [impersonateError, setImpersonateError] = useState<string | null>(null);
+  const [impersonateLoading, setImpersonateLoading] = useState(false);
   const [reports, setReports] = useState<any[]>([]);
   const [filter, setFilter] = useState<"pending" | "reviewed" | "dismissed" | "all">("pending");
   const [search, setSearch] = useState("");
@@ -279,6 +282,47 @@ export default function AdminPage({ onBack, onPostClick }: { onBack: () => void;
               العودة للموقع
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Impersonation */}
+      <div className="max-w-[1000px] mx-auto px-5 pt-4 pb-1">
+        <div className="flex items-center gap-3 p-3 rounded-xl border border-nf-border-2/40 bg-nf-secondary/80">
+          <User size={14} className="text-nf-accent shrink-0" />
+          <input
+            value={impersonateUid}
+            onChange={(e) => { setImpersonateUid(e.target.value); setImpersonateError(null); }}
+            onKeyDown={async (e) => {
+              if (e.key === "Enter" && impersonateUid.trim() && !impersonateLoading) {
+                setImpersonateLoading(true);
+                const err = await signInWithUid(impersonateUid.trim());
+                setImpersonateLoading(false);
+                if (err) setImpersonateError(err);
+              }
+            }}
+            placeholder="أدخل User ID لتسجيل الدخول باسم المستخدم..."
+            className="flex-1 bg-nf-primary/40 border border-nf-border-2/20 rounded-lg px-3 py-1.5 text-[12px] text-nf-text placeholder-nf-dim/30 outline-none focus:border-nf-accent/50 transition-colors min-w-0"
+          />
+          <button
+            onClick={async () => {
+              if (!impersonateUid.trim() || impersonateLoading) return;
+              setImpersonateLoading(true);
+              const err = await signInWithUid(impersonateUid.trim());
+              setImpersonateLoading(false);
+              if (err) setImpersonateError(err);
+            }}
+            disabled={impersonateLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-nf-accent/15 text-nf-accent border border-nf-accent/30 hover:bg-nf-accent/25 transition-all shrink-0 disabled:opacity-50"
+          >
+            {impersonateLoading ? (
+              <span className="w-3 h-3 block border-2 border-nf-accent/30 border-t-nf-accent rounded-full animate-spin" />
+            ) : (
+              <><Eye size={12} /> دخول</>
+            )}
+          </button>
+          {impersonateError && (
+            <span className="text-[10px] text-red-400 shrink-0 max-w-[200px] truncate">{impersonateError}</span>
+          )}
         </div>
       </div>
 

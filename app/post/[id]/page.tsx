@@ -1,39 +1,74 @@
-"use client";
+import * as admin from "firebase-admin";
+import { Metadata } from "next";
+import PostRedirect from "./redirect";
 
-import { useEffect } from "react";
-import { useParams } from "next/navigation";
+function getAdmin() {
+  if (admin.apps.length) return admin;
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!raw) return null;
+  try {
+    const sa = JSON.parse(raw);
+    admin.initializeApp({ credential: admin.credential.cert(sa) });
+    return admin;
+  } catch { return null; }
+}
 
-export default function PostPage() {
-  const params = useParams();
-  const id = params.id as string;
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const app = getAdmin();
+  if (!app) return { title: "NorthFall" };
 
-  useEffect(() => {
-    if (id) {
-      window.location.replace(`/app?view=post&postId=${id}`);
+  try {
+    const snap = await app.firestore().collection("posts").doc(id).get();
+    if (!snap.exists) return { title: "NorthFall" };
+    const post = snap.data();
+
+    const images: { url: string; width?: number; height?: number }[] = [];
+    const imgUrls = post?.imageUrls?.length
+      ? post.imageUrls.filter((u: string) => u?.trim())
+      : post?.imageUrl?.trim()
+        ? [post.imageUrl]
+        : [];
+    if (imgUrls.length > 0) {
+      images.push({ url: imgUrls[0], width: 1200, height: 630 });
     }
-  }, [id]);
+    if (post?.authorPhoto) {
+      images.push({ url: post.authorPhoto, width: 256, height: 256 });
+    }
 
-  return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#0d1117",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontFamily: "Cairo, sans-serif",
-      direction: "rtl",
-    }}>
-      <div style={{ textAlign: "center", color: "#6b7280" }}>
-        <svg
-          width="32" height="32" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2"
-          style={{ margin: "0 auto 12px", display: "block", animation: "spin 1s linear infinite" }}
-        >
-          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-        </svg>
-        <p style={{ fontSize: 14 }}>جاري فتح المنشور...</p>
-      </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
-    </div>
-  );
+    const title = post?.title ? `${post.title} — NorthFall` : "NorthFall";
+    const description = post?.body
+      ? post.body.replace(/<[^>]*>/g, "").slice(0, 200)
+      : "منشور في NorthFall";
+
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        type: "article",
+        images,
+        siteName: "NorthFall",
+        locale: "ar_AR",
+      },
+      twitter: {
+        card: images.length > 0 ? "summary_large_image" : "summary",
+        title,
+        description,
+        images: images.map((i) => i.url),
+      },
+      other: {
+        "fc:frame": "ImageView",
+        "fc:frame:image": images[0]?.url || "",
+      },
+    };
+  } catch {
+    return { title: "NorthFall" };
+  }
+}
+
+export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <PostRedirect id={id} />;
 }
