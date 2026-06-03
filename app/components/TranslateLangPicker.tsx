@@ -225,7 +225,7 @@ export default function TranslateLangPicker({
 
   const menuPanel = (
     <>
-      <div className="px-3 py-2 border-b border-nf-border-2/30">
+      <div className="px-3 py-2 border-b border-nf-border-2/10">
         <input
           ref={searchRef}
           type="text"
@@ -241,14 +241,11 @@ export default function TranslateLangPicker({
             key={l.id}
             type="button"
             onClick={() => pick(l.id)}
-            className={cn(
-              "w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] transition-colors",
-              l.id === lang ? "bg-nf-accent/12 text-nf-accent" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
-            )}
+              className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] text-nf-text hover:bg-nf-hover transition-colors"
           >
             <span className="text-[10px] font-bold uppercase opacity-60 w-6 shrink-0">{langBadge(l.id)}</span>
             <span className="flex-1 text-right">{l.label}</span>
-            {l.id === lang && <Check size={9} className="text-nf-accent shrink-0" />}
+            {l.id === lang && <Check size={9} className="text-nf-text shrink-0 opacity-40" />}
           </button>
         ))}
         {filtered.length === 0 && <p className="text-center text-[11px] text-nf-dim py-3">لا توجد نتائج</p>}
@@ -289,12 +286,12 @@ export default function TranslateLangPicker({
         {open && mounted && createPortal(
           <div className="fixed inset-0 z-[1200]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
             <div
-              className="absolute rounded-xl border border-nf-border-2/50 shadow-2xl overflow-hidden"
+              className="absolute rounded-xl border border-nf-border-2/50 shadow-2xl overflow-hidden backdrop-blur-xl"
               style={{
                 top: menuPos.top,
                 left: menuPos.left,
                 width: menuPos.width,
-                background: "var(--bg-body)",
+                background: "color-mix(in srgb, var(--bg-body) 80%, transparent)",
               }}
               onMouseDown={(e) => e.stopPropagation()}
             >
@@ -325,12 +322,12 @@ export default function TranslateLangPicker({
       {open && mounted && createPortal(
         <div className="fixed inset-0 z-[1200]" onMouseDown={() => { setOpen(false); setSearch(""); }}>
           <div
-            className="absolute rounded-xl border border-nf-border-2/50 shadow-2xl overflow-hidden"
+            className="absolute rounded-xl border border-nf-border-2/50 shadow-2xl overflow-hidden backdrop-blur-xl"
             style={{
               top: menuPos.top,
               left: menuPos.left,
               width: menuPos.width,
-              background: "var(--bg-body)",
+              background: "color-mix(in srgb, var(--bg-body) 80%, transparent)",
             }}
             onMouseDown={(e) => e.stopPropagation()}
           >

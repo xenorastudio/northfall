@@ -40,7 +40,8 @@ export default function NorthFallAiButton({ open, onToggle, loading, menuItems, 
       </button>
       {open && (
         <div
-          className="absolute right-0 top-full mt-1 z-50 min-w-[148px] py-1 rounded-lg border border-nf-border-2 bg-nf-primary shadow-xl"
+          className="absolute right-0 top-full mt-1 z-50 min-w-[148px] py-1 rounded-lg border border-nf-border-2/50 shadow-xl backdrop-blur-xl"
+          style={{ background: "color-mix(in srgb, var(--bg-body) 80%, transparent)" }}
           role="menu"
         >
           {menuItems.map((item) => (
@@ -49,7 +50,7 @@ export default function NorthFallAiButton({ open, onToggle, loading, menuItems, 
               type="button"
               disabled={item.disabled}
               onClick={item.onClick}
-              className="w-full text-right px-3 py-2 text-[11px] text-nf-muted hover:bg-nf-hover hover:text-nf-text disabled:opacity-40 transition-colors"
+              className="w-full text-right px-3 py-2 text-[11px] text-nf-text hover:bg-nf-hover disabled:opacity-40 transition-colors"
               role="menuitem"
             >
               {item.label}

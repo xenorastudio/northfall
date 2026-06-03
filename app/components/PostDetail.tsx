@@ -91,7 +91,7 @@ function OverflowMenu({
         <MoreHorizontal size={14} />
       </button>
       {open && (
-        <div className="absolute top-full mt-1 left-0 z-50 min-w-[150px] rounded-xl border border-nf-border-2 bg-nf-primary shadow-xl overflow-hidden py-0.5">
+        <div className="absolute top-full mt-1 left-0 z-50 min-w-[150px] rounded-xl border border-nf-border-2/50 shadow-xl overflow-hidden py-0.5 backdrop-blur-xl" style={{ background: "color-mix(in srgb, var(--bg-body) 80%, transparent)" }}>
           {items.map((item) => (
             <button
               key={item.label}
@@ -99,7 +99,7 @@ function OverflowMenu({
               onClick={() => { item.onClick(); setOpen(false); }}
               className={cn(
                 "w-full flex items-center gap-2 px-3 py-2 text-[11px] transition-colors text-right",
-                item.danger ? "text-red-400 hover:bg-red-500/10" : "text-nf-muted hover:bg-nf-hover hover:text-nf-text"
+                item.danger ? "text-red-400 hover:bg-red-500/10" : "text-nf-text hover:bg-nf-hover"
               )}
             >
               {item.icon}
