@@ -35,13 +35,19 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!thread) return { title: "NorthFall" };
 
   const images: { url: string; width?: number; height?: number }[] = [];
-  if (thread.authorPhoto) {
+
+  const bodyText = typeof thread.body === "string" ? thread.body : "";
+  const firstMdImg = bodyText.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+  if (firstMdImg) {
+    images.push({ url: firstMdImg[2], width: 1200, height: 630 });
+  }
+  if (thread.authorPhoto && !firstMdImg) {
     images.push({ url: thread.authorPhoto, width: 256, height: 256 });
   }
 
   const title = thread.title ? `${thread.title} — NorthFall` : "NorthFall";
-  const description = thread.body
-    ? thread.body.replace(/<[^>]*>/g, "").slice(0, 200)
+  const description = bodyText
+    ? bodyText.replace(/<[^>]*>/g, "").replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "").slice(0, 200) || "منشور في NorthFall"
     : "منشور في NorthFall";
 
   return {
