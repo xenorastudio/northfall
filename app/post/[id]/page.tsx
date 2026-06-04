@@ -35,14 +35,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       images.push({ url: imgFromField[0], width: 1200, height: 630 });
     } else {
       const body = typeof post?.body === "string" ? post.body : "";
-      const mdImg = body.match(/!\[([^\]]*)\]\(([^)]+)\)/);
-      const rawImg = mdImg
-        ? mdImg[2]
-        : body.match(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg|tiff|tif|ico|heic|heif|avif)(?:[?#][^\s)]*)?/i)?.[0];
-      if (rawImg) {
-        images.push({ url: rawImg, width: 1200, height: 630 });
-      } else if (post?.authorPhoto) {
-        images.push({ url: post.authorPhoto, width: 256, height: 256 });
+      const allUrls = [
+        ...body.matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g),
+        ...body.matchAll(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg|tiff|tif|ico|heic|heif|avif)(?:[?#][^\s)]*)?/gi),
+      ].map(m => m[2] || m[0]).filter(Boolean);
+
+      const nonGif = allUrls.find(u => !u.match(/\.gif(?:[?#]|$)/i));
+      const chosen = nonGif || allUrls[0] || (typeof post?.authorPhoto === "string" ? post.authorPhoto : null);
+      if (chosen) {
+        images.push({ url: chosen, width: 1200, height: 630 });
       }
     }
 

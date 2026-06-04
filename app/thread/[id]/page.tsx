@@ -38,17 +38,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   const bodyText = typeof thread.body === "string" ? thread.body : "";
 
-  const mdImg = bodyText.match(/!\[([^\]]*)\]\(([^)]+)\)/);
-  const rawImgUrl = mdImg
-    ? mdImg[2]
-    : bodyText.match(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg|tiff|tif|ico|heic|heif|avif)(?:[?#][^\s)]*)?/i)?.[0];
+  const allUrls = [
+    ...bodyText.matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g),
+    ...bodyText.matchAll(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg|tiff|tif|ico|heic|heif|avif)(?:[?#][^\s)]*)?/gi),
+  ].map(m => m[2] || m[0]).filter(Boolean);
 
+  const nonGif = allUrls.find(u => !u.match(/\.gif(?:[?#]|$)/i));
   const authorPhoto = typeof thread.authorPhoto === "string" ? thread.authorPhoto : null;
-
-  if (rawImgUrl) {
-    images.push({ url: rawImgUrl, width: 1200, height: 630 });
-  } else if (authorPhoto) {
-    images.push({ url: authorPhoto, width: 256, height: 256 });
+  const chosen = nonGif || allUrls[0] || authorPhoto;
+  if (chosen) {
+    images.push({ url: chosen, width: 1200, height: 630 });
   }
 
   const title = thread.title ? `${thread.title} — NorthFall` : "NorthFall";
