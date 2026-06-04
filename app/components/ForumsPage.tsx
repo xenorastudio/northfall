@@ -475,9 +475,8 @@ function renderBody(text: string, onMentionClick?: (name: string) => void, onIma
     cleanText = cleanText.replace(u.url, `\x01URL${i}\x02`);
   });
 
-  // Collapse whitespace but preserve paragraph breaks (double newlines)
-  cleanText = cleanText.replace(/\n{2,}/g, "\n\n");
-  cleanText = cleanText.replace(/[ \t]{2,}/g, " ").trim();
+  // Normalize excessive newlines but preserve spaces and tabs
+  cleanText = cleanText.replace(/\n{3,}/g, "\n\n").trim();
 
   // Helper: render a media element by type
   const renderMedia = (type: string, url: string, idx: number) => {

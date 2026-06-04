@@ -16,7 +16,8 @@ export function postBodyPreviewText(body: string, maxLen = 280): string {
     .replace(/^\d+\.\s+/gm, "")
     .replace(/\|[^|\n]+\|/g, " ")
     .replace(/[#*_~^]/g, "")
-    .replace(/\s+/g, " ")
+    .replace(/ {2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
   if (!s) return "";
   return s.length > maxLen ? `${s.slice(0, maxLen)}…` : s;

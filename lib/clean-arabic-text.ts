@@ -7,7 +7,7 @@ const ARABIC_DIACRITICS =
 
 export function cleanArabicText(text: string): string {
   if (!text) return "";
-  return text.replace(ARABIC_DIACRITICS, "").replace(/\s{2,}/g, " ").trim();
+  return text.replace(ARABIC_DIACRITICS, "");
 }
 
 /** تنظيف مع الحفاظ على الأسطر في النصوص متعددة الفقرات */

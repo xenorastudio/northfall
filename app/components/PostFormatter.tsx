@@ -158,11 +158,11 @@ export function renderFormattedBody(text: string, opts?: { compact?: boolean }):
         compact ? (
           <span
             key={i}
-            className="text-sm text-nf-text-2 leading-relaxed nf-comment-inline"
+            className="text-sm text-nf-text-2 leading-relaxed nf-comment-inline whitespace-pre-wrap"
             dangerouslySetInnerHTML={{ __html: formatted }}
           />
         ) : (
-          <p key={i} className="text-sm text-nf-text-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />
+          <p key={i} className="text-sm text-nf-text-2 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formatted }} />
         )
       );
       continue;
@@ -287,11 +287,11 @@ export function renderFormattedBody(text: string, opts?: { compact?: boolean }):
         compact ? (
           <span
             key={i}
-            className="text-sm text-nf-text-2 leading-relaxed nf-comment-inline block my-0.5"
+            className="text-sm text-nf-text-2 leading-relaxed nf-comment-inline block my-0.5 whitespace-pre-wrap"
             dangerouslySetInnerHTML={{ __html: formatted }}
           />
         ) : (
-          <p key={i} className="text-sm text-nf-text-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />
+          <p key={i} className="text-sm text-nf-text-2 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formatted }} />
         )
       );
       continue;
@@ -312,13 +312,13 @@ export function renderFormattedBody(text: string, opts?: { compact?: boolean }):
       result.push(
         <span
           key={i}
-          className="text-sm text-nf-text-2 leading-relaxed nf-comment-inline"
+          className="text-sm text-nf-text-2 leading-relaxed nf-comment-inline whitespace-pre-wrap"
           dangerouslySetInnerHTML={{ __html: formatted }}
         />
       );
       continue;
     }
-    result.push(<p key={i} className="text-sm text-nf-text-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />);
+    result.push(<p key={i} className="text-sm text-nf-text-2 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formatted }} />);
   }
 
   if (inCodeBlock && codeLines.length > 0) {
