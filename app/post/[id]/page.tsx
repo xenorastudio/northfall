@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       const mdImg = body.match(/!\[([^\]]*)\]\(([^)]+)\)/);
       const rawImg = mdImg
         ? mdImg[2]
-        : body.match(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|gif|webp|bmp)(?:\?[^\s)]*)?/i)?.[0];
+        : body.match(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg|tiff|tif|ico|heic|heif|avif)(?:[?#][^\s)]*)?/i)?.[0];
       if (rawImg) {
         images.push({ url: rawImg, width: 1200, height: 630 });
       } else if (post?.authorPhoto) {
