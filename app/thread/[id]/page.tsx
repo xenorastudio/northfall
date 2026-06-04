@@ -37,12 +37,18 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const images: { url: string; width?: number; height?: number }[] = [];
 
   const bodyText = typeof thread.body === "string" ? thread.body : "";
-  const firstMdImg = bodyText.match(/!\[([^\]]*)\]\(([^)]+)\)/);
-  if (firstMdImg) {
-    images.push({ url: firstMdImg[2], width: 1200, height: 630 });
-  }
-  if (thread.authorPhoto && !firstMdImg) {
-    images.push({ url: thread.authorPhoto, width: 256, height: 256 });
+
+  const mdImg = bodyText.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+  const rawImgUrl = mdImg
+    ? mdImg[2]
+    : bodyText.match(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|gif|webp|bmp)(?:\?[^\s)]*)?/i)?.[0];
+
+  const authorPhoto = typeof thread.authorPhoto === "string" ? thread.authorPhoto : null;
+
+  if (rawImgUrl) {
+    images.push({ url: rawImgUrl, width: 1200, height: 630 });
+  } else if (authorPhoto) {
+    images.push({ url: authorPhoto, width: 256, height: 256 });
   }
 
   const title = thread.title ? `${thread.title} — NorthFall` : "NorthFall";
