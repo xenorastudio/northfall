@@ -5442,7 +5442,7 @@ ${modePrompts[aiMode] || ""}`;
       </AnimatePresence>
 
       {/* Share Modal */}
-      <ShareModal open={shareModalOpen} onClose={() => setShareModalOpen(false)} postId={sharePostId} postTitle={sharePostTitle} />
+      <ShareModal open={shareModalOpen} onClose={() => setShareModalOpen(false)} postId={sharePostId} postTitle={sharePostTitle} type="thread" />
 
       {/* Report Modal */}
       <ReportModal open={reportModalOpen} onClose={() => { setReportModalOpen(false); setReportReason(""); }} type={reportTarget === "thread" ? "post" : "comment"} targetId={reportTargetId} />

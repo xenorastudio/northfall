@@ -69,15 +69,21 @@ export default function ShareModal({
   onClose,
   postId,
   postTitle,
+  type = "post",
 }: {
   open: boolean;
   onClose: () => void;
   postId: string;
   postTitle: string;
+  type?: "post" | "thread";
 }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
-  const postUrl = typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?view=thread&threadId=${postId}` : "";
+  const postUrl = typeof window !== "undefined"
+    ? type === "thread"
+      ? `${window.location.origin}/thread/${postId}`
+      : `${window.location.origin}/post/${postId}`
+    : "";
 
   const handleShare = (platformId: string) => {
     if (platformId === "copy") {
