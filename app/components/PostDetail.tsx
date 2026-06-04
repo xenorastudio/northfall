@@ -1010,8 +1010,8 @@ export default function PostDetail({ postId, onBack, onCommunityClick, onProfile
         <motion.div className="h-full bg-gradient-to-l from-nf-accent to-[#ff6b6b] rounded-l-full" style={{ width: `${scrollProgress}%` }} transition={{ duration: 0.1 }} />
       </div>
       <div className="mb-4">
-        <button onClick={onBack} className="flex items-center gap-1.5 text-nf-muted hover:text-nf-text text-sm transition-colors">
-          <ArrowRight size={16} /> {t("pd.backToFeed")}
+        <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full text-nf-muted hover:text-nf-text hover:bg-nf-secondary/60 transition-colors">
+          <ArrowRight size={16} />
         </button>
       </div>
 
