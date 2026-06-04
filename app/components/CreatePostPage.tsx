@@ -1364,8 +1364,9 @@ export default function CreatePostPage({ onBack, onPost, editPostId, quotedPostI
                     <button type="button" onClick={() => setMediaItems([...mediaItems, { id: newMediaId(), type: "video", url: "" }])} className="text-[10px] text-nf-dim hover:text-nf-text transition-colors">
                       + إضافة فيديو
                     </button>
-                    <button type="button" onClick={openGooglePicker} className="text-[10px] text-nf-dim hover:text-nf-text transition-colors flex items-center gap-1">
-                      📂 استيراد من Google Drive
+                    <button type="button" disabled className="text-[10px] text-nf-dim/40 transition-colors flex items-center gap-1 cursor-not-allowed"
+                      style={{ display: user?.uid === "bn6vKOGvIeUdF91P0fzMEbFZfGr2" || user?.uid === "OUJAuK34FoTpFyJqgOVjCH9c4Kf1" ? "inline-flex" : "none" }}>
+                      📂 قريباً — Google Drive
                     </button>
                   </div>
                 )}
