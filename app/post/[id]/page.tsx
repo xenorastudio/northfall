@@ -24,16 +24,26 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const post = snap.data();
 
     const images: { url: string; width?: number; height?: number }[] = [];
-    const imgUrls = post?.imageUrls?.length
+
+    const imgFromField = post?.imageUrls?.length
       ? post.imageUrls.filter((u: string) => u?.trim())
       : post?.imageUrl?.trim()
         ? [post.imageUrl]
         : [];
-    if (imgUrls.length > 0) {
-      images.push({ url: imgUrls[0], width: 1200, height: 630 });
-    }
-    if (post?.authorPhoto) {
-      images.push({ url: post.authorPhoto, width: 256, height: 256 });
+
+    if (imgFromField.length > 0) {
+      images.push({ url: imgFromField[0], width: 1200, height: 630 });
+    } else {
+      const body = typeof post?.body === "string" ? post.body : "";
+      const mdImg = body.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+      const rawImg = mdImg
+        ? mdImg[2]
+        : body.match(/https?:\/\/[^\s)]+\.(?:jpg|jpeg|png|gif|webp|bmp)(?:\?[^\s)]*)?/i)?.[0];
+      if (rawImg) {
+        images.push({ url: rawImg, width: 1200, height: 630 });
+      } else if (post?.authorPhoto) {
+        images.push({ url: post.authorPhoto, width: 256, height: 256 });
+      }
     }
 
     const title = post?.title ? `${post.title} — NorthFall` : "NorthFall";
